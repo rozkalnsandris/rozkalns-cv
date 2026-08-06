@@ -1,0 +1,79 @@
+name: Resolve supply-chain identities
+
+on:
+  pull_request:
+    paths:
+      - bot/requirements.in
+      - .github/workflows/resolve-supply-chain.yml
+
+permissions:
+  contents: read
+
+jobs:
+  resolve:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Resolve immutable identities
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          image_digest() {
+            local ref="$1" digest
+            digest="$(
+              docker buildx imagetools inspect "$ref" \
+                | awk '$1 == "Digest:" {print $2; exit}'
+            )"
+            [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+            printf '%s@%s\n' "$ref" "$digest"
+          }
+
+          tag_commit() {
+            local repo="$1" tag="$2" payload type sha
+            payload="$(curl --fail --silent --show-error \
+              -H 'Accept: application/vnd.github+json' \
+              -H 'X-GitHub-Api-Version: 2022-11-28' \
+              "https://api.github.com/repos/${repo}/git/ref/tags/${tag}")"
+            type="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["object"]["type"])' <<<"$payload")"
+            sha="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["object"]["sha"])' <<<"$payload")"
+            if [[ "$type" == tag ]]; then
+              payload="$(curl --fail --silent --show-error \
+                -H 'Accept: application/vnd.github+json' \
+                -H 'X-GitHub-Api-Version: 2022-11-28' \
+                "https://api.github.com/repos/${repo}/git/tags/${sha}")"
+              sha="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["object"]["sha"])' <<<"$payload")"
+            fi
+            [[ "$sha" =~ ^[0-9a-f]{40}$ ]]
+            printf '%s@%s # %s\n' "$repo" "$sha" "$tag"
+          }
+
+          echo '===== IMAGE DIGESTS BEGIN ====='
+          image_digest 'python:3.12.13-slim-bookworm'
+          image_digest 'nginx:1.31.3-alpine'
+          image_digest 'cloudflare/cloudflared:2026.7.3'
+          echo '===== IMAGE DIGESTS END ====='
+
+          echo '===== ACTION COMMITS BEGIN ====='
+          tag_commit 'actions/checkout' 'v5'
+          tag_commit 'actions/upload-artifact' 'v7.0.1'
+          tag_commit 'zricethezav/gitleaks-action' 'v2.3.9'
+          echo '===== ACTION COMMITS END ====='
+
+          resolver="${RUNNER_TEMP}/resolver"
+          python3 -m venv "$resolver"
+          "$resolver/bin/python" -m pip install \
+            --disable-pip-version-check pip-tools==7.5.1
+          "$resolver/bin/pip-compile" \
+            --generate-hashes \
+            --resolver=backtracking \
+            --strip-extras \
+            --output-file "${RUNNER_TEMP}/requirements.lock" \
+            bot/requirements.in
+
+          echo '===== REQUIREMENTS LOCK BEGIN ====='
+          cat "${RUNNER_TEMP}/requirements.lock"
+          echo '===== REQUIREMENTS LOCK END ====='
