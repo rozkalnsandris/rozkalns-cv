@@ -1,0 +1,183 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+IFS=$'\n\t'
+umask 077
+PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+export PATH
+
+TARGET_SHA="${1:-}"
+EVIDENCE_DIR="${2:-}"
+
+OWNER='andris'
+PRIMARY='/home/andris/rozkalns-cv'
+RUNTIME='/home/andris/docker/cv'
+BACKUP_ROOT='/home/andris/.local-backups/rozkalns-cv/deploy'
+STATE_DIR='/var/lib/rozkalns-cv-deploy'
+STATE_FILE="$STATE_DIR/current-sha"
+LOCK_FILE='/run/lock/rozkalns-cv-deploy.lock'
+LOCAL_URL='http://192.168.0.180:8088/'
+PUBLIC_URL='https://rozkalns.net/'
+STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+WORK=''
+BACKUP=''
+OLD_SHA=''
+DEPLOYED=false
+
+fail() {
+    printf 'ERROR: %s\n' "$*" >&2
+    exit 1
+}
+
+owner_git() {
+    runuser -u "$OWNER" -- git "$@"
+}
+
+write_summary() {
+    local result="$1"
+    {
+        printf 'DEPLOY_RESULT=%s\n' "$result"
+        printf 'TARGET_SHA=%s\n' "$TARGET_SHA"
+        printf 'OLD_SHA=%s\n' "${OLD_SHA:-unknown}"
+        printf 'PRODUCTION_CHANGED=%s\n' "$DEPLOYED"
+        printf 'CLOUDFLARED_RESTARTED=false\n'
+        printf 'DATABASE_MIGRATIONS_EXECUTED=false\n'
+        printf 'ROLLBACK_PERFORMED=%s\n' "${2:-false}"
+        printf 'UTC=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    } | tee "$EVIDENCE_DIR/summary.env"
+}
+
+http_ok() {
+    local url="$1"
+    local attempts="${2:-8}"
+    local delay="${3:-5}"
+    local attempt
+    for ((attempt = 1; attempt <= attempts; attempt++)); do
+        if curl --fail --silent --show-error --max-time 20 "$url" >/dev/null; then
+            return 0
+        fi
+        if (( attempt < attempts )); then
+            sleep "$delay"
+        fi
+    done
+    return 1
+}
+
+wait_container() {
+    local name="$1"
+    local attempt state health
+    for attempt in {1..30}; do
+        state="$(docker inspect -f '{{.State.Status}}' "$name" 2>/dev/null || true)"
+        health="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$name" 2>/dev/null || true)"
+        if [[ "$state" == running && "$health" != unhealthy && "$health" != starting ]]; then
+            return 0
+        fi
+        sleep 2
+    done
+    return 1
+}
+
+cleanup() {
+    if [[ -n "$WORK" && -d "$WORK" ]]; then
+        rm -rf -- "$WORK"
+    fi
+}
+trap cleanup EXIT
+
+[[ ${EUID:-$(id -u)} -eq 0 ]] || fail 'deployment helper must run as root'
+[[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]] || fail 'target SHA is invalid'
+[[ -n "$EVIDENCE_DIR" ]] || fail 'evidence directory is required'
+[[ -d "$PRIMARY/.git" ]] || fail "primary Git repository is missing: $PRIMARY"
+[[ -d "$RUNTIME" ]] || fail "runtime directory is missing: $RUNTIME"
+
+install -d -m 0700 "$EVIDENCE_DIR" "$BACKUP_ROOT"
+install -d -m 0755 "$STATE_DIR"
+exec 9>"$LOCK_FILE"
+flock 9
+
+owner_git -C "$PRIMARY" fetch --prune origin main
+REMOTE_MAIN="$(owner_git -C "$PRIMARY" rev-parse refs/remotes/origin/main)"
+owner_git -C "$PRIMARY" cat-file -e "${TARGET_SHA}^{commit}"
+owner_git -C "$PRIMARY" merge-base --is-ancestor "$TARGET_SHA" "$REMOTE_MAIN" \
+    || fail 'target SHA is not an ancestor of current origin/main'
+
+if [[ -s "$STATE_FILE" ]]; then
+    OLD_SHA="$(tr -d '[:space:]' <"$STATE_FILE")"
+fi
+
+if [[ "$OLD_SHA" == "$TARGET_SHA" ]]; then
+    write_summary 'NO_OP_ALREADY_CURRENT' false
+    exit 0
+fi
+
+if [[ "$OLD_SHA" =~ ^[0-9a-f]{40}$ ]] \
+   && owner_git -C "$PRIMARY" merge-base --is-ancestor "$TARGET_SHA" "$OLD_SHA"; then
+    write_summary 'NO_OP_STALE' false
+    exit 0
+fi
+
+install -d -o "$OWNER" -g "$OWNER" -m 0700 /home/andris/.cache/rozkalns-cv-deploy
+WORK="$(runuser -u "$OWNER" -- mktemp -d '/home/andris/.cache/rozkalns-cv-deploy/run.XXXXXXXX')"
+STAGE="$WORK/source"
+owner_git -C "$PRIMARY" worktree add --detach "$STAGE" "$TARGET_SHA" >/dev/null
+trap 'owner_git -C "$PRIMARY" worktree remove --force "$STAGE" >/dev/null 2>&1 || true; cleanup' EXIT
+
+bash "$STAGE/scripts/validate-source.sh" "$STAGE" \
+    >"$EVIDENCE_DIR/source-validation.log" 2>&1
+
+BACKUP="$BACKUP_ROOT/${STAMP}-${OLD_SHA:-unknown}"
+install -d -m 0700 "$BACKUP"
+rsync -a "$RUNTIME/" "$BACKUP/runtime/"
+
+# Preserve host-only secrets, generated statistics, and CV assistant
+# runtime conversations. Repository deploys must never delete or publish them.
+rsync -a --delete \
+    --exclude='.git/' \
+    --exclude='.env' \
+    --exclude='*.env' \
+    --exclude='cloudflared.env' \
+    --exclude='stats.json' \
+    --exclude='bot/data/' \
+    "$STAGE/" "$RUNTIME/"
+DEPLOYED=true
+
+deploy_runtime() {
+    (
+        cd "$RUNTIME"
+        docker compose config --quiet
+        docker compose up -d --build --no-deps cv cvbot
+    )
+    wait_container cv
+    wait_container cvbot
+    http_ok "$LOCAL_URL" 10 3
+    http_ok "$PUBLIC_URL" 10 5
+}
+
+rollback() {
+    printf 'ROLLBACK_BEGIN=true\n' | tee -a "$EVIDENCE_DIR/deploy.log"
+    rsync -a --delete "$BACKUP/runtime/" "$RUNTIME/"
+    if deploy_runtime; then
+        printf 'ROLLBACK_END=PASS\n' | tee -a "$EVIDENCE_DIR/deploy.log"
+        write_summary 'FAIL_ROLLBACK_PASS' true
+        return 0
+    fi
+    printf 'ROLLBACK_END=FAIL\n' | tee -a "$EVIDENCE_DIR/deploy.log"
+    write_summary 'FAIL_ROLLBACK_FAIL' true
+    return 1
+}
+
+if ! deploy_runtime >"$EVIDENCE_DIR/deploy.log" 2>&1; then
+    rollback || true
+    exit 1
+fi
+
+{
+    docker inspect cv cvbot \
+        --format '{{.Name}}|{{.Config.Image}}|{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}'
+    printf 'LOCAL_URL=PASS\n'
+    printf 'PUBLIC_URL=PASS\n'
+} >"$EVIDENCE_DIR/runtime-health.txt"
+
+printf '%s\n' "$TARGET_SHA" >"$STATE_FILE"
+chmod 0644 "$STATE_FILE"
+
+write_summary 'PASS' false

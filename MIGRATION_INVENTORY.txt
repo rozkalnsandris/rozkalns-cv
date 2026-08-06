@@ -1,0 +1,82 @@
+SOURCE=/home/andris/docker/cv
+HISTORY_CLEANED_AT_UTC=20260806T130538Z
+FILES_BEGIN
+.env.example	86 bytes
+.github/workflows/ci.yml	1107 bytes
+.github/workflows/deploy-main.yml	6127 bytes
+.gitignore	409 bytes
+CLOUDFLARE.md	2796 bytes
+README.md	850 bytes
+bot/.env.example	211 bytes
+bot/Dockerfile	325 bytes
+bot/__pycache__/app.cpython-311.pyc	17061 bytes
+bot/app.py	12108 bytes
+bot/data/.gitkeep	0 bytes
+bot/requirements.txt	47 bytes
+cloudflared.env.example	56 bytes
+docker-compose.network.yml	290 bytes
+docker-compose.yml	1151 bytes
+docs/MIGRATION_RUNBOOK.md	3386 bytes
+docs/PROJECT_KNOWLEDGE.md	3279 bytes
+docs/RESEARCH_PROVENANCE.md	1585 bytes
+html/cv-de.pdf	119532 bytes
+html/cv-lv.pdf	117665 bytes
+html/cv.pdf	117269 bytes
+html/index.html	116874 bytes
+html/photo.jpg	29454 bytes
+html/robots.txt	44 bytes
+html/smarthome.html	25807 bytes
+nginx.conf	1428 bytes
+runner/activate-github-main-deploy.sh	1482 bytes
+runner/install-github-cv-runner.sh	4523 bytes
+runner/install-github-main-deploy.sh	1135 bytes
+runner/release/rozkalns-cv-deploy-main	5498 bytes
+scripts/bootstrap-github.sh	1519 bytes
+scripts/secret-scan.py	1745 bytes
+scripts/validate-source.sh	3869 bytes
+stats.sh	2413 bytes
+tests/__pycache__/test_deploy_contract.cpython-313.pyc	5238 bytes
+tests/test_deploy_contract.py	3723 bytes
+update.sh	37179 bytes
+update_cv-1.sh	37954 bytes
+FILES_END
+SHA256_BEGIN
+53dc318d22ffd3174d673c456fa916c1e6026faad5da7a9fca1ccd00b4b4e5fc  ./.env.example
+c54d7803fa72145724b095793e0589c6ade08e1f54868738f59d1e3d1f6faf35  ./.github/workflows/ci.yml
+4956060601d5ff1d8933dfb14267f802523757e0ade8da30bdbda7ae83430f72  ./.github/workflows/deploy-main.yml
+6253ef7f3cbafe3b1ce2978b714c6e160761154cf7b8855db2fc8ae3eadacfdb  ./.gitignore
+a58fca9f093eadca961491e3f44ef4d199d49ce15e0c3e17d45dcb4c62776b3e  ./CLOUDFLARE.md
+eba02f5666d7c7dcf9aa9adec7ba42b79e7430dc6781eb6cb3f10996c4f6ee66  ./README.md
+97ba4f5f2159f6d3649ed415d3cd0063fc224650f9bd314bf7ed920ed300514c  ./bot/.env.example
+09334fa7e0eaf48f9c45e0e6873184b870124c80978f4d9939f1c5afea875ed1  ./bot/Dockerfile
+bd9d6358faffd486d3759dcb42d475c41a844b1eb8b129a9ebcc0d5711a51de6  ./bot/__pycache__/app.cpython-311.pyc
+1dbcdaf1502346f86c441f6b1bd12bc3fb153d518dd9cf21411ec4339fa1babb  ./bot/app.py
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./bot/data/.gitkeep
+760a44869947f3d83f164cd51ee2c7e21d5e3360d1c23b3c922563baf03b99b3  ./bot/requirements.txt
+c5a46eed124a0ed02223bf51bfbc25210c4cfe45c083135b3896f080a90ecb15  ./cloudflared.env.example
+41bc99fc1c6b7bc426f4a5994abd5fd0a441d4325d2a1c7b8a0b18537ceddcd0  ./docker-compose.network.yml
+d219fd130b43879a4d7cc45cb308cfc9660acbb72c8754ea1f29950d8a92bd2b  ./docker-compose.yml
+b0f30abfe5658300bf41915aa6ab92125b0c45b8bae6319f995ab33b0ff53b69  ./docs/MIGRATION_RUNBOOK.md
+6d499f7f3953058da68b61913a96c1ce47aeb808eb26f32f02d8a30165b28881  ./docs/PROJECT_KNOWLEDGE.md
+fc130304cb175be5060ac55fc15fc3ef52281520a13e8a9bbd90dbb1155ee5c5  ./docs/RESEARCH_PROVENANCE.md
+3e03d46adc75b95c9359802f5e6b5d541a6a8bbcd663300dbc5f2657b1ff7b64  ./html/cv-de.pdf
+a1677d8160f96516aa73595ca9959ad5d52f63f4363259fd29eb64091a6736b0  ./html/cv-lv.pdf
+1234942691c7bd90502f43fabdf312267567cad0e5d0a09f9ab427e024364776  ./html/cv.pdf
+653deaacaea74ff17eb9d5936e145c5f5d0b6f0d292338f14c55a554c22d892e  ./html/index.html
+f9a54c7dd9df18ed6938981b418d8a5d7b4068efc26962a9a489c4957f93e6aa  ./html/photo.jpg
+6c828d63ec536900c1605cf1faa2e1a8ef5bbb29c93ca5a71228caa37b766fca  ./html/robots.txt
+1767067f6269dc748de93743e6214261452ddc45975efd3979f6b515ac952178  ./html/smarthome.html
+d421254d591a6f6426573c0580b9cdc13d45e8853916c65beafb935015e78f72  ./nginx.conf
+85a8ec0b4b36654e90c4ad20807dc1a09d964d0f93a591af916ec29d6c98df4c  ./runner/activate-github-main-deploy.sh
+a6bb062e8d4e4867b36599ac27bdff2e90d245009ecdbddc7cc992d5e6d94062  ./runner/install-github-cv-runner.sh
+3a6a9e90570d4215c901d5acee459ea39f0ca72f6ccf16deec2c59131b926949  ./runner/install-github-main-deploy.sh
+a43ecad1d44a056cef31e0614dd9eb95b29bc8853f8c21df8b3957bf37f67e24  ./runner/release/rozkalns-cv-deploy-main
+0b43a7b2b72e3e9eb031e96c0c83effdd608bd4b54a3f6e4870b547c0cf5610b  ./scripts/bootstrap-github.sh
+4ed7d0a7107ab8a5d544378b4291d804af260a51a9513b92b69507e30613b388  ./scripts/secret-scan.py
+18ab166a648c4291d9412da35344e96339e429efc1ef76656231ed502403a435  ./scripts/validate-source.sh
+587609118a80da92f3934308fb0365731d55fe2cf95703300d27328bf88a70de  ./stats.sh
+a354eeca157ddc30da070219e686af92d49be4f0eec22b3f9a490bb111330c9a  ./tests/__pycache__/test_deploy_contract.cpython-313.pyc
+2830fd35eaffc40bbabd45d7b3ad8c184305c3bb472e85220cfe7c9062bb79f5  ./tests/test_deploy_contract.py
+1722d3d7291ab67c0681a443c5665e4c4cd8b9e44ddee8938aa0506e8d568b8d  ./update.sh
+bb69e814cc5b62b3f7450f2319d0cefe2e6a6248a1d68f9a264116bbc9f47ec7  ./update_cv-1.sh
+SHA256_END

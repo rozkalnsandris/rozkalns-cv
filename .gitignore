@@ -1,0 +1,37 @@
+# Secrets
+.env
+.env.*
+!.env.example
+*.env
+!*.env.example
+cloudflared.env
+
+# Runtime and generated state
+stats.json
+*.log
+logs/
+tmp/
+.cache/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+.coverage
+htmlcov/
+
+# Local backups and editor files
+*.bak
+*.bak-*
+*.bak.*
+backup/
+backups/
+.vscode/
+.idea/
+.DS_Store
+
+# Deployment state/evidence
+.deploy-state/
+evidence/
+
+# CV assistant runtime data
+bot/data/*
+!bot/data/.gitkeep

@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Validate source and deployment contracts
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash scripts/validate-source.sh "$PWD"
+          python3 -m unittest discover -s tests -p 'test_*.py' -v
+
+      - name: Build CV assistant image
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          cleanup() {
+            rm -f cloudflared.env bot/.env
+          }
+          trap cleanup EXIT
+          install -d -m 0700 bot
+          printf 'CF_TUNNEL_TOKEN=ci-placeholder-not-a-secret\n' > cloudflared.env
+          : > bot/.env
+          chmod 0600 cloudflared.env bot/.env
+          CF_TUNNEL_TOKEN='ci-placeholder-not-a-secret' \
+            docker compose build cvbot
