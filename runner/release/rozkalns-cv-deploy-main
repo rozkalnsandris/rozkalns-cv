@@ -15,13 +15,18 @@ BACKUP_ROOT='/home/andris/.local-backups/rozkalns-cv/deploy'
 STATE_DIR='/var/lib/rozkalns-cv-deploy'
 STATE_FILE="$STATE_DIR/current-sha"
 LOCK_FILE='/run/lock/rozkalns-cv-deploy.lock'
+EVIDENCE_ROOT='/home/github-cv-runner/actions-runner/_work/_temp'
 LOCAL_URL='http://192.168.0.180:8088/'
 PUBLIC_URL='https://rozkalns.net/'
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 WORK=''
+STAGE=''
 BACKUP=''
 OLD_SHA=''
 DEPLOYED=false
+EVIDENCE_READY=false
+EVIDENCE_UID=''
+EVIDENCE_GID=''
 
 fail() {
     printf 'ERROR: %s\n' "$*" >&2
@@ -34,6 +39,7 @@ owner_git() {
 
 write_summary() {
     local result="$1"
+    local rollback_performed="${2:-false}"
     {
         printf 'DEPLOY_RESULT=%s\n' "$result"
         printf 'TARGET_SHA=%s\n' "$TARGET_SHA"
@@ -41,7 +47,7 @@ write_summary() {
         printf 'PRODUCTION_CHANGED=%s\n' "$DEPLOYED"
         printf 'CLOUDFLARED_RESTARTED=false\n'
         printf 'DATABASE_MIGRATIONS_EXECUTED=false\n'
-        printf 'ROLLBACK_PERFORMED=%s\n' "${2:-false}"
+        printf 'ROLLBACK_PERFORMED=%s\n' "$rollback_performed"
         printf 'UTC=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     } | tee "$EVIDENCE_DIR/summary.env"
 }
@@ -62,34 +68,135 @@ http_ok() {
     return 1
 }
 
-wait_container() {
+wait_running() {
     local name="$1"
-    local attempt state health
-    for attempt in {1..30}; do
+    local attempts="${2:-30}"
+    local delay="${3:-2}"
+    local attempt state
+    for ((attempt = 1; attempt <= attempts; attempt++)); do
         state="$(docker inspect -f '{{.State.Status}}' "$name" 2>/dev/null || true)"
-        health="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$name" 2>/dev/null || true)"
-        if [[ "$state" == running && "$health" != unhealthy && "$health" != starting ]]; then
+        if [[ "$state" == running ]]; then
             return 0
         fi
-        sleep 2
+        if [[ "$state" == exited || "$state" == dead ]]; then
+            return 1
+        fi
+        sleep "$delay"
     done
     return 1
 }
 
-cleanup() {
+wait_healthy() {
+    local name="$1"
+    local attempts="${2:-60}"
+    local delay="${3:-2}"
+    local attempt state health
+    for ((attempt = 1; attempt <= attempts; attempt++)); do
+        state="$(docker inspect -f '{{.State.Status}}' "$name" 2>/dev/null || true)"
+        health="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$name" 2>/dev/null || true)"
+        printf 'WAIT_HEALTH name=%s attempt=%s state=%s health=%s\n' \
+            "$name" "$attempt" "${state:-missing}" "${health:-missing}"
+        if [[ "$state" == running && "$health" == healthy ]]; then
+            return 0
+        fi
+        if [[ "$state" == exited || "$state" == dead || "$health" == unhealthy ]]; then
+            return 1
+        fi
+        sleep "$delay"
+    done
+    return 1
+}
+
+capture_runtime_diagnostics() {
+    local label="$1"
+    local output="$EVIDENCE_DIR/${label}.log"
+    {
+        printf 'LABEL=%s\n' "$label"
+        printf 'UTC=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        printf '\n===== COMPOSE PS =====\n'
+        (
+            cd "$RUNTIME"
+            docker compose ps
+        ) || true
+        printf '\n===== CONTAINER SUMMARY =====\n'
+        docker inspect cv cvbot cv-cloudflared \
+            --format '{{.Name}}|image={{.Config.Image}}|status={{.State.Status}}|health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}|started={{.State.StartedAt}}|restarts={{.RestartCount}}' \
+            || true
+        printf '\n===== CVBOT HEALTH HISTORY =====\n'
+        docker inspect cvbot \
+            --format '{{if .State.Health}}{{range .State.Health.Log}}{{.Start}}|exit={{.ExitCode}}|{{printf "%q" .Output}}{{println}}{{end}}{{else}}no-healthcheck{{end}}' \
+            || true
+        printf '\n===== CVBOT LOGS =====\n'
+        docker logs --tail 240 --timestamps cvbot 2>&1 || true
+        printf '\n===== LOCAL HTTP =====\n'
+        if curl --fail --silent --show-error --max-time 20 "$LOCAL_URL" >/dev/null; then
+            printf 'LOCAL_URL=PASS\n'
+        else
+            printf 'LOCAL_URL=FAIL\n'
+        fi
+        printf '\n===== PUBLIC HTTP =====\n'
+        if curl --fail --silent --show-error --max-time 20 "$PUBLIC_URL" >/dev/null; then
+            printf 'PUBLIC_URL=PASS\n'
+        else
+            printf 'PUBLIC_URL=FAIL\n'
+        fi
+    } >"$output" 2>&1
+}
+
+finalize_evidence() {
+    [[ "$EVIDENCE_READY" == true ]] || return 0
+    [[ -d "$EVIDENCE_DIR" && ! -L "$EVIDENCE_DIR" ]] || return 0
+    chown -R -- "$EVIDENCE_UID:$EVIDENCE_GID" "$EVIDENCE_DIR"
+    chmod -R u+rwX,go-rwx "$EVIDENCE_DIR"
+}
+
+finish() {
+    local rc="$1"
+    trap - EXIT
+    if [[ -n "$STAGE" && -d "$STAGE" ]]; then
+        owner_git -C "$PRIMARY" worktree remove --force "$STAGE" >/dev/null 2>&1 || true
+    fi
     if [[ -n "$WORK" && -d "$WORK" ]]; then
         rm -rf -- "$WORK"
     fi
+    finalize_evidence || true
+    exit "$rc"
 }
-trap cleanup EXIT
+trap 'finish $?' EXIT
 
 [[ ${EUID:-$(id -u)} -eq 0 ]] || fail 'deployment helper must run as root'
+[[ "${SUDO_USER:-}" == github-cv-runner ]] \
+    || fail 'deployment helper must be invoked by the dedicated CV runner'
+[[ "${SUDO_UID:-}" =~ ^[0-9]+$ && "${SUDO_GID:-}" =~ ^[0-9]+$ ]] \
+    || fail 'runner uid/gid are unavailable'
+[[ "${SUDO_UID}" -gt 0 && "${SUDO_GID}" -gt 0 ]] \
+    || fail 'runner uid/gid must be non-root'
+EVIDENCE_UID="$SUDO_UID"
+EVIDENCE_GID="$SUDO_GID"
+
 [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]] || fail 'target SHA is invalid'
 [[ -n "$EVIDENCE_DIR" ]] || fail 'evidence directory is required'
 [[ -d "$PRIMARY/.git" ]] || fail "primary Git repository is missing: $PRIMARY"
 [[ -d "$RUNTIME" ]] || fail "runtime directory is missing: $RUNTIME"
+[[ -d "$EVIDENCE_DIR" && ! -L "$EVIDENCE_DIR" ]] \
+    || fail 'evidence directory must already exist and must not be a symlink'
 
-install -d -m 0700 "$EVIDENCE_DIR" "$BACKUP_ROOT"
+EVIDENCE_REAL="$(realpath -e -- "$EVIDENCE_DIR")"
+case "$EVIDENCE_REAL" in
+    "$EVIDENCE_ROOT"/rozkalns-cv-main-deploy-*)
+        ;;
+    *)
+        fail 'evidence directory is outside the dedicated runner temp root'
+        ;;
+esac
+[[ "$(stat -c '%u' "$EVIDENCE_DIR")" == "$EVIDENCE_UID" ]] \
+    || fail 'evidence directory is not owned by the invoking runner'
+[[ "$(stat -c '%g' "$EVIDENCE_DIR")" == "$EVIDENCE_GID" ]] \
+    || fail 'evidence directory group does not match the invoking runner'
+EVIDENCE_DIR="$EVIDENCE_REAL"
+EVIDENCE_READY=true
+
+install -d -m 0700 "$BACKUP_ROOT"
 install -d -m 0755 "$STATE_DIR"
 exec 9>"$LOCK_FILE"
 flock 9
@@ -119,7 +226,6 @@ install -d -o "$OWNER" -g "$OWNER" -m 0700 /home/andris/.cache/rozkalns-cv-deplo
 WORK="$(runuser -u "$OWNER" -- mktemp -d '/home/andris/.cache/rozkalns-cv-deploy/run.XXXXXXXX')"
 STAGE="$WORK/source"
 owner_git -C "$PRIMARY" worktree add --detach "$STAGE" "$TARGET_SHA" >/dev/null
-trap 'owner_git -C "$PRIMARY" worktree remove --force "$STAGE" >/dev/null 2>&1 || true; cleanup' EXIT
 
 bash "$STAGE/scripts/validate-source.sh" "$STAGE" \
     >"$EVIDENCE_DIR/source-validation.log" 2>&1
@@ -127,6 +233,8 @@ bash "$STAGE/scripts/validate-source.sh" "$STAGE" \
 BACKUP="$BACKUP_ROOT/${STAMP}-${OLD_SHA:-unknown}"
 install -d -m 0700 "$BACKUP"
 rsync -a "$RUNTIME/" "$BACKUP/runtime/"
+
+capture_runtime_diagnostics 'pre-deploy-runtime'
 
 # Preserve host-only secrets, generated statistics, and CV assistant
 # runtime conversations. Repository deploys must never delete or publish them.
@@ -144,10 +252,15 @@ deploy_runtime() {
     (
         cd "$RUNTIME"
         docker compose config --quiet
-        docker compose up -d --build --no-deps cv cvbot
+        docker compose build cvbot
+        docker compose up -d --no-deps cvbot
     )
-    wait_container cv
-    wait_container cvbot
+    wait_healthy cvbot 60 2
+    (
+        cd "$RUNTIME"
+        docker compose up -d --no-deps cv
+    )
+    wait_running cv 30 2
     http_ok "$LOCAL_URL" 10 3
     http_ok "$PUBLIC_URL" 10 5
 }
@@ -156,19 +269,24 @@ rollback() {
     printf 'ROLLBACK_BEGIN=true\n' | tee -a "$EVIDENCE_DIR/deploy.log"
     rsync -a --delete "$BACKUP/runtime/" "$RUNTIME/"
     if deploy_runtime; then
+        capture_runtime_diagnostics 'post-rollback-runtime'
         printf 'ROLLBACK_END=PASS\n' | tee -a "$EVIDENCE_DIR/deploy.log"
         write_summary 'FAIL_ROLLBACK_PASS' true
         return 0
     fi
+    capture_runtime_diagnostics 'failed-rollback-runtime'
     printf 'ROLLBACK_END=FAIL\n' | tee -a "$EVIDENCE_DIR/deploy.log"
     write_summary 'FAIL_ROLLBACK_FAIL' true
     return 1
 }
 
 if ! deploy_runtime >"$EVIDENCE_DIR/deploy.log" 2>&1; then
+    capture_runtime_diagnostics 'failed-deploy-runtime'
     rollback || true
     exit 1
 fi
+
+capture_runtime_diagnostics 'post-deploy-runtime'
 
 {
     docker inspect cv cvbot \
