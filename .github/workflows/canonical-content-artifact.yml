@@ -8,7 +8,9 @@ on:
     paths:
       - content/**
       - scripts/build-content.py
+      - scripts/sync-system-prompt.py
       - bot/system_prompt.txt
+      - bot/app.py
       - html/i18n/**
       - html/assets/app.*.mjs
       - html/index.html
@@ -32,7 +34,9 @@ jobs:
         run: |
           set -Eeuo pipefail
           python3 scripts/build-content.py --write --accept-pdfs
+          python3 scripts/sync-system-prompt.py --write
           python3 scripts/build-content.py --check
+          python3 scripts/sync-system-prompt.py --check
           git status --short
 
       - name: Upload generated content
@@ -40,6 +44,7 @@ jobs:
         with:
           name: canonical-content-${{ github.sha }}
           path: |
+            bot/app.py
             bot/system_prompt.txt
             content/pdf-manifest.json
             html/i18n
