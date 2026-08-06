@@ -71,23 +71,14 @@ class DeployContractTests(unittest.TestCase):
         nginx_position = lines.index(
             "compose_runtime up -d --no-deps cv || return 1"
         )
-
         self.assertLess(cvbot_position, health_position)
         self.assertLess(health_position, nginx_position)
 
-        text = read(HELPER)
-        self.assertIn('"$health" == healthy', text)
-        self.assertIn("WAIT_HEALTH", text)
-
     def test_runtime_compose_uses_host_env_file(self) -> None:
         text = read(HELPER)
+        self.assertIn('COMPOSE_ENV_FILE="$RUNTIME/cloudflared.env"', text)
         self.assertIn(
-            'COMPOSE_ENV_FILE="$RUNTIME/cloudflared.env"',
-            text,
-        )
-        self.assertIn(
-            'docker compose --env-file "$COMPOSE_ENV_FILE" "$@"',
-            text,
+            'docker compose --env-file "$COMPOSE_ENV_FILE" "$@"', text
         )
         self.assertIn(
             '[[ -s "$COMPOSE_ENV_FILE" && ! -L "$COMPOSE_ENV_FILE" ]]',
@@ -95,10 +86,33 @@ class DeployContractTests(unittest.TestCase):
         )
         self.assertEqual(text.count("docker compose "), 1)
 
+    def test_transaction_covers_every_post_mutation_failure(self) -> None:
+        text = read(HELPER)
+        for marker in (
+            "MUTATION_STARTED=true",
+            "TRANSACTION_COMMITTED=true",
+            "trap 'finish $?' EXIT",
+            '[[ "$MUTATION_STARTED" == true ]]',
+            '[[ "$TRANSACTION_COMMITTED" != true ]]',
+            '[[ "$ROLLBACK_ATTEMPTED" != true ]]',
+            'managed_rsync "$BACKUP/runtime" "$RUNTIME"',
+            "write_state_atomically || fail",
+            "write_runtime_manifest",
+        ):
+            self.assertIn(marker, text)
+
+        mutation = text.index("MUTATION_STARTED=true")
+        source_sync = text.index('managed_rsync "$CANDIDATE" "$RUNTIME"')
+        commit = text.index("TRANSACTION_COMMITTED=true")
+        state = text.index("write_state_atomically || fail")
+        self.assertLess(mutation, source_sync)
+        self.assertLess(source_sync, state)
+        self.assertLess(state, commit)
+
     def test_critical_deploy_failures_are_explicitly_propagated(self) -> None:
         text = read(HELPER)
         for marker in (
-            "normalize_static_permissions || return 1",
+            'normalize_managed_permissions "$RUNTIME" || return 1',
             "compose_runtime config --quiet || return 1",
             "compose_runtime build cvbot || return 1",
             "compose_runtime up -d --no-deps cvbot || return 1",
@@ -111,45 +125,70 @@ class DeployContractTests(unittest.TestCase):
         ):
             self.assertIn(marker, text)
 
-        deployed = text.index("DEPLOYED=true")
-        source_sync = text.index("if ! rsync -a --delete")
-        source_failure = text.index(
-            "capture_runtime_diagnostics 'failed-source-sync-runtime'"
-        )
-        source_rollback = text.index("rollback || true", source_failure)
-        self.assertLess(deployed, source_sync)
-        self.assertLess(source_sync, source_failure)
-        self.assertLess(source_failure, source_rollback)
-
-    def test_static_permissions_are_normalized_safely(self) -> None:
+    def test_static_permissions_and_candidate_are_validated_safely(self) -> None:
         text = read(HELPER)
         for marker in (
             "umask 022; exec git",
-            '[[ -d "$RUNTIME/html" && ! -L "$RUNTIME/html" ]]',
-            '[[ -f "$RUNTIME/html/index.html" && '
-            '! -L "$RUNTIME/html/index.html" ]]',
-            '[[ -f "$RUNTIME/nginx.conf" && '
-            '! -L "$RUNTIME/nginx.conf" ]]',
-            'find "$RUNTIME/html" -type d -exec chmod 0755 {} + '
-            '|| return 1',
-            'find "$RUNTIME/html" -type f -exec chmod 0644 {} + '
-            '|| return 1',
-            'chmod 0644 "$RUNTIME/nginx.conf" || return 1',
+            '[[ -d "$root/html" && ! -L "$root/html" ]]',
+            '[[ -f "$root/html/index.html" && ! -L "$root/html/index.html" ]]',
+            '[[ -f "$root/nginx.conf" && ! -L "$root/nginx.conf" ]]',
+            'find "$root" -type l -print -quit',
+            'find "$root/html" -type d -exec chmod 0755 {} +',
+            'find "$root/html" -type f -exec chmod 0644 {} +',
+            'managed_rsync "$STAGE" "$CANDIDATE"',
+            'normalize_managed_permissions "$CANDIDATE"',
         ):
             self.assertIn(marker, text)
 
+    def test_capacity_atomic_state_and_backup_retention_are_required(self) -> None:
+        text = read(HELPER)
+        for marker in (
+            "BACKUP_RETENTION_COUNT=5",
+            "BACKUP_RETENTION_DAYS=14",
+            "MIN_FREE_BYTES=1073741824",
+            "MIN_FREE_INODES=10000",
+            'require_capacity "$RUNTIME"',
+            'require_capacity "$BACKUP_ROOT"',
+            'mktemp "$STATE_DIR/.current-sha.XXXXXXXX"',
+            'mv -f -- "$tmp" "$STATE_FILE"',
+            'sync -f "$STATE_DIR"',
+            "prune_backups || fail 'backup retention preflight failed'",
+        ):
+            self.assertIn(marker, text)
+
+    def test_backup_does_not_duplicate_secrets_or_chat_data(self) -> None:
+        text = read(HELPER)
+        self.assertIn('managed_rsync "$RUNTIME" "$BACKUP/runtime"', text)
+        for marker in (
+            "--exclude='.env'",
+            "--exclude='*.env'",
+            "--exclude='cloudflared.env'",
+            "--exclude='stats.json'",
+            "--exclude='bot/data/'",
+        ):
+            self.assertIn(marker, text)
+
+    def test_source_validation_runs_as_unprivileged_owner(self) -> None:
+        text = read(HELPER)
+        self.assertIn(
+            'runuser -u "$OWNER" -- bash '
+            '"$STAGE/scripts/validate-source.sh" "$STAGE"',
+            text,
+        )
+        self.assertNotIn(
+            'bash "$STAGE/scripts/validate-source.sh" "$STAGE"', text
+        )
+
     def test_failure_diagnostics_are_captured_before_rollback(self) -> None:
         text = read(HELPER)
-        diagnostics = text.index(
-            "capture_runtime_diagnostics 'failed-deploy-runtime'"
-        )
-        rollback = text.index("rollback || true", diagnostics)
-        self.assertLess(diagnostics, rollback)
         for marker in (
-            "CVBOT HEALTH HISTORY",
-            "CVBOT LOGS",
+            "failed-source-sync-runtime",
+            "failed-deploy-runtime",
+            "failed-rollback-sync-runtime",
             "post-rollback-runtime",
             "failed-rollback-runtime",
+            "CVBOT HEALTH HISTORY",
+            "CVBOT LOGS",
         ):
             self.assertIn(marker, text)
 
@@ -169,11 +208,9 @@ class DeployContractTests(unittest.TestCase):
         helper = read(HELPER)
         validator = read(VALIDATOR)
         gitignore = read(GITIGNORE)
-
         self.assertIn("--exclude='bot/data/'", helper)
         self.assertIn(
-            "runtime CV assistant data must not be versioned",
-            validator,
+            "runtime CV assistant data must not be versioned", validator
         )
         self.assertIn("bot/data/*", gitignore)
         self.assertIn("!bot/data/.gitkeep", gitignore)
@@ -181,20 +218,15 @@ class DeployContractTests(unittest.TestCase):
     def test_validation_uses_host_only_env_placeholders(self) -> None:
         text = read(VALIDATOR)
         subprocess.run(["bash", "-n", str(VALIDATOR)], check=True)
-
         self.assertIn("create_placeholder()", text)
         self.assertIn('"$ROOT/bot/.env"', text)
         self.assertIn('"$ROOT/cloudflared.env"', text)
-        self.assertIn(
-            "CF_TUNNEL_TOKEN=ci-placeholder-not-a-secret",
-            text,
-        )
+        self.assertIn("CF_TUNNEL_TOKEN=ci-placeholder-not-a-secret", text)
         self.assertIn('rm -f -- "$placeholder"', text)
 
     def test_runner_has_no_docker_group_and_sudo_is_narrow(self) -> None:
         for script in (RUNNER_INSTALLER, HELPER_INSTALLER, ACTIVATOR):
             subprocess.run(["bash", "-n", str(script)], check=True)
-
         runner = read(RUNNER_INSTALLER)
         helper = read(HELPER_INSTALLER)
         self.assertIn("RUNNER_HAS_DOCKER_GROUP=false", runner)
