@@ -78,7 +78,7 @@ jobs:
           echo '===== ACTION COMMITS BEGIN ====='
           tag_commit 'actions/checkout' 'v5'
           tag_commit 'actions/upload-artifact' 'v7.0.1'
-          tag_commit 'zricethezav/gitleaks-action' 'v2.3.9'
+          tag_commit 'gitleaks/gitleaks-action' 'v2.3.9'
           echo '===== ACTION COMMITS END ====='
 
           resolver="${RUNNER_TEMP}/resolver"
