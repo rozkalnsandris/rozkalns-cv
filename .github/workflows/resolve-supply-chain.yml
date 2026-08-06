@@ -15,12 +15,15 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
 
       - name: Resolve immutable identities
         shell: bash
         run: |
           set -Eeuo pipefail
+          output_dir="${RUNNER_TEMP}/supply-chain-identities"
+          install -d -m 0700 "$output_dir"
+          identities="$output_dir/identities.txt"
 
           retry_capture() {
             local output_var="$1"
@@ -69,17 +72,18 @@ jobs:
             printf '%s@%s # %s\n' "$repo" "$sha" "$tag"
           }
 
-          echo '===== IMAGE DIGESTS BEGIN ====='
-          image_digest 'python:3.12.13-slim-bookworm'
-          image_digest 'nginx:1.31.3-alpine'
-          image_digest 'cloudflare/cloudflared:2026.7.3'
-          echo '===== IMAGE DIGESTS END ====='
-
-          echo '===== ACTION COMMITS BEGIN ====='
-          tag_commit 'actions/checkout' 'v5'
-          tag_commit 'actions/upload-artifact' 'v7.0.1'
-          tag_commit 'gitleaks/gitleaks-action' 'v2.3.9'
-          echo '===== ACTION COMMITS END ====='
+          {
+            echo '===== IMAGE DIGESTS BEGIN ====='
+            image_digest 'python:3.12.13-slim-bookworm'
+            image_digest 'nginx:1.31.3-alpine'
+            image_digest 'cloudflare/cloudflared:2026.7.3'
+            echo '===== IMAGE DIGESTS END ====='
+            echo '===== ACTION COMMITS BEGIN ====='
+            tag_commit 'actions/checkout' 'v5'
+            tag_commit 'actions/upload-artifact' 'v7.0.1'
+            tag_commit 'gitleaks/gitleaks-action' 'v2.3.9'
+            echo '===== ACTION COMMITS END ====='
+          } | tee "$identities"
 
           resolver="${RUNNER_TEMP}/resolver"
           python3 -m venv "$resolver"
@@ -89,9 +93,16 @@ jobs:
             --generate-hashes \
             --resolver=backtracking \
             --strip-extras \
-            --output-file "${RUNNER_TEMP}/requirements.lock" \
+            --output-file "$output_dir/requirements.lock" \
             bot/requirements.in
 
-          echo '===== REQUIREMENTS LOCK BEGIN ====='
-          cat "${RUNNER_TEMP}/requirements.lock"
-          echo '===== REQUIREMENTS LOCK END ====='
+          sha256sum "$identities" "$output_dir/requirements.lock" \
+            | tee "$output_dir/SHA256SUMS"
+
+      - name: Upload resolved identities
+        uses: actions/upload-artifact@65366950fc07fb20d47291c283b57548df326a8e # v7.0.1
+        with:
+          name: supply-chain-identities-${{ github.sha }}
+          path: ${{ runner.temp }}/supply-chain-identities
+          if-no-files-found: error
+          retention-days: 1
