@@ -1,4 +1,4 @@
-name: Finalize canonical content
+name: Finalize canonical content v02
 
 on:
   push:
@@ -10,13 +10,17 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: canonical-content-finalizer-v02
+  cancel-in-progress: true
+
 jobs:
   finalize:
     runs-on: ubuntu-slim
     timeout-minutes: 15
 
     steps:
-      - name: Check out exact branch SHA
+      - name: Check out exact latest branch SHA
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -29,8 +33,9 @@ jobs:
             fetch --no-tags --depth=1 origin "$GITHUB_SHA"
           git checkout --detach FETCH_HEAD
           git switch -c refactor/canonical-cv-content-v01
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
 
-      - name: Generate and verify canonical outputs
+      - name: Snapshot existing PDFs and generate canonical outputs
         shell: bash
         run: |
           set -Eeuo pipefail
