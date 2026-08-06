@@ -27,6 +27,8 @@ services:
       args:
         APP_UID: "10001"
         APP_GID: "10001"
+        VCS_REF: ${CVBOT_VCS_REF:-unresolved}
+        BUILD_INPUT_SHA256: ${CVBOT_BUILD_INPUT_SHA256:-unresolved}
     container_name: cvbot
     restart: unless-stopped
     init: true
