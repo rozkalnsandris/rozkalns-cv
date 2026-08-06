@@ -105,11 +105,16 @@ def local_target(source: Path, value: str) -> Path | None:
     if parsed.path == "" and parsed.fragment:
         return source
     path = unquote(parsed.path)
-    if path.startswith("/"):
+    if path in {"", "/"}:
+        candidate = HTML_ROOT / "index.html"
+    elif path.startswith("/"):
         candidate = HTML_ROOT / path.lstrip("/")
     else:
         candidate = source.parent / path
-    return candidate.resolve()
+    candidate = candidate.resolve()
+    if candidate.is_dir():
+        candidate = candidate / "index.html"
+    return candidate
 
 
 class HtmlSemanticTests(unittest.TestCase):
@@ -164,7 +169,7 @@ class HtmlSemanticTests(unittest.TestCase):
                         if target is None:
                             continue
                         self.assertTrue(
-                            target == HTML_ROOT or target.is_relative_to(HTML_ROOT),
+                            target.is_relative_to(HTML_ROOT),
                             "local link must remain inside the public html tree",
                         )
                         self.assertTrue(target.is_file(), f"missing target: {target}")
