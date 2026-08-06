@@ -21,12 +21,31 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Validate source and deployment contracts
+      - name: Install test dependencies
         shell: bash
         run: |
           set -Eeuo pipefail
+          python3 -m venv .venv
+          . .venv/bin/activate
+          python -m pip install --disable-pip-version-check \
+            -r bot/requirements.txt
+
+      - name: Validate source and application behavior
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          . .venv/bin/activate
           bash scripts/validate-source.sh "$PWD"
-          python3 -m unittest discover -s tests -p 'test_*.py' -v
+          python -m unittest discover -s tests -p 'test_*.py' -v
+
+      - name: Validate nginx runtime configuration
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          docker run --rm \
+            --add-host=cvbot:127.0.0.1 \
+            --mount "type=bind,src=$PWD/nginx.conf,dst=/etc/nginx/conf.d/default.conf,readonly" \
+            nginx:alpine nginx -t
 
       - name: Build CV assistant image
         shell: bash
