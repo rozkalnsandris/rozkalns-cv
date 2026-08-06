@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/branding/project-logo.svg" alt="rozkalns.net CV logo" width="160">
+</p>
+
 # rozkalns.net CV
 
 Source of truth for Andris Rožkalns' public CV/portfolio at
