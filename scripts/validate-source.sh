@@ -4,6 +4,9 @@ IFS=$'\n\t'
 umask 077
 
 ROOT="${1:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)}"
+NETWORK_NAME='cv_default'
+NETWORK_SUBNET='172.19.0.0/16'
+NETWORK_GATEWAY='172.19.0.1'
 
 fail() {
     printf 'ERROR: %s\n' "$*" >&2
@@ -30,6 +33,8 @@ for candidate in docker-compose.yml docker-compose.yaml compose.yml compose.yaml
     fi
 done
 [[ -n "$compose" ]] || fail 'no Docker Compose file found'
+[[ ! -e "$ROOT/docker-compose.network.yml" ]] \
+    || fail 'legacy docker-compose.network.yml must be merged into the primary Compose file'
 
 # Accept common historical layouts while requiring the real site and bot source.
 index=''
@@ -99,22 +104,35 @@ create_placeholder() {
 }
 
 if grep -Fqs 'cloudflared.env' "$compose"; then
-    create_placeholder         "$ROOT/cloudflared.env"         $'CF_TUNNEL_TOKEN=ci-placeholder-not-a-secret\n'
+    create_placeholder \
+        "$ROOT/cloudflared.env" \
+        $'CF_TUNNEL_TOKEN=ci-placeholder-not-a-secret\n'
 fi
 
-# The current production Compose file loads the CV assistant configuration
-# from bot/.env. It must remain host-only, but Docker Compose requires the file
-# to exist even for a read-only `config` validation.
 if grep -Fqs 'bot/.env' "$compose"; then
     create_placeholder "$ROOT/bot/.env"
 fi
 
 (
     cd "$ROOT"
-    CF_TUNNEL_TOKEN='ci-placeholder-not-a-secret' docker compose config --quiet
-    services="$(CF_TUNNEL_TOKEN='ci-placeholder-not-a-secret' docker compose config --services)"
+    resolved="$(
+        CF_TUNNEL_TOKEN='ci-placeholder-not-a-secret' \
+            docker compose config
+    )"
+    CF_TUNNEL_TOKEN='ci-placeholder-not-a-secret' \
+        docker compose config --quiet
+    services="$(
+        CF_TUNNEL_TOKEN='ci-placeholder-not-a-secret' \
+            docker compose config --services
+    )"
     grep -qx 'cv' <<<"$services" || fail 'Compose service cv is missing'
     grep -qx 'cvbot' <<<"$services" || fail 'Compose service cvbot is missing'
+    grep -Fq "name: $NETWORK_NAME" <<<"$resolved" \
+        || fail 'effective Compose network name is not cv_default'
+    grep -Fq "subnet: $NETWORK_SUBNET" <<<"$resolved" \
+        || fail 'effective Compose subnet is not pinned'
+    grep -Fq "gateway: $NETWORK_GATEWAY" <<<"$resolved" \
+        || fail 'effective Compose gateway is not pinned'
 )
 
 printf 'SOURCE_VALIDATION=PASS\n'

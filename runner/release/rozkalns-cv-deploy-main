@@ -19,6 +19,9 @@ COMPOSE_ENV_FILE="$RUNTIME/cloudflared.env"
 EVIDENCE_ROOT='/home/github-cv-runner/actions-runner/_work/_temp'
 LOCAL_URL='http://192.168.0.180:8088/'
 PUBLIC_URL='https://rozkalns.net/'
+NETWORK_NAME='cv_default'
+NETWORK_SUBNET='172.19.0.0/16'
+NETWORK_GATEWAY='172.19.0.1'
 BACKUP_RETENTION_COUNT=5
 BACKUP_RETENTION_DAYS=14
 MIN_FREE_BYTES=1073741824
@@ -52,6 +55,37 @@ compose_runtime() {
         cd "$RUNTIME"
         docker compose --env-file "$COMPOSE_ENV_FILE" "$@"
     )
+}
+
+compose_at() {
+    local root="$1"
+    shift
+    (
+        cd "$root"
+        docker compose --env-file "$COMPOSE_ENV_FILE" "$@"
+    )
+}
+
+validate_rendered_network() {
+    local root="$1"
+    local rendered
+    rendered="$(compose_at "$root" config)" || return 1
+    grep -Fq "name: $NETWORK_NAME" <<<"$rendered" || return 1
+    grep -Fq "subnet: $NETWORK_SUBNET" <<<"$rendered" || return 1
+    grep -Fq "gateway: $NETWORK_GATEWAY" <<<"$rendered" || return 1
+}
+
+validate_existing_network() {
+    local subnet gateway
+    if ! docker network inspect "$NETWORK_NAME" >/dev/null 2>&1; then
+        return 0
+    fi
+    subnet="$(docker network inspect "$NETWORK_NAME" \
+        --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}')" || return 1
+    gateway="$(docker network inspect "$NETWORK_NAME" \
+        --format '{{range .IPAM.Config}}{{.Gateway}}{{end}}')" || return 1
+    [[ "$subnet" == "$NETWORK_SUBNET" ]] || return 1
+    [[ "$gateway" == "$NETWORK_GATEWAY" ]] || return 1
 }
 
 managed_rsync() {
@@ -122,6 +156,14 @@ prepare_candidate() {
     install -d -m 0700 "$CANDIDATE" || return 1
     managed_rsync "$STAGE" "$CANDIDATE" || return 1
     normalize_managed_permissions "$CANDIDATE" || return 1
+    install -d -m 0700 "$CANDIDATE/bot" || return 1
+    : >"$CANDIDATE/bot/.env" || return 1
+    chmod 0600 "$CANDIDATE/bot/.env" || return 1
+    if ! validate_rendered_network "$CANDIDATE"; then
+        rm -f -- "$CANDIDATE/bot/.env"
+        return 1
+    fi
+    rm -f -- "$CANDIDATE/bot/.env" || return 1
 }
 
 create_backup() {
@@ -303,6 +345,8 @@ capture_runtime_diagnostics() {
 
 deploy_runtime() {
     normalize_managed_permissions "$RUNTIME" || return 1
+    validate_rendered_network "$RUNTIME" || return 1
+    validate_existing_network || return 1
     compose_runtime config --quiet || return 1
     compose_runtime build cvbot || return 1
     compose_runtime up -d --no-deps cvbot || return 1
@@ -415,6 +459,8 @@ install -d -m 0755 "$STATE_DIR"
 exec 9>"$LOCK_FILE"
 flock 9
 prune_backups || fail 'backup retention preflight failed'
+validate_existing_network \
+    || fail 'existing cv_default network conflicts with the pinned subnet'
 
 RUNTIME_BYTES="$(managed_size_bytes "$RUNTIME")" \
     || fail 'could not determine runtime size'

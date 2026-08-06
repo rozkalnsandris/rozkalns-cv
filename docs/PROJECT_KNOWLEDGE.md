@@ -13,13 +13,31 @@ Raspberry Pi 5 homelab and displays live infrastructure metrics.
 - Static web service/container: `cv`, based on nginx Alpine
 - CV assistant service/container: `cvbot`
 - Tunnel service/container: `cv-cloudflared`
-- Docker network: historically `cv_default`
+- Docker network: `cv_default`, pinned to `172.19.0.0/16` with gateway
+  `172.19.0.1` in the primary `docker-compose.yml`
 - Local web endpoint: `http://192.168.0.180:8088/`
 - Public endpoint: `https://rozkalns.net/`
 - Cloudflare ingress for the root domain points to `http://cv:80`
 - nginx serves static files and proxies the assistant API to `cvbot:5000`
 - Prometheus-derived live statistics are written into `stats.json`
 - `/etc/cron.d/cv-stats` historically refreshes those statistics every 5 minutes
+
+## Docker network ownership
+
+The application repository owns the declarative Compose network identity:
+
+- network name: `cv_default`
+- subnet: `172.19.0.0/16`
+- gateway: `172.19.0.1`
+
+The network declaration must remain in the primary `docker-compose.yml` so CI,
+deploy, rollback, and diagnostics all render the same configuration. The old
+`docker-compose.network.yml` override is retired and must not return.
+
+`RPi5_main` owns host-level consumers of this contract, including UFW rules and
+other infrastructure documentation. A subnet change therefore requires a
+separate, coordinated infrastructure change before this application value is
+changed.
 
 ## Confirmed website content/features
 

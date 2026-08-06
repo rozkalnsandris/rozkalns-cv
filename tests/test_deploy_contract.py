@@ -13,6 +13,8 @@ HELPER_INSTALLER = ROOT / "runner" / "install-github-main-deploy.sh"
 ACTIVATOR = ROOT / "runner" / "activate-github-main-deploy.sh"
 VALIDATOR = ROOT / "scripts" / "validate-source.sh"
 GITIGNORE = ROOT / ".gitignore"
+COMPOSE = ROOT / "docker-compose.yml"
+LEGACY_NETWORK = ROOT / "docker-compose.network.yml"
 
 
 def read(path: Path) -> str:
@@ -84,7 +86,36 @@ class DeployContractTests(unittest.TestCase):
             '[[ -s "$COMPOSE_ENV_FILE" && ! -L "$COMPOSE_ENV_FILE" ]]',
             text,
         )
-        self.assertEqual(text.count("docker compose "), 1)
+        self.assertEqual(text.count("docker compose "), 2)
+
+    def test_effective_compose_network_is_pinned_everywhere(self) -> None:
+        compose = read(COMPOSE)
+        helper = read(HELPER)
+        validator = read(VALIDATOR)
+        self.assertFalse(LEGACY_NETWORK.exists())
+        for marker in (
+            "name: cv_default",
+            "subnet: 172.19.0.0/16",
+            "gateway: 172.19.0.1",
+        ):
+            self.assertIn(marker, compose)
+        for marker in (
+            "NETWORK_NAME='cv_default'",
+            "NETWORK_SUBNET='172.19.0.0/16'",
+            "NETWORK_GATEWAY='172.19.0.1'",
+            'validate_rendered_network "$CANDIDATE"',
+            'validate_rendered_network "$RUNTIME"',
+            "validate_existing_network || return 1",
+            "existing cv_default network conflicts with the pinned subnet",
+        ):
+            self.assertIn(marker, helper)
+        for marker in (
+            "legacy docker-compose.network.yml must be merged",
+            "effective Compose network name is not cv_default",
+            "effective Compose subnet is not pinned",
+            "effective Compose gateway is not pinned",
+        ):
+            self.assertIn(marker, validator)
 
     def test_transaction_covers_every_post_mutation_failure(self) -> None:
         text = read(HELPER)
