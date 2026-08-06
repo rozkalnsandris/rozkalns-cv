@@ -1,35 +1,36 @@
-name: Build canonical content artifact
+name: Finalize canonical content
 
 on:
   push:
     branches:
       - refactor/canonical-cv-content-v01
-  pull_request:
     paths:
-      - content/**
-      - scripts/build-content.py
-      - scripts/sync-system-prompt.py
-      - bot/system_prompt.txt
-      - bot/app.py
-      - html/i18n/**
-      - html/assets/app.*.mjs
-      - html/index.html
-      - tests/frontend.test.mjs
       - .github/workflows/canonical-content-artifact.yml
-  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  build:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
+  finalize:
+    runs-on: ubuntu-slim
+    timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - name: Check out exact branch SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            fetch --no-tags --depth=1 origin "$GITHUB_SHA"
+          git checkout --detach FETCH_HEAD
+          git switch -c refactor/canonical-cv-content-v01
 
-      - name: Generate derived content and accept current reviewed PDFs
+      - name: Generate and verify canonical outputs
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -37,20 +38,28 @@ jobs:
           python3 scripts/sync-system-prompt.py --write
           python3 scripts/build-content.py --check
           python3 scripts/sync-system-prompt.py --check
-          git status --short
+          rm -f .github/workflows/canonical-content-artifact.yml
 
-      - name: Upload generated content
-        uses: actions/upload-artifact@v7.0.1
-        with:
-          name: canonical-content-${{ github.sha }}
-          path: |
-            bot/app.py
-            bot/system_prompt.txt
-            content/pdf-manifest.json
-            html/i18n
-            html/assets/app.*.mjs
-            html/index.html
-            .github/workflows/ci.yml
-            tests/frontend.test.mjs
-          if-no-files-found: error
-          retention-days: 1
+      - name: Commit exact generated outputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A \
+            bot/app.py \
+            bot/system_prompt.txt \
+            content/pdf-manifest.json \
+            html/i18n \
+            html/assets \
+            html/index.html \
+            .github/workflows/ci.yml \
+            tests/frontend.test.mjs \
+            .github/workflows/canonical-content-artifact.yml
+          git diff --cached --check
+          git commit -m 'refactor: generate CV outputs from canonical content'
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            push origin HEAD:refactor/canonical-cv-content-v01
