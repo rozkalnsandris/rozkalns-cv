@@ -15,7 +15,7 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Resolve immutable identities
         shell: bash
@@ -79,9 +79,9 @@ jobs:
             image_digest 'cloudflare/cloudflared:2026.7.3'
             echo '===== IMAGE DIGESTS END ====='
             echo '===== ACTION COMMITS BEGIN ====='
-            tag_commit 'actions/checkout' 'v5'
+            printf '%s\n' 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1'
             tag_commit 'actions/upload-artifact' 'v7.0.1'
-            tag_commit 'gitleaks/gitleaks-action' 'v2.3.9'
+            printf '%s\n' 'gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0'
             echo '===== ACTION COMMITS END ====='
           } | tee "$identities"
 
