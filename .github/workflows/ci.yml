@@ -21,12 +21,22 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Validate source and deployment contracts
+      - name: Install test dependencies
         shell: bash
         run: |
           set -Eeuo pipefail
+          python3 -m venv .venv
+          . .venv/bin/activate
+          python -m pip install --disable-pip-version-check \
+            -r bot/requirements.txt
+
+      - name: Validate source and application behavior
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          . .venv/bin/activate
           bash scripts/validate-source.sh "$PWD"
-          python3 -m unittest discover -s tests -p 'test_*.py' -v
+          python -m unittest discover -s tests -p 'test_*.py' -v
 
       - name: Build CV assistant image
         shell: bash
