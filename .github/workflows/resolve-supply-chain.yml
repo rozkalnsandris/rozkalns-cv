@@ -100,7 +100,7 @@ jobs:
             | tee "$output_dir/SHA256SUMS"
 
       - name: Upload resolved identities
-        uses: actions/upload-artifact@65366950fc07fb20d47291c283b57548df326a8e # v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: supply-chain-identities-${{ github.sha }}
           path: ${{ runner.temp }}/supply-chain-identities
