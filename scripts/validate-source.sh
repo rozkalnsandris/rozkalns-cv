@@ -32,6 +32,15 @@ VALIDATION_TMP="$(mktemp -d "${TMPDIR:-/tmp}/rozkalns-cv-validate.XXXXXXXX")"
 for required in \
     README.md \
     .gitignore \
+    content/profile.json \
+    content/profile.schema.json \
+    content/pdf-manifest.json \
+    content/translations/en.json \
+    content/translations/de.json \
+    content/translations/lv.json \
+    bot/system_prompt.txt \
+    scripts/build-content.py \
+    scripts/sync-system-prompt.py \
     scripts/validate-source.sh \
     .github/workflows/ci.yml \
     .github/workflows/deploy-main.yml
@@ -47,6 +56,8 @@ done
     || fail 'legacy docker-compose.network.yml must be merged into the primary Compose file'
 [[ ! -e "$ROOT/.venv" ]] \
     || fail 'repository-local .venv is generated state and must not exist'
+[[ ! -e "$ROOT/.github/workflows/canonical-content-artifact.yml" ]] \
+    || fail 'temporary canonical content finalizer must not remain in the repository'
 
 find_generated_artifact() {
     find "$ROOT" \
@@ -102,6 +113,8 @@ while IFS= read -r -d '' secret_file; do
 done < <(find "$ROOT" -type f \( -name '.env' -o -name '*.env' \) -print0)
 
 python3 "$ROOT/scripts/secret-scan.py" "$ROOT"
+python3 "$ROOT/scripts/build-content.py" --check
+python3 "$ROOT/scripts/sync-system-prompt.py" --check
 
 if [[ -d "$ROOT/bot/data" ]] \
    && find "$ROOT/bot/data" -type f ! -name '.gitkeep' -print -quit \
