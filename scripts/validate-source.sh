@@ -39,10 +39,12 @@ do
     [[ -s "$ROOT/$required" ]] || fail "required file is missing or empty: $required"
 done
 
-for retired in update.sh update_cv-1.sh docker-compose.network.yml; do
+for retired in update.sh update_cv-1.sh; do
     [[ ! -e "$ROOT/$retired" ]] \
         || fail "retired source file must not exist: $retired"
 done
+[[ ! -e "$ROOT/docker-compose.network.yml" ]] \
+    || fail 'legacy docker-compose.network.yml must be merged into the primary Compose file'
 [[ ! -e "$ROOT/.venv" ]] \
     || fail 'repository-local .venv is generated state and must not exist'
 
@@ -67,7 +69,6 @@ for candidate in docker-compose.yml docker-compose.yaml compose.yml compose.yaml
 done
 [[ -n "$compose" ]] || fail 'no Docker Compose file found'
 
-# Accept common historical layouts while requiring the real site and bot source.
 index=''
 for candidate in index.html html/index.html site/index.html public/index.html; do
     if [[ -s "$ROOT/$candidate" ]]; then
@@ -93,7 +94,6 @@ while IFS= read -r -d '' script; do
     bash -n "$script"
 done < <(find "$ROOT/scripts" "$ROOT/runner" -type f -name '*.sh' -print0)
 
-# Real secret files are forbidden.
 while IFS= read -r -d '' secret_file; do
     case "$(basename "$secret_file")" in
         .env.example|cloudflared.env.example) ;;
@@ -103,16 +103,12 @@ done < <(find "$ROOT" -type f \( -name '.env' -o -name '*.env' \) -print0)
 
 python3 "$ROOT/scripts/secret-scan.py" "$ROOT"
 
-# Runtime conversations can contain visitor questions, answers, timestamps,
-# and network metadata. They belong only on the production host.
 if [[ -d "$ROOT/bot/data" ]] \
    && find "$ROOT/bot/data" -type f ! -name '.gitkeep' -print -quit \
       | grep -q .; then
     fail 'runtime CV assistant data must not be versioned'
 fi
 
-# Compose references host-only env files that are intentionally excluded from
-# Git. Create dummy files only for validation, then always remove them.
 create_placeholder() {
     local path="$1"
     local content="${2:-}"
