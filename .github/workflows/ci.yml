@@ -34,13 +34,21 @@ jobs:
           echo "PYTHONPYCACHEPREFIX=${RUNNER_TEMP}/rozkalns-cv-pycache" \
             >> "$GITHUB_ENV"
 
-      - name: Validate source and application behavior
+      - name: Validate source and Python behavior
         shell: bash
         run: |
           set -Eeuo pipefail
           bash scripts/validate-source.sh "$PWD"
           "$TEST_VENV/bin/python" -m unittest discover \
             -s tests -p 'test_*.py' -v
+
+      - name: Validate frontend modules and behavior
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          node --check html/assets/app.d878d409f278.mjs
+          node --check html/assets/smarthome.70da56476fdb.mjs
+          node --test tests/frontend.test.mjs
           bash scripts/validate-source.sh "$PWD"
 
       - name: Validate nginx runtime configuration
