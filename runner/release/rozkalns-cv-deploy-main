@@ -19,12 +19,21 @@ COMPOSE_ENV_FILE="$RUNTIME/cloudflared.env"
 EVIDENCE_ROOT='/home/github-cv-runner/actions-runner/_work/_temp'
 LOCAL_URL='http://192.168.0.180:8088/'
 PUBLIC_URL='https://rozkalns.net/'
+BACKUP_RETENTION_COUNT=5
+BACKUP_RETENTION_DAYS=14
+MIN_FREE_BYTES=1073741824
+MIN_FREE_INODES=10000
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 WORK=''
 STAGE=''
+CANDIDATE=''
 BACKUP=''
 OLD_SHA=''
 DEPLOYED=false
+MUTATION_STARTED=false
+TRANSACTION_COMMITTED=false
+ROLLBACK_ATTEMPTED=false
+SUMMARY_WRITTEN=false
 EVIDENCE_READY=false
 EVIDENCE_UID=''
 EVIDENCE_GID=''
@@ -45,32 +54,163 @@ compose_runtime() {
     )
 }
 
-normalize_static_permissions() {
-    [[ -d "$RUNTIME/html" && ! -L "$RUNTIME/html" ]] \
-        || return 1
-    [[ -f "$RUNTIME/html/index.html" && ! -L "$RUNTIME/html/index.html" ]] \
-        || return 1
-    [[ -f "$RUNTIME/nginx.conf" && ! -L "$RUNTIME/nginx.conf" ]] \
-        || return 1
+managed_rsync() {
+    local source="$1"
+    local destination="$2"
+    rsync -a --delete \
+        --exclude='.git/' \
+        --exclude='.env' \
+        --exclude='*.env' \
+        --exclude='cloudflared.env' \
+        --exclude='stats.json' \
+        --exclude='bot/data/' \
+        "$source/" "$destination/"
+}
 
-    find "$RUNTIME/html" -type d -exec chmod 0755 {} + || return 1
-    find "$RUNTIME/html" -type f -exec chmod 0644 {} + || return 1
-    chmod 0644 "$RUNTIME/nginx.conf" || return 1
+validate_managed_tree() {
+    local root="$1"
+    [[ -d "$root" && ! -L "$root" ]] || return 1
+    [[ -d "$root/html" && ! -L "$root/html" ]] || return 1
+    [[ -f "$root/html/index.html" && ! -L "$root/html/index.html" ]] \
+        || return 1
+    [[ -f "$root/nginx.conf" && ! -L "$root/nginx.conf" ]] || return 1
+    if find "$root" -type l -print -quit | grep -q .; then
+        return 1
+    fi
+}
+
+normalize_managed_permissions() {
+    local root="$1"
+    validate_managed_tree "$root" || return 1
+    find "$root/html" -type d -exec chmod 0755 {} + || return 1
+    find "$root/html" -type f -exec chmod 0644 {} + || return 1
+    chmod 0644 "$root/nginx.conf" || return 1
+}
+
+capacity_ok() {
+    local available_bytes="$1"
+    local available_inodes="$2"
+    local required_bytes="$3"
+    local required_inodes="$4"
+    (( available_bytes >= required_bytes && available_inodes >= required_inodes ))
+}
+
+require_capacity() {
+    local path="$1"
+    local required_bytes="$2"
+    local required_inodes="$3"
+    local available_bytes available_inodes
+
+    available_bytes="$(df -PB1 "$path" | awk 'NR == 2 {print $4}')"
+    available_inodes="$(df -Pi "$path" | awk 'NR == 2 {print $4}')"
+    [[ "$available_bytes" =~ ^[0-9]+$ ]] || return 1
+    [[ "$available_inodes" =~ ^[0-9]+$ ]] || return 1
+    capacity_ok \
+        "$available_bytes" "$available_inodes" \
+        "$required_bytes" "$required_inodes"
+}
+
+managed_size_bytes() {
+    local path="$1"
+    local size
+    size="$(du -sB1 "$path" | awk 'NR == 1 {print $1}')"
+    [[ "$size" =~ ^[0-9]+$ ]] || return 1
+    printf '%s\n' "$size"
+}
+
+prepare_candidate() {
+    install -d -m 0700 "$CANDIDATE" || return 1
+    managed_rsync "$STAGE" "$CANDIDATE" || return 1
+    normalize_managed_permissions "$CANDIDATE" || return 1
+}
+
+create_backup() {
+    install -d -m 0700 "$BACKUP/runtime" || return 1
+    managed_rsync "$RUNTIME" "$BACKUP/runtime" || return 1
+    printf '%s\n' "${OLD_SHA:-unknown}" >"$BACKUP/previous-sha" || return 1
+    chmod 0600 "$BACKUP/previous-sha" || return 1
+}
+
+prune_backups() {
+    local row path
+    local -a backups=()
+
+    [[ "$BACKUP_RETENTION_COUNT" =~ ^[1-9][0-9]*$ ]] || return 1
+    [[ "$BACKUP_RETENTION_DAYS" =~ ^[0-9]+$ ]] || return 1
+    [[ -d "$BACKUP_ROOT" && ! -L "$BACKUP_ROOT" ]] || return 1
+
+    while IFS= read -r -d '' path; do
+        rm -rf -- "$path" || return 1
+    done < <(
+        find "$BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d \
+            -mtime "+$BACKUP_RETENTION_DAYS" -print0
+    )
+
+    while IFS= read -r row; do
+        backups+=("${row#* }")
+    done < <(
+        find "$BACKUP_ROOT" -mindepth 1 -maxdepth 1 -type d \
+            -printf '%T@ %p\n' | sort -rn
+    )
+
+    if (( ${#backups[@]} > BACKUP_RETENTION_COUNT )); then
+        for path in "${backups[@]:BACKUP_RETENTION_COUNT}"; do
+            rm -rf -- "$path" || return 1
+        done
+    fi
+}
+
+write_state_atomically() {
+    local tmp
+    tmp="$(mktemp "$STATE_DIR/.current-sha.XXXXXXXX")" || return 1
+    if ! printf '%s\n' "$TARGET_SHA" >"$tmp" \
+       || ! chmod 0644 "$tmp" \
+       || ! sync -f "$tmp" \
+       || ! mv -f -- "$tmp" "$STATE_FILE" \
+       || ! sync -f "$STATE_DIR"; then
+        rm -f -- "$tmp"
+        return 1
+    fi
+}
+
+write_runtime_manifest() {
+    local output="$1"
+    (
+        cd "$RUNTIME"
+        find . -type f \
+            ! -path './.git/*' \
+            ! -name '.env' \
+            ! -name '*.env' \
+            ! -name 'cloudflared.env' \
+            ! -path './bot/data/*' \
+            ! -path './html/stats.json' \
+            -print0 \
+            | sort -z \
+            | xargs -0r sha256sum
+    ) >"$output"
 }
 
 write_summary() {
     local result="$1"
     local rollback_performed="${2:-false}"
+    local final_state='unknown'
+    if [[ -s "$STATE_FILE" ]]; then
+        final_state="$(tr -d '[:space:]' <"$STATE_FILE")"
+    fi
     {
         printf 'DEPLOY_RESULT=%s\n' "$result"
         printf 'TARGET_SHA=%s\n' "$TARGET_SHA"
         printf 'OLD_SHA=%s\n' "${OLD_SHA:-unknown}"
+        printf 'FINAL_STATE_SHA=%s\n' "$final_state"
         printf 'PRODUCTION_CHANGED=%s\n' "$DEPLOYED"
+        printf 'MUTATION_STARTED=%s\n' "$MUTATION_STARTED"
+        printf 'TRANSACTION_COMMITTED=%s\n' "$TRANSACTION_COMMITTED"
         printf 'CLOUDFLARED_RESTARTED=false\n'
         printf 'DATABASE_MIGRATIONS_EXECUTED=false\n'
         printf 'ROLLBACK_PERFORMED=%s\n' "$rollback_performed"
         printf 'UTC=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     } | tee "$EVIDENCE_DIR/summary.env"
+    SUMMARY_WRITTEN=true
 }
 
 http_ok() {
@@ -161,6 +301,40 @@ capture_runtime_diagnostics() {
     } >"$output" 2>&1
 }
 
+deploy_runtime() {
+    normalize_managed_permissions "$RUNTIME" || return 1
+    compose_runtime config --quiet || return 1
+    compose_runtime build cvbot || return 1
+    compose_runtime up -d --no-deps cvbot || return 1
+    wait_healthy cvbot 60 2 || return 1
+    compose_runtime up -d --no-deps cv || return 1
+    wait_running cv 30 2 || return 1
+    http_ok "$LOCAL_URL" 10 3 || return 1
+    http_ok "$PUBLIC_URL" 10 5 || return 1
+}
+
+rollback() {
+    ROLLBACK_ATTEMPTED=true
+    printf 'ROLLBACK_BEGIN=true\n' | tee -a "$EVIDENCE_DIR/deploy.log"
+    if ! managed_rsync "$BACKUP/runtime" "$RUNTIME"; then
+        capture_runtime_diagnostics 'failed-rollback-sync-runtime'
+        printf 'ROLLBACK_END=FAIL\n' | tee -a "$EVIDENCE_DIR/deploy.log"
+        write_summary 'FAIL_ROLLBACK_FAIL' true || true
+        return 1
+    fi
+    if deploy_runtime; then
+        capture_runtime_diagnostics 'post-rollback-runtime'
+        write_runtime_manifest "$EVIDENCE_DIR/rollback-managed.sha256" || true
+        printf 'ROLLBACK_END=PASS\n' | tee -a "$EVIDENCE_DIR/deploy.log"
+        write_summary 'FAIL_ROLLBACK_PASS' true || true
+        return 0
+    fi
+    capture_runtime_diagnostics 'failed-rollback-runtime'
+    printf 'ROLLBACK_END=FAIL\n' | tee -a "$EVIDENCE_DIR/deploy.log"
+    write_summary 'FAIL_ROLLBACK_FAIL' true || true
+    return 1
+}
+
 finalize_evidence() {
     [[ "$EVIDENCE_READY" == true ]] || return 0
     [[ -d "$EVIDENCE_DIR" && ! -L "$EVIDENCE_DIR" ]] || return 0
@@ -171,6 +345,13 @@ finalize_evidence() {
 finish() {
     local rc="$1"
     trap - EXIT
+    if (( rc != 0 )) \
+       && [[ "$MUTATION_STARTED" == true ]] \
+       && [[ "$TRANSACTION_COMMITTED" != true ]] \
+       && [[ "$ROLLBACK_ATTEMPTED" != true ]] \
+       && [[ -n "$BACKUP" && -d "$BACKUP/runtime" ]]; then
+        rollback || true
+    fi
     if [[ -n "$STAGE" && -d "$STAGE" ]]; then
         owner_git -C "$PRIMARY" worktree remove --force "$STAGE" >/dev/null 2>&1 || true
     fi
@@ -182,6 +363,10 @@ finish() {
 }
 trap 'finish $?' EXIT
 
+if [[ "${ROZKALNS_CV_DEPLOY_LIBRARY_ONLY:-}" == 1 ]]; then
+    return 0 2>/dev/null || exit 0
+fi
+
 [[ ${EUID:-$(id -u)} -eq 0 ]] || fail 'deployment helper must run as root'
 [[ "${SUDO_USER:-}" == github-cv-runner ]] \
     || fail 'deployment helper must be invoked by the dedicated CV runner'
@@ -192,10 +377,19 @@ trap 'finish $?' EXIT
 EVIDENCE_UID="$SUDO_UID"
 EVIDENCE_GID="$SUDO_GID"
 
+for command_name in \
+    awk bash chmod chown curl df docker du find flock grep install mktemp mv \
+    realpath rm rsync runuser sha256sum sort stat sync tee tr xargs
+do
+    command -v "$command_name" >/dev/null 2>&1 \
+        || fail "required command is missing: $command_name"
+done
+
 [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]] || fail 'target SHA is invalid'
 [[ -n "$EVIDENCE_DIR" ]] || fail 'evidence directory is required'
 [[ -d "$PRIMARY/.git" ]] || fail "primary Git repository is missing: $PRIMARY"
-[[ -d "$RUNTIME" ]] || fail "runtime directory is missing: $RUNTIME"
+[[ -d "$RUNTIME" && ! -L "$RUNTIME" ]] \
+    || fail "runtime directory is missing or a symlink: $RUNTIME"
 [[ -s "$COMPOSE_ENV_FILE" && ! -L "$COMPOSE_ENV_FILE" ]] \
     || fail 'host-only cloudflared.env is missing, empty, or a symlink'
 [[ -d "$EVIDENCE_DIR" && ! -L "$EVIDENCE_DIR" ]] \
@@ -220,6 +414,16 @@ install -d -m 0700 "$BACKUP_ROOT"
 install -d -m 0755 "$STATE_DIR"
 exec 9>"$LOCK_FILE"
 flock 9
+prune_backups || fail 'backup retention preflight failed'
+
+RUNTIME_BYTES="$(managed_size_bytes "$RUNTIME")" \
+    || fail 'could not determine runtime size'
+REQUIRED_RUNTIME_BYTES=$((RUNTIME_BYTES * 2 + MIN_FREE_BYTES))
+REQUIRED_BACKUP_BYTES=$((RUNTIME_BYTES + MIN_FREE_BYTES))
+require_capacity "$RUNTIME" "$REQUIRED_RUNTIME_BYTES" "$MIN_FREE_INODES" \
+    || fail 'runtime filesystem lacks required free space or inodes'
+require_capacity "$BACKUP_ROOT" "$REQUIRED_BACKUP_BYTES" "$MIN_FREE_INODES" \
+    || fail 'backup filesystem lacks required free space or inodes'
 
 owner_git -C "$PRIMARY" fetch --prune origin main
 REMOTE_MAIN="$(owner_git -C "$PRIMARY" rev-parse refs/remotes/origin/main)"
@@ -242,80 +446,41 @@ if [[ "$OLD_SHA" =~ ^[0-9a-f]{40}$ ]] \
     exit 0
 fi
 
-install -d -o "$OWNER" -g "$OWNER" -m 0700 /home/andris/.cache/rozkalns-cv-deploy
-WORK="$(runuser -u "$OWNER" -- mktemp -d '/home/andris/.cache/rozkalns-cv-deploy/run.XXXXXXXX')"
+install -d -o "$OWNER" -g "$OWNER" -m 0700 \
+    /home/andris/.cache/rozkalns-cv-deploy
+WORK="$(runuser -u "$OWNER" -- \
+    mktemp -d '/home/andris/.cache/rozkalns-cv-deploy/run.XXXXXXXX')"
 STAGE="$WORK/source"
+CANDIDATE="$WORK/candidate"
 owner_git -C "$PRIMARY" worktree add --detach "$STAGE" "$TARGET_SHA" >/dev/null
 
-bash "$STAGE/scripts/validate-source.sh" "$STAGE" \
-    >"$EVIDENCE_DIR/source-validation.log" 2>&1
+runuser -u "$OWNER" -- bash "$STAGE/scripts/validate-source.sh" "$STAGE" \
+    >"$EVIDENCE_DIR/source-validation.log" 2>&1 \
+    || fail 'source validation failed'
+prepare_candidate || fail 'candidate preparation failed'
 
 BACKUP="$BACKUP_ROOT/${STAMP}-${OLD_SHA:-unknown}"
-install -d -m 0700 "$BACKUP"
-rsync -a "$RUNTIME/" "$BACKUP/runtime/"
-
+create_backup || fail 'rollback backup creation failed'
 capture_runtime_diagnostics 'pre-deploy-runtime'
 
-deploy_runtime() {
-    normalize_static_permissions || return 1
-    compose_runtime config --quiet || return 1
-    compose_runtime build cvbot || return 1
-    compose_runtime up -d --no-deps cvbot || return 1
-    wait_healthy cvbot 60 2 || return 1
-    compose_runtime up -d --no-deps cv || return 1
-    wait_running cv 30 2 || return 1
-    http_ok "$LOCAL_URL" 10 3 || return 1
-    http_ok "$PUBLIC_URL" 10 5 || return 1
-}
-
-rollback() {
-    printf 'ROLLBACK_BEGIN=true\n' | tee -a "$EVIDENCE_DIR/deploy.log"
-    rsync -a --delete "$BACKUP/runtime/" "$RUNTIME/"
-    if deploy_runtime; then
-        capture_runtime_diagnostics 'post-rollback-runtime'
-        printf 'ROLLBACK_END=PASS\n' | tee -a "$EVIDENCE_DIR/deploy.log"
-        write_summary 'FAIL_ROLLBACK_PASS' true
-        return 0
-    fi
-    capture_runtime_diagnostics 'failed-rollback-runtime'
-    printf 'ROLLBACK_END=FAIL\n' | tee -a "$EVIDENCE_DIR/deploy.log"
-    write_summary 'FAIL_ROLLBACK_FAIL' true
-    return 1
-}
-
-# Preserve host-only secrets, generated statistics, and CV assistant
-# runtime conversations. Repository deploys must never delete or publish them.
+MUTATION_STARTED=true
 DEPLOYED=true
-if ! rsync -a --delete \
-    --exclude='.git/' \
-    --exclude='.env' \
-    --exclude='*.env' \
-    --exclude='cloudflared.env' \
-    --exclude='stats.json' \
-    --exclude='bot/data/' \
-    "$STAGE/" "$RUNTIME/" \
+if ! managed_rsync "$CANDIDATE" "$RUNTIME" \
     >"$EVIDENCE_DIR/deploy.log" 2>&1; then
     capture_runtime_diagnostics 'failed-source-sync-runtime'
-    rollback || true
-    exit 1
+    fail 'production source synchronization failed'
 fi
 
 if ! deploy_runtime >>"$EVIDENCE_DIR/deploy.log" 2>&1; then
     capture_runtime_diagnostics 'failed-deploy-runtime'
-    rollback || true
-    exit 1
+    fail 'runtime deployment checks failed'
 fi
 
 capture_runtime_diagnostics 'post-deploy-runtime'
-
-{
-    docker inspect cv cvbot \
-        --format '{{.Name}}|{{.Config.Image}}|{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}'
-    printf 'LOCAL_URL=PASS\n'
-    printf 'PUBLIC_URL=PASS\n'
-} >"$EVIDENCE_DIR/runtime-health.txt"
-
-printf '%s\n' "$TARGET_SHA" >"$STATE_FILE"
-chmod 0644 "$STATE_FILE"
-
+write_runtime_manifest "$EVIDENCE_DIR/runtime-managed.sha256" \
+    || fail 'runtime manifest generation failed'
+write_state_atomically || fail 'atomic deployed-state update failed'
+TRANSACTION_COMMITTED=true
+prune_backups || printf 'WARNING: post-deploy backup pruning failed\n' \
+    | tee -a "$EVIDENCE_DIR/deploy.log" >&2
 write_summary 'PASS' false
