@@ -10,6 +10,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: supply-chain-finalizer
+  cancel-in-progress: true
+
 jobs:
   finalize:
     runs-on: ubuntu-slim
@@ -29,6 +33,105 @@ jobs:
             fetch --no-tags --depth=1 origin "$GITHUB_SHA"
           git checkout --detach FETCH_HEAD
           git switch -c fix/supply-chain-hardening-v01
+
+      - name: Resolve immutable image identities
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          install -d -m 0700 security
+          python3 - <<'PY'
+          from __future__ import annotations
+
+          import json
+          from pathlib import Path
+          import re
+          import time
+          import urllib.parse
+          import urllib.request
+
+          DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
+          ACCEPT = ", ".join(
+              [
+                  "application/vnd.oci.image.index.v1+json",
+                  "application/vnd.docker.distribution.manifest.list.v2+json",
+                  "application/vnd.oci.image.manifest.v1+json",
+                  "application/vnd.docker.distribution.manifest.v2+json",
+              ]
+          )
+
+          def open_with_retry(request: urllib.request.Request):
+              error = None
+              for attempt in range(1, 5):
+                  try:
+                      return urllib.request.urlopen(request, timeout=30)
+                  except Exception as current:
+                      error = current
+                      if attempt < 4:
+                          time.sleep(attempt * 2)
+              raise RuntimeError(f"registry request failed: {error}")
+
+          def resolve(repository: str, tag: str) -> str:
+              query = urllib.parse.urlencode(
+                  {
+                      "service": "registry.docker.io",
+                      "scope": f"repository:{repository}:pull",
+                  }
+              )
+              token_request = urllib.request.Request(
+                  f"https://auth.docker.io/token?{query}",
+                  headers={"User-Agent": "rozkalns-cv-supply-chain/1"},
+              )
+              with open_with_retry(token_request) as response:
+                  token = json.load(response)["token"]
+              manifest_request = urllib.request.Request(
+                  f"https://registry-1.docker.io/v2/{repository}/manifests/{tag}",
+                  method="HEAD",
+                  headers={
+                      "Authorization": f"Bearer {token}",
+                      "Accept": ACCEPT,
+                      "User-Agent": "rozkalns-cv-supply-chain/1",
+                  },
+              )
+              with open_with_retry(manifest_request) as response:
+                  digest = response.headers.get("Docker-Content-Digest", "")
+              if not DIGEST.fullmatch(digest):
+                  raise RuntimeError(f"invalid digest for {repository}:{tag}")
+              return digest
+
+          expected = {
+              "python:3.12.13-slim-bookworm": "sha256:4766d8b510c428e595d74b9cc5bbb2fae8e26316fffb4adc89908d79aacd58a2",
+              "nginx:1.31.3-alpine": "sha256:4a73073bd557c65b759505da037898b61f1be6cbcc3c2c3aeac22d2a470c1752",
+              "cloudflare/cloudflared:2026.7.3": "sha256:e39ee8da81ad5e05d77f38d2f51c60ca51bf2a8450ac3abab50c17fdb91d91bf",
+          }
+          resolved = {
+              "python:3.12.13-slim-bookworm": resolve(
+                  "library/python", "3.12.13-slim-bookworm"
+              ),
+              "nginx:1.31.3-alpine": resolve("library/nginx", "1.31.3-alpine"),
+              "cloudflare/cloudflared:2026.7.3": resolve(
+                  "cloudflare/cloudflared", "2026.7.3"
+              ),
+              "aquasec/trivy:0.72.0": resolve("aquasec/trivy", "0.72.0"),
+          }
+          for reference, digest in expected.items():
+              if resolved[reference] != digest:
+                  raise RuntimeError(
+                      f"published tag identity changed for {reference}: {resolved[reference]}"
+                  )
+
+          document = {
+              "schema_version": 1,
+              "images": resolved,
+              "actions": {
+                  "actions/upload-artifact@v7.0.1": "043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
+                  "gitleaks/gitleaks-action@v3.0.0": "e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e",
+              },
+          }
+          Path("security/supply-chain.json").write_text(
+              json.dumps(document, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          PY
 
       - name: Resolve hash-locked dependencies and runtime migration
         shell: bash
@@ -128,6 +231,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add \
             bot/requirements.lock \
+            security/supply-chain.json \
             runner/release/rozkalns-cv-deploy-main \
             .github/workflows/resolve-supply-chain.yml \
             .github/workflows/apply-runtime-data-migration.yml
