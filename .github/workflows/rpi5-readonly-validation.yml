@@ -1,4 +1,4 @@
-name: RPi5 read-only validation
+name: Independent frontend validation
 
 on:
   pull_request:
@@ -18,7 +18,8 @@ permissions:
   contents: read
 
 jobs:
-  validate:
+  rpi5-readonly:
+    name: RPi5 read-only behavior
     runs-on:
       - self-hosted
       - Linux
@@ -83,3 +84,76 @@ jobs:
           printf 'PRODUCTION_WRITE=false\n'
           printf 'DOCKER_ACCESS=false\n'
           printf 'SUDO_USED=false\n'
+
+  hosted-ubuntu22:
+    name: Ubuntu 22.04 full validation
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out exact SHA without external actions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            fetch --no-tags --depth=1 origin "$GITHUB_SHA"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Install isolated Python dependencies
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test_venv="${RUNNER_TEMP}/rozkalns-cv-test-venv"
+          python3 -m venv "$test_venv"
+          "$test_venv/bin/python" -m pip install \
+            --disable-pip-version-check \
+            -r bot/requirements.txt
+          echo "TEST_VENV=$test_venv" >> "$GITHUB_ENV"
+          echo "PYTHONPYCACHEPREFIX=${RUNNER_TEMP}/rozkalns-cv-pycache" \
+            >> "$GITHUB_ENV"
+
+      - name: Validate source and Python behavior
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash scripts/validate-source.sh "$PWD"
+          "$TEST_VENV/bin/python" -m unittest discover \
+            -s tests -p 'test_*.py' -v
+          bash scripts/validate-source.sh "$PWD"
+
+      - name: Validate frontend modules and behavior
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          node --check html/assets/app.d878d409f278.mjs
+          node --check html/assets/smarthome.70da56476fdb.mjs
+          node --test tests/frontend.test.mjs
+
+      - name: Validate nginx runtime configuration
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          docker run --rm \
+            --add-host=cvbot:127.0.0.1 \
+            --mount "type=bind,src=$PWD/nginx.conf,dst=/etc/nginx/conf.d/default.conf,readonly" \
+            nginx:alpine nginx -t
+
+      - name: Build CV assistant image
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          cleanup() {
+            rm -f cloudflared.env bot/.env
+          }
+          trap cleanup EXIT
+          printf 'CF_TUNNEL_TOKEN=ci-placeholder-not-a-secret\n' > cloudflared.env
+          : > bot/.env
+          chmod 0600 cloudflared.env bot/.env
+          CF_TUNNEL_TOKEN='ci-placeholder-not-a-secret' \
+            docker compose build cvbot
