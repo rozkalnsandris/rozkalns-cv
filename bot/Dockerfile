@@ -2,6 +2,12 @@ FROM python:3.12.13-slim-bookworm@sha256:4766d8b510c428e595d74b9cc5bbb2fae8e2631
 
 ARG APP_UID=10001
 ARG APP_GID=10001
+ARG VCS_REF=unresolved
+ARG BUILD_INPUT_SHA256=unresolved
+
+LABEL org.opencontainers.image.source="https://github.com/rozkalnsandris/rozkalns-cv" \
+      org.opencontainers.image.revision="${VCS_REF}" \
+      net.rozkalns.cv.build-input-sha256="${BUILD_INPUT_SHA256}"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
