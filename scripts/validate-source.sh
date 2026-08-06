@@ -7,13 +7,27 @@ ROOT="${1:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)}"
 NETWORK_NAME='cv_default'
 NETWORK_SUBNET='172.19.0.0/16'
 NETWORK_GATEWAY='172.19.0.1'
+VALIDATION_TMP=''
+created_placeholders=()
 
 fail() {
     printf 'ERROR: %s\n' "$*" >&2
     exit 1
 }
 
+cleanup() {
+    local placeholder
+    for placeholder in "${created_placeholders[@]:-}"; do
+        rm -f -- "$placeholder"
+    done
+    if [[ -n "$VALIDATION_TMP" && -d "$VALIDATION_TMP" ]]; then
+        rm -rf -- "$VALIDATION_TMP"
+    fi
+}
+trap cleanup EXIT
+
 [[ -d "$ROOT" ]] || fail "repository root is missing: $ROOT"
+VALIDATION_TMP="$(mktemp -d "${TMPDIR:-/tmp}/rozkalns-cv-validate.XXXXXXXX")"
 
 for required in \
     README.md \
@@ -25,6 +39,25 @@ do
     [[ -s "$ROOT/$required" ]] || fail "required file is missing or empty: $required"
 done
 
+for retired in update.sh update_cv-1.sh docker-compose.network.yml; do
+    [[ ! -e "$ROOT/$retired" ]] \
+        || fail "retired source file must not exist: $retired"
+done
+[[ ! -e "$ROOT/.venv" ]] \
+    || fail 'repository-local .venv is generated state and must not exist'
+
+find_generated_artifact() {
+    find "$ROOT" \
+        -path "$ROOT/.git" -prune -o \
+        \( -type d -name '__pycache__' -o \
+           -type f \( -name '*.pyc' -o -name '*.pyo' \) \) \
+        -print -quit
+}
+
+if generated="$(find_generated_artifact)" && [[ -n "$generated" ]]; then
+    fail "generated Python artifact must not exist: ${generated#$ROOT/}"
+fi
+
 compose=''
 for candidate in docker-compose.yml docker-compose.yaml compose.yml compose.yaml; do
     if [[ -s "$ROOT/$candidate" ]]; then
@@ -33,8 +66,6 @@ for candidate in docker-compose.yml docker-compose.yaml compose.yml compose.yaml
     fi
 done
 [[ -n "$compose" ]] || fail 'no Docker Compose file found'
-[[ ! -e "$ROOT/docker-compose.network.yml" ]] \
-    || fail 'legacy docker-compose.network.yml must be merged into the primary Compose file'
 
 # Accept common historical layouts while requiring the real site and bot source.
 index=''
@@ -47,15 +78,16 @@ done
 [[ -n "$index" ]] || fail 'index.html not found in a supported source layout'
 grep -Fq 'Andris Ro' "$index" || fail 'index.html does not identify Andris Rožkalns'
 
-bot=''
-for candidate in bot/app.py app.py cvbot/app.py; do
-    if [[ -s "$ROOT/$candidate" ]]; then
-        bot="$ROOT/$candidate"
-        break
-    fi
-done
-[[ -n "$bot" ]] || fail 'CV assistant Python entry point not found'
-python3 -m py_compile "$bot"
+python_count=0
+while IFS= read -r -d '' python_file; do
+    PYTHONPYCACHEPREFIX="$VALIDATION_TMP/pycache" \
+        python3 -m py_compile "$python_file"
+    python_count=$((python_count + 1))
+done < <(
+    find "$ROOT/bot" "$ROOT/scripts" "$ROOT/tests" \
+        -type f -name '*.py' -print0
+)
+(( python_count > 0 )) || fail 'no Python source files were validated'
 
 while IFS= read -r -d '' script; do
     bash -n "$script"
@@ -80,18 +112,7 @@ if [[ -d "$ROOT/bot/data" ]] \
 fi
 
 # Compose references host-only env files that are intentionally excluded from
-# Git. Create empty/dummy files only for validation, then always remove them.
-# The resolved Compose configuration is never printed because it could expose
-# values when this script is run on the production host.
-created_placeholders=()
-cleanup() {
-    local placeholder
-    for placeholder in "${created_placeholders[@]:-}"; do
-        rm -f -- "$placeholder"
-    done
-}
-trap cleanup EXIT
-
+# Git. Create dummy files only for validation, then always remove them.
 create_placeholder() {
     local path="$1"
     local content="${2:-}"
@@ -135,4 +156,9 @@ fi
         || fail 'effective Compose gateway is not pinned'
 )
 
+if generated="$(find_generated_artifact)" && [[ -n "$generated" ]]; then
+    fail "validation dirtied source tree: ${generated#$ROOT/}"
+fi
+
+printf 'PYTHON_SOURCE_COUNT=%s\n' "$python_count"
 printf 'SOURCE_VALIDATION=PASS\n'
