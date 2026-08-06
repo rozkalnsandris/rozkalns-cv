@@ -31,6 +31,8 @@ jobs:
             --disable-pip-version-check \
             -r bot/requirements.txt
           echo "TEST_VENV=$test_venv" >> "$GITHUB_ENV"
+          echo "PYTHONPYCACHEPREFIX=${RUNNER_TEMP}/rozkalns-cv-pycache" \
+            >> "$GITHUB_ENV"
 
       - name: Validate source and application behavior
         shell: bash
@@ -39,6 +41,7 @@ jobs:
           bash scripts/validate-source.sh "$PWD"
           "$TEST_VENV/bin/python" -m unittest discover \
             -s tests -p 'test_*.py' -v
+          bash scripts/validate-source.sh "$PWD"
 
       - name: Validate nginx runtime configuration
         shell: bash
