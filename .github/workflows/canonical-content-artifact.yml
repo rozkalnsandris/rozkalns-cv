@@ -4,6 +4,16 @@ on:
   push:
     branches:
       - refactor/canonical-cv-content-v01
+  pull_request:
+    paths:
+      - content/**
+      - scripts/build-content.py
+      - bot/system_prompt.txt
+      - html/i18n/**
+      - html/assets/app.*.mjs
+      - html/index.html
+      - tests/frontend.test.mjs
+      - .github/workflows/canonical-content-artifact.yml
   workflow_dispatch:
 
 permissions:
