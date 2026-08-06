@@ -1,0 +1,41 @@
+name: Build canonical content artifact
+
+on:
+  push:
+    branches:
+      - refactor/canonical-cv-content-v01
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - name: Generate derived content and accept current reviewed PDFs
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 scripts/build-content.py --write --accept-pdfs
+          python3 scripts/build-content.py --check
+          git status --short
+
+      - name: Upload generated content
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: canonical-content-${{ github.sha }}
+          path: |
+            bot/system_prompt.txt
+            content/pdf-manifest.json
+            html/i18n
+            html/assets/app.*.mjs
+            html/index.html
+            .github/workflows/ci.yml
+            tests/frontend.test.mjs
+          if-no-files-found: error
+          retention-days: 1
