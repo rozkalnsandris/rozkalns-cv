@@ -10,6 +10,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 APP_PATH = ROOT / "bot" / "app.py"
 PROMPT_PATH = ROOT / "bot" / "system_prompt.txt"
+HEADER = "# ---------------- GENERATED KNOWLEDGE (do not edit) ----------------"
 BEGIN = "# BEGIN GENERATED SYSTEM PROMPT"
 END = "# END GENERATED SYSTEM PROMPT"
 OLD_BLOCK = re.compile(
@@ -18,7 +19,11 @@ OLD_BLOCK = re.compile(
     re.DOTALL,
 )
 GENERATED_BLOCK = re.compile(
-    re.escape(BEGIN) + r"\nSYSTEM_PROMPT = \"\"\".*?\"\"\"\n" + re.escape(END),
+    re.escape(HEADER)
+    + r"\n"
+    + re.escape(BEGIN)
+    + r"\nSYSTEM_PROMPT = \"\"\".*?\"\"\"\n"
+    + re.escape(END),
     re.DOTALL,
 )
 
@@ -47,7 +52,7 @@ def expected_app_text(app_text: str, prompt: str) -> str:
         raise PromptSyncError("generated prompt contains a triple quote")
     prompt = prompt.rstrip("\n")
     block = (
-        "# ---------------- GENERATED KNOWLEDGE (do not edit) ----------------\n"
+        f"{HEADER}\n"
         f"{BEGIN}\n"
         f'SYSTEM_PROMPT = """{prompt}"""\n'
         f"{END}"
