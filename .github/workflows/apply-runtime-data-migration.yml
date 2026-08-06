@@ -1,0 +1,106 @@
+name: Apply cvbot runtime data migration
+
+on:
+  push:
+    branches:
+      - fix/supply-chain-hardening-v01
+    paths:
+      - .github/workflows/apply-runtime-data-migration.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out exact branch SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            fetch --no-tags --depth=1 origin "$GITHUB_SHA"
+          git checkout --detach FETCH_HEAD
+          git switch -c fix/supply-chain-hardening-v01
+
+      - name: Patch deploy helper transactionally
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("runner/release/rozkalns-cv-deploy-main")
+          text = path.read_text(encoding="utf-8")
+
+          constants_old = """NETWORK_GATEWAY='172.19.0.1'
+          BACKUP_RETENTION_COUNT=5
+          """
+          constants_new = """NETWORK_GATEWAY='172.19.0.1'
+          CVBOT_UID=10001
+          CVBOT_GID=10001
+          BACKUP_RETENTION_COUNT=5
+          """
+          if text.count(constants_old) != 1:
+              raise SystemExit("runtime UID constants anchor mismatch")
+          text = text.replace(constants_old, constants_new, 1)
+
+          deploy_old = """deploy_runtime() {
+              normalize_managed_permissions \"$RUNTIME\" || return 1
+              validate_rendered_network \"$RUNTIME\" || return 1
+          """
+          deploy_new = """prepare_cvbot_data() {
+              local data_dir=\"$RUNTIME/bot/data\"
+              [[ -d \"$RUNTIME/bot\" && ! -L \"$RUNTIME/bot\" ]] || return 1
+              if [[ -e \"$data_dir\" ]]; then
+                  [[ -d \"$data_dir\" && ! -L \"$data_dir\" ]] || return 1
+              else
+                  install -d -o \"$CVBOT_UID\" -g \"$CVBOT_GID\" -m 0700 \"$data_dir\" \
+                      || return 1
+              fi
+              if find \"$data_dir\" -type l -print -quit | grep -q .; then
+                  return 1
+              fi
+              chown -R -- \"$CVBOT_UID:$CVBOT_GID\" \"$data_dir\" || return 1
+              find \"$data_dir\" -type d -exec chmod 0700 {} + || return 1
+              find \"$data_dir\" -type f -exec chmod 0600 {} + || return 1
+          }
+
+          deploy_runtime() {
+              normalize_managed_permissions \"$RUNTIME\" || return 1
+              prepare_cvbot_data || return 1
+              validate_rendered_network \"$RUNTIME\" || return 1
+          """
+          if text.count(deploy_old) != 1:
+              raise SystemExit("deploy runtime anchor mismatch")
+          text = text.replace(deploy_old, deploy_new, 1)
+
+          path.write_text(text, encoding="utf-8")
+          PY
+          bash -n runner/release/rozkalns-cv-deploy-main
+          grep -Fq 'CVBOT_UID=10001' runner/release/rozkalns-cv-deploy-main
+          grep -Fq 'prepare_cvbot_data || return 1' runner/release/rozkalns-cv-deploy-main
+          rm -f .github/workflows/apply-runtime-data-migration.yml
+
+      - name: Commit exact helper change
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add runner/release/rozkalns-cv-deploy-main \
+            .github/workflows/apply-runtime-data-migration.yml
+          git diff --cached --check
+          git commit -m 'security: migrate cvbot data ownership safely'
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            push origin HEAD:fix/supply-chain-hardening-v01
