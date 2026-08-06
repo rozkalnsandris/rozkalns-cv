@@ -1,0 +1,85 @@
+name: RPi5 read-only validation
+
+on:
+  pull_request:
+    paths:
+      - bot/**
+      - html/**
+      - nginx.conf
+      - docker-compose.yml
+      - scripts/**
+      - tests/**
+      - .github/workflows/rpi5-readonly-validation.yml
+  push:
+    branches:
+      - test/frontend-rpi5-readonly-v01
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on:
+      - self-hosted
+      - Linux
+      - ARM64
+      - rozkalns-cv-release
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out exact SHA in isolated runner workspace
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            fetch --no-tags --depth=1 origin "$GITHUB_SHA"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$PWD" != /home/andris/rozkalns-cv
+          test "$PWD" != /home/andris/docker/cv
+
+      - name: Run source and Python behavior suite
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test_venv="${RUNNER_TEMP}/rozkalns-cv-readonly-venv-${GITHUB_RUN_ID}"
+          python3 -m venv "$test_venv"
+          "$test_venv/bin/python" -m pip install \
+            --disable-pip-version-check \
+            -r bot/requirements.txt
+          export PYTHONPYCACHEPREFIX="${RUNNER_TEMP}/rozkalns-cv-readonly-pycache-${GITHUB_RUN_ID}"
+          bash scripts/validate-source.sh "$PWD"
+          "$test_venv/bin/python" -m unittest discover \
+            -s tests -p 'test_*.py' -v
+          bash scripts/validate-source.sh "$PWD"
+
+      - name: Run Node behavior suite when available
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          if command -v node >/dev/null 2>&1; then
+            node --check html/assets/app.d878d409f278.mjs
+            node --check html/assets/smarthome.70da56476fdb.mjs
+            node --test tests/frontend.test.mjs
+            printf 'RPI5_NODE_VALIDATION=PASS\n'
+          else
+            printf 'RPI5_NODE_VALIDATION=SKIP reason=node-not-installed\n'
+          fi
+
+      - name: Prove production remained untouched
+        if: always()
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$PWD" != /home/andris/rozkalns-cv
+          test "$PWD" != /home/andris/docker/cv
+          test ! -e cloudflared.env
+          test ! -e bot/.env
+          printf 'PRODUCTION_WRITE=false\n'
+          printf 'DOCKER_ACCESS=false\n'
+          printf 'SUDO_USED=false\n'
