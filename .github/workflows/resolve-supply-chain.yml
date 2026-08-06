@@ -12,7 +12,7 @@ permissions:
 jobs:
   resolve:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@v5
@@ -22,28 +22,46 @@ jobs:
         run: |
           set -Eeuo pipefail
 
+          retry_capture() {
+            local output_var="$1"
+            shift
+            local attempt value=''
+            for attempt in 1 2 3 4; do
+              if value="$($@ 2>&1)"; then
+                printf -v "$output_var" '%s' "$value"
+                return 0
+              fi
+              printf 'RETRY attempt=%s command=%q error=%q\n' \
+                "$attempt" "$1" "$value" >&2
+              sleep "$((attempt * 2))"
+            done
+            return 1
+          }
+
           image_digest() {
-            local ref="$1" digest
-            digest="$(
-              docker buildx imagetools inspect "$ref" \
-                | awk '$1 == "Digest:" {print $2; exit}'
-            )"
+            local ref="$1" output digest
+            retry_capture output docker buildx imagetools inspect "$ref"
+            digest="$(awk '$1 == "Digest:" {print $2; exit}' <<<"$output")"
             [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
             printf '%s@%s\n' "$ref" "$digest"
           }
 
-          tag_commit() {
-            local repo="$1" tag="$2" payload type sha
-            payload="$(curl --fail --silent --show-error \
+          github_json() {
+            curl --fail --silent --show-error \
+              --retry 4 --retry-all-errors --retry-delay 2 \
               -H 'Accept: application/vnd.github+json' \
               -H 'X-GitHub-Api-Version: 2022-11-28' \
+              "$1"
+          }
+
+          tag_commit() {
+            local repo="$1" tag="$2" payload type sha
+            payload="$(github_json \
               "https://api.github.com/repos/${repo}/git/ref/tags/${tag}")"
             type="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["object"]["type"])' <<<"$payload")"
             sha="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["object"]["sha"])' <<<"$payload")"
             if [[ "$type" == tag ]]; then
-              payload="$(curl --fail --silent --show-error \
-                -H 'Accept: application/vnd.github+json' \
-                -H 'X-GitHub-Api-Version: 2022-11-28' \
+              payload="$(github_json \
                 "https://api.github.com/repos/${repo}/git/tags/${sha}")"
               sha="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["object"]["sha"])' <<<"$payload")"
             fi
