@@ -1,0 +1,362 @@
+name: Finalize supply-chain v03
+
+on:
+  push:
+    branches:
+      - fix/supply-chain-hardening-v01
+    paths:
+      - .github/workflows/finalize-supply-chain-v03.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: supply-chain-finalizer-v03
+  cancel-in-progress: true
+
+jobs:
+  finalize:
+    runs-on: ubuntu-slim
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out exact latest branch SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            fetch --no-tags --depth=1 origin "$GITHUB_SHA"
+          git checkout --detach FETCH_HEAD
+          git switch -c fix/supply-chain-hardening-v01
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Generate hash-locked Python graph
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$(cat bot/requirements.in)" = $'Flask==3.1.3\nrequests==2.34.2\ngunicorn==26.0.0'
+          resolver="${RUNNER_TEMP}/piptools"
+          python3 -m pip install \
+            --disable-pip-version-check \
+            --no-compile \
+            --target "$resolver" \
+            pip-tools==7.5.1
+          PYTHONPATH="$resolver" python3 -m piptools compile \
+            --generate-hashes \
+            --resolver=backtracking \
+            --strip-extras \
+            --output-file bot/requirements.lock \
+            bot/requirements.in
+          python3 -m pip install \
+            --disable-pip-version-check \
+            --dry-run \
+            --require-hashes \
+            --no-deps \
+            -r bot/requirements.lock
+
+      - name: Audit exact package releases and image identities
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          install -d -m 0700 security
+          python3 - <<'PY'
+          from __future__ import annotations
+
+          import json
+          from pathlib import Path
+          import re
+          import time
+          import urllib.parse
+          import urllib.request
+
+          DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
+          PACKAGE = re.compile(r"^([A-Za-z0-9_.-]+)==([^\\\s]+)")
+          ACCEPT = ", ".join(
+              [
+                  "application/vnd.oci.image.index.v1+json",
+                  "application/vnd.docker.distribution.manifest.list.v2+json",
+                  "application/vnd.oci.image.manifest.v1+json",
+                  "application/vnd.docker.distribution.manifest.v2+json",
+              ]
+          )
+
+          def open_retry(request: urllib.request.Request):
+              last = None
+              for attempt in range(1, 5):
+                  try:
+                      return urllib.request.urlopen(request, timeout=30)
+                  except Exception as error:
+                      last = error
+                      if attempt < 4:
+                          time.sleep(attempt * 2)
+              raise RuntimeError(f"request failed: {last}")
+
+          def dockerhub_digest(repository: str, tag: str) -> str:
+              query = urllib.parse.urlencode(
+                  {
+                      "service": "registry.docker.io",
+                      "scope": f"repository:{repository}:pull",
+                  }
+              )
+              request = urllib.request.Request(
+                  f"https://auth.docker.io/token?{query}",
+                  headers={"User-Agent": "rozkalns-cv-supply-chain/3"},
+              )
+              with open_retry(request) as response:
+                  token = json.load(response)["token"]
+              request = urllib.request.Request(
+                  f"https://registry-1.docker.io/v2/{repository}/manifests/{tag}",
+                  method="HEAD",
+                  headers={
+                      "Authorization": f"Bearer {token}",
+                      "Accept": ACCEPT,
+                      "User-Agent": "rozkalns-cv-supply-chain/3",
+                  },
+              )
+              with open_retry(request) as response:
+                  digest = response.headers.get("Docker-Content-Digest", "")
+              if not DIGEST.fullmatch(digest):
+                  raise RuntimeError(f"invalid digest for {repository}:{tag}")
+              return digest
+
+          pinned = {
+              "python:3.12.13-slim-bookworm": "sha256:4766d8b510c428e595d74b9cc5bbb2fae8e26316fffb4adc89908d79aacd58a2",
+              "nginx:1.31.3-alpine": "sha256:4a73073bd557c65b759505da037898b61f1be6cbcc3c2c3aeac22d2a470c1752",
+              "cloudflare/cloudflared:2026.7.3": "sha256:e39ee8da81ad5e05d77f38d2f51c60ca51bf2a8450ac3abab50c17fdb91d91bf",
+              "ghcr.io/gitleaks/gitleaks:v8.30.0": "sha256:691af3c7c5a48b16f187ce3446d5f194838f91238f27270ed36eef6359a574d9",
+          }
+          resolved = {
+              "python:3.12.13-slim-bookworm": dockerhub_digest(
+                  "library/python", "3.12.13-slim-bookworm"
+              ),
+              "nginx:1.31.3-alpine": dockerhub_digest(
+                  "library/nginx", "1.31.3-alpine"
+              ),
+              "cloudflare/cloudflared:2026.7.3": dockerhub_digest(
+                  "cloudflare/cloudflared", "2026.7.3"
+              ),
+              "aquasec/trivy:0.72.0": dockerhub_digest(
+                  "aquasec/trivy", "0.72.0"
+              ),
+              "ghcr.io/gitleaks/gitleaks:v8.30.0": pinned[
+                  "ghcr.io/gitleaks/gitleaks:v8.30.0"
+              ],
+          }
+          for reference, digest in pinned.items():
+              if resolved[reference] != digest:
+                  raise RuntimeError(
+                      f"published tag identity changed for {reference}: {resolved[reference]}"
+                  )
+
+          packages = {}
+          for line in Path("bot/requirements.lock").read_text(
+              encoding="utf-8"
+          ).splitlines():
+              match = PACKAGE.match(line)
+              if match:
+                  packages[match.group(1).lower().replace("_", "-")] = match.group(2)
+          if len(packages) < 10:
+              raise RuntimeError("resolved Python dependency graph is unexpectedly small")
+
+          audited = {}
+          for name, version in sorted(packages.items()):
+              url = (
+                  "https://pypi.org/pypi/"
+                  + urllib.parse.quote(name, safe="")
+                  + "/"
+                  + urllib.parse.quote(version, safe="")
+                  + "/json"
+              )
+              request = urllib.request.Request(
+                  url,
+                  headers={"User-Agent": "rozkalns-cv-supply-chain/3"},
+              )
+              with open_retry(request) as response:
+                  release = json.load(response)
+              info = release.get("info") or {}
+              if info.get("yanked"):
+                  raise RuntimeError(f"yanked dependency: {name}=={version}")
+              vulnerabilities = release.get("vulnerabilities") or []
+              if vulnerabilities:
+                  identifiers = sorted(
+                      str(row.get("id") or row.get("aliases") or "unknown")
+                      for row in vulnerabilities
+                  )
+                  raise RuntimeError(
+                      f"known PyPI vulnerability in {name}=={version}: {identifiers}"
+                  )
+              audited[name] = {
+                  "version": version,
+                  "release_url": info.get("release_url"),
+                  "pypi_last_serial": release.get("last_serial"),
+              }
+
+          document = {
+              "schema_version": 1,
+              "images": resolved,
+              "python_packages": audited,
+          }
+          Path("security/supply-chain.json").write_text(
+              json.dumps(document, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Patch deploy helper for least privilege and image provenance
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path("runner/release/rozkalns-cv-deploy-main")
+          text = path.read_text(encoding="utf-8")
+
+          constants_old = """NETWORK_GATEWAY='172.19.0.1'
+          BACKUP_RETENTION_COUNT=5
+          """
+          constants_new = """NETWORK_GATEWAY='172.19.0.1'
+          CVBOT_UID=10001
+          CVBOT_GID=10001
+          CVBOT_IMAGE_IDENTITY_REQUIRED=false
+          BACKUP_RETENTION_COUNT=5
+          """
+          if "CVBOT_UID=10001" not in text:
+              if text.count(constants_old) != 1:
+                  raise SystemExit("runtime UID constants anchor mismatch")
+              text = text.replace(constants_old, constants_new, 1)
+
+          old_deploy = """deploy_runtime() {
+              normalize_managed_permissions \"$RUNTIME\" || return 1
+              validate_rendered_network \"$RUNTIME\" || return 1
+              validate_existing_network || return 1
+              compose_runtime config --quiet || return 1
+              compose_runtime build cvbot || return 1
+              compose_runtime up -d --no-deps cvbot || return 1
+          """
+          new_deploy = """prepare_cvbot_data() {
+              local data_dir=\"$RUNTIME/bot/data\"
+              [[ -d \"$RUNTIME/bot\" && ! -L \"$RUNTIME/bot\" ]] || return 1
+              if [[ -e \"$data_dir\" ]]; then
+                  [[ -d \"$data_dir\" && ! -L \"$data_dir\" ]] || return 1
+              else
+                  install -d -o \"$CVBOT_UID\" -g \"$CVBOT_GID\" -m 0700 \"$data_dir\" \
+                      || return 1
+              fi
+              if find \"$data_dir\" -type l -print -quit | grep -q .; then
+                  return 1
+              fi
+              chown -R -- \"$CVBOT_UID:$CVBOT_GID\" \"$data_dir\" || return 1
+              find \"$data_dir\" -type d -exec chmod 0700 {} + || return 1
+              find \"$data_dir\" -type f -exec chmod 0600 {} + || return 1
+          }
+
+          prepare_cvbot_build_identity() {
+              local revision=\"$TARGET_SHA\"
+              CVBOT_IMAGE_IDENTITY_REQUIRED=false
+              if ! grep -Fq 'net.rozkalns.cv.build-input-sha256' \
+                  \"$RUNTIME/bot/Dockerfile\"; then
+                  printf 'CVBOT_IMAGE_IDENTITY_MODE=legacy\n'
+                  unset CVBOT_VCS_REF CVBOT_BUILD_INPUT_SHA256 || true
+                  return 0
+              fi
+              if [[ \"$ROLLBACK_ATTEMPTED\" == true && \"$OLD_SHA\" =~ ^[0-9a-f]{40}$ ]]; then
+                  revision=\"$OLD_SHA\"
+              fi
+              [[ -f \"$RUNTIME/scripts/build-input-id.py\" \
+                 && ! -L \"$RUNTIME/scripts/build-input-id.py\" ]] || return 1
+              CVBOT_VCS_REF=\"$revision\"
+              CVBOT_BUILD_INPUT_SHA256=\"$(
+                  python3 \"$RUNTIME/scripts/build-input-id.py\" \"$RUNTIME\"
+              )\" || return 1
+              [[ \"$CVBOT_VCS_REF\" =~ ^[0-9a-f]{40}$ ]] || return 1
+              [[ \"$CVBOT_BUILD_INPUT_SHA256\" =~ ^[0-9a-f]{64}$ ]] || return 1
+              export CVBOT_VCS_REF CVBOT_BUILD_INPUT_SHA256
+              CVBOT_IMAGE_IDENTITY_REQUIRED=true
+              printf 'CVBOT_VCS_REF=%s\n' \"$CVBOT_VCS_REF\"
+              printf 'CVBOT_BUILD_INPUT_SHA256=%s\n' \"$CVBOT_BUILD_INPUT_SHA256\"
+          }
+
+          verify_cvbot_image_identity() {
+              local image_id revision build_input
+              [[ \"$CVBOT_IMAGE_IDENTITY_REQUIRED\" == true ]] || return 0
+              image_id=\"$(compose_runtime images -q cvbot | head -n 1)\" || return 1
+              [[ -n \"$image_id\" ]] || return 1
+              revision=\"$(docker image inspect \"$image_id\" \
+                  --format '{{index .Config.Labels \"org.opencontainers.image.revision\"}}')\" \
+                  || return 1
+              build_input=\"$(docker image inspect \"$image_id\" \
+                  --format '{{index .Config.Labels \"net.rozkalns.cv.build-input-sha256\"}}')\" \
+                  || return 1
+              [[ \"$revision\" == \"$CVBOT_VCS_REF\" ]] || return 1
+              [[ \"$build_input\" == \"$CVBOT_BUILD_INPUT_SHA256\" ]] || return 1
+          }
+
+          deploy_runtime() {
+              normalize_managed_permissions \"$RUNTIME\" || return 1
+              prepare_cvbot_data || return 1
+              prepare_cvbot_build_identity || return 1
+              validate_rendered_network \"$RUNTIME\" || return 1
+              validate_existing_network || return 1
+              compose_runtime config --quiet || return 1
+              compose_runtime build cvbot || return 1
+              verify_cvbot_image_identity || return 1
+              compose_runtime up -d --no-deps cvbot || return 1
+          """
+          if "prepare_cvbot_build_identity()" not in text:
+              if text.count(old_deploy) != 1:
+                  raise SystemExit("deploy runtime anchor mismatch")
+              text = text.replace(old_deploy, new_deploy, 1)
+
+          command_old = """    awk bash chmod chown curl df docker du find flock grep install mktemp mv \\
+              realpath rm rsync runuser sha256sum sort stat sync tee tr xargs
+          """
+          command_new = """    awk bash chmod chown curl df docker du find flock grep head install mktemp mv \\
+              python3 realpath rm rsync runuser sha256sum sort stat sync tee tr xargs
+          """
+          if "python3 realpath" not in text:
+              if text.count(command_old) != 1:
+                  raise SystemExit("required command anchor mismatch")
+              text = text.replace(command_old, command_new, 1)
+
+          path.write_text(text, encoding="utf-8")
+          PY
+
+          bash -n runner/release/rozkalns-cv-deploy-main
+          grep -Fq 'CVBOT_UID=10001' runner/release/rozkalns-cv-deploy-main
+          grep -Fq 'prepare_cvbot_data || return 1' \
+            runner/release/rozkalns-cv-deploy-main
+          grep -Fq 'verify_cvbot_image_identity || return 1' \
+            runner/release/rozkalns-cv-deploy-main
+          grep -Fq 'CVBOT_BUILD_INPUT_SHA256' \
+            runner/release/rozkalns-cv-deploy-main
+
+      - name: Remove temporary finalizers and commit generated evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          rm -f \
+            .github/workflows/resolve-supply-chain.yml \
+            .github/workflows/apply-runtime-data-migration.yml \
+            .github/workflows/finalize-supply-chain-v03.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A \
+            bot/requirements.lock \
+            security/supply-chain.json \
+            runner/release/rozkalns-cv-deploy-main \
+            .github/workflows/resolve-supply-chain.yml \
+            .github/workflows/apply-runtime-data-migration.yml \
+            .github/workflows/finalize-supply-chain-v03.yml
+          git diff --cached --check
+          git commit -m 'security: finalize audited supply-chain inputs'
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            push origin HEAD:fix/supply-chain-hardening-v01
