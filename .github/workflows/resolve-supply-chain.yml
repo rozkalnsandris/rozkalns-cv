@@ -1,108 +1,138 @@
-name: Resolve supply-chain identities
+name: Finalize supply-chain lock
 
 on:
-  pull_request:
+  push:
+    branches:
+      - fix/supply-chain-hardening-v01
     paths:
-      - bot/requirements.in
       - .github/workflows/resolve-supply-chain.yml
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  resolve:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
+  finalize:
+    runs-on: ubuntu-slim
+    timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Resolve immutable identities
+      - name: Check out exact branch SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -Eeuo pipefail
-          output_dir="${RUNNER_TEMP}/supply-chain-identities"
-          install -d -m 0700 "$output_dir"
-          identities="$output_dir/identities.txt"
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            fetch --no-tags --depth=1 origin "$GITHUB_SHA"
+          git checkout --detach FETCH_HEAD
+          git switch -c fix/supply-chain-hardening-v01
 
-          retry_capture() {
-            local output_var="$1"
-            shift
-            local attempt value=''
-            for attempt in 1 2 3 4; do
-              if value="$($@ 2>&1)"; then
-                printf -v "$output_var" '%s' "$value"
-                return 0
-              fi
-              printf 'RETRY attempt=%s command=%q error=%q\n' \
-                "$attempt" "$1" "$value" >&2
-              sleep "$((attempt * 2))"
-            done
-            return 1
-          }
-
-          image_digest() {
-            local ref="$1" output digest
-            retry_capture output docker buildx imagetools inspect "$ref"
-            digest="$(awk '$1 == "Digest:" {print $2; exit}' <<<"$output")"
-            [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]
-            printf '%s@%s\n' "$ref" "$digest"
-          }
-
-          github_json() {
-            curl --fail --silent --show-error \
-              --retry 4 --retry-all-errors --retry-delay 2 \
-              -H 'Accept: application/vnd.github+json' \
-              -H 'X-GitHub-Api-Version: 2022-11-28' \
-              "$1"
-          }
-
-          tag_commit() {
-            local repo="$1" tag="$2" payload type sha
-            payload="$(github_json \
-              "https://api.github.com/repos/${repo}/git/ref/tags/${tag}")"
-            type="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["object"]["type"])' <<<"$payload")"
-            sha="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["object"]["sha"])' <<<"$payload")"
-            if [[ "$type" == tag ]]; then
-              payload="$(github_json \
-                "https://api.github.com/repos/${repo}/git/tags/${sha}")"
-              sha="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["object"]["sha"])' <<<"$payload")"
-            fi
-            [[ "$sha" =~ ^[0-9a-f]{40}$ ]]
-            printf '%s@%s # %s\n' "$repo" "$sha" "$tag"
-          }
-
-          {
-            echo '===== IMAGE DIGESTS BEGIN ====='
-            image_digest 'python:3.12.13-slim-bookworm'
-            image_digest 'nginx:1.31.3-alpine'
-            image_digest 'cloudflare/cloudflared:2026.7.3'
-            echo '===== IMAGE DIGESTS END ====='
-            echo '===== ACTION COMMITS BEGIN ====='
-            printf '%s\n' 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1'
-            tag_commit 'actions/upload-artifact' 'v7.0.1'
-            printf '%s\n' 'gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0'
-            echo '===== ACTION COMMITS END ====='
-          } | tee "$identities"
-
-          resolver="${RUNNER_TEMP}/resolver"
-          python3 -m venv "$resolver"
-          "$resolver/bin/python" -m pip install \
-            --disable-pip-version-check pip-tools==7.5.1
-          "$resolver/bin/pip-compile" \
+      - name: Resolve hash-locked dependencies and runtime migration
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          command -v python3 >/dev/null
+          python3 -m pip --version
+          resolver="${RUNNER_TEMP}/piptools"
+          python3 -m pip install \
+            --disable-pip-version-check \
+            --no-compile \
+            --target "$resolver" \
+            pip-tools==7.5.1
+          PYTHONPATH="$resolver" python3 -m piptools compile \
             --generate-hashes \
             --resolver=backtracking \
             --strip-extras \
-            --output-file "$output_dir/requirements.lock" \
+            --output-file bot/requirements.lock \
             bot/requirements.in
+          python3 -m pip install \
+            --disable-pip-version-check \
+            --dry-run \
+            --require-hashes \
+            --no-deps \
+            -r bot/requirements.lock
 
-          sha256sum "$identities" "$output_dir/requirements.lock" \
-            | tee "$output_dir/SHA256SUMS"
+          python3 - <<'PY'
+          from pathlib import Path
 
-      - name: Upload resolved identities
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: supply-chain-identities-${{ github.sha }}
-          path: ${{ runner.temp }}/supply-chain-identities
-          if-no-files-found: error
-          retention-days: 1
+          path = Path("runner/release/rozkalns-cv-deploy-main")
+          text = path.read_text(encoding="utf-8")
+
+          constants_old = """NETWORK_GATEWAY='172.19.0.1'
+          BACKUP_RETENTION_COUNT=5
+          """
+          constants_new = """NETWORK_GATEWAY='172.19.0.1'
+          CVBOT_UID=10001
+          CVBOT_GID=10001
+          BACKUP_RETENTION_COUNT=5
+          """
+          if "CVBOT_UID=10001" not in text:
+              if text.count(constants_old) != 1:
+                  raise SystemExit("runtime UID constants anchor mismatch")
+              text = text.replace(constants_old, constants_new, 1)
+
+          deploy_old = """deploy_runtime() {
+              normalize_managed_permissions \"$RUNTIME\" || return 1
+              validate_rendered_network \"$RUNTIME\" || return 1
+          """
+          deploy_new = """prepare_cvbot_data() {
+              local data_dir=\"$RUNTIME/bot/data\"
+              [[ -d \"$RUNTIME/bot\" && ! -L \"$RUNTIME/bot\" ]] || return 1
+              if [[ -e \"$data_dir\" ]]; then
+                  [[ -d \"$data_dir\" && ! -L \"$data_dir\" ]] || return 1
+              else
+                  install -d -o \"$CVBOT_UID\" -g \"$CVBOT_GID\" -m 0700 \"$data_dir\" \
+                      || return 1
+              fi
+              if find \"$data_dir\" -type l -print -quit | grep -q .; then
+                  return 1
+              fi
+              chown -R -- \"$CVBOT_UID:$CVBOT_GID\" \"$data_dir\" || return 1
+              find \"$data_dir\" -type d -exec chmod 0700 {} + || return 1
+              find \"$data_dir\" -type f -exec chmod 0600 {} + || return 1
+          }
+
+          deploy_runtime() {
+              normalize_managed_permissions \"$RUNTIME\" || return 1
+              prepare_cvbot_data || return 1
+              validate_rendered_network \"$RUNTIME\" || return 1
+          """
+          if "prepare_cvbot_data || return 1" not in text:
+              if text.count(deploy_old) != 1:
+                  raise SystemExit("deploy runtime anchor mismatch")
+              text = text.replace(deploy_old, deploy_new, 1)
+
+          path.write_text(text, encoding="utf-8")
+          PY
+
+          bash -n runner/release/rozkalns-cv-deploy-main
+          grep -Fq 'CVBOT_UID=10001' runner/release/rozkalns-cv-deploy-main
+          grep -Fq 'prepare_cvbot_data || return 1' \
+            runner/release/rozkalns-cv-deploy-main
+          grep -Fq -- '--require-hashes' bot/Dockerfile
+          grep -Fq 'python:3.12.13-slim-bookworm@sha256:' bot/Dockerfile
+          rm -f \
+            .github/workflows/resolve-supply-chain.yml \
+            .github/workflows/apply-runtime-data-migration.yml
+
+      - name: Commit authoritative generated files
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            bot/requirements.lock \
+            runner/release/rozkalns-cv-deploy-main \
+            .github/workflows/resolve-supply-chain.yml \
+            .github/workflows/apply-runtime-data-migration.yml
+          git diff --cached --check
+          git commit -m 'security: lock dependencies and runtime data ownership'
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            push origin HEAD:fix/supply-chain-hardening-v01
