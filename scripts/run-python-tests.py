@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import os
 from pathlib import Path
 import sys
 import trace
@@ -23,7 +22,7 @@ def main() -> int:
     coverage_dir.mkdir(parents=True, exist_ok=True)
 
     suite = unittest.defaultTestLoader.discover(
-        str(ROOT / "tests"), pattern="test_*.py", top_level_dir=str(ROOT)
+        str(ROOT / "tests"), pattern="test_*.py"
     )
     runner = unittest.TextTestRunner(verbosity=2)
     tracer = trace.Trace(
