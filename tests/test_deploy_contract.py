@@ -170,13 +170,19 @@ class DeployContractTests(unittest.TestCase):
 
     def test_source_validation_runs_as_unprivileged_owner(self) -> None:
         text = read(HELPER)
+        lines = [line.strip() for line in text.splitlines()]
         self.assertIn(
             'runuser -u "$OWNER" -- bash '
             '"$STAGE/scripts/validate-source.sh" "$STAGE"',
             text,
         )
-        self.assertNotIn(
-            'bash "$STAGE/scripts/validate-source.sh" "$STAGE"', text
+        self.assertFalse(
+            any(
+                line.startswith(
+                    'bash "$STAGE/scripts/validate-source.sh" "$STAGE"'
+                )
+                for line in lines
+            )
         )
 
     def test_failure_diagnostics_are_captured_before_rollback(self) -> None:
