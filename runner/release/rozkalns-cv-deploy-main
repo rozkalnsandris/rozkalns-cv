@@ -15,6 +15,7 @@ BACKUP_ROOT='/home/andris/.local-backups/rozkalns-cv/deploy'
 STATE_DIR='/var/lib/rozkalns-cv-deploy'
 STATE_FILE="$STATE_DIR/current-sha"
 LOCK_FILE='/run/lock/rozkalns-cv-deploy.lock'
+COMPOSE_ENV_FILE="$RUNTIME/cloudflared.env"
 EVIDENCE_ROOT='/home/github-cv-runner/actions-runner/_work/_temp'
 LOCAL_URL='http://192.168.0.180:8088/'
 PUBLIC_URL='https://rozkalns.net/'
@@ -34,7 +35,27 @@ fail() {
 }
 
 owner_git() {
-    runuser -u "$OWNER" -- git "$@"
+    runuser -u "$OWNER" -- sh -c 'umask 022; exec git "$@"' sh "$@"
+}
+
+compose_runtime() {
+    (
+        cd "$RUNTIME"
+        docker compose --env-file "$COMPOSE_ENV_FILE" "$@"
+    )
+}
+
+normalize_static_permissions() {
+    [[ -d "$RUNTIME/html" && ! -L "$RUNTIME/html" ]] \
+        || return 1
+    [[ -f "$RUNTIME/html/index.html" && ! -L "$RUNTIME/html/index.html" ]] \
+        || return 1
+    [[ -f "$RUNTIME/nginx.conf" && ! -L "$RUNTIME/nginx.conf" ]] \
+        || return 1
+
+    find "$RUNTIME/html" -type d -exec chmod 0755 {} + || return 1
+    find "$RUNTIME/html" -type f -exec chmod 0644 {} + || return 1
+    chmod 0644 "$RUNTIME/nginx.conf" || return 1
 }
 
 write_summary() {
@@ -114,10 +135,7 @@ capture_runtime_diagnostics() {
         printf 'LABEL=%s\n' "$label"
         printf 'UTC=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
         printf '\n===== COMPOSE PS =====\n'
-        (
-            cd "$RUNTIME"
-            docker compose ps
-        ) || true
+        compose_runtime ps || true
         printf '\n===== CONTAINER SUMMARY =====\n'
         docker inspect cv cvbot cv-cloudflared \
             --format '{{.Name}}|image={{.Config.Image}}|status={{.State.Status}}|health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}|started={{.State.StartedAt}}|restarts={{.RestartCount}}' \
@@ -178,6 +196,8 @@ EVIDENCE_GID="$SUDO_GID"
 [[ -n "$EVIDENCE_DIR" ]] || fail 'evidence directory is required'
 [[ -d "$PRIMARY/.git" ]] || fail "primary Git repository is missing: $PRIMARY"
 [[ -d "$RUNTIME" ]] || fail "runtime directory is missing: $RUNTIME"
+[[ -s "$COMPOSE_ENV_FILE" && ! -L "$COMPOSE_ENV_FILE" ]] \
+    || fail 'host-only cloudflared.env is missing, empty, or a symlink'
 [[ -d "$EVIDENCE_DIR" && ! -L "$EVIDENCE_DIR" ]] \
     || fail 'evidence directory must already exist and must not be a symlink'
 
@@ -236,33 +256,16 @@ rsync -a "$RUNTIME/" "$BACKUP/runtime/"
 
 capture_runtime_diagnostics 'pre-deploy-runtime'
 
-# Preserve host-only secrets, generated statistics, and CV assistant
-# runtime conversations. Repository deploys must never delete or publish them.
-rsync -a --delete \
-    --exclude='.git/' \
-    --exclude='.env' \
-    --exclude='*.env' \
-    --exclude='cloudflared.env' \
-    --exclude='stats.json' \
-    --exclude='bot/data/' \
-    "$STAGE/" "$RUNTIME/"
-DEPLOYED=true
-
 deploy_runtime() {
-    (
-        cd "$RUNTIME"
-        docker compose config --quiet
-        docker compose build cvbot
-        docker compose up -d --no-deps cvbot
-    )
-    wait_healthy cvbot 60 2
-    (
-        cd "$RUNTIME"
-        docker compose up -d --no-deps cv
-    )
-    wait_running cv 30 2
-    http_ok "$LOCAL_URL" 10 3
-    http_ok "$PUBLIC_URL" 10 5
+    normalize_static_permissions || return 1
+    compose_runtime config --quiet || return 1
+    compose_runtime build cvbot || return 1
+    compose_runtime up -d --no-deps cvbot || return 1
+    wait_healthy cvbot 60 2 || return 1
+    compose_runtime up -d --no-deps cv || return 1
+    wait_running cv 30 2 || return 1
+    http_ok "$LOCAL_URL" 10 3 || return 1
+    http_ok "$PUBLIC_URL" 10 5 || return 1
 }
 
 rollback() {
@@ -280,7 +283,24 @@ rollback() {
     return 1
 }
 
-if ! deploy_runtime >"$EVIDENCE_DIR/deploy.log" 2>&1; then
+# Preserve host-only secrets, generated statistics, and CV assistant
+# runtime conversations. Repository deploys must never delete or publish them.
+DEPLOYED=true
+if ! rsync -a --delete \
+    --exclude='.git/' \
+    --exclude='.env' \
+    --exclude='*.env' \
+    --exclude='cloudflared.env' \
+    --exclude='stats.json' \
+    --exclude='bot/data/' \
+    "$STAGE/" "$RUNTIME/" \
+    >"$EVIDENCE_DIR/deploy.log" 2>&1; then
+    capture_runtime_diagnostics 'failed-source-sync-runtime'
+    rollback || true
+    exit 1
+fi
+
+if ! deploy_runtime >>"$EVIDENCE_DIR/deploy.log" 2>&1; then
     capture_runtime_diagnostics 'failed-deploy-runtime'
     rollback || true
     exit 1
