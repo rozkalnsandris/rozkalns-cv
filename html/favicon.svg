@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AR">
+  <rect width="64" height="64" rx="14" fill="#11131d"/>
+  <circle cx="32" cy="32" r="24" fill="none" stroke="#efb454" stroke-width="4"/>
+  <text x="32" y="39" text-anchor="middle" font-family="system-ui, sans-serif" font-size="22" font-weight="700" fill="#f5f6fb">AR</text>
+</svg>
