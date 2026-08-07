@@ -16,7 +16,7 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Check out exact workflow SHA without third-party actions
@@ -46,13 +46,22 @@ jobs:
           echo "PYTHONPYCACHEPREFIX=${RUNNER_TEMP}/rozkalns-cv-pycache" \
             >> "$GITHUB_ENV"
 
-      - name: Validate source and Python behavior
+      - name: Validate source and Python behavior with coverage
         shell: bash
         run: |
           set -Eeuo pipefail
           bash scripts/validate-source.sh "$PWD"
-          "$TEST_VENV/bin/python" -m unittest discover \
-            -s tests -p 'test_*.py' -v
+          coverage_log="${RUNNER_TEMP}/python-coverage.log"
+          "$TEST_VENV/bin/python" scripts/run-python-tests.py \
+            --coverage-dir "${RUNNER_TEMP}/python-coverage" \
+            | tee "$coverage_log"
+          {
+            echo '## Python behavioral coverage'
+            echo
+            echo '```text'
+            tail -n 40 "$coverage_log"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Validate frontend modules and behavior
         shell: bash
@@ -60,8 +69,23 @@ jobs:
           set -Eeuo pipefail
           node --check html/assets/app.d878d409f278.mjs
           node --check html/assets/smarthome.70da56476fdb.mjs
+          node --check tests/browser-smoke.mjs
           node --test tests/frontend.test.mjs
           bash scripts/validate-source.sh "$PWD"
+
+      - name: Run real Chromium frontend smoke
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          chrome_bin=''
+          for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
+            if command -v "$candidate" >/dev/null 2>&1; then
+              chrome_bin="$(command -v "$candidate")"
+              break
+            fi
+          done
+          test -n "$chrome_bin"
+          CHROME_BIN="$chrome_bin" node tests/browser-smoke.mjs
 
       - name: Validate nginx runtime configuration
         shell: bash
@@ -86,3 +110,19 @@ jobs:
           chmod 0600 cloudflared.env bot/.env
           CF_TUNNEL_TOKEN='ci-placeholder-not-a-secret' \
             docker compose build cvbot
+
+      - name: Publish test categories
+        if: always()
+        shell: bash
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          ## Executed test categories
+
+          - Flask request validation, streaming payloads, proxy identity, rate limits, privacy and redaction
+          - SQLite persistence, retention, UTC reset and pseudonymous identities
+          - transactional deploy fault injection, rollback and backup behavior
+          - Prometheus parsing, retries, schema validation and atomic stats publication
+          - frontend module behavior, translation parity, content hashes and size budgets
+          - real Chromium language, statistics, streaming chat, failure-history and keyboard-flow smoke
+          - rendered nginx configuration and CV assistant container build
+          EOF
