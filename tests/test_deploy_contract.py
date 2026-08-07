@@ -171,13 +171,17 @@ class DeployContractTests(unittest.TestCase):
         self.assertLess(nginx_position, local_position)
         self.assertLess(local_position, public_position)
 
-    def test_runtime_compose_has_no_shared_ingress_env_dependency(self) -> None:
+    def test_runtime_compose_is_pinned_to_canonical_file(self) -> None:
         text = read(HELPER)
         self.assertNotIn("COMPOSE_ENV_FILE", text)
         self.assertNotIn("--env-file", text)
         self.assertNotIn('cloudflared.env"', text)
-        self.assertIn('docker compose "$@"', text)
-        self.assertEqual(text.count("docker compose "), 2)
+        self.assertIn('docker compose -f docker-compose.yml "$@"', text)
+        self.assertEqual(
+            text.count('docker compose -f docker-compose.yml "$@"'),
+            2,
+        )
+        self.assertNotIn('docker compose "$@"', text)
 
     def test_effective_compose_network_is_pinned_everywhere(self) -> None:
         compose = read(COMPOSE)
