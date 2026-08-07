@@ -3,7 +3,7 @@ Description=Refresh rozkalns.net live homelab statistics
 Documentation=https://github.com/rozkalnsandris/rozkalns-cv
 Wants=network-online.target
 After=network-online.target docker.service
-ConditionPathIsExecutable=/home/andris/docker/cv/stats.sh
+ConditionPathExists=/home/andris/docker/cv/stats.sh
 
 [Service]
 Type=oneshot
@@ -13,7 +13,7 @@ SupplementaryGroups=docker
 WorkingDirectory=/home/andris/docker/cv
 RuntimeDirectory=rozkalns-cv-stats
 RuntimeDirectoryMode=0750
-ExecStart=/home/andris/docker/cv/stats.sh --lock /run/rozkalns-cv-stats/generator.lock
+ExecStart=/usr/bin/bash /home/andris/docker/cv/stats.sh --lock /run/rozkalns-cv-stats/generator.lock
 TimeoutStartSec=45s
 UMask=0022
 
