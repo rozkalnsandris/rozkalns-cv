@@ -6,12 +6,15 @@ on:
       - fix/supply-chain-hardening-v01
     paths:
       - .github/workflows/resolve-supply-chain-v05.yml
+  pull_request:
+    paths:
+      - .github/workflows/resolve-supply-chain-v05.yml
 
 permissions:
   contents: read
 
 concurrency:
-  group: supply-chain-resolver
+  group: supply-chain-resolver-${{ github.event_name }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
 jobs:
