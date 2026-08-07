@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import sqlite3
 import tempfile
@@ -56,6 +57,60 @@ class AssistantStoreTests(unittest.TestCase):
             self.assertTrue(store.reserve("client-a").allowed)
             self.assertTrue(store.reserve("client-b").allowed)
             self.assertFalse(store.reserve("client-a").allowed)
+
+    def test_parallel_reservations_enforce_exact_client_limit(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            clock = MutableClock(1_700_000_000)
+            store = self.make_store(
+                tmp,
+                clock,
+                per_client=3,
+                global_cap=20,
+            )
+            with ThreadPoolExecutor(max_workers=8) as pool:
+                decisions = list(
+                    pool.map(lambda _: store.reserve("client-a"), range(8))
+                )
+            self.assertEqual(sum(row.allowed for row in decisions), 3)
+            self.assertEqual(
+                sum(row.reason == "client" for row in decisions), 5
+            )
+            with sqlite3.connect(store.path) as connection:
+                events = connection.execute(
+                    "SELECT COUNT(*) FROM rate_events WHERE client_key = ?",
+                    ("client-a",),
+                ).fetchone()[0]
+                global_count = connection.execute(
+                    "SELECT request_count FROM daily_usage"
+                ).fetchone()[0]
+            self.assertEqual(events, 3)
+            self.assertEqual(global_count, 3)
+
+    def test_parallel_reservations_enforce_exact_global_limit(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            clock = MutableClock(1_700_000_000)
+            store = self.make_store(
+                tmp,
+                clock,
+                per_client=20,
+                global_cap=4,
+            )
+            clients = [f"client-{index}" for index in range(10)]
+            with ThreadPoolExecutor(max_workers=10) as pool:
+                decisions = list(pool.map(store.reserve, clients))
+            self.assertEqual(sum(row.allowed for row in decisions), 4)
+            self.assertEqual(
+                sum(row.reason == "global" for row in decisions), 6
+            )
+            with sqlite3.connect(store.path) as connection:
+                events = connection.execute(
+                    "SELECT COUNT(*) FROM rate_events"
+                ).fetchone()[0]
+                global_count = connection.execute(
+                    "SELECT request_count FROM daily_usage"
+                ).fetchone()[0]
+            self.assertEqual(events, 4)
+            self.assertEqual(global_count, 4)
 
     def test_global_limit_persists_and_resets_by_utc_day(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
