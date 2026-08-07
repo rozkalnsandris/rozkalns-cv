@@ -122,6 +122,48 @@ class DeployTransactionBehaviorTests(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_cvbot_runtime_security_gate_accepts_only_hardened_state(self) -> None:
+        secure = {
+            "user": "10001:10001",
+            "readonly": True,
+            "cap_add": None,
+            "cap_drop": ["ALL"],
+            "security_opt": ["no-new-privileges:true"],
+            "pids": 128,
+            "privileged": False,
+            "mounts": [
+                {
+                    "Destination": "/app/data",
+                    "RW": True,
+                    "Type": "bind",
+                }
+            ],
+        }
+        import json
+
+        secure_json = json.dumps(secure, separators=(",", ":"))
+        result = run_library(
+            "docker() { printf '%s\\n' "
+            f"{shlex.quote(secure_json)}; }}\n"
+            "verify_cvbot_runtime_security"
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("CVBOT_RUNTIME_SECURITY=PASS", result.stdout)
+        self.assertIn("CVBOT_RUNTIME_USER=10001:10001", result.stdout)
+        self.assertIn("CVBOT_ROOTFS_READ_ONLY=true", result.stdout)
+        self.assertIn("CVBOT_CAP_DROP=ALL", result.stdout)
+        self.assertIn("CVBOT_NO_NEW_PRIVILEGES=true", result.stdout)
+
+        insecure = dict(secure)
+        insecure["readonly"] = False
+        insecure_json = json.dumps(insecure, separators=(",", ":"))
+        rejected = run_library(
+            "docker() { printf '%s\\n' "
+            f"{shlex.quote(insecure_json)}; }}\n"
+            "if verify_cvbot_runtime_security; then exit 99; fi"
+        )
+        self.assertEqual(rejected.returncode, 0, rejected.stderr)
+
     def test_cloudflared_image_selection_requires_one_digest_reference(self) -> None:
         pinned = (
             "cloudflare/cloudflared:2026.7.3@sha256:"
