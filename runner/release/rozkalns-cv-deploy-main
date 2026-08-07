@@ -326,6 +326,13 @@ capture_runtime_diagnostics() {
         docker inspect cv cvbot cv-cloudflared \
             --format '{{.Name}}|image={{.Config.Image}}|status={{.State.Status}}|health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}|started={{.State.StartedAt}}|restarts={{.RestartCount}}' \
             || true
+        printf '\n===== CVBOT SECURITY =====\n'
+        docker inspect cvbot \
+            --format 'user={{.Config.User}}|readonly={{.HostConfig.ReadonlyRootfs}}|cap_add={{json .HostConfig.CapAdd}}|cap_drop={{json .HostConfig.CapDrop}}|security_opt={{json .HostConfig.SecurityOpt}}|pids={{.HostConfig.PidsLimit}}|privileged={{.HostConfig.Privileged}}' \
+            || true
+        docker inspect cvbot \
+            --format '{{range .Mounts}}{{if eq .Destination "/app/data"}}data_mount={{.Destination}}|rw={{.RW}}|type={{.Type}}{{println}}{{end}}{{end}}' \
+            || true
         printf '\n===== CVBOT HEALTH HISTORY =====\n'
         docker inspect cvbot \
             --format '{{if .State.Health}}{{range .State.Health.Log}}{{.Start}}|exit={{.ExitCode}}|{{printf "%q" .Output}}{{println}}{{end}}{{else}}no-healthcheck{{end}}' \
@@ -395,6 +402,58 @@ verify_cvbot_image_identity() {
     [[ "$build_input" == "$CVBOT_BUILD_INPUT_SHA256" ]] || return 1
 }
 
+verify_cvbot_runtime_security() {
+    local security
+    security="$(docker inspect cvbot --format '{"user":{{json .Config.User}},"readonly":{{json .HostConfig.ReadonlyRootfs}},"cap_add":{{json .HostConfig.CapAdd}},"cap_drop":{{json .HostConfig.CapDrop}},"security_opt":{{json .HostConfig.SecurityOpt}},"pids":{{json .HostConfig.PidsLimit}},"privileged":{{json .HostConfig.Privileged}},"mounts":{{json .Mounts}}}')" || return 1
+    python3 - "$CVBOT_UID" "$CVBOT_GID" "$security" <<'PY'
+import json
+import sys
+
+uid, gid, raw = sys.argv[1:4]
+data = json.loads(raw)
+expected_user = f"{uid}:{gid}"
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise SystemExit(message)
+
+
+require(data.get("user") == expected_user, "cvbot user mismatch")
+require(data.get("readonly") is True, "cvbot rootfs is writable")
+require(data.get("privileged") is False, "cvbot is privileged")
+require((data.get("cap_add") or []) == [], "cvbot has added capabilities")
+cap_drop = [str(value).upper() for value in (data.get("cap_drop") or [])]
+require(cap_drop == ["ALL"], "cvbot does not drop all capabilities")
+security_opt = [str(value).lower() for value in (data.get("security_opt") or [])]
+require(
+    "no-new-privileges:true" in security_opt,
+    "cvbot no-new-privileges is missing",
+)
+require(data.get("pids") == 128, "cvbot pids limit mismatch")
+mounts = data.get("mounts") or []
+data_mounts = [row for row in mounts if row.get("Destination") == "/app/data"]
+require(len(data_mounts) == 1, "cvbot data mount count mismatch")
+require(data_mounts[0].get("RW") is True, "cvbot data mount is not writable")
+unexpected_rw = [
+    row.get("Destination")
+    for row in mounts
+    if row.get("RW") is True
+    and row.get("Destination") not in {"/app/data", "/tmp"}
+]
+require(not unexpected_rw, "cvbot has an unexpected writable mount")
+
+print("CVBOT_RUNTIME_SECURITY=PASS")
+print(f"CVBOT_RUNTIME_USER={expected_user}")
+print("CVBOT_ROOTFS_READ_ONLY=true")
+print("CVBOT_CAP_ADD=none")
+print("CVBOT_CAP_DROP=ALL")
+print("CVBOT_NO_NEW_PRIVILEGES=true")
+print("CVBOT_PIDS_LIMIT=128")
+print("CVBOT_DATA_RW=true")
+PY
+}
+
 expected_cloudflared_image() {
     local images count image
     images="$(compose_runtime config --images)" || return 1
@@ -434,6 +493,7 @@ deploy_runtime() {
     verify_cvbot_image_identity || return 1
     compose_runtime up -d --no-deps cvbot || return 1
     wait_healthy cvbot 60 2 || return 1
+    verify_cvbot_runtime_security || return 1
     compose_runtime up -d --no-deps cv || return 1
     wait_running cv 30 2 || return 1
     http_ok "$LOCAL_URL" 10 3 || return 1
@@ -584,7 +644,9 @@ STAGE="$WORK/source"
 CANDIDATE="$WORK/candidate"
 owner_git -C "$PRIMARY" worktree add --detach "$STAGE" "$TARGET_SHA" >/dev/null
 
-runuser -u "$OWNER" -- bash "$STAGE/scripts/validate-source.sh" "$STAGE" \
+runuser -u "$OWNER" -- bash -c \
+    'cd "$1" && exec bash "$1/scripts/validate-source.sh" "$1"' \
+    bash "$STAGE" \
     >"$EVIDENCE_DIR/source-validation.log" 2>&1 \
     || fail 'source validation failed'
 prepare_candidate || fail 'candidate preparation failed'
