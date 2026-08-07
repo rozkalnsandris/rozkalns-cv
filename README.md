@@ -30,8 +30,8 @@ host-infrastructure responsibilities.
 
 - Checkout: `/home/andris/rozkalns-cv`
 - Runtime: `/home/andris/docker/cv`
-- Local: `http://192.168.0.180:8088/`
-- Host ingress origin: `http://127.0.0.1:8088/`
+- Host-local origin: `http://127.0.0.1:8088/`
+- Direct LAN publish: none
 - Public: `https://rozkalns.net/`
 
 Every successful `main` CI run queues a serial deployment on a dedicated,
