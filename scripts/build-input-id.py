@@ -10,6 +10,7 @@ INPUTS = (
     "bot/Dockerfile",
     "bot/requirements.lock",
     "bot/app.py",
+    "bot/contact.py",
     "bot/storage.py",
     "docker-compose.yml",
     "security/supply-chain.json",

@@ -12,7 +12,9 @@
   <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/assets/main.8548550e57d3.css">
-  <script type="module" src="/assets/app.d878d409f278.mjs?cfg=f7c372fe93b6"></script>
+  <link rel="stylesheet" href="/assets/extra.d1b655894a50.css">
+  <script type="module" src="/assets/app.d878d409f278.mjs?cfg=c386e0fbc0a5"></script>
+  <script type="module" src="/assets/enhancements.0027f066ac26.mjs"></script>
 </head>
 <body>
   <a class="skip-link" href="#main" data-i18n="skip">Skip to main content</a>
@@ -49,11 +51,11 @@
         </div>
         <div class="contact-row">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
-          <a href="mailto:andris@rozkalns.net">andris@rozkalns.net</a>
+          <span id="contactEmail" class="contact-masked" aria-label="Email address hidden until verification">an••••@••••••••.net</span>
         </div>
         <div class="contact-row">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.63a2 2 0 0 1-.45 2.11L8 9.73a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.85.29 1.73.5 2.63.62A2 2 0 0 1 22 16.92Z"/></svg>
-          <a href="tel:+4917685134770">+49 176 8513 4770</a>
+          <span id="contactPhone" class="contact-masked" aria-label="Phone number hidden until verification">+49 ••• •••• ••••</span>
         </div>
         <div class="contact-row">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>
@@ -61,9 +63,18 @@
         </div>
       </div>
 
+      <div class="contact-verify">
+        <button id="contactReveal" class="contact-reveal" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v2"/></svg>
+          <span class="contact-reveal-label">Verify to show contact details</span>
+        </button>
+        <div id="turnstileMount" class="turnstile-mount" hidden></div>
+        <div id="contactVerifyStatus" class="contact-verify-status" role="status" aria-live="polite"></div>
+      </div>
+
       <div class="actions">
-        <a class="button" id="pdfLink" href="/cv.pdf" download data-i18n="download_pdf">Download PDF</a>
-        <a class="button" href="/smarthome.html" data-i18n="smart_demo">Smart-home demo</a>
+        <a class="button" id="pdfLink" href="/cv.pdf" download><svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 19h14"/></svg><span data-i18n="download_pdf">Download PDF</span></a>
+        <a class="button" href="/smarthome.html"><svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m3 11 9-7 9 7v9H3z"/><path d="M9 20v-6h6v6"/></svg><span data-i18n="smart_demo">Smart-home demo</span></a>
       </div>
 
       <nav class="site-nav" aria-label="CV sections">
