@@ -16,10 +16,10 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 40
 
     steps:
-      - name: Check out exact workflow SHA without third-party actions
+      - name: Check out exact workflow SHA with complete history
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -29,11 +29,15 @@ jobs:
           git init .
           git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
           git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
-            fetch --no-tags --depth=1 origin "$GITHUB_SHA"
+            fetch --no-tags --prune origin \
+            '+refs/heads/*:refs/remotes/origin/*'
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            fetch --no-tags origin "$GITHUB_SHA"
           git checkout --detach FETCH_HEAD
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse --is-shallow-repository)" = false
 
-      - name: Install test dependencies
+      - name: Install hash-locked test dependencies
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -41,7 +45,9 @@ jobs:
           python3 -m venv "$test_venv"
           "$test_venv/bin/python" -m pip install \
             --disable-pip-version-check \
-            -r bot/requirements.txt
+            --require-hashes \
+            --no-deps \
+            -r bot/requirements.lock
           echo "TEST_VENV=$test_venv" >> "$GITHUB_ENV"
           echo "PYTHONPYCACHEPREFIX=${RUNNER_TEMP}/rozkalns-cv-pycache" \
             >> "$GITHUB_ENV"
@@ -85,18 +91,43 @@ jobs:
             fi
           done
           test -n "$chrome_bin"
-          CHROME_BIN="$chrome_bin" node tests/browser-smoke.mjs
+          browser_log="${RUNNER_TEMP}/browser-smoke.log"
+          for attempt in 1 2 3; do
+            set +e
+            CHROME_BIN="$chrome_bin" node tests/browser-smoke.mjs \
+              >"$browser_log" 2>&1
+            browser_status=$?
+            set -e
+            cat "$browser_log"
+            if [[ "$browser_status" -eq 0 ]]; then
+              break
+            fi
+            if ! grep -Fq 'DevToolsActivePort' "$browser_log"; then
+              exit "$browser_status"
+            fi
+            if [[ "$attempt" -eq 3 ]]; then
+              exit "$browser_status"
+            fi
+            sleep "$attempt"
+          done
 
-      - name: Validate nginx runtime configuration
+      - name: Scan complete Git history for secrets
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash scripts/run-gitleaks.sh "$PWD"
+
+      - name: Validate pinned nginx runtime configuration
         shell: bash
         run: |
           set -Eeuo pipefail
           docker run --rm \
             --add-host=cvbot:127.0.0.1 \
             --mount "type=bind,src=$PWD/nginx.conf,dst=/etc/nginx/conf.d/default.conf,readonly" \
-            nginx:alpine nginx -t
+            nginx:1.31.3-alpine@sha256:4a73073bd557c65b759505da037898b61f1be6cbcc3c2c3aeac22d2a470c1752 \
+            nginx -t
 
-      - name: Build CV assistant image
+      - name: Build and verify CV assistant image identity
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -108,8 +139,50 @@ jobs:
           printf 'CF_TUNNEL_TOKEN=ci-placeholder-not-a-secret\n' > cloudflared.env
           : > bot/.env
           chmod 0600 cloudflared.env bot/.env
+          export CVBOT_VCS_REF="$GITHUB_SHA"
+          export CVBOT_BUILD_INPUT_SHA256="$(python3 scripts/build-input-id.py "$PWD")"
+          [[ "$CVBOT_BUILD_INPUT_SHA256" =~ ^[0-9a-f]{64}$ ]]
+          image_ref="rozkalns-cv-cvbot:${CVBOT_VCS_REF}"
           CF_TUNNEL_TOKEN='ci-placeholder-not-a-secret' \
             docker compose build cvbot
+          docker image inspect "$image_ref" >/dev/null
+          revision="$(docker image inspect "$image_ref" \
+            --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')"
+          build_input="$(docker image inspect "$image_ref" \
+            --format '{{index .Config.Labels "net.rozkalns.cv.build-input-sha256"}}')"
+          test "$revision" = "$CVBOT_VCS_REF"
+          test "$build_input" = "$CVBOT_BUILD_INPUT_SHA256"
+          echo "CVBOT_IMAGE_REF=$image_ref" >> "$GITHUB_ENV"
+          printf 'CVBOT_IMAGE_IDENTITY=PASS\n'
+
+      - name: Scan CV assistant image for HIGH and CRITICAL vulnerabilities
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          trivy_digest="$(python3 - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path('security/supply-chain.json').read_text(encoding='utf-8'))
+          print(data['images']['aquasec/trivy:0.72.0'])
+          PY
+          )"
+          [[ "$trivy_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            "aquasec/trivy:0.72.0@${trivy_digest}" \
+            image \
+            --scanners vuln \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            --no-progress \
+            "$CVBOT_IMAGE_REF"
+
+      - name: Revalidate clean source after container checks
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          rm -f cloudflared.env bot/.env
+          bash scripts/validate-source.sh "$PWD"
 
       - name: Publish test categories
         if: always()
@@ -120,9 +193,12 @@ jobs:
 
           - Flask request validation, streaming payloads, proxy identity, rate limits, privacy and redaction
           - SQLite persistence, retention, UTC reset and pseudonymous identities
-          - transactional deploy fault injection, rollback and backup behavior
+          - transactional deploy fault injection, rollback, data ownership and image identity behavior
           - Prometheus parsing, retries, schema validation and atomic stats publication
           - frontend module behavior, translation parity, content hashes and size budgets
           - real Chromium language, statistics, streaming chat, failure-history and keyboard-flow smoke
-          - rendered nginx configuration and CV assistant container build
+          - full Git-history Gitleaks scan with mandatory detector canary
+          - pinned nginx configuration and hash-locked CV assistant build
+          - explicit SHA-tagged OCI revision/build-input identity verification
+          - pinned Trivy HIGH/CRITICAL image vulnerability gate
           EOF

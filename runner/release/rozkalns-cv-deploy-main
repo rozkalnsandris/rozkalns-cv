@@ -22,6 +22,9 @@ PUBLIC_URL='https://rozkalns.net/'
 NETWORK_NAME='cv_default'
 NETWORK_SUBNET='172.19.0.0/16'
 NETWORK_GATEWAY='172.19.0.1'
+CVBOT_UID=10001
+CVBOT_GID=10001
+CVBOT_IMAGE_IDENTITY_REQUIRED=false
 BACKUP_RETENTION_COUNT=5
 BACKUP_RETENTION_DAYS=14
 MIN_FREE_BYTES=1073741824
@@ -343,12 +346,66 @@ capture_runtime_diagnostics() {
     } >"$output" 2>&1
 }
 
+prepare_cvbot_data() {
+    local data_dir="$RUNTIME/bot/data"
+    [[ -d "$RUNTIME/bot" && ! -L "$RUNTIME/bot" ]] || return 1
+    if [[ -e "$data_dir" ]]; then
+        [[ -d "$data_dir" && ! -L "$data_dir" ]] || return 1
+    else
+        install -d -o "$CVBOT_UID" -g "$CVBOT_GID" -m 0700 "$data_dir" || return 1
+    fi
+    if find "$data_dir" -type l -print -quit | grep -q .; then
+        return 1
+    fi
+    chown -R -- "$CVBOT_UID:$CVBOT_GID" "$data_dir" || return 1
+    find "$data_dir" -type d -exec chmod 0700 {} + || return 1
+    find "$data_dir" -type f -exec chmod 0600 {} + || return 1
+}
+
+prepare_cvbot_build_identity() {
+    CVBOT_IMAGE_IDENTITY_REQUIRED=false
+    if ! grep -Fq 'net.rozkalns.cv.build-input-sha256' "$RUNTIME/bot/Dockerfile"; then
+        printf 'CVBOT_IMAGE_IDENTITY_MODE=legacy
+'
+        unset CVBOT_VCS_REF CVBOT_BUILD_INPUT_SHA256 || true
+        return 0
+    fi
+    [[ -f "$RUNTIME/scripts/build-input-id.py" && ! -L "$RUNTIME/scripts/build-input-id.py" ]] || return 1
+    CVBOT_VCS_REF="$TARGET_SHA"
+    if [[ "$ROLLBACK_ATTEMPTED" == true && "$OLD_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+        CVBOT_VCS_REF="$OLD_SHA"
+    fi
+    CVBOT_BUILD_INPUT_SHA256="$(python3 "$RUNTIME/scripts/build-input-id.py" "$RUNTIME")" || return 1
+    [[ "$CVBOT_VCS_REF" =~ ^[0-9a-f]{40}$ ]] || return 1
+    [[ "$CVBOT_BUILD_INPUT_SHA256" =~ ^[0-9a-f]{64}$ ]] || return 1
+    export CVBOT_VCS_REF CVBOT_BUILD_INPUT_SHA256
+    CVBOT_IMAGE_IDENTITY_REQUIRED=true
+    printf 'CVBOT_VCS_REF=%s
+' "$CVBOT_VCS_REF"
+    printf 'CVBOT_BUILD_INPUT_SHA256=%s
+' "$CVBOT_BUILD_INPUT_SHA256"
+}
+
+verify_cvbot_image_identity() {
+    local image_ref revision build_input
+    [[ "$CVBOT_IMAGE_IDENTITY_REQUIRED" == true ]] || return 0
+    image_ref="rozkalns-cv-cvbot:${CVBOT_VCS_REF}"
+    docker image inspect "$image_ref" >/dev/null || return 1
+    revision="$(docker image inspect "$image_ref" --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" || return 1
+    build_input="$(docker image inspect "$image_ref" --format '{{index .Config.Labels "net.rozkalns.cv.build-input-sha256"}}')" || return 1
+    [[ "$revision" == "$CVBOT_VCS_REF" ]] || return 1
+    [[ "$build_input" == "$CVBOT_BUILD_INPUT_SHA256" ]] || return 1
+}
+
 deploy_runtime() {
     normalize_managed_permissions "$RUNTIME" || return 1
+    prepare_cvbot_data || return 1
+    prepare_cvbot_build_identity || return 1
     validate_rendered_network "$RUNTIME" || return 1
     validate_existing_network || return 1
     compose_runtime config --quiet || return 1
     compose_runtime build cvbot || return 1
+    verify_cvbot_image_identity || return 1
     compose_runtime up -d --no-deps cvbot || return 1
     wait_healthy cvbot 60 2 || return 1
     compose_runtime up -d --no-deps cv || return 1
@@ -422,8 +479,8 @@ EVIDENCE_UID="$SUDO_UID"
 EVIDENCE_GID="$SUDO_GID"
 
 for command_name in \
-    awk bash chmod chown curl df docker du find flock grep install mktemp mv \
-    realpath rm rsync runuser sha256sum sort stat sync tee tr xargs
+    awk bash chmod chown curl df docker du find flock grep head install mktemp mv \
+    python3 realpath rm rsync runuser sha256sum sort stat sync tee tr xargs
 do
     command -v "$command_name" >/dev/null 2>&1 \
         || fail "required command is missing: $command_name"

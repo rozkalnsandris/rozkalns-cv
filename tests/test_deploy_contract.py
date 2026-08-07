@@ -32,10 +32,11 @@ class DeployContractTests(unittest.TestCase):
             "rozkalns-cv-release",
             "/usr/local/sbin/rozkalns-cv-deploy-main",
             "https://rozkalns.net/",
-            "actions/upload-artifact@v6",
+            "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
         ):
             self.assertIn(marker, text)
         self.assertNotIn("actions/checkout", text)
+        self.assertNotIn("actions/upload-artifact@v", text)
         self.assertNotIn("concurrency:", text)
 
     def test_main_push_ci_is_not_cancelled_by_newer_merge(self) -> None:
