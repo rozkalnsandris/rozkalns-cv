@@ -23,7 +23,7 @@ class ComposeIngressBoundaryTests(unittest.TestCase):
     def test_cv_readme_has_no_direct_lan_publish(self) -> None:
         text = README.read_text(encoding="utf-8")
 
-        self.assertIn("Host-local origin: `http://127.0.0.1:8088/`", text)
+        self.assertIn("Host ingress origin: `http://127.0.0.1:8088/`", text)
         self.assertIn("Direct LAN publish: none", text)
         self.assertNotIn("Local: `http://192.168.0.180:8088/`", text)
 
