@@ -50,18 +50,42 @@ class DeployContractTests(unittest.TestCase):
             text,
         )
 
-    def test_helper_reconciles_pinned_tunnel_transactionally(self) -> None:
+    def test_helper_preflights_tunnel_replica_before_replacement(self) -> None:
         text = read(HELPER)
         subprocess.run(["bash", "-n", str(HELPER)], check=True)
-        self.assertIn("compose_runtime up -d --no-deps cvbot", text)
-        self.assertIn("compose_runtime up -d --no-deps cv", text)
-        self.assertIn("compose_runtime up -d --no-deps cloudflared", text)
-        self.assertIn("wait_running cv-cloudflared 30 2", text)
-        self.assertIn("CLOUDFLARED_IMAGE_IDENTITY=PASS", text)
-        self.assertIn(
-            "printf 'CLOUDFLARED_RESTARTED=%s\\n' \"$CLOUDFLARED_RESTARTED\"",
-            text,
-        )
+        for marker in (
+            "preflight_cloudflared_canary()",
+            'compose_at "$root" run -d --no-deps',
+            "--name \"$CLOUDFLARED_CANARY\" cloudflared",
+            "tunnel --no-autoupdate --metrics 0.0.0.0:20241 run",
+            '"http://$ip:20241/diag/tunnel"',
+            "wait_cloudflared_edge \"$CLOUDFLARED_CANARY\" 30 2",
+            "CLOUDFLARED_CANARY_READY=true",
+            "cloudflared target replica did not become edge-ready",
+        ):
+            self.assertIn(marker, text)
+
+        canary = text.index('preflight_cloudflared_canary "$CANDIDATE"')
+        backup = text.index('BACKUP="$BACKUP_ROOT/${STAMP}-${OLD_SHA:-unknown}"')
+        mutation = text.index("MUTATION_STARTED=true")
+        source_sync = text.index('managed_rsync "$CANDIDATE" "$RUNTIME"')
+        self.assertLess(canary, backup)
+        self.assertLess(backup, mutation)
+        self.assertLess(mutation, source_sync)
+
+    def test_helper_reconciles_pinned_tunnel_only_after_canary(self) -> None:
+        text = read(HELPER)
+        for marker in (
+            "compose_runtime up -d --no-deps cvbot",
+            "compose_runtime up -d --no-deps cv",
+            "compose_runtime up -d --no-deps cloudflared",
+            "wait_running cv-cloudflared 30 2",
+            "wait_cloudflared_edge cv-cloudflared 30 2",
+            "CLOUDFLARED_IMAGE_IDENTITY=PASS",
+            '[[ "$CLOUDFLARED_CANARY_READY" == true ]] || return 1',
+            "remove_cloudflared_canary",
+        ):
+            self.assertIn(marker, text)
         self.assertNotIn("compose_runtime restart cloudflared", text)
         self.assertNotIn("docker compose restart cloudflared", text)
         self.assertIn("write_summary 'FAIL_ROLLBACK_PASS' true", text)
@@ -69,7 +93,7 @@ class DeployContractTests(unittest.TestCase):
 
     def test_cloudflared_image_identity_is_exact_and_digest_pinned(self) -> None:
         text = read(HELPER)
-        self.assertIn('images="$(compose_runtime config --images)"', text)
+        self.assertIn('images="$(compose_at "$root" config --images)"', text)
         self.assertIn(
             "count=\"$(grep -Ec '^cloudflare/cloudflared:' <<<\"$images\" || true)\"",
             text,
@@ -82,6 +106,36 @@ class DeployContractTests(unittest.TestCase):
             text,
         )
         self.assertIn('[[ "$actual" == "$expected" ]] || return 1', text)
+        compose = read(COMPOSE)
+        self.assertIn(
+            "command: tunnel --no-autoupdate --metrics 0.0.0.0:20241 run",
+            compose,
+        )
+
+    def test_cloudflared_readiness_is_edge_not_process_only(self) -> None:
+        text = read(HELPER)
+        for marker in (
+            "cloudflared_connected_count()",
+            "/diag/tunnel",
+            'row.get("isConnected") is True',
+            "WAIT_CLOUDFLARED_EDGE",
+            "CLOUDFLARED_EDGE_READY=PASS",
+            "wait_cloudflared_edge cv-cloudflared 30 2",
+        ):
+            self.assertIn(marker, text)
+
+    def test_cloudflared_failure_evidence_is_sanitized_and_complete(self) -> None:
+        text = read(HELPER)
+        for marker in (
+            "redact_cloudflared_logs()",
+            "<redacted-token>",
+            "===== CLOUDFLARED LOGS =====",
+            "===== CLOUDFLARED CANARY LOGS =====",
+            "cloudflared-canary-failure.log",
+            "cloudflared-canary-ready.log",
+            "CLOUDFLARED_CANARY_PRESERVED",
+        ):
+            self.assertIn(marker, text)
 
     def test_cvbot_runtime_security_is_fail_closed_and_evidenced(self) -> None:
         text = read(HELPER)
@@ -262,10 +316,7 @@ class DeployContractTests(unittest.TestCase):
 
     def test_source_validation_runs_as_unprivileged_owner_from_stage(self) -> None:
         text = read(HELPER)
-        self.assertIn(
-            'runuser -u "$OWNER" -- bash -c',
-            text,
-        )
+        self.assertIn('runuser -u "$OWNER" -- bash -c', text)
         self.assertIn(
             "'cd \"$1\" && exec bash \"$1/scripts/validate-source.sh\" \"$1\"'",
             text,
@@ -284,9 +335,11 @@ class DeployContractTests(unittest.TestCase):
             "failed-rollback-sync-runtime",
             "post-rollback-runtime",
             "failed-rollback-runtime",
+            "failed-cloudflared-canary-preflight",
             "CVBOT SECURITY",
             "CVBOT HEALTH HISTORY",
             "CVBOT LOGS",
+            "CLOUDFLARED LOGS",
         ):
             self.assertIn(marker, text)
 

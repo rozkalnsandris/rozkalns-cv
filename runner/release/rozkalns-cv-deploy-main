@@ -26,6 +26,9 @@ CVBOT_UID=10001
 CVBOT_GID=10001
 CVBOT_IMAGE_IDENTITY_REQUIRED=false
 CLOUDFLARED_RESTARTED=false
+CLOUDFLARED_CANARY=''
+CLOUDFLARED_CANARY_READY=false
+CLOUDFLARED_CANARY_PRESERVED=false
 BACKUP_RETENTION_COUNT=5
 BACKUP_RETENTION_DAYS=14
 MIN_FREE_BYTES=1073741824
@@ -252,6 +255,8 @@ write_summary() {
         printf 'MUTATION_STARTED=%s\n' "$MUTATION_STARTED"
         printf 'TRANSACTION_COMMITTED=%s\n' "$TRANSACTION_COMMITTED"
         printf 'CLOUDFLARED_RESTARTED=%s\n' "$CLOUDFLARED_RESTARTED"
+        printf 'CLOUDFLARED_CANARY_READY=%s\n' "$CLOUDFLARED_CANARY_READY"
+        printf 'CLOUDFLARED_CANARY_PRESERVED=%s\n' "$CLOUDFLARED_CANARY_PRESERVED"
         printf 'DATABASE_MIGRATIONS_EXECUTED=false\n'
         printf 'ROLLBACK_PERFORMED=%s\n' "$rollback_performed"
         printf 'UTC=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -314,6 +319,21 @@ wait_healthy() {
     return 1
 }
 
+redact_cloudflared_logs() {
+    python3 -c 'import re,sys
+text=sys.stdin.read()
+text=re.sub(r"eyJ[A-Za-z0-9._=-]{30,}", "<redacted-token>", text)
+text=re.sub(r"(?i)(token[=: ]+)[^\\s\\\"]+", r"\\1<redacted>", text)
+sys.stdout.write(text)'
+}
+
+capture_cloudflared_logs() {
+    local name="$1"
+    local output="$2"
+    docker logs --tail 240 --timestamps "$name" 2>&1 \
+        | redact_cloudflared_logs >"$output" || true
+}
+
 capture_runtime_diagnostics() {
     local label="$1"
     local output="$EVIDENCE_DIR/${label}.log"
@@ -339,6 +359,15 @@ capture_runtime_diagnostics() {
             || true
         printf '\n===== CVBOT LOGS =====\n'
         docker logs --tail 240 --timestamps cvbot 2>&1 || true
+        printf '\n===== CLOUDFLARED LOGS =====\n'
+        docker logs --tail 240 --timestamps cv-cloudflared 2>&1 \
+            | redact_cloudflared_logs || true
+        if [[ -n "$CLOUDFLARED_CANARY" ]] \
+           && docker inspect "$CLOUDFLARED_CANARY" >/dev/null 2>&1; then
+            printf '\n===== CLOUDFLARED CANARY LOGS =====\n'
+            docker logs --tail 240 --timestamps "$CLOUDFLARED_CANARY" 2>&1 \
+                | redact_cloudflared_logs || true
+        fi
         printf '\n===== LOCAL HTTP =====\n'
         if curl --fail --silent --show-error --max-time 20 "$LOCAL_URL" >/dev/null; then
             printf 'LOCAL_URL=PASS\n'
@@ -454,9 +483,19 @@ print("CVBOT_DATA_RW=true")
 PY
 }
 
-expected_cloudflared_image() {
-    local images count image
-    images="$(compose_runtime config --images)" || return 1
+expected_cloudflared_image_at() {
+    local root="$1"
+    local images count image placeholder_created=false
+    if [[ ! -e "$root/bot/.env" ]]; then
+        : >"$root/bot/.env" || return 1
+        chmod 0600 "$root/bot/.env" || return 1
+        placeholder_created=true
+    fi
+    images="$(compose_at "$root" config --images)" || {
+        [[ "$placeholder_created" == true ]] && rm -f -- "$root/bot/.env"
+        return 1
+    }
+    [[ "$placeholder_created" == true ]] && rm -f -- "$root/bot/.env"
     count="$(grep -Ec '^cloudflare/cloudflared:' <<<"$images" || true)"
     [[ "$count" == 1 ]] || return 1
     image="$(grep -E '^cloudflare/cloudflared:' <<<"$images")" || return 1
@@ -464,8 +503,108 @@ expected_cloudflared_image() {
     printf '%s\n' "$image"
 }
 
+expected_cloudflared_image() {
+    expected_cloudflared_image_at "$RUNTIME"
+}
+
+cloudflared_connected_count() {
+    local name="$1"
+    local ip payload
+    ip="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$name" 2>/dev/null || true)"
+    [[ "$ip" =~ ^[0-9a-fA-F:.]+$ ]] || return 1
+    payload="$(curl --fail --silent --show-error --max-time 5 \
+        "http://[$ip]:20241/diag/tunnel" 2>/dev/null \
+        || curl --fail --silent --show-error --max-time 5 \
+            "http://$ip:20241/diag/tunnel" 2>/dev/null)" || return 1
+    python3 - "$payload" <<'PY'
+import json
+import sys
+
+data = json.loads(sys.argv[1])
+connections = data.get("connections") or []
+connected = sum(1 for row in connections if row.get("isConnected") is True)
+if connected < 1:
+    raise SystemExit(1)
+print(connected)
+PY
+}
+
+wait_cloudflared_edge() {
+    local name="$1"
+    local attempts="${2:-30}"
+    local delay="${3:-2}"
+    local attempt state connected
+    for ((attempt = 1; attempt <= attempts; attempt++)); do
+        state="$(docker inspect -f '{{.State.Status}}' "$name" 2>/dev/null || true)"
+        connected="$(cloudflared_connected_count "$name" 2>/dev/null || true)"
+        printf 'WAIT_CLOUDFLARED_EDGE name=%s attempt=%s state=%s connected=%s\n' \
+            "$name" "$attempt" "${state:-missing}" "${connected:-0}"
+        if [[ "$state" == running && "$connected" =~ ^[1-9][0-9]*$ ]]; then
+            printf 'CLOUDFLARED_EDGE_READY=PASS name=%s connected=%s\n' \
+                "$name" "$connected"
+            return 0
+        fi
+        if [[ "$state" == exited || "$state" == dead ]]; then
+            return 1
+        fi
+        sleep "$delay"
+    done
+    return 1
+}
+
+remove_cloudflared_canary() {
+    if [[ -n "$CLOUDFLARED_CANARY" ]]; then
+        docker rm -f "$CLOUDFLARED_CANARY" >/dev/null 2>&1 || true
+        CLOUDFLARED_CANARY=''
+    fi
+    CLOUDFLARED_CANARY_READY=false
+}
+
+preflight_cloudflared_canary() {
+    local root="$1"
+    local expected actual placeholder_created=false
+    expected="$(expected_cloudflared_image_at "$root")" || return 1
+    CLOUDFLARED_CANARY="cv-cloudflared-canary-${STAMP}-$$"
+    if [[ ! -e "$root/bot/.env" ]]; then
+        : >"$root/bot/.env" || return 1
+        chmod 0600 "$root/bot/.env" || return 1
+        placeholder_created=true
+    fi
+    if ! compose_at "$root" run -d --no-deps \
+        --name "$CLOUDFLARED_CANARY" cloudflared \
+        tunnel --no-autoupdate --metrics 0.0.0.0:20241 run >/dev/null; then
+        [[ "$placeholder_created" == true ]] && rm -f -- "$root/bot/.env"
+        remove_cloudflared_canary
+        return 1
+    fi
+    [[ "$placeholder_created" == true ]] && rm -f -- "$root/bot/.env"
+    docker update --restart=no "$CLOUDFLARED_CANARY" >/dev/null || {
+        remove_cloudflared_canary
+        return 1
+    }
+    actual="$(docker inspect -f '{{.Config.Image}}' "$CLOUDFLARED_CANARY" 2>/dev/null || true)"
+    if [[ "$actual" != "$expected" ]]; then
+        capture_cloudflared_logs "$CLOUDFLARED_CANARY" \
+            "$EVIDENCE_DIR/cloudflared-canary-failure.log"
+        remove_cloudflared_canary
+        return 1
+    fi
+    if ! wait_cloudflared_edge "$CLOUDFLARED_CANARY" 30 2; then
+        capture_cloudflared_logs "$CLOUDFLARED_CANARY" \
+            "$EVIDENCE_DIR/cloudflared-canary-failure.log"
+        remove_cloudflared_canary
+        return 1
+    fi
+    CLOUDFLARED_CANARY_READY=true
+    capture_cloudflared_logs "$CLOUDFLARED_CANARY" \
+        "$EVIDENCE_DIR/cloudflared-canary-ready.log"
+    printf 'CLOUDFLARED_CANARY=PASS\n'
+    printf 'CLOUDFLARED_CANARY_IMAGE=%s\n' "$actual"
+}
+
 reconcile_cloudflared() {
     local expected before after actual
+    [[ "$CLOUDFLARED_CANARY_READY" == true ]] || return 1
     expected="$(expected_cloudflared_image)" || return 1
     before="$(docker inspect -f '{{.Id}}' cv-cloudflared 2>/dev/null || true)"
     compose_runtime up -d --no-deps cloudflared || return 1
@@ -474,6 +613,7 @@ reconcile_cloudflared() {
     actual="$(docker inspect -f '{{.Config.Image}}' cv-cloudflared 2>/dev/null || true)"
     [[ -n "$after" ]] || return 1
     [[ "$actual" == "$expected" ]] || return 1
+    wait_cloudflared_edge cv-cloudflared 30 2 || return 1
     if [[ -z "$before" || "$before" != "$after" ]]; then
         CLOUDFLARED_RESTARTED=true
     fi
@@ -499,6 +639,7 @@ deploy_runtime() {
     http_ok "$LOCAL_URL" 10 3 || return 1
     reconcile_cloudflared || return 1
     http_ok "$PUBLIC_URL" 10 5 || return 1
+    remove_cloudflared_canary
 }
 
 rollback() {
@@ -506,6 +647,9 @@ rollback() {
     printf 'ROLLBACK_BEGIN=true\n' | tee -a "$EVIDENCE_DIR/deploy.log"
     if ! managed_rsync "$BACKUP/runtime" "$RUNTIME"; then
         capture_runtime_diagnostics 'failed-rollback-sync-runtime'
+        if [[ "$CLOUDFLARED_CANARY_READY" == true ]]; then
+            CLOUDFLARED_CANARY_PRESERVED=true
+        fi
         printf 'ROLLBACK_END=FAIL\n' | tee -a "$EVIDENCE_DIR/deploy.log"
         write_summary 'FAIL_ROLLBACK_FAIL' true || true
         return 1
@@ -518,6 +662,9 @@ rollback() {
         return 0
     fi
     capture_runtime_diagnostics 'failed-rollback-runtime'
+    if [[ "$CLOUDFLARED_CANARY_READY" == true ]]; then
+        CLOUDFLARED_CANARY_PRESERVED=true
+    fi
     printf 'ROLLBACK_END=FAIL\n' | tee -a "$EVIDENCE_DIR/deploy.log"
     write_summary 'FAIL_ROLLBACK_FAIL' true || true
     return 1
@@ -539,6 +686,9 @@ finish() {
        && [[ "$ROLLBACK_ATTEMPTED" != true ]] \
        && [[ -n "$BACKUP" && -d "$BACKUP/runtime" ]]; then
         rollback || true
+    fi
+    if [[ "$CLOUDFLARED_CANARY_PRESERVED" != true ]]; then
+        remove_cloudflared_canary
     fi
     if [[ -n "$STAGE" && -d "$STAGE" ]]; then
         owner_git -C "$PRIMARY" worktree remove --force "$STAGE" >/dev/null 2>&1 || true
@@ -650,6 +800,12 @@ runuser -u "$OWNER" -- bash -c \
     >"$EVIDENCE_DIR/source-validation.log" 2>&1 \
     || fail 'source validation failed'
 prepare_candidate || fail 'candidate preparation failed'
+
+if ! preflight_cloudflared_canary "$CANDIDATE" \
+    >"$EVIDENCE_DIR/cloudflared-canary-preflight.log" 2>&1; then
+    capture_runtime_diagnostics 'failed-cloudflared-canary-preflight'
+    fail 'cloudflared target replica did not become edge-ready'
+fi
 
 BACKUP="$BACKUP_ROOT/${STAMP}-${OLD_SHA:-unknown}"
 create_backup || fail 'rollback backup creation failed'
