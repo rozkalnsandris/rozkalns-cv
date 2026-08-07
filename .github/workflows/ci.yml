@@ -182,7 +182,7 @@ jobs:
           test "$nonce_a" != "$nonce_b"
           [[ "$csp_a" == *"https://static.cloudflareinsights.com/beacon.min.js"* ]]
           [[ "$csp_a" == *"connect-src 'self';"* ]]
-          [[ "$csp_a" != *"cloudflareinsights.com"* ]]
+          [[ "$csp_a" != *"connect-src 'self' https://cloudflareinsights.com"* ]]
 
           curl --fail --silent --show-error --head \
             http://127.0.0.1:18088/favicon.svg >/dev/null
