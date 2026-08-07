@@ -64,10 +64,8 @@ class FrontendContractTests(unittest.TestCase):
             "https://static.cloudflareinsights.com/beacon.min.js",
             nginx,
         )
-        self.assertIn(
-            "connect-src 'self' https://cloudflareinsights.com;",
-            nginx,
-        )
+        self.assertIn("connect-src 'self';", nginx)
+        self.assertNotIn("cloudflareinsights.com;", nginx)
         self.assertIn(
             'Cache-Control "public, max-age=31536000, immutable"', nginx
         )
