@@ -5,6 +5,10 @@ import {
   normalizeCompletedHistory,
   validateStats
 } from "../html/assets/app.d878d409f278.mjs";
+import {
+  contactPayloadIsValid,
+  skillIconName
+} from "../html/assets/enhancements.0027f066ac26.mjs";
 
 const liveStats = {
   updated: "2026-08-06T12:00:00Z",
@@ -63,4 +67,32 @@ test("future, malformed, and non-finite stats are offline", () => {
   const missing = { ...liveStats };
   delete missing.cpu_temp;
   assert.equal(validateStats(missing).valid, false);
+});
+
+test("skill chips map to meaningful SVG icon families", () => {
+  assert.equal(skillIconName("Docker Compose"), "container");
+  assert.equal(skillIconName("SSL/TLS"), "shield");
+  assert.equal(skillIconName("Prometheus"), "chart");
+  assert.equal(skillIconName("Home Assistant"), "home");
+  assert.equal(skillIconName("ESP32 / IoT"), "chip");
+  assert.equal(skillIconName("Terraform"), "cloud");
+});
+
+test("contact reveal payload must contain bounded contact shapes", () => {
+  assert.equal(
+    contactPayloadIsValid({
+      email: "person@example.com",
+      phone: "+49 123 456789",
+      phone_uri: "+49123456789"
+    }),
+    true
+  );
+  assert.equal(
+    contactPayloadIsValid({
+      email: "not-an-email",
+      phone: "123",
+      phone_uri: "javascript:alert(1)"
+    }),
+    false
+  );
 });
