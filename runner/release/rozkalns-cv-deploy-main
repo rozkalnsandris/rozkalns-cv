@@ -55,7 +55,7 @@ owner_git() {
 compose_runtime() {
     (
         cd "$RUNTIME"
-        docker compose "$@"
+        docker compose -f docker-compose.yml "$@"
     )
 }
 
@@ -64,7 +64,7 @@ compose_at() {
     shift
     (
         cd "$root"
-        docker compose "$@"
+        docker compose -f docker-compose.yml "$@"
     )
 }
 
