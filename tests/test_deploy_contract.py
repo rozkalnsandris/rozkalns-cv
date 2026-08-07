@@ -50,20 +50,40 @@ class DeployContractTests(unittest.TestCase):
             text,
         )
 
-    def test_helper_never_restarts_shared_tunnel(self) -> None:
+    def test_helper_reconciles_pinned_tunnel_transactionally(self) -> None:
         text = read(HELPER)
         subprocess.run(["bash", "-n", str(HELPER)], check=True)
         self.assertIn("compose_runtime up -d --no-deps cvbot", text)
         self.assertIn("compose_runtime up -d --no-deps cv", text)
-        self.assertIn("CLOUDFLARED_RESTARTED=false", text)
+        self.assertIn("compose_runtime up -d --no-deps cloudflared", text)
+        self.assertIn("wait_running cv-cloudflared 30 2", text)
+        self.assertIn("CLOUDFLARED_IMAGE_IDENTITY=PASS", text)
+        self.assertIn(
+            "printf 'CLOUDFLARED_RESTARTED=%s\\n' \"$CLOUDFLARED_RESTARTED\"",
+            text,
+        )
         self.assertNotIn("compose_runtime restart cloudflared", text)
-        self.assertNotIn("compose_runtime up -d cloudflared", text)
         self.assertNotIn("docker compose restart cloudflared", text)
-        self.assertNotIn("docker compose up -d cloudflared", text)
         self.assertIn("write_summary 'FAIL_ROLLBACK_PASS' true", text)
         self.assertIn("write_summary 'PASS' false", text)
 
-    def test_cvbot_must_be_healthy_before_nginx(self) -> None:
+    def test_cloudflared_image_identity_is_exact_and_digest_pinned(self) -> None:
+        text = read(HELPER)
+        self.assertIn('images="$(compose_runtime config --images)"', text)
+        self.assertIn(
+            "count=\"$(grep -Ec '^cloudflare/cloudflared:' <<<\"$images\" || true)\"",
+            text,
+        )
+        self.assertIn('[[ "$count" == 1 ]] || return 1', text)
+        self.assertIn('[[ "$image" == *@sha256:* ]] || return 1', text)
+        self.assertIn(
+            'actual="$(docker inspect -f \'{{.Config.Image}}\' '
+            'cv-cloudflared 2>/dev/null || true)"',
+            text,
+        )
+        self.assertIn('[[ "$actual" == "$expected" ]] || return 1', text)
+
+    def test_cvbot_must_be_healthy_before_nginx_and_tunnel(self) -> None:
         lines = [line.strip() for line in read(HELPER).splitlines()]
         cvbot_position = lines.index(
             "compose_runtime up -d --no-deps cvbot || return 1"
@@ -74,8 +94,18 @@ class DeployContractTests(unittest.TestCase):
         nginx_position = lines.index(
             "compose_runtime up -d --no-deps cv || return 1"
         )
+        local_position = lines.index(
+            'http_ok "$LOCAL_URL" 10 3 || return 1'
+        )
+        tunnel_position = lines.index("reconcile_cloudflared || return 1")
+        public_position = lines.index(
+            'http_ok "$PUBLIC_URL" 10 5 || return 1'
+        )
         self.assertLess(cvbot_position, health_position)
         self.assertLess(health_position, nginx_position)
+        self.assertLess(nginx_position, local_position)
+        self.assertLess(local_position, tunnel_position)
+        self.assertLess(tunnel_position, public_position)
 
     def test_runtime_compose_uses_host_env_file(self) -> None:
         text = read(HELPER)
@@ -152,6 +182,7 @@ class DeployContractTests(unittest.TestCase):
             "compose_runtime up -d --no-deps cv || return 1",
             "wait_running cv 30 2 || return 1",
             'http_ok "$LOCAL_URL" 10 3 || return 1',
+            "reconcile_cloudflared || return 1",
             'http_ok "$PUBLIC_URL" 10 5 || return 1',
             "capture_runtime_diagnostics 'failed-source-sync-runtime'",
         ):
