@@ -13,7 +13,7 @@ SMART = ROOT / "html" / "smarthome.html"
 FAVICON = ROOT / "html" / "favicon.svg"
 NGINX = ROOT / "nginx.conf"
 COMPOSE = ROOT / "docker-compose.yml"
-CSS = ROOT / "html" / "assets" / "main.2734e7be6cdd.css"
+CSS = ROOT / "html" / "assets" / "main.bfe316ede89b.css"
 APP = ROOT / "html" / "assets" / "app.d878d409f278.mjs"
 SMART_JS = ROOT / "html" / "assets" / "smarthome.70da56476fdb.mjs"
 TRANSLATIONS = [
@@ -98,6 +98,22 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIsNotNone(match)
         assert match is not None
         self.assertEqual(match.group(1), nginx_digest[:12])
+
+    def test_rich_layout_and_sections_are_not_simplified_away(self) -> None:
+        html = INDEX.read_text(encoding="utf-8")
+        css = CSS.read_text(encoding="utf-8")
+        for section_id in (
+            "about", "stats", "experience", "projects", "skills", "education"
+        ):
+            self.assertIn(f'id="{section_id}"', html)
+        self.assertGreaterEqual(html.count('class="project-entry'), 6)
+        self.assertGreaterEqual(html.count('class="project-icon"'), 6)
+        self.assertGreaterEqual(html.count('class="tech-tag"'), 25)
+        self.assertGreaterEqual(html.count('class="skill-chip"'), 20)
+        self.assertIn('class="profile-languages"', html)
+        self.assertIn('@media (max-width: 760px)', css)
+        self.assertNotIn('@media (max-width: 850px)', css)
+        self.assertIn('grid-template-columns: 340px minmax(0,1fr)', css)
 
     def test_cloudflare_analytics_is_not_manually_embedded(self) -> None:
         text = INDEX.read_text(encoding="utf-8")
