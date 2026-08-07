@@ -18,7 +18,8 @@ fail() {
 
 [[ ${EUID:-$(id -u)} -eq 0 ]] || fail 'run this installer with sudo'
 [[ -d "$RUNTIME" && ! -L "$RUNTIME" ]] || fail "runtime is missing: $RUNTIME"
-[[ -x "$RUNTIME/stats.sh" && ! -L "$RUNTIME/stats.sh" ]] || fail 'runtime stats.sh is missing or not executable'
+[[ -f "$RUNTIME/stats.sh" && ! -L "$RUNTIME/stats.sh" ]] || fail 'runtime stats.sh is missing or not a regular file'
+[[ -x /usr/bin/bash ]] || fail '/usr/bin/bash is unavailable'
 [[ -f "$SOURCE_DIR/$SERVICE" && ! -L "$SOURCE_DIR/$SERVICE" ]] || fail "$SERVICE source is missing"
 [[ -f "$SOURCE_DIR/$TIMER" && ! -L "$SOURCE_DIR/$TIMER" ]] || fail "$TIMER source is missing"
 command -v systemctl >/dev/null 2>&1 || fail 'systemctl is unavailable'
