@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh rozkalns.net live homelab statistics every minute
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+AccuracySec=1s
+Persistent=true
+Unit=rozkalns-cv-stats.service
+
+[Install]
+WantedBy=timers.target
