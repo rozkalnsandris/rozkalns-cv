@@ -56,6 +56,17 @@ class FrontendContractTests(unittest.TestCase):
         self.assertNotIn("unsafe-inline", nginx)
         self.assertNotIn("unsafe-eval", nginx)
         self.assertIn("frame-ancestors 'none'", nginx)
+        self.assertIn("add_header_inherit merge;", nginx)
+        self.assertIn("'nonce-$request_id'", nginx)
+        self.assertIn("script-src-attr 'none'", nginx)
+        self.assertIn(
+            "https://static.cloudflareinsights.com/beacon.min.js",
+            nginx,
+        )
+        self.assertIn(
+            "connect-src 'self' https://cloudflareinsights.com;",
+            nginx,
+        )
         self.assertIn(
             'Cache-Control "public, max-age=31536000, immutable"', nginx
         )
@@ -77,6 +88,11 @@ class FrontendContractTests(unittest.TestCase):
             f'net.rozkalns.cv.nginx-config-sha256: "{nginx_digest}"',
             compose,
         )
+
+    def test_cloudflare_analytics_is_not_manually_embedded(self) -> None:
+        text = INDEX.read_text(encoding="utf-8")
+        self.assertNotIn("data-cf-beacon", text)
+        self.assertNotIn("static.cloudflareinsights.com/beacon.min.js", text)
 
     def test_favicon_is_declared_and_present(self) -> None:
         text = INDEX.read_text(encoding="utf-8")
