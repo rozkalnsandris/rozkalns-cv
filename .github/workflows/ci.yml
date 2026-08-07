@@ -117,7 +117,7 @@ jobs:
           set -Eeuo pipefail
           bash scripts/run-gitleaks.sh "$PWD"
 
-      - name: Validate pinned nginx runtime and HTTP MIME behavior
+      - name: Validate pinned nginx runtime and HTTP response contracts
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -142,10 +142,14 @@ jobs:
             --mount "type=bind,src=$PWD/html,dst=/usr/share/nginx/html,readonly" \
             "$image" >/dev/null
 
+          module_path="$(grep -oE '/assets/app\.[0-9a-f]{12}\.mjs\?cfg=[0-9a-f]{12}' \
+            html/index.html | head -n 1)"
+          test -n "$module_path"
+
           headers=''
           for attempt in $(seq 1 20); do
             if headers="$(curl --fail --silent --show-error --head \
-              http://127.0.0.1:18088/assets/app.d878d409f278.mjs 2>/dev/null)"; then
+              "http://127.0.0.1:18088${module_path}" 2>/dev/null)"; then
               break
             fi
             sleep 0.25
@@ -156,6 +160,29 @@ jobs:
             | awk 'BEGIN { IGNORECASE=1 } /^Content-Type:/ { sub(/\r$/, ""); print $2; exit }')"
           test "$content_type" = 'text/javascript'
           printf '%s\n' "$headers" | grep -Eiq '^Cache-Control:.*immutable'
+          printf '%s\n' "$headers" | grep -Eiq '^X-Content-Type-Options:[[:space:]]*nosniff'
+          module_csp="$(printf '%s\n' "$headers" \
+            | awk 'BEGIN { IGNORECASE=1 } /^Content-Security-Policy:/ { sub(/\r$/, ""); sub(/^[^:]+:[[:space:]]*/, ""); print; exit }')"
+          [[ "$module_csp" =~ nonce-[0-9a-f]{32} ]]
+          [[ "$module_csp" == *"script-src-attr 'none'"* ]]
+          [[ "$module_csp" != *"unsafe-inline"* ]]
+
+          root_headers_a="$(curl --fail --silent --show-error --head \
+            http://127.0.0.1:18088/)"
+          root_headers_b="$(curl --fail --silent --show-error --head \
+            http://127.0.0.1:18088/)"
+          csp_a="$(printf '%s\n' "$root_headers_a" \
+            | awk 'BEGIN { IGNORECASE=1 } /^Content-Security-Policy:/ { sub(/\r$/, ""); sub(/^[^:]+:[[:space:]]*/, ""); print; exit }')"
+          csp_b="$(printf '%s\n' "$root_headers_b" \
+            | awk 'BEGIN { IGNORECASE=1 } /^Content-Security-Policy:/ { sub(/\r$/, ""); sub(/^[^:]+:[[:space:]]*/, ""); print; exit }')"
+          nonce_a="$(grep -oE 'nonce-[0-9a-f]{32}' <<<"$csp_a" | head -n 1)"
+          nonce_b="$(grep -oE 'nonce-[0-9a-f]{32}' <<<"$csp_b" | head -n 1)"
+          test -n "$nonce_a"
+          test -n "$nonce_b"
+          test "$nonce_a" != "$nonce_b"
+          [[ "$csp_a" == *"https://static.cloudflareinsights.com/beacon.min.js"* ]]
+          [[ "$csp_a" == *"connect-src 'self';"* ]]
+          [[ "$csp_a" != *"connect-src 'self' https://cloudflareinsights.com"* ]]
 
           curl --fail --silent --show-error --head \
             http://127.0.0.1:18088/favicon.svg >/dev/null
@@ -234,7 +261,7 @@ jobs:
           - frontend module behavior, translation parity, content hashes and size budgets
           - real Chromium language, statistics, streaming chat, failure-history and keyboard-flow smoke
           - full Git-history Gitleaks scan with mandatory detector canary
-          - pinned nginx configuration plus live `.mjs` MIME/cache and favicon HTTP assertions
+          - pinned nginx configuration plus live module MIME/cache, nonce CSP, inherited security-header and favicon assertions
           - hash-locked CV assistant build and explicit SHA-tagged OCI revision/build-input identity verification
           - pinned Trivy HIGH/CRITICAL image vulnerability gate
           EOF
