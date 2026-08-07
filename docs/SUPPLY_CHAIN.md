@@ -78,6 +78,12 @@ history. The canary and matrix protect against a scanner that starts successfull
 but silently stops detecting supported credential classes. Gitleaks 8.30.1 is
 intentionally prohibited because its release has a confirmed detection regression.
 
+Temporary secret-test implementation commits must not become permanent baseline
+entries merely to make a pull request green. Before merge, squash/rebuild the PR
+branch onto its exact base when necessary so transient fixture-generator source
+is not preserved as reachable branch history; the final tree must then pass the
+same full-history scan again.
+
 `.gitleaks.toml` extends the upstream default rules and adds narrow project rules
 for Cloudflare tunnel/API credentials, database URL passwords, webhook/signing
 secrets, and direct password assignments. Allowlists contain only explicit
