@@ -285,17 +285,23 @@ class CdpClient {
   }
 
   async key(key, modifiers = 0) {
-    await this.send("Input.dispatchKeyEvent", {
-      type: "keyDown",
+    const virtualKeyCode = key === "Escape" ? 27 : key === "Tab" ? 9 : 0;
+    const keyParams = {
       key,
       code: key,
-      modifiers
+      modifiers,
+      ...(virtualKeyCode ? {
+        windowsVirtualKeyCode: virtualKeyCode,
+        nativeVirtualKeyCode: virtualKeyCode
+      } : {})
+    };
+    await this.send("Input.dispatchKeyEvent", {
+      type: "keyDown",
+      ...keyParams
     });
     await this.send("Input.dispatchKeyEvent", {
       type: "keyUp",
-      key,
-      code: key,
-      modifiers
+      ...keyParams
     });
   }
 
