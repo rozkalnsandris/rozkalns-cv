@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 import shlex
@@ -139,8 +140,6 @@ class DeployTransactionBehaviorTests(unittest.TestCase):
                 }
             ],
         }
-        import json
-
         secure_json = json.dumps(secure, separators=(",", ":"))
         result = run_library(
             "docker() { printf '%s\\n' "
@@ -169,31 +168,93 @@ class DeployTransactionBehaviorTests(unittest.TestCase):
             "cloudflare/cloudflared:2026.7.3@sha256:"
             + "a" * 64
         )
-        result = run_library(
-            "compose_runtime() {\n"
-            "  printf '%s\\n' 'nginx:1.31.3-alpine@sha256:deadbeef' "
-            f"{shlex.quote(pinned)} 'rozkalns-cv-cvbot:local'\n"
-            "}\n"
-            "expected_cloudflared_image"
-        )
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout.strip(), pinned)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "bot").mkdir()
+            result = run_library(
+                f"RUNTIME={shlex.quote(str(root))}\n"
+                "compose_at() {\n"
+                "  printf '%s\\n' 'nginx:1.31.3-alpine@sha256:deadbeef' "
+                f"{shlex.quote(pinned)} 'rozkalns-cv-cvbot:local'\n"
+                "}\n"
+                "expected_cloudflared_image"
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stdout.strip(), pinned)
 
-        duplicate = run_library(
-            "compose_runtime() {\n"
-            f"  printf '%s\\n' {shlex.quote(pinned)} {shlex.quote(pinned)}\n"
-            "}\n"
-            "if expected_cloudflared_image; then exit 99; fi"
-        )
-        self.assertEqual(duplicate.returncode, 0, duplicate.stderr)
+            duplicate = run_library(
+                f"RUNTIME={shlex.quote(str(root))}\n"
+                "compose_at() {\n"
+                f"  printf '%s\\n' {shlex.quote(pinned)} {shlex.quote(pinned)}\n"
+                "}\n"
+                "if expected_cloudflared_image; then exit 99; fi"
+            )
+            self.assertEqual(duplicate.returncode, 0, duplicate.stderr)
 
-        unpinned = run_library(
-            "compose_runtime() {\n"
-            "  printf '%s\\n' 'cloudflare/cloudflared:latest'\n"
-            "}\n"
-            "if expected_cloudflared_image; then exit 99; fi"
+            unpinned = run_library(
+                f"RUNTIME={shlex.quote(str(root))}\n"
+                "compose_at() {\n"
+                "  printf '%s\\n' 'cloudflare/cloudflared:latest'\n"
+                "}\n"
+                "if expected_cloudflared_image; then exit 99; fi"
+            )
+            self.assertEqual(unpinned.returncode, 0, unpinned.stderr)
+
+    def test_cloudflared_edge_gate_requires_connected_session(self) -> None:
+        connected_payload = json.dumps(
+            {
+                "connections": [
+                    {"isConnected": True},
+                    {"isConnected": True},
+                    {"isConnected": False},
+                ]
+            },
+            separators=(",", ":"),
         )
-        self.assertEqual(unpinned.returncode, 0, unpinned.stderr)
+        accepted = run_library(
+            "docker() { printf '172.19.0.25\\n'; }\n"
+            f"curl() {{ printf '%s\\n' {shlex.quote(connected_payload)}; }}\n"
+            "cloudflared_connected_count test-canary"
+        )
+        self.assertEqual(accepted.returncode, 0, accepted.stderr)
+        self.assertEqual(accepted.stdout.strip(), "2")
+
+        disconnected_payload = json.dumps(
+            {"connections": [{"isConnected": False}]},
+            separators=(",", ":"),
+        )
+        rejected = run_library(
+            "docker() { printf '172.19.0.25\\n'; }\n"
+            f"curl() {{ printf '%s\\n' {shlex.quote(disconnected_payload)}; }}\n"
+            "if cloudflared_connected_count test-canary; then exit 99; fi"
+        )
+        self.assertEqual(rejected.returncode, 0, rejected.stderr)
+
+    def test_finish_removes_canary_unless_explicitly_preserved(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            marker = Path(tmp) / "removed"
+            cleaned = run_library(
+                "MUTATION_STARTED=false\n"
+                "EVIDENCE_READY=false\nWORK=''\nSTAGE=''\n"
+                "CLOUDFLARED_CANARY='test-canary'\n"
+                "CLOUDFLARED_CANARY_PRESERVED=false\n"
+                f"remove_cloudflared_canary() {{ printf removed > {shlex.quote(str(marker))}; }}\n"
+                "finish 23"
+            )
+            self.assertEqual(cleaned.returncode, 23)
+            self.assertTrue(marker.exists())
+
+            marker.unlink()
+            preserved = run_library(
+                "MUTATION_STARTED=false\n"
+                "EVIDENCE_READY=false\nWORK=''\nSTAGE=''\n"
+                "CLOUDFLARED_CANARY='test-canary'\n"
+                "CLOUDFLARED_CANARY_PRESERVED=true\n"
+                f"remove_cloudflared_canary() {{ printf removed > {shlex.quote(str(marker))}; }}\n"
+                "finish 17"
+            )
+            self.assertEqual(preserved.returncode, 17)
+            self.assertFalse(marker.exists())
 
     def test_uncommitted_failure_invokes_rollback(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -207,6 +268,7 @@ class DeployTransactionBehaviorTests(unittest.TestCase):
                 "TRANSACTION_COMMITTED=false\n"
                 "ROLLBACK_ATTEMPTED=false\n"
                 "EVIDENCE_READY=false\n"
+                "CLOUDFLARED_CANARY_PRESERVED=true\n"
                 "WORK=''\nSTAGE=''\n"
                 f"rollback() {{ printf called > {shlex.quote(str(marker))}; "
                 "ROLLBACK_ATTEMPTED=true; return 0; }\n"
@@ -229,6 +291,7 @@ class DeployTransactionBehaviorTests(unittest.TestCase):
                 "TRANSACTION_COMMITTED=true\n"
                 "ROLLBACK_ATTEMPTED=false\n"
                 "EVIDENCE_READY=false\n"
+                "CLOUDFLARED_CANARY_PRESERVED=true\n"
                 "WORK=''\nSTAGE=''\n"
                 f"rollback() {{ printf called > {shlex.quote(str(marker))}; "
                 "return 0; }\n"
