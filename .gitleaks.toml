@@ -1,0 +1,50 @@
+title = "rozkalns-cv secret scanning"
+minVersion = "8.30.0"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "cloudflare-tunnel-token"
+description = "Cloudflare tunnel token assigned in configuration"
+regex = '''(?i)(?:CF_TUNNEL_TOKEN|TUNNEL_TOKEN)[\s:=\"']+([A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,})'''
+secretGroup = 1
+keywords = ["tunnel_token", "cf_tunnel_token"]
+
+[[rules]]
+id = "cloudflare-api-credential"
+description = "Cloudflare API token or API key assigned in configuration"
+regex = '''(?i)(?:CF_API_TOKEN|CLOUDFLARE_API_TOKEN|CF_API_KEY|CLOUDFLARE_API_KEY)[\s:=\"']+([A-Za-z0-9_-]{20,})'''
+secretGroup = 1
+keywords = ["cf_api_", "cloudflare_api_"]
+
+[[rules]]
+id = "database-url-password"
+description = "Password embedded in a database connection URL"
+regex = '''(?i)(?:postgres(?:ql)?|mysql|mariadb|redis)://[^:\s/@]+:([^@\s/]{8,})@'''
+secretGroup = 1
+keywords = ["postgres://", "postgresql://", "mysql://", "mariadb://", "redis://"]
+
+[[rules]]
+id = "webhook-signing-secret"
+description = "Webhook or signing secret assigned in configuration"
+regex = '''(?i)(?:WEBHOOK_SECRET|SIGNING_SECRET)[\s:=\"']+([A-Za-z0-9_./+=-]{16,})'''
+secretGroup = 1
+keywords = ["webhook_secret", "signing_secret"]
+
+[[rules]]
+id = "password-assignment"
+description = "Password assigned directly in configuration or source"
+regex = '''(?i)(?:DB_PASSWORD|ADMIN_PASSWORD|PASSWORD|PASSWD)[ \t]*(?:=|:)[ \t]*[\"']?([A-Za-z0-9_./+=@#$%^&*!?-]{12,})'''
+secretGroup = 1
+keywords = ["password", "passwd", "db_password", "admin_password"]
+
+[allowlist]
+description = "Only explicit non-secret placeholders used by tests and examples"
+regexTarget = "match"
+regexes = [
+  '''ci-placeholder-not-a-secret''',
+  '''replace-with-a-random-secret''',
+  '''test-client-secret''',
+  '''test-llm-key'''
+]

@@ -1,58 +1,78 @@
 services:
   cv:
-    image: nginx:alpine
+    image: nginx:1.31.3-alpine@sha256:4a73073bd557c65b759505da037898b61f1be6cbcc3c2c3aeac22d2a470c1752
     container_name: cv
     restart: unless-stopped
     mem_limit: 60m
     mem_reservation: 30m
     depends_on:
-    - cvbot
+      - cvbot
     ports:
-    - 8088:80
+      - 8088:80
     volumes:
-    - ./html:/usr/share/nginx/html:ro
-    - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./html:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     networks:
       default:
         ipv4_address: 172.19.0.10
-    logging: &id001
+    logging: &default-logging
       driver: json-file
       options:
         max-size: 10m
-        max-file: '3'
+        max-file: "3"
+
   cvbot:
-    build: ./bot
+    image: rozkalns-cv-cvbot:${CVBOT_VCS_REF:-local}
+    pull_policy: never
+    build:
+      context: ./bot
+      args:
+        APP_UID: "10001"
+        APP_GID: "10001"
+        VCS_REF: ${CVBOT_VCS_REF:-unresolved}
+        BUILD_INPUT_SHA256: ${CVBOT_BUILD_INPUT_SHA256:-unresolved}
     container_name: cvbot
     restart: unless-stopped
+    init: true
+    user: "10001:10001"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=16m,mode=1777
     env_file:
-    - ./bot/.env
+      - ./bot/.env
     volumes:
-    - ./bot/data:/app/data
+      - ./bot/data:/app/data:rw
     expose:
-    - '5000'
+      - "5000"
     mem_limit: 256m
-    logging: *id001
+    logging: *default-logging
     healthcheck:
       test:
-      - CMD
-      - python3
-      - -c
-      - import urllib.request; urllib.request.urlopen('http://localhost:5000/health')
+        - CMD
+        - python3
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://localhost:5000/health')
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 15s
+
   cloudflared:
-    image: cloudflare/cloudflared:latest
+    image: cloudflare/cloudflared:2026.7.3@sha256:e39ee8da81ad5e05d77f38d2f51c60ca51bf2a8450ac3abab50c17fdb91d91bf
     container_name: cv-cloudflared
     mem_limit: 80m
     mem_reservation: 40m
     environment:
-    - TUNNEL_TOKEN=${CF_TUNNEL_TOKEN:?set in cloudflared.env}
+      - TUNNEL_TOKEN=${CF_TUNNEL_TOKEN:?set in cloudflared.env}
     restart: unless-stopped
     command: tunnel --no-autoupdate run
     depends_on:
-    - cv
+      - cv
 
 networks:
   default:
@@ -61,5 +81,5 @@ networks:
     ipam:
       driver: default
       config:
-      - subnet: 172.19.0.0/16
-        gateway: 172.19.0.1
+        - subnet: 172.19.0.0/16
+          gateway: 172.19.0.1
