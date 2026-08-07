@@ -391,7 +391,11 @@ async function runBrowserSmoke(baseUrl, state) {
       "Junior DevOps un Linux inženieris"
     );
 
-    await cdp.evaluate(`document.querySelector('#chatLauncher').click()`);
+    await cdp.evaluate(`(() => {
+      const launcher = document.querySelector('#chatLauncher');
+      launcher.focus();
+      launcher.click();
+    })()`);
     await cdp.waitFor(
       `document.querySelector('#chatBackdrop').hidden === false && document.activeElement?.id === "chatInput" && document.querySelector('#pageShell').inert === true`,
       5_000,
@@ -407,7 +411,11 @@ async function runBrowserSmoke(baseUrl, state) {
       "Escape dialog dismissal"
     );
 
-    await cdp.evaluate(`document.querySelector('#chatLauncher').click()`);
+    await cdp.evaluate(`(() => {
+      const launcher = document.querySelector('#chatLauncher');
+      launcher.focus();
+      launcher.click();
+    })()`);
     await cdp.waitFor(`document.activeElement?.id === "chatInput"`, 5_000, "chat input focus");
 
     async function submit(message, expectedStatus) {
