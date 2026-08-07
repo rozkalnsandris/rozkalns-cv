@@ -65,6 +65,16 @@ class StatsSystemdContractTests(unittest.TestCase):
         self.assertNotIn('[[ -x "$RUNTIME/stats.sh"', installer)
         self.assertNotIn("missing or not executable", installer)
 
+    def test_installer_proves_refresh_before_scheduler_cutover(self) -> None:
+        installer = INSTALLER.read_text(encoding="utf-8")
+        start = installer.index('systemctl start "$SERVICE"')
+        cron_cutover = installer.index('crontab -u "$CRON_USER" "$cron_after"')
+        enable_timer = installer.index('systemctl enable --now "$TIMER"')
+        self.assertLess(start, cron_cutover)
+        self.assertLess(start, enable_timer)
+        self.assertIn('systemctl disable --now "$TIMER"', installer)
+        self.assertIn("initial live stats refresh failed", installer)
+
 
 if __name__ == "__main__":
     unittest.main()

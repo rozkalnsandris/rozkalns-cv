@@ -12,16 +12,21 @@ PRODUCTION_STATS = "/home/andris/docker/cv/html/stats.json"
 
 
 class StatsEntrypointTests(unittest.TestCase):
-    def test_entrypoint_uses_generator_production_default(self) -> None:
+    def test_entrypoint_resolves_ready_prometheus_then_runs_generator(self) -> None:
         script = ENTRYPOINT.read_text(encoding="utf-8")
         self.assertIn(
             'ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"',
             script,
         )
         self.assertIn(
-            'exec python3 "$ROOT/scripts/generate-stats.py" "$@"',
+            'PROMETHEUS_URL_RESOLVED="$(python3 "$ROOT/scripts/resolve-prometheus.py")"',
             script,
         )
+        self.assertIn('"$PROMETHEUS_URL_RESOLVED/-/ready"', script)
+        self.assertIn('"$ROOT/scripts/generate-stats.py"', script)
+        self.assertIn('--prometheus "$PROMETHEUS_URL_RESOLVED"', script)
+        self.assertIn('"$@"', script)
+        self.assertNotIn("http://127.0.0.1:9090", script)
         self.assertNotIn('--output "$ROOT/html/stats.json"', script)
 
     def test_generator_default_targets_the_served_runtime_tree(self) -> None:

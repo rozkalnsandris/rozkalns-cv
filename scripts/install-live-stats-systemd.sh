@@ -28,9 +28,60 @@ command -v python3 >/dev/null 2>&1 || fail 'python3 is unavailable'
 
 install -o root -g root -m 0644 "$SOURCE_DIR/$SERVICE" "$UNIT_DIR/$SERVICE"
 install -o root -g root -m 0644 "$SOURCE_DIR/$TIMER" "$UNIT_DIR/$TIMER"
+systemctl daemon-reload
 
-# The systemd timer is the only canonical scheduler after migration. Remove only
-# legacy CV stats cron commands while preserving every unrelated cron entry.
+# Never leave a previously enabled one-minute timer hammering a broken writer
+# while installation or endpoint validation is still in progress.
+systemctl disable --now "$TIMER" >/dev/null 2>&1 || true
+systemctl reset-failed "$SERVICE" >/dev/null 2>&1 || true
+
+# Prove one complete refresh before replacing the legacy scheduler. A failed
+# generation leaves the previous valid stats.json untouched and the timer off.
+if ! systemctl start "$SERVICE"; then
+  systemctl disable --now "$TIMER" >/dev/null 2>&1 || true
+  systemctl --no-pager --full status "$SERVICE" || true
+  journalctl -u "$SERVICE" -n 80 --no-pager || true
+  fail 'initial live stats refresh failed'
+fi
+
+[[ -s "$STATS_JSON" && ! -L "$STATS_JSON" ]] || fail 'stats.json was not published'
+
+python3 - "$STATS_JSON" <<'PY'
+from datetime import datetime, timezone
+import json
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+data = json.loads(path.read_text(encoding="utf-8"))
+updated = data.get("updated")
+if not isinstance(updated, str) or not updated.endswith("Z"):
+    raise SystemExit("stats updated timestamp is invalid")
+timestamp = datetime.fromisoformat(updated.replace("Z", "+00:00"))
+age = (datetime.now(timezone.utc) - timestamp).total_seconds()
+if age < -30 or age > 120:
+    raise SystemExit(f"stats are not fresh: age_seconds={age:.1f}")
+required = (
+    "uptime_30d",
+    "docker_containers",
+    "load1",
+    "days_online",
+    "cpu_usage",
+    "ram_usage",
+    "disk_usage",
+    "cpu_temp",
+)
+missing = [key for key in required if key not in data]
+if missing:
+    raise SystemExit("stats fields are missing: " + ",".join(missing))
+print(f"STATS_UPDATED={updated}")
+print(f"STATS_AGE_SECONDS={age:.1f}")
+for key in required:
+    print(f"STATS_{key.upper()}={data[key]}")
+PY
+
+# The systemd timer becomes canonical only after a successful refresh. Remove
+# only legacy CV stats cron commands and preserve every unrelated cron entry.
 cron_before="$(mktemp)"
 cron_after="$(mktemp)"
 cleanup() {
@@ -67,54 +118,13 @@ else
   : >"$cron_before"
 fi
 
-systemctl daemon-reload
-systemctl enable --now "$TIMER"
-
-# Run immediately rather than waiting for the next minute boundary. A failed
-# generation leaves the previous valid stats.json untouched and aborts install.
-systemctl start "$SERVICE" || {
-  systemctl --no-pager --full status "$SERVICE" || true
-  journalctl -u "$SERVICE" -n 80 --no-pager || true
-  fail 'initial live stats refresh failed'
-}
+if ! systemctl enable --now "$TIMER"; then
+  systemctl disable --now "$TIMER" >/dev/null 2>&1 || true
+  fail 'could not enable live stats timer'
+fi
 
 systemctl is-enabled --quiet "$TIMER" || fail 'timer is not enabled'
 systemctl is-active --quiet "$TIMER" || fail 'timer is not active'
-[[ -s "$STATS_JSON" && ! -L "$STATS_JSON" ]] || fail 'stats.json was not published'
-
-python3 - "$STATS_JSON" <<'PY'
-from datetime import datetime, timezone
-import json
-from pathlib import Path
-import sys
-
-path = Path(sys.argv[1])
-data = json.loads(path.read_text(encoding="utf-8"))
-updated = data.get("updated")
-if not isinstance(updated, str) or not updated.endswith("Z"):
-    raise SystemExit("stats updated timestamp is invalid")
-timestamp = datetime.fromisoformat(updated.replace("Z", "+00:00"))
-age = (datetime.now(timezone.utc) - timestamp).total_seconds()
-if age < -30 or age > 120:
-    raise SystemExit(f"stats are not fresh: age_seconds={age:.1f}")
-required = (
-    "uptime_30d",
-    "docker_containers",
-    "load1",
-    "days_online",
-    "cpu_usage",
-    "ram_usage",
-    "disk_usage",
-    "cpu_temp",
-)
-missing = [key for key in required if key not in data]
-if missing:
-    raise SystemExit("stats fields are missing: " + ",".join(missing))
-print(f"STATS_UPDATED={updated}")
-print(f"STATS_AGE_SECONDS={age:.1f}")
-for key in required:
-    print(f"STATS_{key.upper()}={data[key]}")
-PY
 
 printf '\nLIVE_STATS_SYSTEMD_SETUP=PASS\n'
 systemctl --no-pager --full status "$TIMER" | sed -n '1,12p'
