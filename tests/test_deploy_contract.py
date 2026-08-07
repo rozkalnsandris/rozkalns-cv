@@ -60,7 +60,7 @@ class DeployContractTests(unittest.TestCase):
         for forbidden in (
             "cv-cloudflared",
             "CLOUDFLARED_",
-            "cloudflared.env",
+            "COMPOSE_ENV_FILE",
             "CF_TUNNEL_TOKEN",
             "TUNNEL_TOKEN",
             "preflight_cloudflared_canary",
@@ -79,8 +79,27 @@ class DeployContractTests(unittest.TestCase):
         ):
             self.assertNotIn(forbidden, compose)
 
+        self.assertNotIn('cloudflared.env"', helper)
         self.assertIn("SHARED_INGRESS_CONTROLLED=false", helper)
         self.assertIn('http_ok "$PUBLIC_URL" 10 5 || return 1', helper)
+
+    def test_rollback_preserves_shared_ingress_ownership_boundary(self) -> None:
+        text = read(HELPER)
+        for marker in (
+            "preserve_shared_ingress_boundary_on_rollback()",
+            'line.startswith("  cloudflared:")',
+            'rm -f -- "$RUNTIME/cloudflared.env.example"',
+            "ROLLBACK_SHARED_INGRESS_BOUNDARY=PASS",
+            "failed-rollback-ingress-boundary",
+        ):
+            self.assertIn(marker, text)
+
+        restore = text.index('managed_rsync "$BACKUP/runtime" "$RUNTIME"')
+        boundary = text.index("preserve_shared_ingress_boundary_on_rollback", restore)
+        redeploy = text.index("if deploy_runtime; then", boundary)
+        self.assertLess(restore, boundary)
+        self.assertLess(boundary, redeploy)
+        self.assertNotIn('rm -f -- "$RUNTIME/cloudflared.env"', text)
 
     def test_compose_and_validator_enforce_cv_only_service_ownership(self) -> None:
         compose = read(COMPOSE)
@@ -156,7 +175,7 @@ class DeployContractTests(unittest.TestCase):
         text = read(HELPER)
         self.assertNotIn("COMPOSE_ENV_FILE", text)
         self.assertNotIn("--env-file", text)
-        self.assertNotIn("cloudflared.env", text)
+        self.assertNotIn('cloudflared.env"', text)
         self.assertIn('docker compose "$@"', text)
         self.assertEqual(text.count("docker compose "), 2)
 
@@ -199,6 +218,7 @@ class DeployContractTests(unittest.TestCase):
             '[[ "$TRANSACTION_COMMITTED" != true ]]',
             '[[ "$ROLLBACK_ATTEMPTED" != true ]]',
             'managed_rsync "$BACKUP/runtime" "$RUNTIME"',
+            "preserve_shared_ingress_boundary_on_rollback",
             "write_state_atomically || fail",
             "write_runtime_manifest",
         ):
@@ -291,6 +311,7 @@ class DeployContractTests(unittest.TestCase):
             "failed-source-sync-runtime",
             "failed-deploy-runtime",
             "failed-rollback-sync-runtime",
+            "failed-rollback-ingress-boundary",
             "post-rollback-runtime",
             "failed-rollback-runtime",
             "CVBOT SECURITY",
