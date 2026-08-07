@@ -4,6 +4,7 @@ import hashlib
 from html.parser import HTMLParser
 import json
 from pathlib import Path
+import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -88,6 +89,17 @@ class FrontendContractTests(unittest.TestCase):
             f'net.rozkalns.cv.nginx-config-sha256: "{nginx_digest}"',
             compose,
         )
+
+    def test_module_cache_key_tracks_nginx_config(self) -> None:
+        nginx_digest = hashlib.sha256(NGINX.read_bytes()).hexdigest()
+        text = INDEX.read_text(encoding="utf-8")
+        match = re.search(
+            r'src="/assets/app\.[0-9a-f]{12}\.mjs\?cfg=([0-9a-f]{12})"',
+            text,
+        )
+        self.assertIsNotNone(match)
+        assert match is not None
+        self.assertEqual(match.group(1), nginx_digest[:12])
 
     def test_cloudflare_analytics_is_not_manually_embedded(self) -> None:
         text = INDEX.read_text(encoding="utf-8")
