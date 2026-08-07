@@ -59,20 +59,18 @@ class SupplyChainContractTests(unittest.TestCase):
         expected = {
             "python:3.12.13-alpine3.24",
             "nginx:1.31.3-alpine",
-            "cloudflare/cloudflared:2026.7.3",
             "aquasec/trivy:0.72.0",
             "ghcr.io/gitleaks/gitleaks:v8.30.0",
         }
         self.assertEqual(set(images), expected)
+        self.assertNotIn("cloudflare/cloudflared:2026.7.3", images)
         for reference, digest in images.items():
             self.assertRegex(digest, r"^sha256:[0-9a-f]{64}$")
             if reference.startswith("python:"):
                 self.assertIn(f"FROM {reference}@{digest}", dockerfile)
-            elif reference in {
-                "nginx:1.31.3-alpine",
-                "cloudflare/cloudflared:2026.7.3",
-            }:
+            elif reference == "nginx:1.31.3-alpine":
                 self.assertIn(f"image: {reference}@{digest}", compose)
+        self.assertNotIn("cloudflare/cloudflared", compose)
         self.assertNotIn(":latest", compose)
         self.assertNotIn("FROM python:3.12\n", dockerfile)
 
