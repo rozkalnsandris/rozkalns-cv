@@ -16,10 +16,23 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v5
+      - name: Check out exact workflow SHA with complete history
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            fetch --no-tags origin "$GITHUB_SHA"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse --is-shallow-repository)" = false
 
       - name: Install test dependencies
         shell: bash
@@ -27,9 +40,17 @@ jobs:
           set -Eeuo pipefail
           test_venv="${RUNNER_TEMP}/rozkalns-cv-test-venv"
           python3 -m venv "$test_venv"
-          "$test_venv/bin/python" -m pip install \
-            --disable-pip-version-check \
-            -r bot/requirements.txt
+          if [[ -s bot/requirements.lock ]]; then
+            "$test_venv/bin/python" -m pip install \
+              --disable-pip-version-check \
+              --require-hashes \
+              --no-deps \
+              -r bot/requirements.lock
+          else
+            "$test_venv/bin/python" -m pip install \
+              --disable-pip-version-check \
+              -r bot/requirements.in
+          fi
           echo "TEST_VENV=$test_venv" >> "$GITHUB_ENV"
           echo "PYTHONPYCACHEPREFIX=${RUNNER_TEMP}/rozkalns-cv-pycache" \
             >> "$GITHUB_ENV"
@@ -43,6 +64,12 @@ jobs:
             -s tests -p 'test_*.py' -v
           bash scripts/validate-source.sh "$PWD"
 
+      - name: Scan complete Git history for secrets
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash scripts/run-gitleaks.sh "$PWD"
+
       - name: Validate nginx runtime configuration
         shell: bash
         run: |
@@ -50,9 +77,10 @@ jobs:
           docker run --rm \
             --add-host=cvbot:127.0.0.1 \
             --mount "type=bind,src=$PWD/nginx.conf,dst=/etc/nginx/conf.d/default.conf,readonly" \
-            nginx:alpine nginx -t
+            nginx:1.31.3-alpine@sha256:4a73073bd557c65b759505da037898b61f1be6cbcc3c2c3aeac22d2a470c1752 \
+            nginx -t
 
-      - name: Build CV assistant image
+      - name: Build and verify CV assistant image identity
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -64,5 +92,42 @@ jobs:
           printf 'CF_TUNNEL_TOKEN=ci-placeholder-not-a-secret\n' > cloudflared.env
           : > bot/.env
           chmod 0600 cloudflared.env bot/.env
+          export CVBOT_VCS_REF="$GITHUB_SHA"
+          export CVBOT_BUILD_INPUT_SHA256="$(python3 scripts/build-input-id.py "$PWD")"
+          [[ "$CVBOT_BUILD_INPUT_SHA256" =~ ^[0-9a-f]{64}$ ]]
           CF_TUNNEL_TOKEN='ci-placeholder-not-a-secret' \
             docker compose build cvbot
+          image_id="$(
+            CF_TUNNEL_TOKEN='ci-placeholder-not-a-secret' \
+              docker compose images -q cvbot | head -n 1
+          )"
+          test -n "$image_id"
+          test "$(docker image inspect "$image_id" \
+            --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" \
+            = "$CVBOT_VCS_REF"
+          test "$(docker image inspect "$image_id" \
+            --format '{{index .Config.Labels "net.rozkalns.cv.build-input-sha256"}}')" \
+            = "$CVBOT_BUILD_INPUT_SHA256"
+          echo "CVBOT_IMAGE_ID=$image_id" >> "$GITHUB_ENV"
+
+      - name: Scan CV assistant image for HIGH and CRITICAL vulnerabilities
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          trivy_digest="$(python3 - <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path('security/supply-chain.json').read_text(encoding='utf-8'))
+          print(data['images']['aquasec/trivy:0.72.0'])
+          PY
+          )"
+          [[ "$trivy_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            "aquasec/trivy:0.72.0@${trivy_digest}" \
+            image \
+            --scanners vuln \
+            --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            --no-progress \
+            "$CVBOT_IMAGE_ID"
