@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "source_sha256": "c90a9cd748ed4782b1ee08621fab945cbaf3d74df5a9814f040bfc1fb4a4fff8",
+  "pdfs": {
+    "en": {
+      "path": "html/cv.pdf",
+      "sha256": "1234942691c7bd90502f43fabdf312267567cad0e5d0a09f9ab427e024364776"
+    },
+    "de": {
+      "path": "html/cv-de.pdf",
+      "sha256": "3e03d46adc75b95c9359802f5e6b5d541a6a8bbcd663300dbc5f2657b1ff7b64"
+    },
+    "lv": {
+      "path": "html/cv-lv.pdf",
+      "sha256": "a1677d8160f96516aa73595ca9959ad5d52f63f4363259fd29eb64091a6736b0"
+    }
+  }
+}

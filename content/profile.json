@@ -1,0 +1,180 @@
+{
+  "schema_version": 1,
+  "content_version": "2026-08-06.1",
+  "identity": {
+    "name": "Andris Rožkalns",
+    "role": "Junior DevOps & Linux Engineer",
+    "location": "Dortmund, Germany",
+    "availability": "2027-01",
+    "career_goal": "Junior DevOps or Linux Systems Administrator, progressing toward MLOps"
+  },
+  "contact": {
+    "email": {
+      "value": "andris@rozkalns.net",
+      "visibility": "public"
+    },
+    "phone": {
+      "value": "+49 176 8513 4770",
+      "uri": "+4917685134770",
+      "visibility": "public"
+    },
+    "github": {
+      "value": "https://github.com/rozkalnsandris",
+      "visibility": "public"
+    },
+    "website": {
+      "value": "https://rozkalns.net/",
+      "visibility": "public"
+    }
+  },
+  "languages": [
+    {"name": "Latvian", "level": "native"},
+    {"name": "English", "level": "fluent working language"},
+    {"name": "German", "level": "B1"}
+  ],
+  "experience": [
+    {
+      "id": "sonepar",
+      "role": "Warehouse Employee",
+      "organization": "Sonepar Deutschland GmbH, Region West",
+      "location": "Dortmund, Germany",
+      "start": "2023-07",
+      "end": "2026-12",
+      "end_planned": true,
+      "highlights": [
+        "Processed high-volume electrical wholesale orders using scanner systems",
+        "Prepared cable, operated forklifts, and worked rotating logistics shifts",
+        "Built process discipline and reliability transferable to IT operations"
+      ]
+    },
+    {
+      "id": "koksne",
+      "role": "Painting Area Manager / Main Paint Sprayer",
+      "organization": "SIA Koksne",
+      "location": "Latvia",
+      "start": "2020-05",
+      "end": "2023-06",
+      "highlights": [
+        "Managed daily production, warehouse workflow, and staff tasks",
+        "Performed precision airless coating of wooden windows and doors"
+      ]
+    },
+    {
+      "id": "apavu-bode",
+      "role": "Warehouse / Shop Manager",
+      "organization": "SIA Apavu Bode",
+      "location": "Latvia",
+      "start": "2011-08",
+      "end": "2020-04",
+      "highlights": [
+        "Managed receiving, stock organisation, staff coordination, and daily operations"
+      ]
+    },
+    {
+      "id": "early-it",
+      "role": "Early IT — self-taught",
+      "organization": "Secondary school",
+      "location": "Riga, Latvia",
+      "start": "2008",
+      "end": "2011",
+      "highlights": [
+        "Administered Linux Counter-Strike 1.6 servers through SSH and FTP",
+        "Maintained IPB forum templates and plugins and built HTML websites"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "id": "tlcl",
+      "title": "The Linux Command Line",
+      "status": "ongoing self-study",
+      "detail": "Applied daily in the homelab"
+    },
+    {
+      "id": "rsu",
+      "title": "Multimedia Communication",
+      "organization": "Rīga Stradiņš University",
+      "start": "2011",
+      "end": "2013",
+      "status": "partial studies, not completed"
+    },
+    {
+      "id": "secondary",
+      "title": "Secondary Education",
+      "organization": "Riga 45th Secondary School",
+      "start": "2004",
+      "end": "2011"
+    }
+  ],
+  "skills": {
+    "core": [
+      "Linux administration",
+      "Docker",
+      "Docker Compose",
+      "Bash",
+      "Nginx",
+      "DNS",
+      "SSL/TLS",
+      "Prometheus",
+      "Grafana",
+      "systemd",
+      "Git"
+    ],
+    "working": [
+      "Python",
+      "REST APIs",
+      "Home Assistant",
+      "ESP32/IoT",
+      "YAML"
+    ],
+    "learning": ["Ansible", "Terraform", "AWS Cloud"],
+    "foundations": ["SSH/FTP", "PHP/IPB forums", "HTML"]
+  },
+  "projects": [
+    {
+      "id": "homelab",
+      "title": "Production Linux server stack",
+      "facts": [
+        "Raspberry Pi 5 with NVMe storage",
+        "Docker Compose services running 24/7",
+        "Nginx, AdGuard Home, TLS, and Cloudflare Tunnel"
+      ]
+    },
+    {
+      "id": "hermes",
+      "title": "Hermes self-hosted AI agent",
+      "facts": [
+        "Primary and fallback LLM routing",
+        "ChromaDB vector search and persistent memory",
+        "Telegram and Home Assistant integration"
+      ]
+    },
+    {
+      "id": "observability",
+      "title": "Monitoring and observability",
+      "facts": ["Prometheus", "Grafana", "Node Exporter", "live CV metrics"]
+    },
+    {
+      "id": "home-automation",
+      "title": "Home automation",
+      "facts": ["Matter devices", "Home Assistant dashboards", "energy-cost tracking"]
+    },
+    {
+      "id": "maintenance",
+      "title": "Automated maintenance",
+      "facts": ["controlled APT and container updates", "Telegram evidence", "availability checks"]
+    },
+    {
+      "id": "irrigation",
+      "title": "Balcony irrigation",
+      "facts": ["ESP32", "15 moisture sensors", "relay pump", "multiplexer", "safety limits"]
+    }
+  ],
+  "infrastructure": {
+    "host": "Raspberry Pi 5",
+    "storage": "NVMe SSD",
+    "runtime": "Docker Compose",
+    "availability": "24/7",
+    "public_site": "https://rozkalns.net/"
+  }
+}
