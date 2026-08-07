@@ -15,7 +15,6 @@ BACKUP_ROOT='/home/andris/.local-backups/rozkalns-cv/deploy'
 STATE_DIR='/var/lib/rozkalns-cv-deploy'
 STATE_FILE="$STATE_DIR/current-sha"
 LOCK_FILE='/run/lock/rozkalns-cv-deploy.lock'
-COMPOSE_ENV_FILE="$RUNTIME/cloudflared.env"
 EVIDENCE_ROOT='/home/github-cv-runner/actions-runner/_work/_temp'
 LOCAL_URL='http://192.168.0.180:8088/'
 PUBLIC_URL='https://rozkalns.net/'
@@ -25,10 +24,6 @@ NETWORK_GATEWAY='172.19.0.1'
 CVBOT_UID=10001
 CVBOT_GID=10001
 CVBOT_IMAGE_IDENTITY_REQUIRED=false
-CLOUDFLARED_RESTARTED=false
-CLOUDFLARED_CANARY=''
-CLOUDFLARED_CANARY_READY=false
-CLOUDFLARED_CANARY_PRESERVED=false
 BACKUP_RETENTION_COUNT=5
 BACKUP_RETENTION_DAYS=14
 MIN_FREE_BYTES=1073741824
@@ -60,7 +55,7 @@ owner_git() {
 compose_runtime() {
     (
         cd "$RUNTIME"
-        docker compose --env-file "$COMPOSE_ENV_FILE" "$@"
+        docker compose "$@"
     )
 }
 
@@ -69,14 +64,22 @@ compose_at() {
     shift
     (
         cd "$root"
-        docker compose --env-file "$COMPOSE_ENV_FILE" "$@"
+        docker compose "$@"
     )
 }
 
 validate_rendered_network() {
     local root="$1"
-    local rendered
+    local rendered services service_count
     rendered="$(compose_at "$root" config)" || return 1
+    services="$(compose_at "$root" config --services)" || return 1
+    service_count="$(wc -l <<<"$services" | tr -d '[:space:]')"
+    [[ "$service_count" == 2 ]] || return 1
+    grep -qx 'cv' <<<"$services" || return 1
+    grep -qx 'cvbot' <<<"$services" || return 1
+    if grep -qx 'cloudflared' <<<"$services"; then
+        return 1
+    fi
     grep -Fq "name: $NETWORK_NAME" <<<"$rendered" || return 1
     grep -Fq "subnet: $NETWORK_SUBNET" <<<"$rendered" || return 1
     grep -Fq "gateway: $NETWORK_GATEWAY" <<<"$rendered" || return 1
@@ -102,10 +105,64 @@ managed_rsync() {
         --exclude='.git/' \
         --exclude='.env' \
         --exclude='*.env' \
-        --exclude='cloudflared.env' \
         --exclude='stats.json' \
         --exclude='bot/data/' \
         "$source/" "$destination/"
+}
+
+preserve_shared_ingress_boundary_on_rollback() {
+    local compose="$RUNTIME/docker-compose.yml"
+    [[ -f "$compose" && ! -L "$compose" ]] || return 1
+    python3 - "$compose" <<'PY'
+from __future__ import annotations
+
+import os
+from pathlib import Path
+import sys
+import tempfile
+
+path = Path(sys.argv[1])
+lines = path.read_text(encoding="utf-8").splitlines(keepends=True)
+out: list[str] = []
+skipping = False
+removed = False
+
+for line in lines:
+    if not skipping and line.startswith("  cloudflared:"):
+        skipping = True
+        removed = True
+        continue
+    if skipping:
+        if line and not line[0].isspace():
+            skipping = False
+            out.append(line)
+        continue
+    out.append(line)
+
+if removed:
+    mode = path.stat().st_mode & 0o777
+    fd, tmp_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="") as handle:
+            handle.writelines(out)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.chmod(tmp_name, mode)
+        os.replace(tmp_name, path)
+        directory_fd = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+    except BaseException:
+        try:
+            os.unlink(tmp_name)
+        except FileNotFoundError:
+            pass
+        raise
+PY
+    rm -f -- "$RUNTIME/cloudflared.env.example"
+    printf 'ROLLBACK_SHARED_INGRESS_BOUNDARY=PASS\n'
 }
 
 validate_managed_tree() {
@@ -230,7 +287,6 @@ write_runtime_manifest() {
             ! -path './.git/*' \
             ! -name '.env' \
             ! -name '*.env' \
-            ! -name 'cloudflared.env' \
             ! -path './bot/data/*' \
             ! -path './html/stats.json' \
             -print0 \
@@ -254,9 +310,7 @@ write_summary() {
         printf 'PRODUCTION_CHANGED=%s\n' "$DEPLOYED"
         printf 'MUTATION_STARTED=%s\n' "$MUTATION_STARTED"
         printf 'TRANSACTION_COMMITTED=%s\n' "$TRANSACTION_COMMITTED"
-        printf 'CLOUDFLARED_RESTARTED=%s\n' "$CLOUDFLARED_RESTARTED"
-        printf 'CLOUDFLARED_CANARY_READY=%s\n' "$CLOUDFLARED_CANARY_READY"
-        printf 'CLOUDFLARED_CANARY_PRESERVED=%s\n' "$CLOUDFLARED_CANARY_PRESERVED"
+        printf 'SHARED_INGRESS_CONTROLLED=false\n'
         printf 'DATABASE_MIGRATIONS_EXECUTED=false\n'
         printf 'ROLLBACK_PERFORMED=%s\n' "$rollback_performed"
         printf 'UTC=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -319,21 +373,6 @@ wait_healthy() {
     return 1
 }
 
-redact_cloudflared_logs() {
-    python3 -c 'import re,sys
-text=sys.stdin.read()
-text=re.sub(r"eyJ[A-Za-z0-9._=-]{30,}", "<redacted-token>", text)
-text=re.sub(r"(?i)(token[=: ]+)[^\\s\\\"]+", r"\\1<redacted>", text)
-sys.stdout.write(text)'
-}
-
-capture_cloudflared_logs() {
-    local name="$1"
-    local output="$2"
-    docker logs --tail 240 --timestamps "$name" 2>&1 \
-        | redact_cloudflared_logs >"$output" || true
-}
-
 capture_runtime_diagnostics() {
     local label="$1"
     local output="$EVIDENCE_DIR/${label}.log"
@@ -343,7 +382,7 @@ capture_runtime_diagnostics() {
         printf '\n===== COMPOSE PS =====\n'
         compose_runtime ps || true
         printf '\n===== CONTAINER SUMMARY =====\n'
-        docker inspect cv cvbot cv-cloudflared \
+        docker inspect cv cvbot \
             --format '{{.Name}}|image={{.Config.Image}}|status={{.State.Status}}|health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}|started={{.State.StartedAt}}|restarts={{.RestartCount}}' \
             || true
         printf '\n===== CVBOT SECURITY =====\n'
@@ -359,15 +398,6 @@ capture_runtime_diagnostics() {
             || true
         printf '\n===== CVBOT LOGS =====\n'
         docker logs --tail 240 --timestamps cvbot 2>&1 || true
-        printf '\n===== CLOUDFLARED LOGS =====\n'
-        docker logs --tail 240 --timestamps cv-cloudflared 2>&1 \
-            | redact_cloudflared_logs || true
-        if [[ -n "$CLOUDFLARED_CANARY" ]] \
-           && docker inspect "$CLOUDFLARED_CANARY" >/dev/null 2>&1; then
-            printf '\n===== CLOUDFLARED CANARY LOGS =====\n'
-            docker logs --tail 240 --timestamps "$CLOUDFLARED_CANARY" 2>&1 \
-                | redact_cloudflared_logs || true
-        fi
         printf '\n===== LOCAL HTTP =====\n'
         if curl --fail --silent --show-error --max-time 20 "$LOCAL_URL" >/dev/null; then
             printf 'LOCAL_URL=PASS\n'
@@ -483,145 +513,6 @@ print("CVBOT_DATA_RW=true")
 PY
 }
 
-expected_cloudflared_image_at() {
-    local root="$1"
-    local images count image placeholder_created=false
-    if [[ ! -e "$root/bot/.env" ]]; then
-        : >"$root/bot/.env" || return 1
-        chmod 0600 "$root/bot/.env" || return 1
-        placeholder_created=true
-    fi
-    images="$(compose_at "$root" config --images)" || {
-        [[ "$placeholder_created" == true ]] && rm -f -- "$root/bot/.env"
-        return 1
-    }
-    [[ "$placeholder_created" == true ]] && rm -f -- "$root/bot/.env"
-    count="$(grep -Ec '^cloudflare/cloudflared:' <<<"$images" || true)"
-    [[ "$count" == 1 ]] || return 1
-    image="$(grep -E '^cloudflare/cloudflared:' <<<"$images")" || return 1
-    [[ "$image" == *@sha256:* ]] || return 1
-    printf '%s\n' "$image"
-}
-
-expected_cloudflared_image() {
-    expected_cloudflared_image_at "$RUNTIME"
-}
-
-cloudflared_connected_count() {
-    local name="$1"
-    local ip payload
-    ip="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$name" 2>/dev/null || true)"
-    [[ "$ip" =~ ^[0-9a-fA-F:.]+$ ]] || return 1
-    payload="$(curl --fail --silent --show-error --max-time 5 \
-        "http://[$ip]:20241/diag/tunnel" 2>/dev/null \
-        || curl --fail --silent --show-error --max-time 5 \
-            "http://$ip:20241/diag/tunnel" 2>/dev/null)" || return 1
-    python3 - "$payload" <<'PY'
-import json
-import sys
-
-data = json.loads(sys.argv[1])
-connections = data.get("connections") or []
-connected = sum(1 for row in connections if row.get("isConnected") is True)
-if connected < 1:
-    raise SystemExit(1)
-print(connected)
-PY
-}
-
-wait_cloudflared_edge() {
-    local name="$1"
-    local attempts="${2:-30}"
-    local delay="${3:-2}"
-    local attempt state connected
-    for ((attempt = 1; attempt <= attempts; attempt++)); do
-        state="$(docker inspect -f '{{.State.Status}}' "$name" 2>/dev/null || true)"
-        connected="$(cloudflared_connected_count "$name" 2>/dev/null || true)"
-        printf 'WAIT_CLOUDFLARED_EDGE name=%s attempt=%s state=%s connected=%s\n' \
-            "$name" "$attempt" "${state:-missing}" "${connected:-0}"
-        if [[ "$state" == running && "$connected" =~ ^[1-9][0-9]*$ ]]; then
-            printf 'CLOUDFLARED_EDGE_READY=PASS name=%s connected=%s\n' \
-                "$name" "$connected"
-            return 0
-        fi
-        if [[ "$state" == exited || "$state" == dead ]]; then
-            return 1
-        fi
-        sleep "$delay"
-    done
-    return 1
-}
-
-remove_cloudflared_canary() {
-    if [[ -n "$CLOUDFLARED_CANARY" ]]; then
-        docker rm -f "$CLOUDFLARED_CANARY" >/dev/null 2>&1 || true
-        CLOUDFLARED_CANARY=''
-    fi
-    CLOUDFLARED_CANARY_READY=false
-}
-
-preflight_cloudflared_canary() {
-    local root="$1"
-    local expected actual placeholder_created=false
-    expected="$(expected_cloudflared_image_at "$root")" || return 1
-    CLOUDFLARED_CANARY="cv-cloudflared-canary-${STAMP}-$$"
-    if [[ ! -e "$root/bot/.env" ]]; then
-        : >"$root/bot/.env" || return 1
-        chmod 0600 "$root/bot/.env" || return 1
-        placeholder_created=true
-    fi
-    if ! compose_at "$root" run -d --no-deps \
-        --name "$CLOUDFLARED_CANARY" cloudflared \
-        tunnel --no-autoupdate --metrics 0.0.0.0:20241 run >/dev/null; then
-        [[ "$placeholder_created" == true ]] && rm -f -- "$root/bot/.env"
-        remove_cloudflared_canary
-        return 1
-    fi
-    [[ "$placeholder_created" == true ]] && rm -f -- "$root/bot/.env"
-    docker update --restart=no "$CLOUDFLARED_CANARY" >/dev/null || {
-        remove_cloudflared_canary
-        return 1
-    }
-    actual="$(docker inspect -f '{{.Config.Image}}' "$CLOUDFLARED_CANARY" 2>/dev/null || true)"
-    if [[ "$actual" != "$expected" ]]; then
-        capture_cloudflared_logs "$CLOUDFLARED_CANARY" \
-            "$EVIDENCE_DIR/cloudflared-canary-failure.log"
-        remove_cloudflared_canary
-        return 1
-    fi
-    if ! wait_cloudflared_edge "$CLOUDFLARED_CANARY" 30 2; then
-        capture_cloudflared_logs "$CLOUDFLARED_CANARY" \
-            "$EVIDENCE_DIR/cloudflared-canary-failure.log"
-        remove_cloudflared_canary
-        return 1
-    fi
-    CLOUDFLARED_CANARY_READY=true
-    capture_cloudflared_logs "$CLOUDFLARED_CANARY" \
-        "$EVIDENCE_DIR/cloudflared-canary-ready.log"
-    printf 'CLOUDFLARED_CANARY=PASS\n'
-    printf 'CLOUDFLARED_CANARY_IMAGE=%s\n' "$actual"
-}
-
-reconcile_cloudflared() {
-    local expected before after actual
-    [[ "$CLOUDFLARED_CANARY_READY" == true ]] || return 1
-    expected="$(expected_cloudflared_image)" || return 1
-    before="$(docker inspect -f '{{.Id}}' cv-cloudflared 2>/dev/null || true)"
-    compose_runtime up -d --no-deps cloudflared || return 1
-    wait_running cv-cloudflared 30 2 || return 1
-    after="$(docker inspect -f '{{.Id}}' cv-cloudflared 2>/dev/null || true)"
-    actual="$(docker inspect -f '{{.Config.Image}}' cv-cloudflared 2>/dev/null || true)"
-    [[ -n "$after" ]] || return 1
-    [[ "$actual" == "$expected" ]] || return 1
-    wait_cloudflared_edge cv-cloudflared 30 2 || return 1
-    if [[ -z "$before" || "$before" != "$after" ]]; then
-        CLOUDFLARED_RESTARTED=true
-    fi
-    printf 'CLOUDFLARED_IMAGE_IDENTITY=PASS\n'
-    printf 'CLOUDFLARED_IMAGE=%s\n' "$actual"
-    printf 'CLOUDFLARED_RESTARTED=%s\n' "$CLOUDFLARED_RESTARTED"
-}
-
 deploy_runtime() {
     normalize_managed_permissions "$RUNTIME" || return 1
     prepare_cvbot_data || return 1
@@ -637,9 +528,7 @@ deploy_runtime() {
     compose_runtime up -d --no-deps cv || return 1
     wait_running cv 30 2 || return 1
     http_ok "$LOCAL_URL" 10 3 || return 1
-    reconcile_cloudflared || return 1
     http_ok "$PUBLIC_URL" 10 5 || return 1
-    remove_cloudflared_canary
 }
 
 rollback() {
@@ -647,9 +536,13 @@ rollback() {
     printf 'ROLLBACK_BEGIN=true\n' | tee -a "$EVIDENCE_DIR/deploy.log"
     if ! managed_rsync "$BACKUP/runtime" "$RUNTIME"; then
         capture_runtime_diagnostics 'failed-rollback-sync-runtime'
-        if [[ "$CLOUDFLARED_CANARY_READY" == true ]]; then
-            CLOUDFLARED_CANARY_PRESERVED=true
-        fi
+        printf 'ROLLBACK_END=FAIL\n' | tee -a "$EVIDENCE_DIR/deploy.log"
+        write_summary 'FAIL_ROLLBACK_FAIL' true || true
+        return 1
+    fi
+    if ! preserve_shared_ingress_boundary_on_rollback \
+        >>"$EVIDENCE_DIR/deploy.log" 2>&1; then
+        capture_runtime_diagnostics 'failed-rollback-ingress-boundary'
         printf 'ROLLBACK_END=FAIL\n' | tee -a "$EVIDENCE_DIR/deploy.log"
         write_summary 'FAIL_ROLLBACK_FAIL' true || true
         return 1
@@ -662,9 +555,6 @@ rollback() {
         return 0
     fi
     capture_runtime_diagnostics 'failed-rollback-runtime'
-    if [[ "$CLOUDFLARED_CANARY_READY" == true ]]; then
-        CLOUDFLARED_CANARY_PRESERVED=true
-    fi
     printf 'ROLLBACK_END=FAIL\n' | tee -a "$EVIDENCE_DIR/deploy.log"
     write_summary 'FAIL_ROLLBACK_FAIL' true || true
     return 1
@@ -686,9 +576,6 @@ finish() {
        && [[ "$ROLLBACK_ATTEMPTED" != true ]] \
        && [[ -n "$BACKUP" && -d "$BACKUP/runtime" ]]; then
         rollback || true
-    fi
-    if [[ "$CLOUDFLARED_CANARY_PRESERVED" != true ]]; then
-        remove_cloudflared_canary
     fi
     if [[ -n "$STAGE" && -d "$STAGE" ]]; then
         owner_git -C "$PRIMARY" worktree remove --force "$STAGE" >/dev/null 2>&1 || true
@@ -717,7 +604,7 @@ EVIDENCE_GID="$SUDO_GID"
 
 for command_name in \
     awk bash chmod chown curl df docker du find flock grep head install mktemp mv \
-    python3 realpath rm rsync runuser sha256sum sort stat sync tee tr xargs
+    python3 realpath rm rsync runuser sha256sum sort stat sync tee tr wc xargs
 do
     command -v "$command_name" >/dev/null 2>&1 \
         || fail "required command is missing: $command_name"
@@ -728,8 +615,6 @@ done
 [[ -d "$PRIMARY/.git" ]] || fail "primary Git repository is missing: $PRIMARY"
 [[ -d "$RUNTIME" && ! -L "$RUNTIME" ]] \
     || fail "runtime directory is missing or a symlink: $RUNTIME"
-[[ -s "$COMPOSE_ENV_FILE" && ! -L "$COMPOSE_ENV_FILE" ]] \
-    || fail 'host-only cloudflared.env is missing, empty, or a symlink'
 [[ -d "$EVIDENCE_DIR" && ! -L "$EVIDENCE_DIR" ]] \
     || fail 'evidence directory must already exist and must not be a symlink'
 
@@ -800,12 +685,6 @@ runuser -u "$OWNER" -- bash -c \
     >"$EVIDENCE_DIR/source-validation.log" 2>&1 \
     || fail 'source validation failed'
 prepare_candidate || fail 'candidate preparation failed'
-
-if ! preflight_cloudflared_canary "$CANDIDATE" \
-    >"$EVIDENCE_DIR/cloudflared-canary-preflight.log" 2>&1; then
-    capture_runtime_diagnostics 'failed-cloudflared-canary-preflight'
-    fail 'cloudflared target replica did not become edge-ready'
-fi
 
 BACKUP="$BACKUP_ROOT/${STAMP}-${OLD_SHA:-unknown}"
 create_backup || fail 'rollback backup creation failed'

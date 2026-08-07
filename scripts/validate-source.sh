@@ -48,7 +48,7 @@ do
     [[ -s "$ROOT/$required" ]] || fail "required file is missing or empty: $required"
 done
 
-for retired in update.sh update_cv-1.sh; do
+for retired in update.sh update_cv-1.sh cloudflared.env.example; do
     [[ ! -e "$ROOT/$retired" ]] \
         || fail "retired source file must not exist: $retired"
 done
@@ -80,6 +80,13 @@ for candidate in docker-compose.yml docker-compose.yaml compose.yml compose.yaml
 done
 [[ -n "$compose" ]] || fail 'no Docker Compose file found'
 
+if grep -Eiq '(^|[^[:alnum:]_])cloudflared([^[:alnum:]_]|$)' "$compose"; then
+    fail 'shared Cloudflare connector must not be owned by CV Compose'
+fi
+if grep -Fq 'CF_TUNNEL_TOKEN' "$compose" || grep -Fq 'TUNNEL_TOKEN' "$compose"; then
+    fail 'Cloudflare tunnel token dependency must not be owned by CV Compose'
+fi
+
 index=''
 for candidate in index.html html/index.html site/index.html public/index.html; do
     if [[ -s "$ROOT/$candidate" ]]; then
@@ -107,7 +114,7 @@ done < <(find "$ROOT/scripts" "$ROOT/runner" -type f -name '*.sh' -print0)
 
 while IFS= read -r -d '' secret_file; do
     case "$(basename "$secret_file")" in
-        .env.example|cloudflared.env.example) ;;
+        .env.example|*.env.example) ;;
         *) fail "forbidden env file in repository: ${secret_file#$ROOT/}" ;;
     esac
 done < <(find "$ROOT" -type f \( -name '.env' -o -name '*.env' \) -print0)
@@ -133,30 +140,22 @@ create_placeholder() {
     fi
 }
 
-if grep -Fqs 'cloudflared.env' "$compose"; then
-    create_placeholder \
-        "$ROOT/cloudflared.env" \
-        $'CF_TUNNEL_TOKEN=ci-placeholder-not-a-secret\n'
-fi
-
 if grep -Fqs 'bot/.env' "$compose"; then
     create_placeholder "$ROOT/bot/.env"
 fi
 
 (
     cd "$ROOT"
-    resolved="$(
-        CF_TUNNEL_TOKEN='ci-placeholder-not-a-secret' \
-            docker compose config
-    )"
-    CF_TUNNEL_TOKEN='ci-placeholder-not-a-secret' \
-        docker compose config --quiet
-    services="$(
-        CF_TUNNEL_TOKEN='ci-placeholder-not-a-secret' \
-            docker compose config --services
-    )"
+    resolved="$(docker compose config)"
+    docker compose config --quiet
+    services="$(docker compose config --services)"
     grep -qx 'cv' <<<"$services" || fail 'Compose service cv is missing'
     grep -qx 'cvbot' <<<"$services" || fail 'Compose service cvbot is missing'
+    [[ "$(wc -l <<<"$services" | tr -d '[:space:]')" == 2 ]] \
+        || fail 'Compose must contain exactly the two CV-owned services'
+    if grep -qx 'cloudflared' <<<"$services"; then
+        fail 'shared Cloudflare connector must not be a CV Compose service'
+    fi
     grep -Fq "name: $NETWORK_NAME" <<<"$resolved" \
         || fail 'effective Compose network name is not cv_default'
     grep -Fq "subnet: $NETWORK_SUBNET" <<<"$resolved" \

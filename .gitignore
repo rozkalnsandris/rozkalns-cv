@@ -4,7 +4,6 @@
 !.env.example
 *.env
 !*.env.example
-cloudflared.env
 
 # Runtime and generated state
 stats.json
