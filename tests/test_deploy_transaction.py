@@ -188,6 +188,25 @@ class DeployTransactionBehaviorTests(unittest.TestCase):
         )
         self.assertEqual(rejected.returncode, 0, rejected.stderr)
 
+    def test_compose_helpers_pin_canonical_file_despite_legacy_env(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            result = run_library(
+                f"RUNTIME={shlex.quote(str(root))}\n"
+                "export COMPOSE_FILE='docker-compose.yml:docker-compose.network.yml'\n"
+                "docker() { printf '<%s>' \"$@\"; printf '\\n'; }\n"
+                "compose_runtime config --services\n"
+                f"compose_at {shlex.quote(str(root))} config --services"
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(
+                result.stdout.splitlines(),
+                [
+                    "<compose><-f><docker-compose.yml><config><--services>",
+                    "<compose><-f><docker-compose.yml><config><--services>",
+                ],
+            )
+
     def test_rollback_strips_legacy_cloudflared_service_but_keeps_secret_untouched(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             runtime = Path(tmp)
