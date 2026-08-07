@@ -305,7 +305,7 @@ class CdpClient {
       } : {})
     };
     await this.send("Input.dispatchKeyEvent", {
-      type: "keyDown",
+      type: "rawKeyDown",
       ...keyParams
     });
     await this.send("Input.dispatchKeyEvent", {
