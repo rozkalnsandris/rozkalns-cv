@@ -11,6 +11,7 @@ INDEX = ROOT / "html" / "index.html"
 SMART = ROOT / "html" / "smarthome.html"
 FAVICON = ROOT / "html" / "favicon.svg"
 NGINX = ROOT / "nginx.conf"
+COMPOSE = ROOT / "docker-compose.yml"
 CSS = ROOT / "html" / "assets" / "main.2734e7be6cdd.css"
 APP = ROOT / "html" / "assets" / "app.d878d409f278.mjs"
 SMART_JS = ROOT / "html" / "assets" / "smarthome.70da56476fdb.mjs"
@@ -68,6 +69,14 @@ class FrontendContractTests(unittest.TestCase):
             embedded = path.name.split(".")[-2]
             actual = hashlib.sha256(path.read_bytes()).hexdigest()[:12]
             self.assertEqual(embedded, actual, path)
+
+    def test_compose_recreate_identity_tracks_nginx_config(self) -> None:
+        nginx_digest = hashlib.sha256(NGINX.read_bytes()).hexdigest()
+        compose = COMPOSE.read_text(encoding="utf-8")
+        self.assertIn(
+            f'net.rozkalns.cv.nginx-config-sha256: "{nginx_digest}"',
+            compose,
+        )
 
     def test_favicon_is_declared_and_present(self) -> None:
         text = INDEX.read_text(encoding="utf-8")
