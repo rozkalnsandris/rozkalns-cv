@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/branding/project-logo.svg" alt="rozkalns.net CV logo" width="160">
+  <img src="assets/branding/readme-banner.jpg" alt="rozkalns.net CV project banner" width="960">
 </p>
 
 # rozkalns.net CV
