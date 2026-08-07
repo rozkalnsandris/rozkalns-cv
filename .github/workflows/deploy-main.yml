@@ -202,14 +202,52 @@ jobs:
             "$TARGET_SHA" \
             "$evidence_dir"
 
-      - name: Verify public site
+      - name: Verify public frontend contracts
         if: success()
         shell: bash
         run: |
           set -Eeuo pipefail
+          html="$(mktemp)"
+          root_headers="$(mktemp)"
+          cleanup_public() {
+            rm -f "$html" "$root_headers"
+          }
+          trap cleanup_public EXIT
+
           curl --fail --silent --show-error --max-time 20 \
-            https://rozkalns.net/ >/dev/null
+            --dump-header "$root_headers" \
+            --output "$html" \
+            https://rozkalns.net/
+
+          module_path="$(grep -oE '/assets/app\.[0-9a-f]{12}\.mjs\?cfg=[0-9a-f]{12}' \
+            "$html" | head -n 1)"
+          test -n "$module_path"
+          module_headers="$(curl --fail --silent --show-error --head --max-time 20 \
+            "https://rozkalns.net${module_path}")"
+          printf '%s\n' "$module_headers"
+
+          content_type="$(printf '%s\n' "$module_headers" \
+            | awk 'BEGIN { IGNORECASE=1 } /^Content-Type:/ { sub(/\r$/, ""); print $2; exit }')"
+          case "$content_type" in
+            text/javascript|application/javascript) ;;
+            *)
+              printf 'PUBLIC_MODULE_MIME=FAIL content_type=%s\n' "$content_type" >&2
+              exit 1
+              ;;
+          esac
+          printf '%s\n' "$module_headers" | grep -Eiq '^Cache-Control:.*immutable'
+          printf '%s\n' "$module_headers" | grep -Eiq '^X-Content-Type-Options:[[:space:]]*nosniff'
+
+          csp="$(awk 'BEGIN { IGNORECASE=1 } /^Content-Security-Policy:/ { sub(/\r$/, ""); sub(/^[^:]+:[[:space:]]*/, ""); print; exit }' \
+            "$root_headers")"
+          [[ "$csp" =~ nonce-[0-9a-f]{32} ]]
+          [[ "$csp" == *"script-src-attr 'none'"* ]]
+          [[ "$csp" == *"https://static.cloudflareinsights.com/beacon.min.js"* ]]
+          [[ "$csp" != *"unsafe-inline"* ]]
+
           printf 'PUBLIC_SITE=PASS\n'
+          printf 'PUBLIC_MODULE_MIME=PASS type=%s\n' "$content_type"
+          printf 'PUBLIC_CSP_NONCE=PASS\n'
 
       - name: Upload deploy evidence
         if: always() && steps.deploy.outputs.evidence_dir != ''
