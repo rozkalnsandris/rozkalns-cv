@@ -24,9 +24,14 @@ cleanup() {
 trap cleanup EXIT
 chmod 0700 "$work"
 
-cat > "$work/canary.txt" <<'EOF'
-GITHUB_TOKEN="ghp_aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789"
-EOF
+# Build the detector canary only at runtime. No complete token-shaped value is
+# stored in Git source, so the repository's own source scanner can inspect this
+# script without treating the test fixture itself as a leaked credential.
+printf 'GITHUB_TOKEN="%s%s%s"\n' \
+    'gh' \
+    'p_' \
+    'aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789' \
+    > "$work/canary.txt"
 chmod 0600 "$work/canary.txt"
 
 set +e
