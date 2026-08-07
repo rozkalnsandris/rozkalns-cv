@@ -188,6 +188,49 @@ class DeployTransactionBehaviorTests(unittest.TestCase):
         )
         self.assertEqual(rejected.returncode, 0, rejected.stderr)
 
+    def test_rollback_strips_legacy_cloudflared_service_but_keeps_secret_untouched(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runtime = Path(tmp)
+            compose = runtime / "docker-compose.yml"
+            compose.write_text(
+                "services:\n"
+                "  cv:\n"
+                "    image: nginx:test\n"
+                "  cvbot:\n"
+                "    image: cvbot:test\n"
+                "  cloudflared:\n"
+                "    image: cloudflare/cloudflared:test\n"
+                "    environment:\n"
+                "      - TUNNEL_TOKEN=legacy-placeholder\n"
+                "    restart: unless-stopped\n"
+                "networks:\n"
+                "  default:\n"
+                "    name: cv_default\n",
+                encoding="utf-8",
+            )
+            example = runtime / "cloudflared.env.example"
+            example.write_text("example\n", encoding="utf-8")
+            secret = runtime / "cloudflared.env"
+            secret.write_text("do-not-touch\n", encoding="utf-8")
+
+            result = run_library(
+                f"RUNTIME={shlex.quote(str(runtime))}\n"
+                "preserve_shared_ingress_boundary_on_rollback\n"
+                "cat \"$RUNTIME/docker-compose.yml\"\n"
+                "test ! -e \"$RUNTIME/cloudflared.env.example\"\n"
+                "test -e \"$RUNTIME/cloudflared.env\""
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("ROLLBACK_SHARED_INGRESS_BOUNDARY=PASS", result.stdout)
+            restored = compose.read_text(encoding="utf-8")
+            self.assertIn("  cv:\n", restored)
+            self.assertIn("  cvbot:\n", restored)
+            self.assertIn("networks:\n", restored)
+            self.assertNotIn("  cloudflared:\n", restored)
+            self.assertNotIn("TUNNEL_TOKEN", restored)
+            self.assertFalse(example.exists())
+            self.assertEqual(secret.read_text(encoding="utf-8"), "do-not-touch\n")
+
     def test_summary_proves_shared_ingress_is_not_controlled(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
