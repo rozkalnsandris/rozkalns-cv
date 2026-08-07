@@ -103,7 +103,7 @@ class DeployTransactionBehaviorTests(unittest.TestCase):
             (source / "html" / "stats.json").write_text(
                 "{}", encoding="utf-8"
             )
-            (source / "cloudflared.env").write_text(
+            (source / "legacy.env").write_text(
                 "secret", encoding="utf-8"
             )
             (source / "bot" / ".env").write_text(
@@ -117,7 +117,7 @@ class DeployTransactionBehaviorTests(unittest.TestCase):
                 f"{shlex.quote(str(destination))}\n"
                 f"test -f {shlex.quote(str(destination / 'html' / 'index.html'))}\n"
                 f"test ! -e {shlex.quote(str(destination / 'html' / 'stats.json'))}\n"
-                f"test ! -e {shlex.quote(str(destination / 'cloudflared.env'))}\n"
+                f"test ! -e {shlex.quote(str(destination / 'legacy.env'))}\n"
                 f"test ! -e {shlex.quote(str(destination / 'bot' / '.env'))}\n"
                 f"test ! -e {shlex.quote(str(destination / 'bot' / 'data' / 'chat.jsonl'))}"
             )
@@ -163,98 +163,53 @@ class DeployTransactionBehaviorTests(unittest.TestCase):
         )
         self.assertEqual(rejected.returncode, 0, rejected.stderr)
 
-    def test_cloudflared_image_selection_requires_one_digest_reference(self) -> None:
-        pinned = (
-            "cloudflare/cloudflared:2026.7.3@sha256:"
-            + "a" * 64
-        )
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            (root / "bot").mkdir()
-            result = run_library(
-                f"RUNTIME={shlex.quote(str(root))}\n"
-                "compose_at() {\n"
-                "  printf '%s\\n' 'nginx:1.31.3-alpine@sha256:deadbeef' "
-                f"{shlex.quote(pinned)} 'rozkalns-cv-cvbot:local'\n"
-                "}\n"
-                "expected_cloudflared_image"
-            )
-            self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(result.stdout.strip(), pinned)
-
-            duplicate = run_library(
-                f"RUNTIME={shlex.quote(str(root))}\n"
-                "compose_at() {\n"
-                f"  printf '%s\\n' {shlex.quote(pinned)} {shlex.quote(pinned)}\n"
-                "}\n"
-                "if expected_cloudflared_image; then exit 99; fi"
-            )
-            self.assertEqual(duplicate.returncode, 0, duplicate.stderr)
-
-            unpinned = run_library(
-                f"RUNTIME={shlex.quote(str(root))}\n"
-                "compose_at() {\n"
-                "  printf '%s\\n' 'cloudflare/cloudflared:latest'\n"
-                "}\n"
-                "if expected_cloudflared_image; then exit 99; fi"
-            )
-            self.assertEqual(unpinned.returncode, 0, unpinned.stderr)
-
-    def test_cloudflared_edge_gate_requires_connected_session(self) -> None:
-        connected_payload = json.dumps(
-            {
-                "connections": [
-                    {"isConnected": True},
-                    {"isConnected": True},
-                    {"isConnected": False},
-                ]
-            },
-            separators=(",", ":"),
-        )
+    def test_rendered_compose_accepts_exactly_cv_and_cvbot(self) -> None:
         accepted = run_library(
-            "docker() { printf '172.19.0.25\\n'; }\n"
-            f"curl() {{ printf '%s\\n' {shlex.quote(connected_payload)}; }}\n"
-            "cloudflared_connected_count test-canary"
+            "compose_at() {\n"
+            "  if [[ \"${3:-}\" == --services ]]; then\n"
+            "    printf 'cv\\ncvbot\\n'\n"
+            "  else\n"
+            "    printf 'name: cv_default\\nsubnet: 172.19.0.0/16\\ngateway: 172.19.0.1\\n'\n"
+            "  fi\n"
+            "}\n"
+            "validate_rendered_network /tmp/candidate"
         )
         self.assertEqual(accepted.returncode, 0, accepted.stderr)
-        self.assertEqual(accepted.stdout.strip(), "2")
 
-        disconnected_payload = json.dumps(
-            {"connections": [{"isConnected": False}]},
-            separators=(",", ":"),
-        )
         rejected = run_library(
-            "docker() { printf '172.19.0.25\\n'; }\n"
-            f"curl() {{ printf '%s\\n' {shlex.quote(disconnected_payload)}; }}\n"
-            "if cloudflared_connected_count test-canary; then exit 99; fi"
+            "compose_at() {\n"
+            "  if [[ \"${3:-}\" == --services ]]; then\n"
+            "    printf 'cv\\ncvbot\\ncloudflared\\n'\n"
+            "  else\n"
+            "    printf 'name: cv_default\\nsubnet: 172.19.0.0/16\\ngateway: 172.19.0.1\\n'\n"
+            "  fi\n"
+            "}\n"
+            "if validate_rendered_network /tmp/candidate; then exit 99; fi"
         )
         self.assertEqual(rejected.returncode, 0, rejected.stderr)
 
-    def test_finish_removes_canary_unless_explicitly_preserved(self) -> None:
+    def test_summary_proves_shared_ingress_is_not_controlled(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
-            marker = Path(tmp) / "removed"
-            cleaned = run_library(
-                "MUTATION_STARTED=false\n"
-                "EVIDENCE_READY=false\nWORK=''\nSTAGE=''\n"
-                "CLOUDFLARED_CANARY='test-canary'\n"
-                "CLOUDFLARED_CANARY_PRESERVED=false\n"
-                f"remove_cloudflared_canary() {{ printf removed > {shlex.quote(str(marker))}; }}\n"
-                "finish 23"
+            root = Path(tmp)
+            evidence = root / "evidence"
+            evidence.mkdir()
+            state = root / "current-sha"
+            state.write_text("c" * 40 + "\n", encoding="utf-8")
+            result = run_library(
+                f"EVIDENCE_DIR={shlex.quote(str(evidence))}\n"
+                f"STATE_FILE={shlex.quote(str(state))}\n"
+                f"TARGET_SHA={'d' * 40}\n"
+                "OLD_SHA=unknown\n"
+                "DEPLOYED=true\n"
+                "MUTATION_STARTED=true\n"
+                "TRANSACTION_COMMITTED=true\n"
+                "write_summary PASS false"
             )
-            self.assertEqual(cleaned.returncode, 23)
-            self.assertTrue(marker.exists())
-
-            marker.unlink()
-            preserved = run_library(
-                "MUTATION_STARTED=false\n"
-                "EVIDENCE_READY=false\nWORK=''\nSTAGE=''\n"
-                "CLOUDFLARED_CANARY='test-canary'\n"
-                "CLOUDFLARED_CANARY_PRESERVED=true\n"
-                f"remove_cloudflared_canary() {{ printf removed > {shlex.quote(str(marker))}; }}\n"
-                "finish 17"
-            )
-            self.assertEqual(preserved.returncode, 17)
-            self.assertFalse(marker.exists())
+            self.assertEqual(result.returncode, 0, result.stderr)
+            summary = (evidence / "summary.env").read_text(encoding="utf-8")
+            self.assertIn("DEPLOY_RESULT=PASS", summary)
+            self.assertIn("SHARED_INGRESS_CONTROLLED=false", summary)
+            self.assertNotIn("CLOUDFLARED", summary)
 
     def test_uncommitted_failure_invokes_rollback(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -268,7 +223,6 @@ class DeployTransactionBehaviorTests(unittest.TestCase):
                 "TRANSACTION_COMMITTED=false\n"
                 "ROLLBACK_ATTEMPTED=false\n"
                 "EVIDENCE_READY=false\n"
-                "CLOUDFLARED_CANARY_PRESERVED=true\n"
                 "WORK=''\nSTAGE=''\n"
                 f"rollback() {{ printf called > {shlex.quote(str(marker))}; "
                 "ROLLBACK_ATTEMPTED=true; return 0; }\n"
@@ -291,7 +245,6 @@ class DeployTransactionBehaviorTests(unittest.TestCase):
                 "TRANSACTION_COMMITTED=true\n"
                 "ROLLBACK_ATTEMPTED=false\n"
                 "EVIDENCE_READY=false\n"
-                "CLOUDFLARED_CANARY_PRESERVED=true\n"
                 "WORK=''\nSTAGE=''\n"
                 f"rollback() {{ printf called > {shlex.quote(str(marker))}; "
                 "return 0; }\n"
