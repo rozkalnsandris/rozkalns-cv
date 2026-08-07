@@ -20,8 +20,10 @@ class StatsSystemdContractTests(unittest.TestCase):
         self.assertIn("Group=andris", service)
         self.assertIn("SupplementaryGroups=docker", service)
         self.assertIn(f"WorkingDirectory={RUNTIME}", service)
+        self.assertIn(f"ConditionPathExists={RUNTIME}/stats.sh", service)
+        self.assertNotIn("ConditionPathIsExecutable", service)
         self.assertIn(
-            f"ExecStart={RUNTIME}/stats.sh --lock /run/rozkalns-cv-stats/generator.lock",
+            f"ExecStart=/usr/bin/bash {RUNTIME}/stats.sh --lock /run/rozkalns-cv-stats/generator.lock",
             service,
         )
         self.assertIn("RuntimeDirectory=rozkalns-cv-stats", service)
@@ -55,6 +57,13 @@ class StatsSystemdContractTests(unittest.TestCase):
         self.assertIn('systemctl enable --now "$TIMER"', installer)
         self.assertIn('systemctl start "$SERVICE"', installer)
         self.assertIn("LIVE_STATS_SYSTEMD_SETUP=PASS", installer)
+
+    def test_installer_does_not_require_stats_script_executable_bit(self) -> None:
+        installer = INSTALLER.read_text(encoding="utf-8")
+        self.assertIn('[[ -f "$RUNTIME/stats.sh" && ! -L "$RUNTIME/stats.sh" ]]', installer)
+        self.assertIn("[[ -x /usr/bin/bash ]]", installer)
+        self.assertNotIn('[[ -x "$RUNTIME/stats.sh"', installer)
+        self.assertNotIn("missing or not executable", installer)
 
 
 if __name__ == "__main__":
