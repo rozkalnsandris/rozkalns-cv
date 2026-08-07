@@ -122,6 +122,37 @@ class DeployTransactionBehaviorTests(unittest.TestCase):
             )
             self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_cloudflared_image_selection_requires_one_digest_reference(self) -> None:
+        pinned = (
+            "cloudflare/cloudflared:2026.7.3@sha256:"
+            + "a" * 64
+        )
+        result = run_library(
+            "compose_runtime() {\n"
+            "  printf '%s\\n' 'nginx:1.31.3-alpine@sha256:deadbeef' "
+            f"{shlex.quote(pinned)} 'rozkalns-cv-cvbot:local'\n"
+            "}\n"
+            "expected_cloudflared_image"
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), pinned)
+
+        duplicate = run_library(
+            "compose_runtime() {\n"
+            f"  printf '%s\\n' {shlex.quote(pinned)} {shlex.quote(pinned)}\n"
+            "}\n"
+            "if expected_cloudflared_image; then exit 99; fi"
+        )
+        self.assertEqual(duplicate.returncode, 0, duplicate.stderr)
+
+        unpinned = run_library(
+            "compose_runtime() {\n"
+            "  printf '%s\\n' 'cloudflare/cloudflared:latest'\n"
+            "}\n"
+            "if expected_cloudflared_image; then exit 99; fi"
+        )
+        self.assertEqual(unpinned.returncode, 0, unpinned.stderr)
+
     def test_uncommitted_failure_invokes_rollback(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
