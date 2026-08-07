@@ -83,13 +83,40 @@ class DeployContractTests(unittest.TestCase):
         )
         self.assertIn('[[ "$actual" == "$expected" ]] || return 1', text)
 
-    def test_cvbot_must_be_healthy_before_nginx_and_tunnel(self) -> None:
+    def test_cvbot_runtime_security_is_fail_closed_and_evidenced(self) -> None:
+        text = read(HELPER)
+        for marker in (
+            "verify_cvbot_runtime_security()",
+            'require(data.get("user") == expected_user, "cvbot user mismatch")',
+            'require(data.get("readonly") is True, "cvbot rootfs is writable")',
+            'require(data.get("privileged") is False, "cvbot is privileged")',
+            'require((data.get("cap_add") or []) == [], "cvbot has added capabilities")',
+            'require(cap_drop == ["ALL"], "cvbot does not drop all capabilities")',
+            '"no-new-privileges:true" in security_opt',
+            'require(data.get("pids") == 128, "cvbot pids limit mismatch")',
+            'row.get("Destination") == "/app/data"',
+            "CVBOT_RUNTIME_SECURITY=PASS",
+            "CVBOT_RUNTIME_USER=",
+            "CVBOT_ROOTFS_READ_ONLY=true",
+            "CVBOT_CAP_ADD=none",
+            "CVBOT_CAP_DROP=ALL",
+            "CVBOT_NO_NEW_PRIVILEGES=true",
+            "CVBOT_PIDS_LIMIT=128",
+            "CVBOT_DATA_RW=true",
+            "===== CVBOT SECURITY =====",
+        ):
+            self.assertIn(marker, text)
+
+    def test_cvbot_must_be_secure_before_nginx_and_tunnel(self) -> None:
         lines = [line.strip() for line in read(HELPER).splitlines()]
         cvbot_position = lines.index(
             "compose_runtime up -d --no-deps cvbot || return 1"
         )
         health_position = lines.index(
             "wait_healthy cvbot 60 2 || return 1"
+        )
+        security_position = lines.index(
+            "verify_cvbot_runtime_security || return 1"
         )
         nginx_position = lines.index(
             "compose_runtime up -d --no-deps cv || return 1"
@@ -102,7 +129,8 @@ class DeployContractTests(unittest.TestCase):
             'http_ok "$PUBLIC_URL" 10 5 || return 1'
         )
         self.assertLess(cvbot_position, health_position)
-        self.assertLess(health_position, nginx_position)
+        self.assertLess(health_position, security_position)
+        self.assertLess(security_position, nginx_position)
         self.assertLess(nginx_position, local_position)
         self.assertLess(local_position, tunnel_position)
         self.assertLess(tunnel_position, public_position)
@@ -179,6 +207,7 @@ class DeployContractTests(unittest.TestCase):
             "compose_runtime build cvbot || return 1",
             "compose_runtime up -d --no-deps cvbot || return 1",
             "wait_healthy cvbot 60 2 || return 1",
+            "verify_cvbot_runtime_security || return 1",
             "compose_runtime up -d --no-deps cv || return 1",
             "wait_running cv 30 2 || return 1",
             'http_ok "$LOCAL_URL" 10 3 || return 1',
@@ -231,21 +260,20 @@ class DeployContractTests(unittest.TestCase):
         ):
             self.assertIn(marker, text)
 
-    def test_source_validation_runs_as_unprivileged_owner(self) -> None:
+    def test_source_validation_runs_as_unprivileged_owner_from_stage(self) -> None:
         text = read(HELPER)
-        lines = [line.strip() for line in text.splitlines()]
         self.assertIn(
-            'runuser -u "$OWNER" -- bash '
-            '"$STAGE/scripts/validate-source.sh" "$STAGE"',
+            'runuser -u "$OWNER" -- bash -c',
             text,
         )
-        self.assertFalse(
-            any(
-                line.startswith(
-                    'bash "$STAGE/scripts/validate-source.sh" "$STAGE"'
-                )
-                for line in lines
-            )
+        self.assertIn(
+            "'cd \"$1\" && exec bash \"$1/scripts/validate-source.sh\" \"$1\"'",
+            text,
+        )
+        self.assertIn('bash "$STAGE"', text)
+        self.assertNotIn(
+            'runuser -u "$OWNER" -- bash "$STAGE/scripts/validate-source.sh"',
+            text,
         )
 
     def test_failure_diagnostics_are_captured_before_rollback(self) -> None:
@@ -256,6 +284,7 @@ class DeployContractTests(unittest.TestCase):
             "failed-rollback-sync-runtime",
             "post-rollback-runtime",
             "failed-rollback-runtime",
+            "CVBOT SECURITY",
             "CVBOT HEALTH HISTORY",
             "CVBOT LOGS",
         ):
