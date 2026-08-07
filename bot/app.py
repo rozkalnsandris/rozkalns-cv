@@ -17,6 +17,12 @@ from typing import Any
 import requests
 from flask import Flask, Response, jsonify, request, stream_with_context
 
+from contact import (
+    ContactVerificationError,
+    load_contact_config,
+    normalize_token,
+    verify_turnstile,
+)
 from storage import AssistantStore, RateDecision
 
 
@@ -47,6 +53,7 @@ TRUSTED_PROXY_CIDRS = tuple(
     for value in os.getenv("TRUSTED_PROXY_CIDRS", "172.19.0.10/32").split(",")
     if value.strip()
 )
+CONTACT_CONFIG = load_contact_config()
 
 STORE = AssistantStore(
     DB_PATH,
@@ -126,6 +133,11 @@ RULES
 - For the start date, say Andris is available from 2027-01.
 - Keep answers concise, factual, and professional."""
 # END GENERATED SYSTEM PROMPT
+SYSTEM_PROMPT += (
+    "\n- Do not provide the full email address or phone number in chat. "
+    "Direct visitors to the verified contact section on the CV page."
+)
+
 
 class RequestValidationError(ValueError):
     pass
@@ -259,6 +271,51 @@ def _notify_telegram(client_key: str, question: str, answer: str) -> None:
 @app.get("/health")
 def health() -> Response:
     return jsonify(ok=True, storage="sqlite")
+
+
+@app.get("/contact-config")
+def contact_config() -> Response:
+    response = jsonify(
+        configured=CONTACT_CONFIG.configured,
+        sitekey=CONTACT_CONFIG.site_key if CONTACT_CONFIG.configured else "",
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.post("/contact-reveal")
+def contact_reveal() -> Response:
+    if not CONTACT_CONFIG.configured:
+        return jsonify(error="Contact verification is not configured."), 503
+
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return jsonify(error="Request body must be a JSON object."), 400
+    try:
+        token = normalize_token(payload.get("token"))
+    except ContactVerificationError as error:
+        return jsonify(error=str(error)), 400
+
+    try:
+        verified = verify_turnstile(
+            token,
+            _resolve_client_address(),
+            CONTACT_CONFIG,
+        )
+    except ContactVerificationError as error:
+        app.logger.error("turnstile verification failed: %s", type(error).__name__)
+        return jsonify(error="Contact verification is temporarily unavailable."), 503
+
+    if not verified:
+        return jsonify(error="Verification failed. Please try again."), 403
+
+    response = jsonify(
+        email=CONTACT_CONFIG.email,
+        phone=CONTACT_CONFIG.phone_display,
+        phone_uri=CONTACT_CONFIG.phone_uri,
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @app.post("/chat")
