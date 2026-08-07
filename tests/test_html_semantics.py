@@ -184,6 +184,11 @@ class HtmlSemanticTests(unittest.TestCase):
     def test_controls_and_images_have_accessible_names(self) -> None:
         for path in self.pages:
             parsed = parse(path)
+            label_targets = {
+                row.attrs["for"]
+                for row in parsed.elements
+                if row.tag == "label" and row.attrs.get("for") and row.accessible_text
+            }
             for row in parsed.elements:
                 with self.subTest(page=path.name, tag=row.tag, id=row.attrs.get("id")):
                     if row.tag == "button":
@@ -197,6 +202,7 @@ class HtmlSemanticTests(unittest.TestCase):
                             row.attrs.get("aria-label")
                             or row.attrs.get("aria-labelledby")
                             or row.attrs.get("title")
+                            or row.attrs.get("id") in label_targets
                         )
                     if row.tag == "img":
                         self.assertIn("alt", row.attrs)
