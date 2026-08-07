@@ -70,7 +70,7 @@ services:
     environment:
       - TUNNEL_TOKEN=${CF_TUNNEL_TOKEN:?set in cloudflared.env}
     restart: unless-stopped
-    command: tunnel --no-autoupdate run
+    command: tunnel --no-autoupdate --metrics 0.0.0.0:20241 run
     depends_on:
       - cv
 
