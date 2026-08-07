@@ -18,8 +18,10 @@ The CV assistant image is built from these committed inputs:
 
 `scripts/build-input-id.py` hashes the path and complete contents of every input.
 The resulting SHA-256 value and exact Git commit are written into OCI labels on
-the built `cvbot` image. CI and the production deploy helper must reject an image
-whose labels do not match the source being deployed.
+the built `cvbot` image. Hosted CI verifies those labels on its local build. The
+RPi5 production helper independently rebuilds the ARM64 image from the same
+immutable inputs and rejects it unless the revision and build-input labels match
+the exact source SHA being deployed.
 
 ## Updating Python packages
 
@@ -32,8 +34,9 @@ whose labels do not match the source being deployed.
 5. Verify the lock with `pip install --dry-run --require-hashes --no-deps`.
 6. Query the exact PyPI release metadata for every resolved package. Reject a
    release when `info.yanked` is true or `vulnerabilities` is non-empty.
-7. Run the complete behavior suite, ARM64 image build, image vulnerability scan,
-   and production-like health check before merge.
+7. Run the complete behavior suite, hosted image build/provenance check and image
+   vulnerability scan before merge. The production ARM64 rebuild is a separate
+   post-merge gate and must prove the same immutable build identity before start.
 8. Commit both the human-reviewed direct requirements and generated lock in the
    same pull request.
 
@@ -46,8 +49,9 @@ behavior; the resolver toolchain is part of the reproducibility boundary.
 1. Resolve the multi-platform manifest digest from the image's official registry.
 2. Record the tag and digest in `security/supply-chain.json`.
 3. Replace the matching digest in the Dockerfile or Compose file.
-4. Build on ARM64, inspect the resulting platform and OCI labels, and run Trivy
-   against the locally built image.
+4. Build in hosted CI, inspect OCI labels, and run Trivy against that build. On
+   production, rebuild on ARM64 from the same digest-pinned inputs and verify the
+   exact revision/build-input labels before container start.
 5. Reject unresolved HIGH or CRITICAL findings. An exception requires a separate
    issue with package, advisory, applicability, compensating control, owner, and
    expiry date; it must not be hidden in a global ignore file.
@@ -57,21 +61,28 @@ not restart the shared `cv-cloudflared` container.
 
 ## Secret scanning
 
-`scripts/run-gitleaks.sh` performs two checks with an immutable Gitleaks 8.30.0
-container image:
+`scripts/run-gitleaks.sh` uses an immutable Gitleaks 8.30.0 container image and
+runs three fail-closed layers:
 
-1. a synthetic GitHub-token canary must be detected with exit code 1;
-2. the complete repository history is scanned with `git --log-opts=--all` and
+1. an independent synthetic GitHub-token canary must be detected with exit code 1;
+2. nine runtime-generated fixture classes must each be detected: Cloudflare
+   tunnel token, Cloudflare API credential, AWS credential, private key, webhook
+   secret, JWT, password assignment, database URL password, and generic
+   high-entropy API key;
+3. the complete repository history is scanned with `git --log-opts=--all` and
    all reported secrets are redacted.
 
-The canary protects against a scanner that starts successfully but silently
-matches nothing. Gitleaks 8.30.1 is intentionally prohibited because its release
-has a confirmed detection regression.
+All fixture credential values are assembled only at runtime from deterministic
+fragments or hashes; complete fixture secrets are not stored in Git source or
+history. The canary and matrix protect against a scanner that starts successfully
+but silently stops detecting supported credential classes. Gitleaks 8.30.1 is
+intentionally prohibited because its release has a confirmed detection regression.
 
 `.gitleaks.toml` extends the upstream default rules and adds narrow project rules
-for Cloudflare tunnel tokens, database URL passwords, and webhook/signing
-secrets. Allowlists contain only explicit test/example placeholders. Do not add a
-commit, file, or broad regular expression to suppress a real finding.
+for Cloudflare tunnel/API credentials, database URL passwords, webhook/signing
+secrets, and direct password assignments. Allowlists contain only explicit
+test/example placeholders. Do not add a commit, file, or broad regular expression
+to suppress a real finding.
 
 ### Exact historical baseline
 
@@ -103,7 +114,7 @@ removed it.
 5. Restart only the affected service and verify health.
 6. Decide whether Git history must be rewritten. Coordinate history rewrites
    explicitly because all clones and open branches are affected.
-7. Re-run the canary and full-history scan.
+7. Re-run the canary, fixture matrix, and full-history scan.
 8. Record the provider, rotation date, affected service, verification evidence,
    and old credential revocation in a private incident record. Do not commit the
    credential or a reversible fingerprint.
@@ -124,6 +135,10 @@ Rollback remains compatible because the older root-running image can read the
 same files if a newly deployed least-privilege image fails before transaction
 commit.
 
+The deploy workflow additionally hashes the installed root-owned host helper and
+requires it to match the exact helper blob in the target Git SHA before invoking
+`sudo`. A stale helper therefore blocks deployment before production mutation.
+
 ## Release evidence
 
 A supply-chain-changing pull request is ready only when it contains:
@@ -131,9 +146,14 @@ A supply-chain-changing pull request is ready only when it contains:
 - exact image and package identities;
 - a hash-complete lock file;
 - PyPI vulnerability/yank audit output;
-- Gitleaks canary and full-history PASS;
+- Gitleaks canary, nine-class fixture matrix, and full-history PASS;
 - source validation and behavior tests;
-- ARM64 image build with matching revision/build-input labels;
-- Trivy HIGH/CRITICAL PASS;
+- hosted image build with matching revision/build-input labels;
+- Trivy HIGH/CRITICAL PASS on the hosted build;
 - Compose rendering and nginx validation;
+- a fail-closed installed-helper identity gate for production;
 - no temporary resolver/finalizer workflow remaining.
+
+Production release is complete only after the RPi5 rebuilds on ARM64 from the
+same immutable inputs, verifies the image identity before start, passes service
+health/public HTTP checks, and preserves the deploy evidence.
