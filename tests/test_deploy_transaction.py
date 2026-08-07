@@ -194,7 +194,7 @@ class DeployTransactionBehaviorTests(unittest.TestCase):
             result = run_library(
                 f"RUNTIME={shlex.quote(str(root))}\n"
                 "export COMPOSE_FILE='docker-compose.yml:docker-compose.network.yml'\n"
-                "docker() { printf '%s\\n' \"$*\"; }\n"
+                "docker() { printf '<%s>' \"$@\"; printf '\\n'; }\n"
                 "compose_runtime config --services\n"
                 f"compose_at {shlex.quote(str(root))} config --services"
             )
@@ -202,8 +202,8 @@ class DeployTransactionBehaviorTests(unittest.TestCase):
             self.assertEqual(
                 result.stdout.splitlines(),
                 [
-                    "compose -f docker-compose.yml config --services",
-                    "compose -f docker-compose.yml config --services",
+                    "<compose><-f><docker-compose.yml><config><--services>",
+                    "<compose><-f><docker-compose.yml><config><--services>",
                 ],
             )
 
