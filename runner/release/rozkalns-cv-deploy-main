@@ -25,6 +25,7 @@ NETWORK_GATEWAY='172.19.0.1'
 CVBOT_UID=10001
 CVBOT_GID=10001
 CVBOT_IMAGE_IDENTITY_REQUIRED=false
+CLOUDFLARED_RESTARTED=false
 BACKUP_RETENTION_COUNT=5
 BACKUP_RETENTION_DAYS=14
 MIN_FREE_BYTES=1073741824
@@ -250,7 +251,7 @@ write_summary() {
         printf 'PRODUCTION_CHANGED=%s\n' "$DEPLOYED"
         printf 'MUTATION_STARTED=%s\n' "$MUTATION_STARTED"
         printf 'TRANSACTION_COMMITTED=%s\n' "$TRANSACTION_COMMITTED"
-        printf 'CLOUDFLARED_RESTARTED=false\n'
+        printf 'CLOUDFLARED_RESTARTED=%s\n' "$CLOUDFLARED_RESTARTED"
         printf 'DATABASE_MIGRATIONS_EXECUTED=false\n'
         printf 'ROLLBACK_PERFORMED=%s\n' "$rollback_performed"
         printf 'UTC=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -365,8 +366,7 @@ prepare_cvbot_data() {
 prepare_cvbot_build_identity() {
     CVBOT_IMAGE_IDENTITY_REQUIRED=false
     if ! grep -Fq 'net.rozkalns.cv.build-input-sha256' "$RUNTIME/bot/Dockerfile"; then
-        printf 'CVBOT_IMAGE_IDENTITY_MODE=legacy
-'
+        printf 'CVBOT_IMAGE_IDENTITY_MODE=legacy\n'
         unset CVBOT_VCS_REF CVBOT_BUILD_INPUT_SHA256 || true
         return 0
     fi
@@ -380,10 +380,8 @@ prepare_cvbot_build_identity() {
     [[ "$CVBOT_BUILD_INPUT_SHA256" =~ ^[0-9a-f]{64}$ ]] || return 1
     export CVBOT_VCS_REF CVBOT_BUILD_INPUT_SHA256
     CVBOT_IMAGE_IDENTITY_REQUIRED=true
-    printf 'CVBOT_VCS_REF=%s
-' "$CVBOT_VCS_REF"
-    printf 'CVBOT_BUILD_INPUT_SHA256=%s
-' "$CVBOT_BUILD_INPUT_SHA256"
+    printf 'CVBOT_VCS_REF=%s\n' "$CVBOT_VCS_REF"
+    printf 'CVBOT_BUILD_INPUT_SHA256=%s\n' "$CVBOT_BUILD_INPUT_SHA256"
 }
 
 verify_cvbot_image_identity() {
@@ -395,6 +393,34 @@ verify_cvbot_image_identity() {
     build_input="$(docker image inspect "$image_ref" --format '{{index .Config.Labels "net.rozkalns.cv.build-input-sha256"}}')" || return 1
     [[ "$revision" == "$CVBOT_VCS_REF" ]] || return 1
     [[ "$build_input" == "$CVBOT_BUILD_INPUT_SHA256" ]] || return 1
+}
+
+expected_cloudflared_image() {
+    local images count image
+    images="$(compose_runtime config --images)" || return 1
+    count="$(grep -Ec '^cloudflare/cloudflared:' <<<"$images" || true)"
+    [[ "$count" == 1 ]] || return 1
+    image="$(grep -E '^cloudflare/cloudflared:' <<<"$images")" || return 1
+    [[ "$image" == *@sha256:* ]] || return 1
+    printf '%s\n' "$image"
+}
+
+reconcile_cloudflared() {
+    local expected before after actual
+    expected="$(expected_cloudflared_image)" || return 1
+    before="$(docker inspect -f '{{.Id}}' cv-cloudflared 2>/dev/null || true)"
+    compose_runtime up -d --no-deps cloudflared || return 1
+    wait_running cv-cloudflared 30 2 || return 1
+    after="$(docker inspect -f '{{.Id}}' cv-cloudflared 2>/dev/null || true)"
+    actual="$(docker inspect -f '{{.Config.Image}}' cv-cloudflared 2>/dev/null || true)"
+    [[ -n "$after" ]] || return 1
+    [[ "$actual" == "$expected" ]] || return 1
+    if [[ -z "$before" || "$before" != "$after" ]]; then
+        CLOUDFLARED_RESTARTED=true
+    fi
+    printf 'CLOUDFLARED_IMAGE_IDENTITY=PASS\n'
+    printf 'CLOUDFLARED_IMAGE=%s\n' "$actual"
+    printf 'CLOUDFLARED_RESTARTED=%s\n' "$CLOUDFLARED_RESTARTED"
 }
 
 deploy_runtime() {
@@ -411,6 +437,7 @@ deploy_runtime() {
     compose_runtime up -d --no-deps cv || return 1
     wait_running cv 30 2 || return 1
     http_ok "$LOCAL_URL" 10 3 || return 1
+    reconcile_cloudflared || return 1
     http_ok "$PUBLIC_URL" 10 5 || return 1
 }
 
