@@ -149,14 +149,6 @@ function createFixtureServer(state) {
   });
 }
 
-async function reservePort() {
-  const server = createServer();
-  const address = await listen(server);
-  const port = address.port;
-  await closeServer(server);
-  return port;
-}
-
 async function fetchJsonWithRetry(url, options = {}, timeoutMs = 20_000) {
   const deadline = Date.now() + timeoutMs;
   let lastError;
@@ -171,6 +163,23 @@ async function fetchJsonWithRetry(url, options = {}, timeoutMs = 20_000) {
     await delay(100);
   }
   throw lastError || new Error(`timed out fetching ${url}`);
+}
+
+async function readChromeDebugPort(profile, timeoutMs = 20_000) {
+  const activePort = join(profile, "DevToolsActivePort");
+  const deadline = Date.now() + timeoutMs;
+  let lastError;
+  while (Date.now() < deadline) {
+    try {
+      const [portLine] = (await readFile(activePort, "utf8")).trim().split(/\r?\n/);
+      if (/^[0-9]+$/.test(portLine)) return Number(portLine);
+      lastError = new Error(`invalid DevToolsActivePort: ${portLine}`);
+    } catch (error) {
+      lastError = error;
+    }
+    await delay(100);
+  }
+  throw lastError || new Error("Chrome did not publish DevToolsActivePort");
 }
 
 async function stopProcess(child, timeoutMs = 3_000) {
@@ -311,7 +320,6 @@ class CdpClient {
 }
 
 async function runBrowserSmoke(baseUrl, state) {
-  const debugPort = await reservePort();
   const profile = await mkdtemp(join(tmpdir(), "rozkalns-cv-chrome-"));
   const chrome = spawn(CHROME_BIN, [
     "--headless=new",
@@ -325,7 +333,7 @@ async function runBrowserSmoke(baseUrl, state) {
     "--metrics-recording-only",
     "--no-first-run",
     "--lang=en-US",
-    `--remote-debugging-port=${debugPort}`,
+    "--remote-debugging-port=0",
     `--user-data-dir=${profile}`,
     "about:blank"
   ], { stdio: ["ignore", "pipe", "pipe"] });
@@ -334,6 +342,7 @@ async function runBrowserSmoke(baseUrl, state) {
 
   let cdp;
   try {
+    const debugPort = await readChromeDebugPort(profile);
     await fetchJsonWithRetry(`http://127.0.0.1:${debugPort}/json/version`);
     const target = await fetchJsonWithRetry(
       `http://127.0.0.1:${debugPort}/json/new?about:blank`,
