@@ -9,6 +9,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 INDEX = ROOT / "html" / "index.html"
 SMART = ROOT / "html" / "smarthome.html"
+FAVICON = ROOT / "html" / "favicon.svg"
 NGINX = ROOT / "nginx.conf"
 CSS = ROOT / "html" / "assets" / "main.2734e7be6cdd.css"
 APP = ROOT / "html" / "assets" / "app.d878d409f278.mjs"
@@ -57,12 +58,24 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn(
             'Cache-Control "public, max-age=31536000, immutable"', nginx
         )
+        self.assertIn("text/javascript mjs;", nginx)
+        self.assertIn("default_type text/javascript;", nginx)
+        self.assertIn("text/javascript application/javascript", nginx)
+        self.assertNotIn("(?:css|mjs|json)", nginx)
         for path in (CSS, APP, SMART_JS, *TRANSLATIONS):
             self.assertRegex(path.name, r"\.[0-9a-f]{12}\.")
             self.assertTrue(path.is_file(), path)
             embedded = path.name.split(".")[-2]
             actual = hashlib.sha256(path.read_bytes()).hexdigest()[:12]
             self.assertEqual(embedded, actual, path)
+
+    def test_favicon_is_declared_and_present(self) -> None:
+        text = INDEX.read_text(encoding="utf-8")
+        self.assertTrue(FAVICON.is_file())
+        self.assertIn(
+            '<link rel="icon" href="/favicon.svg" type="image/svg+xml">',
+            text,
+        )
 
     def test_accessible_dialog_contract(self) -> None:
         text = INDEX.read_text(encoding="utf-8")
