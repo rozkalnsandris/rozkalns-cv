@@ -20,6 +20,12 @@ The shared Cloudflare Tunnel connector is host-wide infrastructure owned by
 does not own its token, container/image, lifecycle, readiness, canaries,
 reconciliation or rollback.
 
+**Permanent boundary:** CV Compose and CV deployment/rollback code must never
+reintroduce an application-owned `cloudflared` service, shared Tunnel credential,
+connector restart/reconciliation, connector canary, or connector rollback. CV
+may verify `https://rozkalns.net/`, but shared ingress health and lifecycle are
+host-infrastructure responsibilities.
+
 ## Production
 
 - Checkout: `/home/andris/rozkalns-cv`
