@@ -173,6 +173,20 @@ async function fetchJsonWithRetry(url, options = {}, timeoutMs = 20_000) {
   throw lastError || new Error(`timed out fetching ${url}`);
 }
 
+async function stopProcess(child, timeoutMs = 3_000) {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+  const exited = new Promise((resolveExit) => child.once("exit", resolveExit));
+  child.kill("SIGTERM");
+  const graceful = await Promise.race([
+    exited.then(() => true),
+    delay(timeoutMs).then(() => false)
+  ]);
+  if (!graceful) {
+    child.kill("SIGKILL");
+    await exited;
+  }
+}
+
 class CdpClient {
   constructor(webSocketUrl) {
     this.socket = new WebSocket(webSocketUrl);
@@ -449,12 +463,13 @@ async function runBrowserSmoke(baseUrl, state) {
     throw new Error(`${error instanceof Error ? error.stack : error}\nChrome stderr:\n${stderr.slice(-4000)}`);
   } finally {
     cdp?.close();
-    chrome.kill("SIGTERM");
-    await Promise.race([
-      new Promise((resolveExit) => chrome.once("exit", resolveExit)),
-      delay(3_000).then(() => chrome.kill("SIGKILL"))
-    ]);
-    await rm(profile, { recursive: true, force: true });
+    await stopProcess(chrome);
+    await rm(profile, {
+      recursive: true,
+      force: true,
+      maxRetries: 5,
+      retryDelay: 100
+    });
   }
 }
 
