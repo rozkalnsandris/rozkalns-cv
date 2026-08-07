@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -15,8 +16,14 @@ class ProxyContractTests(unittest.TestCase):
         self.assertIn("set_real_ip_from 172.19.0.0/16;", text)
         self.assertIn("real_ip_header CF-Connecting-IP;", text)
         self.assertIn("real_ip_recursive off;", text)
-        self.assertIn("proxy_set_header X-Real-IP         $remote_addr;", text)
-        self.assertNotIn("proxy_set_header X-Real-IP         $http_", text)
+        self.assertRegex(
+            text,
+            re.compile(r"proxy_set_header\s+X-Real-IP\s+\$remote_addr;"),
+        )
+        self.assertNotRegex(
+            text,
+            re.compile(r"proxy_set_header\s+X-Real-IP\s+\$http_"),
+        )
 
     def test_nginx_proxy_has_fixed_address(self) -> None:
         text = COMPOSE.read_text(encoding="utf-8")

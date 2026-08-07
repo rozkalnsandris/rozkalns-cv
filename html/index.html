@@ -1,764 +1,174 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Andris Rožkalns · DevOps & Linux Engineer</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⬢</text></svg>">
-<meta name="description" content="Andris Rožkalns — self-taught DevOps & Linux engineer. This page is served live from his own Raspberry Pi 5 homelab.">
-<meta property="og:title" content="Andris Rožkalns · DevOps & Linux Engineer" />
-<meta property="og:description" content="Self-hosted interactive CV, served live from a Raspberry Pi 5 homelab with real monitoring stats." />
-<meta property="og:image" content="https://rozkalns.net/photo.jpg" />
-<meta property="og:url" content="https://rozkalns.net/" />
-<meta name="twitter:card" content="summary_large_image">
-<style>
-  :root{
-    --bg:#0e1014;
-    --surface:#15181f;
-    --surface-2:#1a1e27;
-    --border:#242a36;
-    --border-soft:#1e232d;
-    --text:#dde1e8;
-    --text-dim:#9aa1ae;
-    --text-faint:#646c7a;
-    --accent:#e0a96d;
-    --accent-soft:rgba(224,169,109,0.10);
-    --accent-line:rgba(224,169,109,0.32);
-    --ok:#74c98a;
-    --warn:#e0a96d;
-    --err:#d97a6c;
-    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    --mono:ui-monospace,"SF Mono","JetBrains Mono","Fira Code","Cascadia Code",Menlo,Consolas,monospace;
-    --s-section:clamp(46px,6.5vw,68px);
-    --maxw:1080px;
-  }
-  *{margin:0;padding:0;box-sizing:border-box;}
-  html{ -webkit-text-size-adjust:100%; }
-  @media(prefers-reduced-motion:no-preference){ html{ scroll-behavior:smooth; } }
-  body{
-    font-family:var(--sans);
-    background:var(--bg);
-    color:var(--text);
-    line-height:1.6;
-    font-size:15px;
-    -webkit-font-smoothing:antialiased;
-    text-rendering:optimizeLegibility;
-  }
-  a{ color:var(--accent); text-decoration:none; }
-  a:hover{ text-decoration:underline; text-underline-offset:3px; }
-
-  .wrap{
-    max-width:var(--maxw);
-    margin:0 auto;
-    padding:clamp(36px,5vw,72px) clamp(20px,4vw,56px);
-  }
-
-  /* ── LAYOUT ─────────────────────────────────────────── */
-  @media(min-width:920px){
-    .wrap{
-      display:grid;
-      grid-template-columns:340px 1fr;
-      gap:clamp(40px,5vw,72px);
-      align-items:start;
-    }
-    .sidebar{
-      position:sticky;
-      top:clamp(20px,3vw,40px);
-      max-height:calc(100vh - clamp(40px,6vw,80px));
-      overflow-y:auto;
-      overflow-x:hidden;
-      padding-right:6px;
-      scrollbar-width:thin;
-      scrollbar-color:var(--border) transparent;
-    }
-    .sidebar::-webkit-scrollbar{ width:5px; }
-    .sidebar::-webkit-scrollbar-thumb{ background:var(--border); border-radius:3px; }
-    .sidebar::-webkit-scrollbar-track{ background:transparent; }
-  }
-
-  /* ── SIDEBAR ────────────────────────────────────────── */
-  .photo{
-    width:118px; height:118px; border-radius:16px;
-    object-fit:cover; object-position:center top;
-    border:1px solid var(--border);
-    margin-bottom:22px; display:block;
-  }
-  .name{
-    font-size:clamp(26px,3.2vw,33px);
-    font-weight:700; letter-spacing:-0.02em; line-height:1.1;
-    color:#fff;
-  }
-  .role{
-    font-size:15px; font-weight:600; color:var(--accent);
-    margin-top:9px; letter-spacing:0.01em;
-  }
-  .tagline{
-    font-size:13.5px; color:var(--text-dim); margin-top:14px;
-    max-width:32ch; line-height:1.55;
-  }
-  .focus{ margin-top:15px; display:flex; flex-wrap:wrap; gap:7px; }
-  .fp{
-    font-family:var(--mono); font-size:10.5px; letter-spacing:0.04em;
-    color:var(--accent); background:var(--accent-soft);
-    border:1px solid var(--accent-line); border-radius:20px; padding:4px 11px;
-  }
-
-  .nav{ margin-top:34px; display:none; }
-  @media(min-width:920px){ .nav{ display:block; } }
-  .nav a{
-    display:flex; align-items:center; gap:13px;
-    font-family:var(--mono); font-size:11.5px; letter-spacing:0.13em;
-    text-transform:uppercase; color:var(--text-faint);
-    padding:7px 0; transition:color .14s ease;
-  }
-  .nav a:hover{ color:var(--text); text-decoration:none; }
-  .nav a .ln{
-    width:22px; height:1px; background:var(--border);
-    transition:width .14s ease, background .14s ease;
-  }
-  .nav a:hover .ln, .nav a.active .ln{ width:36px; background:var(--accent); }
-  .nav a.active{ color:var(--text); }
-
-  .contacts{ margin-top:34px; display:flex; flex-direction:column; gap:9px; }
-  .contacts .row{
-    display:flex; align-items:center; gap:11px;
-    font-size:13px; color:var(--text-dim);
-  }
-  .contacts .row svg{ width:15px; height:15px; flex:none; color:var(--text-faint); }
-  .contacts a{ color:var(--text-dim); }
-  .contacts a:hover{ color:var(--accent); }
-
-  .langs{
-    margin-top:22px; padding-top:18px; border-top:1px solid var(--border-soft);
-    display:flex; align-items:center; gap:14px; flex-wrap:wrap;
-  }
-  .langs > div{ display:flex; align-items:center; gap:5px; }
-  .langs .flag{ font-size:14px; line-height:1; }
-  .langs b{
-    font-family:var(--mono); font-size:10.5px; font-weight:600; letter-spacing:0.02em;
-    color:var(--text-dim);
-  }
-  .langs span:not(.flag){
-    font-family:var(--mono); font-size:9.5px; color:var(--text-faint); letter-spacing:0.02em;
-  }
-
-  .actions{ margin-top:26px; display:flex; flex-wrap:wrap; gap:9px; }
-  .btn{
-    font-family:var(--mono); font-size:12px; letter-spacing:0.02em;
-    color:var(--text); background:var(--surface);
-    border:1px solid var(--border); border-radius:7px;
-    padding:9px 14px; cursor:pointer; transition:border-color .14s ease, color .14s ease;
-    display:inline-flex; align-items:center; gap:7px;
-  }
-  .btn:hover{ border-color:var(--accent-line); color:var(--accent); text-decoration:none; }
-  .btn svg{ width:14px; height:14px; }
-
-  /* ── MAIN CONTENT ───────────────────────────────────── */
-  .main{ min-width:0; padding-top:4px; }
-  @media(max-width:919px){ .main{ margin-top:var(--s-section); } }
-
-  section{ margin-bottom:var(--s-section); scroll-margin-top:32px; }
-  section:last-child{ margin-bottom:0; }
-
-  .eyebrow{
-    display:flex; align-items:center; gap:16px; margin-bottom:24px;
-  }
-  .eyebrow h2{
-    font-family:var(--mono); font-size:12px; font-weight:600;
-    letter-spacing:0.18em; text-transform:uppercase; color:var(--accent);
-    white-space:nowrap;
-  }
-  .eyebrow .rule{ height:1px; background:var(--border-soft); flex:1; }
-
-  .lead{ color:var(--text-dim); line-height:1.7; max-width:62ch; }
-  .lead + .lead{ margin-top:15px; }
-  .lead strong{ color:var(--text); font-weight:600; }
-
-  /* ── LIVE STATS PANEL ───────────────────────────────── */
-  .panel{
-    border:1px solid var(--border); border-radius:12px;
-    background:var(--surface); overflow:hidden;
-  }
-  .panel-head{
-    display:flex; align-items:center; justify-content:space-between;
-    padding:13px 18px; border-bottom:1px solid var(--border-soft);
-    font-family:var(--mono); font-size:11.5px; letter-spacing:0.08em;
-  }
-  .panel-head .ttl{ color:var(--text-dim); text-transform:uppercase; }
-  .live{ display:flex; align-items:center; gap:8px; color:var(--text-faint); text-transform:uppercase; }
-  .live .dot{
-    width:7px; height:7px; border-radius:50%;
-    background:var(--ok); box-shadow:0 0 0 3px rgba(116,201,138,0.14);
-  }
-  .live .dot.stale{ background:var(--warn); box-shadow:0 0 0 3px rgba(224,169,109,0.14); }
-  .live .dot.off{ background:var(--err); box-shadow:0 0 0 3px rgba(217,122,108,0.14); }
-
-  .grid{ display:grid; grid-template-columns:repeat(4,1fr); }
-  .cell{
-    padding:17px 16px; border-right:1px solid var(--border-soft); border-bottom:1px solid var(--border-soft);
-  }
-  .cell:nth-child(4n){ border-right:none; }
-  .grid .cell:nth-last-child(-n+4){ border-bottom:none; }
-  .cell .v{
-    font-family:var(--mono); font-size:21px; font-weight:600; color:var(--accent);
-    line-height:1; letter-spacing:-0.01em;
-  }
-  .cell .k{
-    font-family:var(--mono); font-size:10px; letter-spacing:0.06em; text-transform:uppercase;
-    color:var(--text-faint); margin-top:8px;
-  }
-  @media(max-width:560px){
-    .grid{ grid-template-columns:repeat(2,1fr); }
-    .cell{ border-right:1px solid var(--border-soft); }
-    .cell:nth-child(2n){ border-right:none; }
-    .grid .cell:nth-last-child(-n+4):not(:nth-last-child(-n+2)){ border-bottom:1px solid var(--border-soft); }
-  }
-  .panel-note{
-    padding:11px 18px; font-family:var(--mono); font-size:10.5px;
-    color:var(--text-faint); border-top:1px solid var(--border-soft); letter-spacing:0.02em;
-  }
-
-  /* ── EXPERIENCE / TIMELINE ROWS ─────────────────────── */
-  .entry{
-    display:grid; grid-template-columns:135px 1fr; gap:20px;
-    padding:18px; margin:0 -18px;
-    border:1px solid transparent; border-radius:10px;
-    transition:background .14s ease, border-color .14s ease;
-  }
-  .entry:hover{ background:var(--surface); border-color:var(--border-soft); }
-  .entry .when{
-    font-family:var(--mono); font-size:11.5px; color:var(--text-faint);
-    letter-spacing:0.03em; padding-top:3px; line-height:1.5;
-  }
-  .entry h3{
-    font-size:15.5px; font-weight:600; color:var(--text); line-height:1.35;
-  }
-  .entry h3 .org{ color:var(--accent); }
-  .entry .place{
-    font-family:var(--mono); font-size:11px; color:var(--text-faint);
-    margin-top:3px; letter-spacing:0.02em;
-  }
-  .entry ul{ list-style:none; margin-top:11px; display:flex; flex-direction:column; gap:6px; }
-  .entry li{
-    position:relative; padding-left:17px; font-size:13.5px; color:var(--text-dim); line-height:1.55;
-  }
-  .entry li::before{
-    content:''; position:absolute; left:0; top:9px;
-    width:5px; height:5px; border-radius:1px; background:var(--accent-line);
-  }
-  .entry.feat{ border-color:var(--accent-line); background:linear-gradient(180deg,rgba(224,169,109,0.05),transparent 60%); }
-  .entry.feat:hover{ border-color:var(--accent); }
-  .badge{
-    font-family:var(--mono); font-size:9.5px; letter-spacing:0.1em; text-transform:uppercase;
-    color:var(--accent); background:var(--accent-soft); border:1px solid var(--accent-line);
-    border-radius:5px; padding:2px 7px; vertical-align:middle; margin-left:9px; font-weight:600;
-  }
-  .tags{ margin-top:13px; display:flex; flex-wrap:wrap; gap:7px; }
-  .tag{
-    font-family:var(--mono); font-size:11px; letter-spacing:0.02em;
-    color:var(--accent); background:var(--accent-soft);
-    border:1px solid var(--accent-line); border-radius:6px; padding:3px 9px;
-  }
-  @media(max-width:560px){
-    .entry{ grid-template-columns:1fr; gap:6px; padding:16px; margin:0 -16px; }
-    .entry .when{ padding-top:0; }
-  }
-
-  /* ── SKILLS ─────────────────────────────────────────── */
-  .skillrow{
-    display:grid; grid-template-columns:135px 1fr; gap:20px;
-    padding:15px 0; border-bottom:1px solid var(--border-soft);
-  }
-  .skillrow:last-child{ border-bottom:none; }
-  .skillrow .cat{
-    font-family:var(--mono); font-size:11.5px; letter-spacing:0.1em; text-transform:uppercase;
-    color:var(--text-faint); padding-top:4px;
-  }
-  .skillrow .items{ display:flex; flex-wrap:wrap; gap:7px; }
-  .chip{
-    display:inline-flex; align-items:center; gap:7px;
-    font-size:13px; color:var(--text-dim);
-    background:var(--surface); border:1px solid var(--border);
-    border-radius:7px; padding:5px 11px 5px 9px;
-    transition:border-color .14s ease, color .14s ease;
-  }
-  .chip:hover{ border-color:var(--accent-line); color:var(--text); }
-  .chip .ico{ width:14px; height:14px; flex:none; opacity:.82; }
-  @media(max-width:560px){
-    .skillrow{ grid-template-columns:1fr; gap:9px; }
-    .skillrow .cat{ padding-top:0; }
-  }
-
-  /* ── EDUCATION ──────────────────────────────────────── */
-  .edu{ display:flex; flex-direction:column; }
-  .edu .row{
-    display:grid; grid-template-columns:135px 1fr; gap:20px;
-    padding:14px 0; border-bottom:1px solid var(--border-soft);
-  }
-  .edu .row:last-child{ border-bottom:none; }
-  .edu .when{ font-family:var(--mono); font-size:11.5px; color:var(--text-faint); padding-top:2px; }
-  .edu h3{ font-size:14.5px; font-weight:600; color:var(--text); }
-  .edu .sub{ font-family:var(--mono); font-size:11px; color:var(--text-faint); margin-top:3px; }
-  @media(max-width:560px){
-    .edu .row{ grid-template-columns:1fr; gap:5px; }
-    .edu .when{ padding-top:0; }
-  }
-
-  .foot{
-    margin-top:var(--s-section); padding:18px 20px;
-    border:1px solid var(--border); border-radius:11px; background:var(--surface);
-    font-family:var(--mono); font-size:11.5px; color:var(--text-dim); letter-spacing:0.02em; line-height:1.85;
-    display:flex; align-items:center; gap:11px; flex-wrap:wrap;
-  }
-  .foot .pulse{ width:8px; height:8px; border-radius:50%; background:var(--ok); box-shadow:0 0 0 3px rgba(116,201,138,0.16); flex:none; }
-  .foot b{ color:var(--accent); font-weight:600; }
-  .foot .sep{ color:var(--text-faint); }
-
-  /* ── CHAT WIDGET ────────────────────────────────────── */
-  .fab{
-    position:fixed; bottom:24px; right:24px; z-index:50;
-    display:inline-flex; align-items:center; gap:10px;
-    font-family:var(--sans); font-size:14px; font-weight:600; letter-spacing:0.01em;
-    background:linear-gradient(135deg,#eab578,#d8954f); color:#241606;
-    border:none; border-radius:30px;
-    padding:13px 20px 13px 18px; cursor:pointer;
-    transition:transform .15s ease, box-shadow .15s ease;
-    box-shadow:0 8px 28px rgba(224,169,109,0.42), 0 2px 6px rgba(0,0,0,0.3);
-  }
-  .fab:hover{ transform:translateY(-2px); box-shadow:0 12px 36px rgba(224,169,109,0.6), 0 2px 8px rgba(0,0,0,0.35); }
-  .fab svg{ width:19px; height:19px; }
-  .fab .pip{ width:8px; height:8px; border-radius:50%; background:#2a7d43; box-shadow:0 0 0 3px rgba(42,125,67,0.3); }
-
-  .chat{
-    position:fixed; bottom:22px; right:22px; z-index:51;
-    width:min(380px,calc(100vw - 32px)); height:min(560px,calc(100vh - 44px));
-    display:none; flex-direction:column;
-    background:var(--bg); border:1px solid var(--border); border-radius:14px;
-    overflow:hidden; box-shadow:0 18px 50px rgba(0,0,0,0.5);
-  }
-  .chat.open{ display:flex; }
-  .chat .head{
-    display:flex; align-items:center; justify-content:space-between;
-    padding:15px 17px; border-bottom:1px solid var(--border-soft); background:var(--surface);
-  }
-  .chat .head .t{ font-size:14px; font-weight:600; color:var(--text); }
-  .chat .head .s{ font-family:var(--mono); font-size:10.5px; color:var(--text-faint); margin-top:2px; letter-spacing:0.02em; }
-  .chat .x{ background:none; border:none; color:var(--text-faint); font-size:22px; cursor:pointer; line-height:1; padding:0 2px; }
-  .chat .x:hover{ color:var(--text); }
-  .body{ flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:10px; }
-  .body::-webkit-scrollbar{ width:6px; }
-  .body::-webkit-scrollbar-thumb{ background:var(--border); border-radius:4px; }
-  .msg{ max-width:84%; padding:10px 13px; border-radius:11px; font-size:13.5px; line-height:1.5; white-space:pre-wrap; word-wrap:break-word; }
-  .msg.bot{ align-self:flex-start; background:var(--surface); color:var(--text-dim); border:1px solid var(--border-soft); }
-  .msg.user{ align-self:flex-end; background:var(--accent-soft); color:var(--text); border:1px solid var(--accent-line); }
-  .typing{ align-self:flex-start; font-family:var(--mono); font-size:12px; color:var(--text-faint); padding:8px 4px; letter-spacing:0.1em; }
-  .note{ font-family:var(--mono); font-size:10px; color:var(--text-faint); text-align:center; padding:0 16px 9px; letter-spacing:0.02em; }
-  .input{ display:flex; gap:8px; padding:12px; border-top:1px solid var(--border-soft); background:var(--surface); }
-  .input input{
-    flex:1; background:var(--bg); border:1px solid var(--border); border-radius:9px;
-    padding:10px 13px; color:var(--text); font-size:13.5px; font-family:var(--sans); outline:none;
-  }
-  .input input:focus{ border-color:var(--accent-line); }
-  .input button{
-    background:var(--accent-soft); border:1px solid var(--accent-line); color:var(--accent);
-    width:40px; border-radius:9px; cursor:pointer; font-size:15px;
-  }
-  .input button:disabled{ opacity:.5; cursor:default; }
-
-  /* ── PRINT ──────────────────────────────────────────── */
-  @media print{
-    .fab,.chat,.actions,.nav{ display:none !important; }
-    body{ background:#fff; color:#000; font-size:11px; }
-    .wrap{ display:block; padding:0; max-width:none; }
-    .name{ color:#000; }
-    .role,.eyebrow h2,.cell .v,.entry h3 .org,.tag{ color:#444 !important; }
-    .panel,.entry,.chip,.tag{ border-color:#ccc !important; background:#fff !important; }
-    .sidebar{ position:static; margin-bottom:20px; }
-    section{ margin-bottom:22px; page-break-inside:avoid; }
-  }
-
-  .langsw{ display:flex; gap:5px; margin-bottom:20px; }
-  .langsw button{
-    font-family:var(--mono); font-size:11px; letter-spacing:0.05em; font-weight:500;
-    color:var(--text-faint); background:transparent; border:1px solid var(--border);
-    border-radius:6px; padding:5px 10px; cursor:pointer; transition:color .14s,border-color .14s,background .14s;
-  }
-  .langsw button:hover{ color:var(--text); border-color:var(--accent-line); }
-  .langsw button.on{ color:var(--accent); border-color:var(--accent-line); background:var(--accent-soft); }
-  .tag{ display:inline-flex; align-items:center; gap:5px; padding:3px 9px 3px 7px; }
-  .tag .ico{ width:12px; height:12px; flex:none; opacity:.9; }
-  .fp{ display:inline-flex; align-items:center; gap:6px; padding:4px 12px 4px 9px; }
-  .fp .ico{ width:13px; height:13px; flex:none; }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Andris Rožkalns · DevOps &amp; Linux Engineer</title>
+  <meta name="description" content="Andris Rožkalns — self-taught DevOps and Linux engineer. This portfolio runs live from a Raspberry Pi 5 homelab.">
+  <meta property="og:title" content="Andris Rožkalns · DevOps &amp; Linux Engineer">
+  <meta property="og:description" content="Self-hosted multilingual CV with live homelab metrics and a sandboxed CV assistant.">
+  <meta property="og:image" content="https://rozkalns.net/photo.jpg">
+  <meta property="og:url" content="https://rozkalns.net/">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="/assets/main.2734e7be6cdd.css">
+  <script type="module" src="/assets/app.d878d409f278.mjs"></script>
 </head>
 <body>
-  <div class="wrap">
+  <a class="skip-link" href="#main" data-i18n="skip">Skip to main content</a>
 
-    <aside class="sidebar">
-      <div class="langsw" id="langsw">
-        <button data-lang="en">EN</button>
-        <button data-lang="de">DE</button>
-        <button data-lang="lv">LV</button>
-      </div>
-      <img src="./photo.jpg" alt="Andris Rožkalns" class="photo">
-      <div class="name">Andris Rožkalns</div>
-      <div class="role" data-i18n-html="role">Junior DevOps &amp; Linux Engineer</div>
-      <p class="tagline" data-i18n="tagline">I build and automate Linux infrastructure — increasingly with AI agents in the loop. This page runs on it.</p>
-      <div class="focus">
-        <span class="fp"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M10 10h.01M14 14h.01"/></svg><span data-i18n="fp1">AI-augmented ops</span></span>
-        <span class="fp"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9 9 0 0 1 7.5 4"/><path d="M21 4v4h-4"/><path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-7.5-4"/><path d="M3 20v-4h4"/></svg><span data-i18n="fp2">Automation</span></span>
-        <span class="fp"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M22.939 10.627 13.061.749a1.505 1.505 0 0 0-2.121 0l-9.879 9.878C.478 11.21 0 12.363 0 13.187v9c0 .826.675 1.5 1.5 1.5h9.227l-4.063-4.062a2.034 2.034 0 0 1-.664.113c-1.13 0-2.05-.92-2.05-2.05s.92-2.05 2.05-2.05 2.05.92 2.05 2.05c0 .233-.041.456-.113.665l3.163 3.163V9.928a2.05 2.05 0 0 1-1.15-1.84c0-1.13.92-2.05 2.05-2.05s2.05.92 2.05 2.05a2.05 2.05 0 0 1-1.15 1.84v8.127l3.146-3.146A2.051 2.051 0 0 1 18 12.239c1.13 0 2.05.92 2.05 2.05s-.92 2.05-2.05 2.05c-.25 0-.488-.047-.709-.13L12.9 20.602v3.088h9.6c.825 0 1.5-.675 1.5-1.5v-9c0-.825-.477-1.977-1.061-2.561z"/></svg><span data-i18n="fp3">Home Assistant</span></span>
+  <div id="pageShell" class="page">
+    <header class="sidebar">
+      <div class="language-switcher" aria-label="Language">
+        <button type="button" data-lang="en" aria-pressed="true">EN</button>
+        <button type="button" data-lang="de" aria-pressed="false">DE</button>
+        <button type="button" data-lang="lv" aria-pressed="false">LV</button>
       </div>
 
-      <div class="langs">
-        <div><span class="flag">🇱🇻</span><b data-i18n="lang_lv">Latvian</b> <span data-i18n="lvl_native">native</span></div>
-        <div><span class="flag">🇬🇧</span><b data-i18n="lang_en">English</b> <span data-i18n="lvl_fluent">fluent</span></div>
-        <div><span class="flag">🇩🇪</span><b data-i18n="lang_de">German</b> <span data-i18n="lvl_b1">B1</span></div>
+      <img class="profile-photo" src="/photo.jpg" alt="Andris Rožkalns" width="118" height="118">
+      <h1>Andris Rožkalns</h1>
+      <p class="role" data-i18n="role">Junior DevOps &amp; Linux Engineer</p>
+      <p class="tagline" data-i18n="tagline">I build and automate reliable Linux infrastructure, increasingly with AI agents in the loop. This page runs on it.</p>
+
+      <div class="focus-tags" aria-label="Focus areas">
+        <span class="pill" data-i18n="focus_ai">AI-augmented operations</span>
+        <span class="pill" data-i18n="focus_auto">Automation</span>
+        <span class="pill" data-i18n="focus_home">Home Assistant</span>
+      </div>
+
+      <div class="contacts">
+        <span>Dortmund, Germany</span>
+        <a href="mailto:andris@rozkalns.net">andris@rozkalns.net</a>
+        <a href="tel:+4917685134770">+49 176 8513 4770</a>
+        <a href="https://github.com/rozkalnsandris" rel="me">github.com/rozkalnsandris</a>
       </div>
 
       <div class="actions">
-        <a class="btn" id="pdfBtn" href="./cv.pdf" download="CV_Andris_Rozkalns.pdf">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
-          PDF
-        </a>
-        <a class="btn" href="./smarthome.html">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
-          <span data-i18n="btn_smart">Smart-home demo</span>
-        </a>
+        <a class="button" id="pdfLink" href="/cv.pdf" download data-i18n="download_pdf">Download PDF</a>
+        <a class="button" href="/smarthome.html" data-i18n="smart_demo">Smart-home demo</a>
       </div>
 
-      <nav class="nav" id="nav">
-        <a href="#about"><span class="ln"></span><span data-i18n="nav_about">About</span></a>
-        <a href="#stats"><span class="ln"></span><span data-i18n="nav_stats">Live Homelab</span></a>
-        <a href="#experience"><span class="ln"></span><span data-i18n="nav_exp">Experience</span></a>
-        <a href="#projects"><span class="ln"></span><span data-i18n="nav_proj">Projects</span></a>
-        <a href="#skills"><span class="ln"></span><span data-i18n="nav_skills">Skills</span></a>
-        <a href="#education"><span class="ln"></span><span data-i18n="nav_edu">Education</span></a>
+      <nav class="site-nav" aria-label="CV sections">
+        <a href="#about" data-i18n="nav_about">About</a>
+        <a href="#stats" data-i18n="nav_stats">Live homelab</a>
+        <a href="#experience" data-i18n="nav_exp">Experience</a>
+        <a href="#projects" data-i18n="nav_projects">Projects</a>
+        <a href="#skills" data-i18n="nav_skills">Skills</a>
+        <a href="#education" data-i18n="nav_edu">Education</a>
       </nav>
+    </header>
 
-      <div class="contacts">
-        <div class="row">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
-          <span data-i18n="loc">44319 Dortmund, Germany</span>
-        </div>
-        <div class="row">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
-          <a href="mailto:andris@rozkalns.net">andris@rozkalns.net</a>
-        </div>
-        <div class="row">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.2-1.7-.9-2-1-.3-.1-.5-.2-.6.2-.2.3-.7.9-.9 1.1-.2.2-.3.2-.6.1-1.6-.8-2.7-1.5-3.7-3.3-.3-.5.3-.5.8-1.5.1-.2 0-.3 0-.5-.1-.1-.6-1.5-.9-2-.2-.5-.4-.4-.6-.5h-.5c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.1 5 4.3 1.8.8 2.5.8 3.4.7.5-.1 1.7-.7 1.9-1.4.2-.6.2-1.2.2-1.3-.1-.1-.3-.2-.6-.4zM12 2.2c-5.4 0-9.8 4.4-9.8 9.8 0 1.7.5 3.4 1.3 4.9L2 22l5.3-1.4c1.4.8 3 1.2 4.6 1.2 5.4 0 9.8-4.4 9.8-9.8S17.4 2.2 12 2.2z"/></svg>
-          <a href="https://wa.me/4917685134770" target="_blank" rel="noopener" data-i18n="phone">+49 176 8513 4770</a>
-        </div>
-        <div class="row">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.3.8-.6v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"/></svg>
-          <a href="https://github.com/rozkalnsandris" target="_blank" rel="noopener">github.com/rozkalnsandris</a>
-        </div>
-      </div>
-    </aside>
-
-    <main class="main">
+    <main id="main">
       <section id="about">
-        <div class="eyebrow"><h2 data-i18n="eb_about">About</h2><div class="rule"></div></div>
-        <p class="lead" data-i18n-html="about_p1">I'm a self-taught Linux and DevOps engineer based in Dortmund, making a deliberate move back into IT. My first hands-on experience came in secondary school — running Linux-based game servers over SSH/FTP and modifying PHP forums and HTML sites. After 14 years building a career in logistics and warehouse management, I'm returning to the work I've always been drawn to, now with the discipline and reliability those years gave me.</p>
-        <p class="lead" data-i18n-html="about_p2">Today I design, deploy and operate a production homelab on a Raspberry&nbsp;Pi&nbsp;5: 12+ Docker services, a full monitoring stack, DNS filtering, an AI agent and home automation, all running 24/7. <strong>The numbers below are real and pulled live from that infrastructure — this page is served from it.</strong> I'm aiming for a Junior DevOps / Linux Systems Administrator role, ideally remote, and I'm available from January&nbsp;2027.</p>
+        <div class="section-heading"><h2 data-i18n="about_title">About</h2></div>
+        <p class="lead" data-i18n="about_p1">I am a self-taught Linux and DevOps engineer based in Dortmund, deliberately returning to IT after a long logistics career.</p>
+        <p class="lead" data-i18n="about_p2">Today I design, deploy and operate a production Raspberry Pi 5 homelab.</p>
       </section>
 
       <section id="stats">
-        <div class="eyebrow"><h2 data-i18n="eb_stats">Live Homelab</h2><div class="rule"></div></div>
+        <div class="section-heading"><h2 data-i18n="stats_title">Live homelab</h2></div>
         <div class="panel">
-          <div class="panel-head">
-            <span class="ttl" data-i18n="panel_ttl">Raspberry Pi 5 · self-hosted</span>
-            <span class="live"><span class="dot" id="liveDot"></span><span id="liveLabel">connecting</span></span>
+          <div class="stats-head">
+            <div>
+              <strong>Raspberry Pi 5 · self-hosted</strong>
+              <p data-i18n="stats_subtitle">Prometheus and Node Exporter · refreshed every 60 seconds</p>
+            </div>
+            <div class="live-status" role="status" aria-live="polite">
+              <span id="liveDot" class="live-dot" data-state="offline" aria-hidden="true"></span>
+              <span id="liveLabel" data-i18n="status_loading">checking</span>
+            </div>
           </div>
-          <div class="grid">
-            <div class="cell"><div class="v" data-stat="uptime_30d" data-suffix="%">—</div><div class="k" data-i18n="st_uptime">Uptime 30d</div></div>
-            <div class="cell"><div class="v" data-stat="docker_containers">—</div><div class="k" data-i18n="st_containers">Containers</div></div>
-            <div class="cell"><div class="v" data-stat="load1" data-decimals="2">—</div><div class="k" data-i18n="st_load">Load avg (1m)</div></div>
-            <div class="cell"><div class="v" data-stat="days_online" data-suffix="d">—</div><div class="k" data-i18n="st_days">Days online</div></div>
-            <div class="cell"><div class="v" data-stat="cpu_usage" data-suffix="%">—</div><div class="k" data-i18n="st_cpu">CPU load</div></div>
-            <div class="cell"><div class="v" data-stat="ram_usage" data-suffix="%">—</div><div class="k" data-i18n="st_ram">RAM used</div></div>
-            <div class="cell"><div class="v" data-stat="disk_usage" data-suffix="%">—</div><div class="k" data-i18n="st_disk">Disk used</div></div>
-            <div class="cell"><div class="v" data-stat="cpu_temp" data-suffix="°C">—</div><div class="k" data-i18n="st_temp">CPU temp</div></div>
+          <div class="stats-grid">
+            <div class="stat"><div class="stat-value" data-stat="uptime_30d" data-decimals="1" data-suffix="%">—</div><div class="stat-label" data-i18n="st_uptime">30-day uptime</div></div>
+            <div class="stat"><div class="stat-value" data-stat="docker_containers">—</div><div class="stat-label" data-i18n="st_containers">Containers</div></div>
+            <div class="stat"><div class="stat-value" data-stat="load1" data-decimals="2">—</div><div class="stat-label" data-i18n="st_load">Load average</div></div>
+            <div class="stat"><div class="stat-value" data-stat="days_online">—</div><div class="stat-label" data-i18n="st_days">Days online</div></div>
+            <div class="stat"><div class="stat-value" data-stat="cpu_usage" data-decimals="1" data-suffix="%">—</div><div class="stat-label" data-i18n="st_cpu">CPU usage</div></div>
+            <div class="stat"><div class="stat-value" data-stat="ram_usage" data-decimals="1" data-suffix="%">—</div><div class="stat-label" data-i18n="st_ram">RAM used</div></div>
+            <div class="stat"><div class="stat-value" data-stat="disk_usage" data-decimals="1" data-suffix="%">—</div><div class="stat-label" data-i18n="st_disk">Disk used</div></div>
+            <div class="stat"><div class="stat-value" data-stat="cpu_temp" data-decimals="1" data-suffix="°C">—</div><div class="stat-label" data-i18n="st_temp">CPU temperature</div></div>
           </div>
-          <div class="panel-note"><span data-i18n-html="note_pre">Prometheus → Node Exporter · refreshed every 60s · last update</span> <span id="statsUpdated">—</span></div>
+          <div id="statsUpdated" class="stats-updated">—</div>
         </div>
       </section>
 
       <section id="experience">
-        <div class="eyebrow"><h2 data-i18n="eb_exp">Experience</h2><div class="rule"></div></div>
-        <div class="entry">
-          <div class="when">Jul 2023 — Dec 2026</div>
-          <div>
-            <h3 data-i18n-html="e1_h3">Warehouse Employee · <span class="org">Sonepar Deutschland</span></h3>
-            <div class="place" data-i18n="e1_pl">Region West · Dortmund, Germany</div>
-            <ul><li data-i18n="e1_b1">Processed high-volume electrical wholesale orders using scanner systems</li><li data-i18n="e1_b2">Cable preparation, forklift operation and rotating-shift logistics</li><li data-i18n="e1_b3">Built strong process discipline and reliability — directly transferable to IT operations and on-call work</li></ul>
-          </div>
-        </div>
-        <div class="entry">
-          <div class="when">May 2020 — Jun 2023</div>
-          <div>
-            <h3 data-i18n-html="e2_h3">Painting Area Manager · <span class="org">SIA &ldquo;Koksne&rdquo;</span></h3>
-            <div class="place" data-i18n="e2_pl">Latvia</div>
-            <ul><li data-i18n="e2_b1">Managed daily production and warehouse operations, staff tasks and workflow</li><li data-i18n="e2_b2">Airless spray painting of wooden windows and doors — precision, consistency, zero-defect standard</li></ul>
-          </div>
-        </div>
-        <div class="entry">
-          <div class="when">Aug 2011 — Apr 2020</div>
-          <div>
-            <h3 data-i18n-html="e3_h3">Warehouse / Shop Manager · <span class="org">SIA &ldquo;Apavu Bode&rdquo;</span></h3>
-            <div class="place" data-i18n="e3_pl">Latvia</div>
-            <ul><li data-i18n="e3_b1">Ran all warehouse operations: cargo receiving, stock organisation, staff coordination</li><li data-i18n="e3_b2">Prepared products for sale and led day-to-day operational workflow</li></ul>
-          </div>
-        </div>
-        <div class="entry">
-          <div class="when">~2008 — 2011</div>
-          <div>
-            <h3 data-i18n-html="e4_h3">Early IT — Self-taught <span class="org">· Secondary school</span></h3>
-            <div class="place" data-i18n="e4_pl">Riga, Latvia</div>
-            <ul><li data-i18n="e4_b1">Administered Linux-based Counter-Strike 1.6 servers — SSH/FTP access, config management, troubleshooting</li><li data-i18n="e4_b2">Modified and maintained IPB (Invision Power Board) forums — PHP templates and plugins</li><li data-i18n="e4_b3">Built and edited HTML websites — first exposure to web and server administration</li></ul>
-            <div class="tags"><span class="tag"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M12.504 0c-.155 0-.315.008-.48.021-4.226.333-3.105 4.807-3.17 6.298-.076 1.092-.3 1.953-1.05 3.02-.885 1.051-2.127 2.75-2.716 4.521-.278.832-.41 1.684-.287 2.489a.424.424 0 00-.11.135c-.26.268-.45.6-.663.839-.199.199-.485.267-.797.4-.313.136-.658.269-.864.68-.09.189-.136.394-.132.602 0 .199.027.4.055.536.058.399.116.728.04.97-.249.68-.28 1.145-.106 1.484.174.334.535.47.94.601.81.2 1.91.135 2.774.6.926.466 1.866.67 2.616.47.526-.116.97-.464 1.208-.946.587-.003 1.23-.269 2.26-.334.699-.058 1.574.267 2.577.2.025.134.063.198.114.333l.003.003c.391.778 1.113 1.132 1.884 1.071.771-.06 1.592-.536 2.257-1.306.631-.765 1.683-1.084 2.378-1.503.348-.199.629-.469.649-.853.023-.4-.2-.811-.714-1.376v-.097l-.003-.003c-.17-.2-.25-.535-.338-.926-.085-.401-.182-.786-.492-1.046h-.003c-.059-.054-.123-.067-.188-.135a.357.357 0 00-.19-.064c.431-1.278.264-2.55-.173-3.694-.533-1.41-1.465-2.638-2.175-3.483-.796-1.005-1.576-1.957-1.56-3.368.026-2.152.236-6.133-3.544-6.139zm.529 3.405h.013c.213 0 .396.062.584.198.19.135.33.332.438.533.105.259.158.459.166.724 0-.02.006-.04.006-.06v.105a.086.086 0 01-.004-.021l-.004-.024a1.807 1.807 0 01-.15.706.953.953 0 01-.213.335.71.71 0 00-.088-.042c-.104-.045-.198-.064-.284-.133a1.312 1.312 0 00-.22-.066c.05-.06.146-.133.183-.198.053-.128.082-.264.088-.402v-.02a1.21 1.21 0 00-.061-.4c-.045-.134-.101-.2-.183-.333-.084-.066-.167-.132-.267-.132h-.016c-.093 0-.176.03-.262.132a.8.8 0 00-.205.334 1.18 1.18 0 00-.09.4v.019c.002.089.008.179.02.267-.193-.067-.438-.135-.607-.202a1.635 1.635 0 01-.018-.2v-.02a1.772 1.772 0 01.15-.768c.082-.22.232-.406.43-.533a.985.985 0 01.594-.2zm-2.962.059h.036c.142 0 .27.048.399.135.146.129.264.288.344.465.09.199.14.4.153.667v.004c.007.134.006.2-.002.266v.08c-.03.007-.056.018-.083.024-.152.055-.274.135-.393.2.012-.09.013-.18.003-.267v-.015c-.012-.133-.04-.2-.082-.333a.613.613 0 00-.166-.267.248.248 0 00-.183-.064h-.021c-.071.006-.13.04-.186.132a.552.552 0 00-.12.27.944.944 0 00-.023.33v.015c.012.135.037.2.08.334.046.134.098.2.166.268.01.009.02.018.034.024-.07.057-.117.07-.176.136a.304.304 0 01-.131.068 2.62 2.62 0 01-.275-.402 1.772 1.772 0 01-.155-.667 1.759 1.759 0 01.08-.668 1.43 1.43 0 01.283-.535c.128-.133.26-.2.418-.2zm1.37 1.706c.332 0 .733.065 1.216.399.293.2.523.269 1.052.468h.003c.255.136.405.266.478.399v-.131a.571.571 0 01.016.47c-.123.31-.516.643-1.063.842v.002c-.268.135-.501.333-.775.465-.276.135-.588.292-1.012.267a1.139 1.139 0 01-.448-.067 3.566 3.566 0 01-.322-.198c-.195-.135-.363-.332-.612-.465v-.005h-.005c-.4-.246-.616-.512-.686-.71-.07-.268-.005-.47.193-.6.224-.135.38-.271.483-.336.104-.074.143-.102.176-.131h.002v-.003c.169-.202.436-.47.839-.601.139-.036.294-.065.466-.065zm2.8 2.142c.358 1.417 1.196 3.475 1.735 4.473.286.534.855 1.659 1.102 3.024.156-.005.33.018.513.064.646-1.671-.546-3.467-1.089-3.966-.22-.2-.232-.335-.123-.335.59.534 1.365 1.572 1.646 2.757.13.535.16 1.104.021 1.67.067.028.135.06.205.067 1.032.534 1.413.938 1.23 1.537v-.043c-.06-.003-.12 0-.18 0h-.016c.151-.467-.182-.825-1.065-1.224-.915-.4-1.646-.336-1.77.465-.008.043-.013.066-.018.135-.068.023-.139.053-.209.064-.43.268-.662.669-.793 1.187-.13.533-.17 1.156-.205 1.869v.003c-.02.334-.17.838-.319 1.35-1.5 1.072-3.58 1.538-5.348.334a2.645 2.645 0 00-.402-.533 1.45 1.45 0 00-.275-.333c.182 0 .338-.03.465-.067a.615.615 0 00.314-.334c.108-.267 0-.697-.345-1.163-.345-.467-.931-.995-1.788-1.521-.63-.4-.986-.87-1.15-1.396-.165-.534-.143-1.085-.015-1.645.245-1.07.873-2.11 1.274-2.763.107-.065.037.135-.408.974-.396.751-1.14 2.497-.122 3.854a8.123 8.123 0 01.647-2.876c.564-1.278 1.743-3.504 1.836-5.268.048.036.217.135.289.202.218.133.38.333.59.465.21.201.477.335.876.335.039.003.075.006.11.006.412 0 .73-.134.997-.268.29-.134.52-.334.74-.4h.005c.467-.135.835-.402 1.044-.7zm2.185 8.958c.037.6.343 1.245.882 1.377.588.134 1.434-.333 1.791-.765l.211-.01c.315-.007.577.01.847.268l.003.003c.208.199.305.53.391.876.085.4.154.78.409 1.066.486.527.645.906.636 1.14l.003-.007v.018l-.003-.012c-.015.262-.185.396-.498.595-.63.401-1.746.712-2.457 1.57-.618.737-1.37 1.14-2.036 1.191-.664.053-1.237-.2-1.574-.898l-.005-.003c-.21-.4-.12-1.025.056-1.69.176-.668.428-1.344.463-1.897.037-.714.076-1.335.195-1.814.12-.465.308-.797.641-.984l.045-.022zm-10.814.049h.01c.053 0 .105.005.157.014.376.055.706.333 1.023.752l.91 1.664.003.003c.243.533.754 1.064 1.189 1.637.434.598.77 1.131.729 1.57v.006c-.057.744-.48 1.148-1.125 1.294-.645.135-1.52.002-2.395-.464-.968-.536-2.118-.469-2.857-.602-.369-.066-.61-.2-.723-.4-.11-.2-.113-.602.123-1.23v-.004l.002-.003c.117-.334.03-.752-.027-1.118-.055-.401-.083-.71.043-.94.16-.334.396-.4.69-.533.294-.135.64-.202.915-.47h.002v-.002c.256-.268.445-.601.668-.838.19-.201.38-.336.663-.336zm7.159-9.074c-.435.201-.945.535-1.488.535-.542 0-.97-.267-1.28-.466-.154-.134-.28-.268-.373-.335-.164-.134-.144-.333-.074-.333.109.016.129.134.199.2.096.066.215.2.36.333.292.2.68.467 1.167.467.485 0 1.053-.267 1.398-.466.195-.135.445-.334.648-.467.156-.136.149-.267.279-.267.128.016.034.134-.147.332a8.097 8.097 0 01-.69.468zm-1.082-1.583V5.64c-.006-.02.013-.042.029-.05.074-.043.18-.027.26.004.063 0 .16.067.15.135-.006.049-.085.066-.135.066-.055 0-.092-.043-.141-.068-.052-.018-.146-.008-.163-.065zm-.551 0c-.02.058-.113.049-.166.066-.047.025-.086.068-.14.068-.05 0-.13-.02-.136-.068-.01-.066.088-.133.15-.133.08-.031.184-.047.259-.005.019.009.036.03.03.05v.02h.003z"/></svg>Linux</span><span class="tag"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></svg>SSH/FTP</span><span class="tag"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M7.01 10.207h-.944l-.515 2.648h.838c.556 0 .97-.105 1.242-.314.272-.21.455-.559.55-1.049.092-.47.05-.802-.124-.995-.175-.193-.523-.29-1.047-.29zM12 5.688C5.373 5.688 0 8.514 0 12s5.373 6.313 12 6.313S24 15.486 24 12c0-3.486-5.373-6.312-12-6.312zm-3.26 7.451c-.261.25-.575.438-.917.551-.336.108-.765.164-1.285.164H5.357l-.327 1.681H3.652l1.23-6.326h2.65c.797 0 1.378.209 1.744.628.366.418.476 1.002.33 1.752a2.836 2.836 0 0 1-.305.847c-.143.255-.33.49-.561.703zm4.024.715l.543-2.799c.063-.318.039-.536-.068-.651-.107-.116-.336-.174-.687-.174H11.46l-.704 3.625H9.388l1.23-6.327h1.367l-.327 1.682h1.218c.767 0 1.295.134 1.586.401s.378.7.263 1.299l-.572 2.944h-1.389zm7.597-2.265a2.782 2.782 0 0 1-.305.847c-.143.255-.33.49-.561.703a2.44 2.44 0 0 1-.917.551c-.336.108-.765.164-1.286.164h-1.18l-.327 1.682h-1.378l1.23-6.326h2.649c.797 0 1.378.209 1.744.628.366.417.477 1.001.331 1.751zM17.766 10.207h-.943l-.516 2.648h.838c.557 0 .971-.105 1.242-.314.272-.21.455-.559.551-1.049.092-.47.049-.802-.125-.995s-.524-.29-1.047-.29z"/></svg>PHP</span><span class="tag"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M1.5 0h21l-1.91 21.563L11.977 24l-8.564-2.438L1.5 0zm7.031 9.75l-.232-2.718 10.059.003.23-2.622L5.412 4.41l.698 8.01h9.126l-.326 3.426-2.91.804-2.955-.81-.188-2.11H6.248l.33 4.171L12 19.351l5.379-1.443.744-8.157H8.531z"/></svg>HTML</span></div>
-          </div>
+        <div class="section-heading"><h2 data-i18n="experience_title">Experience</h2></div>
+        <div class="timeline">
+          <article class="entry card">
+            <time data-i18n="e1_dates">Jul 2023 – Dec 2026 planned</time>
+            <div><h3 data-i18n="e1_title">Warehouse Employee</h3><div class="org" data-i18n="e1_org">Sonepar Deutschland · Dortmund</div><ul><li data-i18n="e1_b1">High-volume order processing.</li><li data-i18n="e1_b2">Cable preparation and logistics.</li><li data-i18n="e1_b3">Process discipline.</li></ul></div>
+          </article>
+          <article class="entry card">
+            <time data-i18n="e2_dates">May 2020 – Jun 2023</time>
+            <div><h3 data-i18n="e2_title">Painting Area Manager</h3><div class="org" data-i18n="e2_org">SIA Koksne · Latvia</div><ul><li data-i18n="e2_b1">Managed operations.</li><li data-i18n="e2_b2">Precision coating.</li></ul></div>
+          </article>
+          <article class="entry card">
+            <time data-i18n="e3_dates">Aug 2011 – Apr 2020</time>
+            <div><h3 data-i18n="e3_title">Warehouse / Shop Manager</h3><div class="org" data-i18n="e3_org">SIA Apavu Bode · Latvia</div><ul><li data-i18n="e3_b1">Managed warehouse operations.</li></ul></div>
+          </article>
+          <article class="entry card">
+            <time data-i18n="e4_dates">2008 – 2011</time>
+            <div><h3 data-i18n="e4_title">Early IT — self-taught</h3><div class="org" data-i18n="e4_org">Secondary school · Riga</div><ul><li data-i18n="e4_b1">Linux server administration.</li><li data-i18n="e4_b2">PHP forums and HTML sites.</li></ul></div>
+          </article>
         </div>
       </section>
 
       <section id="projects">
-        <div class="eyebrow"><h2 data-i18n="eb_proj">Projects</h2><div class="rule"></div></div>
-        <div class="entry">
-          <div class="when" data-i18n="pw_homelab">Homelab</div>
-          <div>
-            <h3 data-i18n="p1_h3">Production Linux Server Stack</h3>
-            <ul><li data-i18n="p1_b1">Raspberry Pi 5 + NVMe running 12+ Docker services 24/7 behind Nginx Proxy Manager</li><li data-i18n="p1_b2">AdGuard Home network-wide DNS filtering, wildcard SSL (DuckDNS + Let's Encrypt), Cloudflare Tunnel</li></ul>
-            <div class="tags"><span class="tag"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M13.983 11.078h2.119a.186.186 0 00.186-.185V9.006a.186.186 0 00-.186-.186h-2.119a.185.185 0 00-.185.185v1.888c0 .102.083.185.185.185m-2.954-5.43h2.118a.186.186 0 00.186-.186V3.574a.186.186 0 00-.186-.185h-2.118a.185.185 0 00-.185.185v1.888c0 .102.082.185.185.185m0 2.716h2.118a.187.187 0 00.186-.186V6.29a.186.186 0 00-.186-.185h-2.118a.185.185 0 00-.185.185v1.887c0 .102.082.185.185.186m-2.93 0h2.12a.186.186 0 00.184-.186V6.29a.185.185 0 00-.185-.185H8.1a.185.185 0 00-.185.185v1.887c0 .102.083.185.185.186m-2.964 0h2.119a.186.186 0 00.185-.186V6.29a.185.185 0 00-.185-.185H5.136a.186.186 0 00-.186.185v1.887c0 .102.084.185.186.186m5.893 2.715h2.118a.186.186 0 00.186-.185V9.006a.186.186 0 00-.186-.186h-2.118a.185.185 0 00-.185.185v1.888c0 .102.082.185.185.185m-2.93 0h2.12a.185.185 0 00.184-.185V9.006a.185.185 0 00-.184-.186h-2.12a.185.185 0 00-.184.185v1.888c0 .102.083.185.185.185m-2.964 0h2.119a.185.185 0 00.185-.185V9.006a.185.185 0 00-.184-.186h-2.12a.186.186 0 00-.186.186v1.887c0 .102.084.185.186.185m-2.92 0h2.12a.185.185 0 00.184-.185V9.006a.185.185 0 00-.184-.186h-2.12a.185.185 0 00-.184.185v1.888c0 .102.082.185.185.185M23.763 9.89c-.065-.051-.672-.51-1.954-.51-.338.001-.676.03-1.01.087-.248-1.7-1.653-2.53-1.716-2.566l-.344-.199-.226.327c-.284.438-.49.922-.612 1.43-.23.97-.09 1.882.403 2.661-.595.332-1.55.413-1.744.42H.751a.751.751 0 00-.75.748 11.376 11.376 0 00.692 4.062c.545 1.428 1.355 2.48 2.41 3.124 1.18.723 3.1 1.137 5.275 1.137.983.003 1.963-.086 2.93-.266a12.248 12.248 0 003.823-1.389c.98-.567 1.86-1.288 2.61-2.136 1.252-1.418 1.998-2.997 2.553-4.4h.221c1.372 0 2.215-.549 2.68-1.009.309-.293.55-.65.707-1.046l.098-.288Z"/></svg>Docker</span><span class="tag"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0L1.605 6v12L12 24l10.395-6V6L12 0zm6 16.59c0 .705-.646 1.29-1.529 1.29-.631 0-1.351-.255-1.801-.81l-6-7.141v6.66c0 .721-.57 1.29-1.274 1.29H7.32c-.721 0-1.29-.6-1.29-1.29V7.41c0-.705.63-1.29 1.5-1.29.646 0 1.38.255 1.83.81l5.97 7.141V7.41c0-.721.6-1.29 1.29-1.29h.075c.72 0 1.29.6 1.29 1.29v9.18H18z"/></svg>Nginx</span><span class="tag"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C8.249 0 3.725.861 0 2.755 0 6.845-.051 17.037 12 24 24.051 17.037 24 6.845 24 2.755 20.275.861 15.751 0 12 0zm-.106 15.429L6.857 9.612c.331-.239 1.75-1.143 2.794.042l2.187 2.588c.009-.001 5.801-5.948 5.815-5.938.246-.22.694-.503 1.204-.101l-6.963 9.226z"/></svg>AdGuard</span><span class="tag"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>SSL/TLS</span><span class="tag"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M16.5088 16.8447c.1475-.5068.0908-.9707-.1553-1.3154-.2246-.3164-.6045-.499-1.0615-.5205l-8.6592-.1123a.1559.1559 0 0 1-.1333-.0713c-.0283-.042-.0351-.0986-.021-.1553.0278-.084.1123-.1484.2036-.1562l8.7359-.1123c1.0351-.0489 2.1601-.8868 2.5537-1.9136l.499-1.3013c.0215-.0561.0293-.1128.0147-.168-.5625-2.5463-2.835-4.4453-5.5499-4.4453-2.5039 0-4.6284 1.6177-5.3876 3.8614-.4927-.3658-1.1187-.5625-1.794-.499-1.2026.119-2.1665 1.083-2.2861 2.2856-.0283.31-.0069.6128.0635.894C1.5683 13.171 0 14.7754 0 16.752c0 .1748.0142.3515.0352.5273.0141.083.0844.1475.1689.1475h15.9814c.0909 0 .1758-.0645.2032-.1553l.12-.4268zm2.7568-5.5634c-.0771 0-.1611 0-.2383.0112-.0566 0-.1054.0415-.127.0976l-.3378 1.1744c-.1475.5068-.0918.9707.1543 1.3164.2256.3164.6055.498 1.0625.5195l1.8437.1133c.0557 0 .1055.0263.1329.0703.0283.043.0351.1074.0214.1562-.0283.084-.1132.1485-.204.1553l-1.921.1123c-1.041.0488-2.1582.8867-2.5527 1.914l-.1406.3585c-.0283.0713.0215.1416.0986.1416h6.5977c.0771 0 .1474-.0489.169-.126.1122-.4082.1757-.837.1757-1.2803 0-2.6025-2.125-4.727-4.7344-4.727"/></svg>Cloudflare</span></div>
-          </div>
-        </div>
-        <div class="entry feat">
-          <div class="when" data-i18n="pw_aiops">AI Ops</div>
-          <div>
-            <h3 data-i18n-html="p2_h3">Hermes — Self-hosted AI Agent <span class="badge" data-i18n="badge_focus">Focus</span></h3>
-            <ul><li data-i18n="p2_b1">Production AI agent with primary/fallback LLM routing, ChromaDB vector search and persistent memory</li><li data-i18n="p2_b2">Telegram interface, Home Assistant integration and a custom skill/tool library — systemd-managed gateway</li></ul>
-            <div class="tags"><span class="tag"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M14.25.18l.9.2.73.26.59.3.45.32.34.34.25.34.16.33.1.3.04.26.02.2-.01.13V8.5l-.05.63-.13.55-.21.46-.26.38-.3.31-.33.25-.35.19-.35.14-.33.1-.3.07-.26.04-.21.02H8.77l-.69.05-.59.14-.5.22-.41.27-.33.32-.27.35-.2.36-.15.37-.1.35-.07.32-.04.27-.02.21v3.06H3.17l-.21-.03-.28-.07-.32-.12-.35-.18-.36-.26-.36-.36-.35-.46-.32-.59-.28-.73-.21-.88-.14-1.05-.05-1.23.06-1.22.16-1.04.24-.87.32-.71.36-.57.4-.44.42-.33.42-.24.4-.16.36-.1.32-.05.24-.01h.16l.06.01h8.16v-.83H6.18l-.01-2.75-.02-.37.05-.34.11-.31.17-.28.25-.26.31-.23.38-.2.44-.18.51-.15.58-.12.64-.1.71-.06.77-.04.84-.02 1.27.05zm-6.3 1.98l-.23.33-.08.41.08.41.23.34.33.22.41.09.41-.09.33-.22.23-.34.08-.41-.08-.41-.23-.33-.33-.22-.41-.09-.41.09zm13.09 3.95l.28.06.32.12.35.18.36.27.36.35.35.47.32.59.28.73.21.88.14 1.04.05 1.23-.06 1.23-.16 1.04-.24.86-.32.71-.36.57-.4.45-.42.33-.42.24-.4.16-.36.09-.32.05-.24.02-.16-.01h-8.22v.82h5.84l.01 2.76.02.36-.05.34-.11.31-.17.29-.25.25-.31.24-.38.2-.44.17-.51.15-.58.13-.64.09-.71.07-.77.04-.84.01-1.27-.04-1.07-.14-.9-.2-.73-.25-.59-.3-.45-.33-.34-.34-.25-.34-.16-.33-.1-.3-.04-.25-.02-.2.01-.13v-5.34l.05-.64.13-.54.21-.46.26-.38.3-.32.33-.24.35-.2.35-.14.33-.1.3-.06.26-.04.21-.02.13-.01h5.84l.69-.05.59-.14.5-.21.41-.28.33-.32.27-.35.2-.36.15-.36.1-.35.07-.32.04-.28.02-.21V6.07h2.09l.14.01zm-6.47 14.25l-.23.33-.08.41.08.41.23.33.33.23.41.08.41-.08.33-.23.23-.33.08-.41-.08-.41-.23-.33-.33-.23-.41-.08-.41.08z"/></svg>Python</span><span class="tag"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M13.983 11.078h2.119a.186.186 0 00.186-.185V9.006a.186.186 0 00-.186-.186h-2.119a.185.185 0 00-.185.185v1.888c0 .102.083.185.185.185m-2.954-5.43h2.118a.186.186 0 00.186-.186V3.574a.186.186 0 00-.186-.185h-2.118a.185.185 0 00-.185.185v1.888c0 .102.082.185.185.185m0 2.716h2.118a.187.187 0 00.186-.186V6.29a.186.186 0 00-.186-.185h-2.118a.185.185 0 00-.185.185v1.887c0 .102.082.185.185.186m-2.93 0h2.12a.186.186 0 00.184-.186V6.29a.185.185 0 00-.185-.185H8.1a.185.185 0 00-.185.185v1.887c0 .102.083.185.185.186m-2.964 0h2.119a.186.186 0 00.185-.186V6.29a.185.185 0 00-.185-.185H5.136a.186.186 0 00-.186.185v1.887c0 .102.084.185.186.186m5.893 2.715h2.118a.186.186 0 00.186-.185V9.006a.186.186 0 00-.186-.186h-2.118a.185.185 0 00-.185.185v1.888c0 .102.082.185.185.185m-2.93 0h2.12a.185.185 0 00.184-.185V9.006a.185.185 0 00-.184-.186h-2.12a.185.185 0 00-.184.185v1.888c0 .102.083.185.185.185m-2.964 0h2.119a.185.185 0 00.185-.185V9.006a.185.185 0 00-.184-.186h-2.12a.186.186 0 00-.186.186v1.887c0 .102.084.185.186.185m-2.92 0h2.12a.185.185 0 00.184-.185V9.006a.185.185 0 00-.184-.186h-2.12a.185.185 0 00-.184.185v1.888c0 .102.082.185.185.185M23.763 9.89c-.065-.051-.672-.51-1.954-.51-.338.001-.676.03-1.01.087-.248-1.7-1.653-2.53-1.716-2.566l-.344-.199-.226.327c-.284.438-.49.922-.612 1.43-.23.97-.09 1.882.403 2.661-.595.332-1.55.413-1.744.42H.751a.751.751 0 00-.75.748 11.376 11.376 0 00.692 4.062c.545 1.428 1.355 2.48 2.41 3.124 1.18.723 3.1 1.137 5.275 1.137.983.003 1.963-.086 2.93-.266a12.248 12.248 0 003.823-1.389c.98-.567 1.86-1.288 2.61-2.136 1.252-1.418 1.998-2.997 2.553-4.4h.221c1.372 0 2.215-.549 2.68-1.009.309-.293.55-.65.707-1.046l.098-.288Z"/></svg>Docker</span><span class="tag"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M10 10h.01M14 14h.01"/></svg>LLM routing</span><span class="tag"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>ChromaDB</span><span class="tag"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>systemd</span></div>
-          </div>
-        </div>
-        <div class="entry feat">
-          <div class="when" data-i18n="pw_auto">Automation</div>
-          <div>
-            <h3 data-i18n-html="p3_h3">Home Automation — Home Assistant <span class="badge" data-i18n="badge_focus">Focus</span></h3>
-            <ul><li data-i18n="p3_b1">Matter-based smart home with instant-response thermostats and a custom dark dashboard</li><li data-i18n="p3_b2">Electricity-cost tracking with utility meters and live charts — a dedicated deep-dive page is coming soon</li></ul>
-            <div class="tags"><span class="tag"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M22.939 10.627 13.061.749a1.505 1.505 0 0 0-2.121 0l-9.879 9.878C.478 11.21 0 12.363 0 13.187v9c0 .826.675 1.5 1.5 1.5h9.227l-4.063-4.062a2.034 2.034 0 0 1-.664.113c-1.13 0-2.05-.92-2.05-2.05s.92-2.05 2.05-2.05 2.05.92 2.05 2.05c0 .233-.041.456-.113.665l3.163 3.163V9.928a2.05 2.05 0 0 1-1.15-1.84c0-1.13.92-2.05 2.05-2.05s2.05.92 2.05 2.05a2.05 2.05 0 0 1-1.15 1.84v8.127l3.146-3.146A2.051 2.051 0 0 1 18 12.239c1.13 0 2.05.92 2.05 2.05s-.92 2.05-2.05 2.05c-.25 0-.488-.047-.709-.13L12.9 20.602v3.088h9.6c.825 0 1.5-.675 1.5-1.5v-9c0-.825-.477-1.977-1.061-2.561z"/></svg>Home Assistant</span><span class="tag"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4"/></svg>Matter</span><span class="tag"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="m0 .97 4.111 6.453v4.09h2.638v-4.09L11.053.969H8.214L5.58 5.125 2.965.969Zm12.093.024-4.47 10.544h2.114l.97-2.345h4.775l.804 2.345h2.26L14.255.994Zm1.133 2.225 1.463 3.87h-3.096zm3.06 9.475v10.29H24v-2.199h-5.454v-8.091zm-12.175.002v10.335h2.217v-7.129l2.32 4.792h1.746l2.4-4.96v7.295h2.127V12.696h-2.904L9.44 17.37l-2.455-4.674Z"/></svg>YAML</span><span class="tag"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M10.657 23.994h-9.45A1.212 1.212 0 0 1 0 22.788v-9.18h.071c5.784 0 10.504 4.65 10.586 10.386Zm7.606 0h-4.045C14.135 16.246 7.795 9.977 0 9.942V6.038h.071c9.983 0 18.121 8.044 18.192 17.956Zm4.53 0h-.97C21.754 12.071 11.995 2.407 0 2.372v-1.16C0 .55.544.006 1.207.006h7.64C15.733 2.49 21.257 7.789 24 14.508v8.291c0 .663-.544 1.195-1.207 1.195ZM16.713.006h6.092A1.19 1.19 0 0 1 24 1.2v5.914c-.91-1.242-2.046-2.65-3.158-3.762C19.588 2.11 18.122.987 16.714.005Z"/></svg>MQTT</span></div>
-          </div>
-        </div>
-        <div class="entry">
-          <div class="when" data-i18n="pw_obs">Observability</div>
-          <div>
-            <h3 data-i18n="p4_h3">Monitoring &amp; Metrics Stack</h3>
-            <ul><li data-i18n="p4_b1">Prometheus (30-day retention) + Grafana dashboards + Node &amp; Speedtest exporters</li><li data-i18n="p4_b2">The live stats at the top of this page are served straight from this stack</li></ul>
-            <div class="tags"><span class="tag"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.372 0 12c0 6.627 5.373 12 12 12s12-5.373 12-12c0-6.628-5.373-12-12-12zm0 22.46c-1.885 0-3.414-1.26-3.414-2.814h6.828c0 1.553-1.528 2.813-3.414 2.813zm5.64-3.745H6.36v-2.046h11.28v2.046zm-.04-3.098H6.391c-.037-.043-.075-.086-.111-.13-1.155-1.401-1.427-2.133-1.69-2.879-.005-.025 1.4.287 2.395.511 0 0 .513.119 1.262.255-.72-.843-1.147-1.915-1.147-3.01 0-2.406 1.845-4.508 1.18-6.207.648.053 1.34 1.367 1.387 3.422.689-.951.977-2.69.977-3.755 0-1.103.727-2.385 1.454-2.429-.648 1.069.168 1.984.894 4.256.272.854.237 2.29.447 3.201.07-1.892.395-4.652 1.595-5.605-.529 1.2.079 2.702.494 3.424.671 1.164 1.078 2.047 1.078 3.716a4.642 4.642 0 01-1.11 2.996c.792-.149 1.34-.283 1.34-.283l2.573-.502s-.374 1.538-1.81 3.019z"/></svg>Prometheus</span><span class="tag"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M23.02 10.59a8.578 8.578 0 0 0-.862-3.034 8.911 8.911 0 0 0-1.789-2.445c.337-1.342-.413-2.505-.413-2.505-1.292-.08-2.113.4-2.416.62-.052-.02-.102-.044-.154-.064-.22-.089-.446-.172-.677-.247-.231-.073-.47-.14-.711-.197a9.867 9.867 0 0 0-.875-.161C14.557.753 12.94 0 12.94 0c-1.804 1.145-2.147 2.744-2.147 2.744l-.018.093c-.098.029-.2.057-.298.088-.138.042-.275.094-.413.143-.138.055-.275.107-.41.166a8.869 8.869 0 0 0-1.557.87l-.063-.029c-2.497-.955-4.716.195-4.716.195-.203 2.658.996 4.33 1.235 4.636a11.608 11.608 0 0 0-.607 2.635C1.636 12.677.953 15.014.953 15.014c1.926 2.214 4.171 2.351 4.171 2.351.003-.002.006-.002.006-.005.285.509.615.994.986 1.446.156.19.32.371.488.548-.704 2.009.099 3.68.099 3.68 2.144.08 3.553-.937 3.849-1.173a9.784 9.784 0 0 0 3.164.501h.08l.055-.003.107-.002.103-.005.003.002c1.01 1.44 2.788 1.646 2.788 1.646 1.264-1.332 1.337-2.653 1.337-2.94v-.058c0-.02-.003-.039-.003-.06.265-.187.52-.387.758-.6a7.875 7.875 0 0 0 1.415-1.7c1.43.083 2.437-.885 2.437-.885-.236-1.49-1.085-2.216-1.264-2.354l-.018-.013-.016-.013a.217.217 0 0 1-.031-.02c.008-.092.016-.18.02-.27.011-.162.016-.323.016-.48v-.253l-.005-.098-.008-.135a1.891 1.891 0 0 0-.01-.13c-.003-.042-.008-.083-.013-.125l-.016-.124-.018-.122a6.215 6.215 0 0 0-2.032-3.73 6.015 6.015 0 0 0-3.222-1.46 6.292 6.292 0 0 0-.85-.048l-.107.002h-.063l-.044.003-.104.008a4.777 4.777 0 0 0-3.335 1.695c-.332.4-.592.84-.768 1.297a4.594 4.594 0 0 0-.312 1.817l.003.091c.005.055.007.11.013.164a3.615 3.615 0 0 0 .698 1.82 3.53 3.53 0 0 0 1.827 1.282c.33.098.66.14.971.137.039 0 .078 0 .114-.002l.063-.003c.02 0 .041-.003.062-.003.034-.002.065-.007.099-.01.007 0 .018-.003.028-.003l.031-.005.06-.008a1.18 1.18 0 0 0 .112-.02c.036-.008.072-.013.109-.024a2.634 2.634 0 0 0 .914-.415c.028-.02.056-.041.085-.065a.248.248 0 0 0 .039-.35.244.244 0 0 0-.309-.06l-.078.042c-.09.044-.184.083-.283.116a2.476 2.476 0 0 1-.475.096c-.028.003-.054.006-.083.006l-.083.002c-.026 0-.054 0-.08-.002l-.102-.006h-.012l-.024.006c-.016-.003-.031-.003-.044-.006-.031-.002-.06-.007-.091-.01a2.59 2.59 0 0 1-.724-.213 2.557 2.557 0 0 1-.667-.438 2.52 2.52 0 0 1-.805-1.475 2.306 2.306 0 0 1-.029-.444l.006-.122v-.023l.002-.031c.003-.021.003-.04.005-.06a3.163 3.163 0 0 1 1.352-2.29 3.12 3.12 0 0 1 .937-.43 2.946 2.946 0 0 1 .776-.101h.06l.07.002.045.003h.026l.07.005a4.041 4.041 0 0 1 1.635.49 3.94 3.94 0 0 1 1.602 1.662 3.77 3.77 0 0 1 .397 1.414l.005.076.003.075c.002.026.002.05.002.075 0 .024.003.052 0 .07v.065l-.002.073-.008.174a6.195 6.195 0 0 1-.08.639 5.1 5.1 0 0 1-.267.927 5.31 5.31 0 0 1-.624 1.13 5.052 5.052 0 0 1-3.237 2.014 4.82 4.82 0 0 1-.649.066l-.039.003h-.287a6.607 6.607 0 0 1-1.716-.265 6.776 6.776 0 0 1-3.4-2.274 6.75 6.75 0 0 1-.746-1.15 6.616 6.616 0 0 1-.714-2.596l-.005-.083-.002-.02v-.056l-.003-.073v-.096l-.003-.104v-.07l.003-.163c.008-.22.026-.45.054-.678a8.707 8.707 0 0 1 .28-1.355c.128-.444.286-.872.473-1.277a7.04 7.04 0 0 1 1.456-2.1 5.925 5.925 0 0 1 .953-.763c.169-.111.343-.213.524-.306.089-.05.182-.091.273-.135.047-.02.093-.042.138-.062a7.177 7.177 0 0 1 .714-.267l.145-.045c.049-.015.098-.026.148-.041.098-.029.197-.052.296-.076.049-.013.1-.02.15-.033l.15-.032.151-.028.076-.013.075-.01.153-.024c.057-.01.114-.013.171-.023l.169-.021c.036-.003.073-.008.106-.01l.073-.008.036-.003.042-.002c.057-.003.114-.008.171-.01l.086-.006h.023l.037-.003.145-.007a7.999 7.999 0 0 1 1.708.125 7.917 7.917 0 0 1 2.048.68 8.253 8.253 0 0 1 1.672 1.09l.09.077.089.078c.06.052.114.107.171.159.057.052.112.106.166.16.052.055.107.107.159.164a8.671 8.671 0 0 1 1.41 1.978c.012.026.028.052.04.078l.04.078.075.156c.023.051.05.1.07.153l.065.15a8.848 8.848 0 0 1 .45 1.34.19.19 0 0 0 .201.142.186.186 0 0 0 .172-.184c.01-.246.002-.532-.024-.856z"/></svg>Grafana</span><span class="tag"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="7" rx="1.5"/><rect x="3" y="13" width="18" height="7" rx="1.5"/><path d="M7 7.5h.01M7 16.5h.01"/></svg>Node Exporter</span></div>
-          </div>
-        </div>
-        <div class="entry">
-          <div class="when" data-i18n="pw_rel">Reliability</div>
-          <div>
-            <h3 data-i18n="p5_h3">Automated Maintenance Pipeline</h3>
-            <ul><li data-i18n="p5_b1">Weekly APT + Docker update pipeline with before/after version reporting over Telegram</li><li data-i18n="p5_b2">Dead-man's-switch availability monitoring via healthchecks.io</li></ul>
-            <div class="tags"><span class="tag"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M21.038,4.9l-7.577-4.498C13.009,0.134,12.505,0,12,0c-0.505,0-1.009,0.134-1.462,0.403L2.961,4.9 C2.057,5.437,1.5,6.429,1.5,7.503v8.995c0,1.073,0.557,2.066,1.462,2.603l7.577,4.497C10.991,23.866,11.495,24,12,24 c0.505,0,1.009-0.134,1.461-0.402l7.577-4.497c0.904-0.537,1.462-1.529,1.462-2.603V7.503C22.5,6.429,21.943,5.437,21.038,4.9z M15.17,18.946l0.013,0.646c0.001,0.078-0.05,0.167-0.111,0.198l-0.383,0.22c-0.061,0.031-0.111-0.007-0.112-0.085L14.57,19.29 c-0.328,0.136-0.66,0.169-0.872,0.084c-0.04-0.016-0.057-0.075-0.041-0.142l0.139-0.584c0.011-0.046,0.036-0.092,0.069-0.121 c0.012-0.011,0.024-0.02,0.036-0.026c0.022-0.011,0.043-0.014,0.062-0.006c0.229,0.077,0.521,0.041,0.802-0.101 c0.357-0.181,0.596-0.545,0.592-0.907c-0.003-0.328-0.181-0.465-0.613-0.468c-0.55,0.001-1.064-0.107-1.072-0.917 c-0.007-0.667,0.34-1.361,0.889-1.8l-0.007-0.652c-0.001-0.08,0.048-0.168,0.111-0.2l0.37-0.236 c0.061-0.031,0.111,0.007,0.112,0.087l0.006,0.653c0.273-0.109,0.511-0.138,0.726-0.088c0.047,0.012,0.067,0.076,0.048,0.151 l-0.144,0.578c-0.011,0.044-0.036,0.088-0.065,0.116c-0.012,0.012-0.025,0.021-0.038,0.028c-0.019,0.01-0.038,0.013-0.057,0.009 c-0.098-0.022-0.332-0.073-0.699,0.113c-0.385,0.195-0.52,0.53-0.517,0.778c0.003,0.297,0.155,0.387,0.681,0.396 c0.7,0.012,1.003,0.318,1.01,1.023C16.105,17.747,15.736,18.491,15.17,18.946z M19.143,17.859c0,0.06-0.008,0.116-0.058,0.145 l-1.916,1.164c-0.05,0.029-0.09,0.004-0.09-0.056v-0.494c0-0.06,0.037-0.093,0.087-0.122l1.887-1.129 c0.05-0.029,0.09-0.004,0.09,0.056V17.859z M20.459,6.797l-7.168,4.427c-0.894,0.523-1.553,1.109-1.553,2.187v8.833 c0,0.645,0.26,1.063,0.66,1.184c-0.131,0.023-0.264,0.039-0.398,0.039c-0.42,0-0.833-0.114-1.197-0.33L3.226,18.64 c-0.741-0.44-1.201-1.261-1.201-2.142V7.503c0-0.881,0.46-1.702,1.201-2.142l7.577-4.498c0.363-0.216,0.777-0.33,1.197-0.33 c0.419,0,0.833,0.114,1.197,0.33l7.577,4.498c0.624,0.371,1.046,1.013,1.164,1.732C21.686,6.557,21.12,6.411,20.459,6.797z"/></svg>Bash</span><span class="tag"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>cron</span><span class="tag"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>Telegram API</span></div>
-          </div>
-        </div>
-        <div class="entry">
-          <div class="when" data-i18n="pw_iot">IoT</div>
-          <div>
-            <h3 data-i18n="p6_h3">Balcony Irrigation System</h3>
-            <ul><li data-i18n="p6_b1">ESP32 + 15 soil-moisture sensors via multiplexer, relay-controlled pump, NTP-synced scheduling</li><li data-i18n="p6_b2">Telegram bot control with safety limits and live statistics</li></ul>
-            <div class="tags"><span class="tag"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M12.926 19.324a7.6 7.6 0 00-2.983-6.754 7.44 7.44 0 00-3.828-1.554.697.697 0 01-.606-.731.674.674 0 01.743-.617 8.97 8.97 0 018 9.805 7.828 7.828 0 01-.298 1.542l1.989.56a11.039 11.039 0 001.714-.651 12.159 12.159 0 00.217-2.343A12.57 12.57 0 007.212 6.171a5.53 5.53 0 00-2 0 4.354 4.354 0 00-2.16 1.337 4.274 4.274 0 001.909 6.856 9.896 9.896 0 001.074.195 4.011 4.011 0 013.337 3.954 3.965 3.965 0 01-.64 2.16l1.371.88a10.182 10.182 0 002.057.342 7.52 7.52 0 00.754-2.628m.16 4.73A13.073 13.073 0 01.001 10.983 12.982 12.982 0 013.83 1.737l.743.697a12.067 12.067 0 000 17.141 12.067 12.067 0 0017.141 0l.697.697a12.97 12.97 0 01-9.336 3.726M24 10.993A10.993 10.993 0 0012.949 0c-.389 0-.766 0-1.143.057l-.252.732a18.912 18.912 0 0111.588 11.576l.731-.263c0-.366.069-.732.069-1.143m-1.269 5.165A17.53 17.53 0 007.818 1.27a11.119 11.119 0 00-2.457 1.77v1.635A13.919 13.919 0 0119.268 18.57h1.634a11.713 11.713 0 001.771-2.446M7.92 17.884a1.691 1.691 0 11-1.69-1.691 1.691 1.691 0 011.69 1.691"/></svg>ESP32</span><span class="tag"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M22.394 6c-.167-.29-.398-.543-.652-.69L12.926.22c-.509-.294-1.34-.294-1.848 0L2.26 5.31c-.508.293-.923 1.013-.923 1.6v10.18c0 .294.104.62.271.91.167.29.398.543.652.69l8.816 5.09c.508.293 1.34.293 1.848 0l8.816-5.09c.254-.147.485-.4.652-.69.167-.29.27-.616.27-.91V6.91c.003-.294-.1-.62-.268-.91zM12 19.11c-3.92 0-7.109-3.19-7.109-7.11 0-3.92 3.19-7.11 7.11-7.11a7.133 7.133 0 016.156 3.553l-3.076 1.78a3.567 3.567 0 00-3.08-1.78A3.56 3.56 0 008.444 12 3.56 3.56 0 0012 15.555a3.57 3.57 0 003.08-1.778l3.078 1.78A7.135 7.135 0 0112 19.11zm7.11-6.715h-.79v.79h-.79v-.79h-.79v-.79h.79v-.79h.79v.79h.79zm2.962 0h-.79v.79h-.79v-.79h-.79v-.79h.79v-.79h.79v.79h.79z"/></svg>C++</span><span class="tag"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M10.657 23.994h-9.45A1.212 1.212 0 0 1 0 22.788v-9.18h.071c5.784 0 10.504 4.65 10.586 10.386Zm7.606 0h-4.045C14.135 16.246 7.795 9.977 0 9.942V6.038h.071c9.983 0 18.121 8.044 18.192 17.956Zm4.53 0h-.97C21.754 12.071 11.995 2.407 0 2.372v-1.16C0 .55.544.006 1.207.006h7.64C15.733 2.49 21.257 7.789 24 14.508v8.291c0 .663-.544 1.195-1.207 1.195ZM16.713.006h6.092A1.19 1.19 0 0 1 24 1.2v5.914c-.91-1.242-2.046-2.65-3.158-3.762C19.588 2.11 18.122.987 16.714.005Z"/></svg>MQTT</span></div>
-          </div>
+        <div class="section-heading"><h2 data-i18n="projects_title">Projects</h2></div>
+        <div class="project-grid">
+          <article class="project card"><h3 data-i18n="p1_title">Production Linux server stack</h3><p data-i18n="p1_desc">Raspberry Pi 5, Docker and Cloudflare.</p></article>
+          <article class="project card"><h3 data-i18n="p2_title">Hermes self-hosted AI agent</h3><p data-i18n="p2_desc">LLM routing, memory and integrations.</p></article>
+          <article class="project card"><h3 data-i18n="p3_title">Monitoring and observability</h3><p data-i18n="p3_desc">Prometheus and Grafana.</p></article>
+          <article class="project card"><h3 data-i18n="p4_title">Home automation</h3><p data-i18n="p4_desc">Matter and Home Assistant.</p></article>
+          <article class="project card"><h3 data-i18n="p5_title">Automated maintenance</h3><p data-i18n="p5_desc">Controlled updates and evidence.</p></article>
+          <article class="project card"><h3 data-i18n="p6_title">Balcony irrigation</h3><p data-i18n="p6_desc">ESP32 and 15 sensors.</p></article>
         </div>
       </section>
 
       <section id="skills">
-        <div class="eyebrow"><h2 data-i18n="eb_skills">Skills</h2><div class="rule"></div></div>
-        <div class="skillrow">
-          <div class="cat" data-i18n="sk_core">Core</div>
-          <div class="items"><span class="chip"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M12.504 0c-.155 0-.315.008-.48.021-4.226.333-3.105 4.807-3.17 6.298-.076 1.092-.3 1.953-1.05 3.02-.885 1.051-2.127 2.75-2.716 4.521-.278.832-.41 1.684-.287 2.489a.424.424 0 00-.11.135c-.26.268-.45.6-.663.839-.199.199-.485.267-.797.4-.313.136-.658.269-.864.68-.09.189-.136.394-.132.602 0 .199.027.4.055.536.058.399.116.728.04.97-.249.68-.28 1.145-.106 1.484.174.334.535.47.94.601.81.2 1.91.135 2.774.6.926.466 1.866.67 2.616.47.526-.116.97-.464 1.208-.946.587-.003 1.23-.269 2.26-.334.699-.058 1.574.267 2.577.2.025.134.063.198.114.333l.003.003c.391.778 1.113 1.132 1.884 1.071.771-.06 1.592-.536 2.257-1.306.631-.765 1.683-1.084 2.378-1.503.348-.199.629-.469.649-.853.023-.4-.2-.811-.714-1.376v-.097l-.003-.003c-.17-.2-.25-.535-.338-.926-.085-.401-.182-.786-.492-1.046h-.003c-.059-.054-.123-.067-.188-.135a.357.357 0 00-.19-.064c.431-1.278.264-2.55-.173-3.694-.533-1.41-1.465-2.638-2.175-3.483-.796-1.005-1.576-1.957-1.56-3.368.026-2.152.236-6.133-3.544-6.139zm.529 3.405h.013c.213 0 .396.062.584.198.19.135.33.332.438.533.105.259.158.459.166.724 0-.02.006-.04.006-.06v.105a.086.086 0 01-.004-.021l-.004-.024a1.807 1.807 0 01-.15.706.953.953 0 01-.213.335.71.71 0 00-.088-.042c-.104-.045-.198-.064-.284-.133a1.312 1.312 0 00-.22-.066c.05-.06.146-.133.183-.198.053-.128.082-.264.088-.402v-.02a1.21 1.21 0 00-.061-.4c-.045-.134-.101-.2-.183-.333-.084-.066-.167-.132-.267-.132h-.016c-.093 0-.176.03-.262.132a.8.8 0 00-.205.334 1.18 1.18 0 00-.09.4v.019c.002.089.008.179.02.267-.193-.067-.438-.135-.607-.202a1.635 1.635 0 01-.018-.2v-.02a1.772 1.772 0 01.15-.768c.082-.22.232-.406.43-.533a.985.985 0 01.594-.2zm-2.962.059h.036c.142 0 .27.048.399.135.146.129.264.288.344.465.09.199.14.4.153.667v.004c.007.134.006.2-.002.266v.08c-.03.007-.056.018-.083.024-.152.055-.274.135-.393.2.012-.09.013-.18.003-.267v-.015c-.012-.133-.04-.2-.082-.333a.613.613 0 00-.166-.267.248.248 0 00-.183-.064h-.021c-.071.006-.13.04-.186.132a.552.552 0 00-.12.27.944.944 0 00-.023.33v.015c.012.135.037.2.08.334.046.134.098.2.166.268.01.009.02.018.034.024-.07.057-.117.07-.176.136a.304.304 0 01-.131.068 2.62 2.62 0 01-.275-.402 1.772 1.772 0 01-.155-.667 1.759 1.759 0 01.08-.668 1.43 1.43 0 01.283-.535c.128-.133.26-.2.418-.2zm1.37 1.706c.332 0 .733.065 1.216.399.293.2.523.269 1.052.468h.003c.255.136.405.266.478.399v-.131a.571.571 0 01.016.47c-.123.31-.516.643-1.063.842v.002c-.268.135-.501.333-.775.465-.276.135-.588.292-1.012.267a1.139 1.139 0 01-.448-.067 3.566 3.566 0 01-.322-.198c-.195-.135-.363-.332-.612-.465v-.005h-.005c-.4-.246-.616-.512-.686-.71-.07-.268-.005-.47.193-.6.224-.135.38-.271.483-.336.104-.074.143-.102.176-.131h.002v-.003c.169-.202.436-.47.839-.601.139-.036.294-.065.466-.065zm2.8 2.142c.358 1.417 1.196 3.475 1.735 4.473.286.534.855 1.659 1.102 3.024.156-.005.33.018.513.064.646-1.671-.546-3.467-1.089-3.966-.22-.2-.232-.335-.123-.335.59.534 1.365 1.572 1.646 2.757.13.535.16 1.104.021 1.67.067.028.135.06.205.067 1.032.534 1.413.938 1.23 1.537v-.043c-.06-.003-.12 0-.18 0h-.016c.151-.467-.182-.825-1.065-1.224-.915-.4-1.646-.336-1.77.465-.008.043-.013.066-.018.135-.068.023-.139.053-.209.064-.43.268-.662.669-.793 1.187-.13.533-.17 1.156-.205 1.869v.003c-.02.334-.17.838-.319 1.35-1.5 1.072-3.58 1.538-5.348.334a2.645 2.645 0 00-.402-.533 1.45 1.45 0 00-.275-.333c.182 0 .338-.03.465-.067a.615.615 0 00.314-.334c.108-.267 0-.697-.345-1.163-.345-.467-.931-.995-1.788-1.521-.63-.4-.986-.87-1.15-1.396-.165-.534-.143-1.085-.015-1.645.245-1.07.873-2.11 1.274-2.763.107-.065.037.135-.408.974-.396.751-1.14 2.497-.122 3.854a8.123 8.123 0 01.647-2.876c.564-1.278 1.743-3.504 1.836-5.268.048.036.217.135.289.202.218.133.38.333.59.465.21.201.477.335.876.335.039.003.075.006.11.006.412 0 .73-.134.997-.268.29-.134.52-.334.74-.4h.005c.467-.135.835-.402 1.044-.7zm2.185 8.958c.037.6.343 1.245.882 1.377.588.134 1.434-.333 1.791-.765l.211-.01c.315-.007.577.01.847.268l.003.003c.208.199.305.53.391.876.085.4.154.78.409 1.066.486.527.645.906.636 1.14l.003-.007v.018l-.003-.012c-.015.262-.185.396-.498.595-.63.401-1.746.712-2.457 1.57-.618.737-1.37 1.14-2.036 1.191-.664.053-1.237-.2-1.574-.898l-.005-.003c-.21-.4-.12-1.025.056-1.69.176-.668.428-1.344.463-1.897.037-.714.076-1.335.195-1.814.12-.465.308-.797.641-.984l.045-.022zm-10.814.049h.01c.053 0 .105.005.157.014.376.055.706.333 1.023.752l.91 1.664.003.003c.243.533.754 1.064 1.189 1.637.434.598.77 1.131.729 1.57v.006c-.057.744-.48 1.148-1.125 1.294-.645.135-1.52.002-2.395-.464-.968-.536-2.118-.469-2.857-.602-.369-.066-.61-.2-.723-.4-.11-.2-.113-.602.123-1.23v-.004l.002-.003c.117-.334.03-.752-.027-1.118-.055-.401-.083-.71.043-.94.16-.334.396-.4.69-.533.294-.135.64-.202.915-.47h.002v-.002c.256-.268.445-.601.668-.838.19-.201.38-.336.663-.336zm7.159-9.074c-.435.201-.945.535-1.488.535-.542 0-.97-.267-1.28-.466-.154-.134-.28-.268-.373-.335-.164-.134-.144-.333-.074-.333.109.016.129.134.199.2.096.066.215.2.36.333.292.2.68.467 1.167.467.485 0 1.053-.267 1.398-.466.195-.135.445-.334.648-.467.156-.136.149-.267.279-.267.128.016.034.134-.147.332a8.097 8.097 0 01-.69.468zm-1.082-1.583V5.64c-.006-.02.013-.042.029-.05.074-.043.18-.027.26.004.063 0 .16.067.15.135-.006.049-.085.066-.135.066-.055 0-.092-.043-.141-.068-.052-.018-.146-.008-.163-.065zm-.551 0c-.02.058-.113.049-.166.066-.047.025-.086.068-.14.068-.05 0-.13-.02-.136-.068-.01-.066.088-.133.15-.133.08-.031.184-.047.259-.005.019.009.036.03.03.05v.02h.003z"/></svg>Linux</span><span class="chip"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M13.983 11.078h2.119a.186.186 0 00.186-.185V9.006a.186.186 0 00-.186-.186h-2.119a.185.185 0 00-.185.185v1.888c0 .102.083.185.185.185m-2.954-5.43h2.118a.186.186 0 00.186-.186V3.574a.186.186 0 00-.186-.185h-2.118a.185.185 0 00-.185.185v1.888c0 .102.082.185.185.185m0 2.716h2.118a.187.187 0 00.186-.186V6.29a.186.186 0 00-.186-.185h-2.118a.185.185 0 00-.185.185v1.887c0 .102.082.185.185.186m-2.93 0h2.12a.186.186 0 00.184-.186V6.29a.185.185 0 00-.185-.185H8.1a.185.185 0 00-.185.185v1.887c0 .102.083.185.185.186m-2.964 0h2.119a.186.186 0 00.185-.186V6.29a.185.185 0 00-.185-.185H5.136a.186.186 0 00-.186.185v1.887c0 .102.084.185.186.186m5.893 2.715h2.118a.186.186 0 00.186-.185V9.006a.186.186 0 00-.186-.186h-2.118a.185.185 0 00-.185.185v1.888c0 .102.082.185.185.185m-2.93 0h2.12a.185.185 0 00.184-.185V9.006a.185.185 0 00-.184-.186h-2.12a.185.185 0 00-.184.185v1.888c0 .102.083.185.185.185m-2.964 0h2.119a.185.185 0 00.185-.185V9.006a.185.185 0 00-.184-.186h-2.12a.186.186 0 00-.186.186v1.887c0 .102.084.185.186.185m-2.92 0h2.12a.185.185 0 00.184-.185V9.006a.185.185 0 00-.184-.186h-2.12a.185.185 0 00-.184.185v1.888c0 .102.082.185.185.185M23.763 9.89c-.065-.051-.672-.51-1.954-.51-.338.001-.676.03-1.01.087-.248-1.7-1.653-2.53-1.716-2.566l-.344-.199-.226.327c-.284.438-.49.922-.612 1.43-.23.97-.09 1.882.403 2.661-.595.332-1.55.413-1.744.42H.751a.751.751 0 00-.75.748 11.376 11.376 0 00.692 4.062c.545 1.428 1.355 2.48 2.41 3.124 1.18.723 3.1 1.137 5.275 1.137.983.003 1.963-.086 2.93-.266a12.248 12.248 0 003.823-1.389c.98-.567 1.86-1.288 2.61-2.136 1.252-1.418 1.998-2.997 2.553-4.4h.221c1.372 0 2.215-.549 2.68-1.009.309-.293.55-.65.707-1.046l.098-.288Z"/></svg>Docker</span><span class="chip"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M13.983 11.078h2.119a.186.186 0 00.186-.185V9.006a.186.186 0 00-.186-.186h-2.119a.185.185 0 00-.185.185v1.888c0 .102.083.185.185.185m-2.954-5.43h2.118a.186.186 0 00.186-.186V3.574a.186.186 0 00-.186-.185h-2.118a.185.185 0 00-.185.185v1.888c0 .102.082.185.185.185m0 2.716h2.118a.187.187 0 00.186-.186V6.29a.186.186 0 00-.186-.185h-2.118a.185.185 0 00-.185.185v1.887c0 .102.082.185.185.186m-2.93 0h2.12a.186.186 0 00.184-.186V6.29a.185.185 0 00-.185-.185H8.1a.185.185 0 00-.185.185v1.887c0 .102.083.185.185.186m-2.964 0h2.119a.186.186 0 00.185-.186V6.29a.185.185 0 00-.185-.185H5.136a.186.186 0 00-.186.185v1.887c0 .102.084.185.186.186m5.893 2.715h2.118a.186.186 0 00.186-.185V9.006a.186.186 0 00-.186-.186h-2.118a.185.185 0 00-.185.185v1.888c0 .102.082.185.185.185m-2.93 0h2.12a.185.185 0 00.184-.185V9.006a.185.185 0 00-.184-.186h-2.12a.185.185 0 00-.184.185v1.888c0 .102.083.185.185.185m-2.964 0h2.119a.185.185 0 00.185-.185V9.006a.185.185 0 00-.184-.186h-2.12a.186.186 0 00-.186.186v1.887c0 .102.084.185.186.185m-2.92 0h2.12a.185.185 0 00.184-.185V9.006a.185.185 0 00-.184-.186h-2.12a.185.185 0 00-.184.185v1.888c0 .102.082.185.185.185M23.763 9.89c-.065-.051-.672-.51-1.954-.51-.338.001-.676.03-1.01.087-.248-1.7-1.653-2.53-1.716-2.566l-.344-.199-.226.327c-.284.438-.49.922-.612 1.43-.23.97-.09 1.882.403 2.661-.595.332-1.55.413-1.744.42H.751a.751.751 0 00-.75.748 11.376 11.376 0 00.692 4.062c.545 1.428 1.355 2.48 2.41 3.124 1.18.723 3.1 1.137 5.275 1.137.983.003 1.963-.086 2.93-.266a12.248 12.248 0 003.823-1.389c.98-.567 1.86-1.288 2.61-2.136 1.252-1.418 1.998-2.997 2.553-4.4h.221c1.372 0 2.215-.549 2.68-1.009.309-.293.55-.65.707-1.046l.098-.288Z"/></svg>Docker Compose</span><span class="chip"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M21.038,4.9l-7.577-4.498C13.009,0.134,12.505,0,12,0c-0.505,0-1.009,0.134-1.462,0.403L2.961,4.9 C2.057,5.437,1.5,6.429,1.5,7.503v8.995c0,1.073,0.557,2.066,1.462,2.603l7.577,4.497C10.991,23.866,11.495,24,12,24 c0.505,0,1.009-0.134,1.461-0.402l7.577-4.497c0.904-0.537,1.462-1.529,1.462-2.603V7.503C22.5,6.429,21.943,5.437,21.038,4.9z M15.17,18.946l0.013,0.646c0.001,0.078-0.05,0.167-0.111,0.198l-0.383,0.22c-0.061,0.031-0.111-0.007-0.112-0.085L14.57,19.29 c-0.328,0.136-0.66,0.169-0.872,0.084c-0.04-0.016-0.057-0.075-0.041-0.142l0.139-0.584c0.011-0.046,0.036-0.092,0.069-0.121 c0.012-0.011,0.024-0.02,0.036-0.026c0.022-0.011,0.043-0.014,0.062-0.006c0.229,0.077,0.521,0.041,0.802-0.101 c0.357-0.181,0.596-0.545,0.592-0.907c-0.003-0.328-0.181-0.465-0.613-0.468c-0.55,0.001-1.064-0.107-1.072-0.917 c-0.007-0.667,0.34-1.361,0.889-1.8l-0.007-0.652c-0.001-0.08,0.048-0.168,0.111-0.2l0.37-0.236 c0.061-0.031,0.111,0.007,0.112,0.087l0.006,0.653c0.273-0.109,0.511-0.138,0.726-0.088c0.047,0.012,0.067,0.076,0.048,0.151 l-0.144,0.578c-0.011,0.044-0.036,0.088-0.065,0.116c-0.012,0.012-0.025,0.021-0.038,0.028c-0.019,0.01-0.038,0.013-0.057,0.009 c-0.098-0.022-0.332-0.073-0.699,0.113c-0.385,0.195-0.52,0.53-0.517,0.778c0.003,0.297,0.155,0.387,0.681,0.396 c0.7,0.012,1.003,0.318,1.01,1.023C16.105,17.747,15.736,18.491,15.17,18.946z M19.143,17.859c0,0.06-0.008,0.116-0.058,0.145 l-1.916,1.164c-0.05,0.029-0.09,0.004-0.09-0.056v-0.494c0-0.06,0.037-0.093,0.087-0.122l1.887-1.129 c0.05-0.029,0.09-0.004,0.09,0.056V17.859z M20.459,6.797l-7.168,4.427c-0.894,0.523-1.553,1.109-1.553,2.187v8.833 c0,0.645,0.26,1.063,0.66,1.184c-0.131,0.023-0.264,0.039-0.398,0.039c-0.42,0-0.833-0.114-1.197-0.33L3.226,18.64 c-0.741-0.44-1.201-1.261-1.201-2.142V7.503c0-0.881,0.46-1.702,1.201-2.142l7.577-4.498c0.363-0.216,0.777-0.33,1.197-0.33 c0.419,0,0.833,0.114,1.197,0.33l7.577,4.498c0.624,0.371,1.046,1.013,1.164,1.732C21.686,6.557,21.12,6.411,20.459,6.797z"/></svg>Bash</span><span class="chip"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0L1.605 6v12L12 24l10.395-6V6L12 0zm6 16.59c0 .705-.646 1.29-1.529 1.29-.631 0-1.351-.255-1.801-.81l-6-7.141v6.66c0 .721-.57 1.29-1.274 1.29H7.32c-.721 0-1.29-.6-1.29-1.29V7.41c0-.705.63-1.29 1.5-1.29.646 0 1.38.255 1.83.81l5.97 7.141V7.41c0-.721.6-1.29 1.29-1.29h.075c.72 0 1.29.6 1.29 1.29v9.18H18z"/></svg>Nginx</span><span class="chip"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15.5 0 18M12 3c-2.5 2.5-2.5 15.5 0 18"/></svg>DNS</span><span class="chip"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>SSL/TLS</span><span class="chip"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.372 0 12c0 6.627 5.373 12 12 12s12-5.373 12-12c0-6.628-5.373-12-12-12zm0 22.46c-1.885 0-3.414-1.26-3.414-2.814h6.828c0 1.553-1.528 2.813-3.414 2.813zm5.64-3.745H6.36v-2.046h11.28v2.046zm-.04-3.098H6.391c-.037-.043-.075-.086-.111-.13-1.155-1.401-1.427-2.133-1.69-2.879-.005-.025 1.4.287 2.395.511 0 0 .513.119 1.262.255-.72-.843-1.147-1.915-1.147-3.01 0-2.406 1.845-4.508 1.18-6.207.648.053 1.34 1.367 1.387 3.422.689-.951.977-2.69.977-3.755 0-1.103.727-2.385 1.454-2.429-.648 1.069.168 1.984.894 4.256.272.854.237 2.29.447 3.201.07-1.892.395-4.652 1.595-5.605-.529 1.2.079 2.702.494 3.424.671 1.164 1.078 2.047 1.078 3.716a4.642 4.642 0 01-1.11 2.996c.792-.149 1.34-.283 1.34-.283l2.573-.502s-.374 1.538-1.81 3.019z"/></svg>Prometheus</span><span class="chip"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M23.02 10.59a8.578 8.578 0 0 0-.862-3.034 8.911 8.911 0 0 0-1.789-2.445c.337-1.342-.413-2.505-.413-2.505-1.292-.08-2.113.4-2.416.62-.052-.02-.102-.044-.154-.064-.22-.089-.446-.172-.677-.247-.231-.073-.47-.14-.711-.197a9.867 9.867 0 0 0-.875-.161C14.557.753 12.94 0 12.94 0c-1.804 1.145-2.147 2.744-2.147 2.744l-.018.093c-.098.029-.2.057-.298.088-.138.042-.275.094-.413.143-.138.055-.275.107-.41.166a8.869 8.869 0 0 0-1.557.87l-.063-.029c-2.497-.955-4.716.195-4.716.195-.203 2.658.996 4.33 1.235 4.636a11.608 11.608 0 0 0-.607 2.635C1.636 12.677.953 15.014.953 15.014c1.926 2.214 4.171 2.351 4.171 2.351.003-.002.006-.002.006-.005.285.509.615.994.986 1.446.156.19.32.371.488.548-.704 2.009.099 3.68.099 3.68 2.144.08 3.553-.937 3.849-1.173a9.784 9.784 0 0 0 3.164.501h.08l.055-.003.107-.002.103-.005.003.002c1.01 1.44 2.788 1.646 2.788 1.646 1.264-1.332 1.337-2.653 1.337-2.94v-.058c0-.02-.003-.039-.003-.06.265-.187.52-.387.758-.6a7.875 7.875 0 0 0 1.415-1.7c1.43.083 2.437-.885 2.437-.885-.236-1.49-1.085-2.216-1.264-2.354l-.018-.013-.016-.013a.217.217 0 0 1-.031-.02c.008-.092.016-.18.02-.27.011-.162.016-.323.016-.48v-.253l-.005-.098-.008-.135a1.891 1.891 0 0 0-.01-.13c-.003-.042-.008-.083-.013-.125l-.016-.124-.018-.122a6.215 6.215 0 0 0-2.032-3.73 6.015 6.015 0 0 0-3.222-1.46 6.292 6.292 0 0 0-.85-.048l-.107.002h-.063l-.044.003-.104.008a4.777 4.777 0 0 0-3.335 1.695c-.332.4-.592.84-.768 1.297a4.594 4.594 0 0 0-.312 1.817l.003.091c.005.055.007.11.013.164a3.615 3.615 0 0 0 .698 1.82 3.53 3.53 0 0 0 1.827 1.282c.33.098.66.14.971.137.039 0 .078 0 .114-.002l.063-.003c.02 0 .041-.003.062-.003.034-.002.065-.007.099-.01.007 0 .018-.003.028-.003l.031-.005.06-.008a1.18 1.18 0 0 0 .112-.02c.036-.008.072-.013.109-.024a2.634 2.634 0 0 0 .914-.415c.028-.02.056-.041.085-.065a.248.248 0 0 0 .039-.35.244.244 0 0 0-.309-.06l-.078.042c-.09.044-.184.083-.283.116a2.476 2.476 0 0 1-.475.096c-.028.003-.054.006-.083.006l-.083.002c-.026 0-.054 0-.08-.002l-.102-.006h-.012l-.024.006c-.016-.003-.031-.003-.044-.006-.031-.002-.06-.007-.091-.01a2.59 2.59 0 0 1-.724-.213 2.557 2.557 0 0 1-.667-.438 2.52 2.52 0 0 1-.805-1.475 2.306 2.306 0 0 1-.029-.444l.006-.122v-.023l.002-.031c.003-.021.003-.04.005-.06a3.163 3.163 0 0 1 1.352-2.29 3.12 3.12 0 0 1 .937-.43 2.946 2.946 0 0 1 .776-.101h.06l.07.002.045.003h.026l.07.005a4.041 4.041 0 0 1 1.635.49 3.94 3.94 0 0 1 1.602 1.662 3.77 3.77 0 0 1 .397 1.414l.005.076.003.075c.002.026.002.05.002.075 0 .024.003.052 0 .07v.065l-.002.073-.008.174a6.195 6.195 0 0 1-.08.639 5.1 5.1 0 0 1-.267.927 5.31 5.31 0 0 1-.624 1.13 5.052 5.052 0 0 1-3.237 2.014 4.82 4.82 0 0 1-.649.066l-.039.003h-.287a6.607 6.607 0 0 1-1.716-.265 6.776 6.776 0 0 1-3.4-2.274 6.75 6.75 0 0 1-.746-1.15 6.616 6.616 0 0 1-.714-2.596l-.005-.083-.002-.02v-.056l-.003-.073v-.096l-.003-.104v-.07l.003-.163c.008-.22.026-.45.054-.678a8.707 8.707 0 0 1 .28-1.355c.128-.444.286-.872.473-1.277a7.04 7.04 0 0 1 1.456-2.1 5.925 5.925 0 0 1 .953-.763c.169-.111.343-.213.524-.306.089-.05.182-.091.273-.135.047-.02.093-.042.138-.062a7.177 7.177 0 0 1 .714-.267l.145-.045c.049-.015.098-.026.148-.041.098-.029.197-.052.296-.076.049-.013.1-.02.15-.033l.15-.032.151-.028.076-.013.075-.01.153-.024c.057-.01.114-.013.171-.023l.169-.021c.036-.003.073-.008.106-.01l.073-.008.036-.003.042-.002c.057-.003.114-.008.171-.01l.086-.006h.023l.037-.003.145-.007a7.999 7.999 0 0 1 1.708.125 7.917 7.917 0 0 1 2.048.68 8.253 8.253 0 0 1 1.672 1.09l.09.077.089.078c.06.052.114.107.171.159.057.052.112.106.166.16.052.055.107.107.159.164a8.671 8.671 0 0 1 1.41 1.978c.012.026.028.052.04.078l.04.078.075.156c.023.051.05.1.07.153l.065.15a8.848 8.848 0 0 1 .45 1.34.19.19 0 0 0 .201.142.186.186 0 0 0 .172-.184c.01-.246.002-.532-.024-.856z"/></svg>Grafana</span><span class="chip"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>systemd</span><span class="chip"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M13.09 23.549a1.54 1.54 0 0 1-2.18 0L.451 13.089a1.54 1.54 0 0 1 0-2.179l7.191-7.19 2.733 2.733a1.85 1.85 0 0 0 .964 2.326v6.66a1.849 1.849 0 1 0 1.54 0V8.957l2.508 2.508a1.85 1.85 0 1 0 1.09-1.09l-2.634-2.634a1.85 1.85 0 0 0-2.378-2.377L8.73 2.63 10.91.451a1.54 1.54 0 0 1 2.179 0l10.459 10.46a1.54 1.54 0 0 1 0 2.179z"/></svg>Git</span></div>
-        </div>
-        <div class="skillrow">
-          <div class="cat" data-i18n="sk_working">Working with</div>
-          <div class="items"><span class="chip"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M14.25.18l.9.2.73.26.59.3.45.32.34.34.25.34.16.33.1.3.04.26.02.2-.01.13V8.5l-.05.63-.13.55-.21.46-.26.38-.3.31-.33.25-.35.19-.35.14-.33.1-.3.07-.26.04-.21.02H8.77l-.69.05-.59.14-.5.22-.41.27-.33.32-.27.35-.2.36-.15.37-.1.35-.07.32-.04.27-.02.21v3.06H3.17l-.21-.03-.28-.07-.32-.12-.35-.18-.36-.26-.36-.36-.35-.46-.32-.59-.28-.73-.21-.88-.14-1.05-.05-1.23.06-1.22.16-1.04.24-.87.32-.71.36-.57.4-.44.42-.33.42-.24.4-.16.36-.1.32-.05.24-.01h.16l.06.01h8.16v-.83H6.18l-.01-2.75-.02-.37.05-.34.11-.31.17-.28.25-.26.31-.23.38-.2.44-.18.51-.15.58-.12.64-.1.71-.06.77-.04.84-.02 1.27.05zm-6.3 1.98l-.23.33-.08.41.08.41.23.34.33.22.41.09.41-.09.33-.22.23-.34.08-.41-.08-.41-.23-.33-.33-.22-.41-.09-.41.09zm13.09 3.95l.28.06.32.12.35.18.36.27.36.35.35.47.32.59.28.73.21.88.14 1.04.05 1.23-.06 1.23-.16 1.04-.24.86-.32.71-.36.57-.4.45-.42.33-.42.24-.4.16-.36.09-.32.05-.24.02-.16-.01h-8.22v.82h5.84l.01 2.76.02.36-.05.34-.11.31-.17.29-.25.25-.31.24-.38.2-.44.17-.51.15-.58.13-.64.09-.71.07-.77.04-.84.01-1.27-.04-1.07-.14-.9-.2-.73-.25-.59-.3-.45-.33-.34-.34-.25-.34-.16-.33-.1-.3-.04-.25-.02-.2.01-.13v-5.34l.05-.64.13-.54.21-.46.26-.38.3-.32.33-.24.35-.2.35-.14.33-.1.3-.06.26-.04.21-.02.13-.01h5.84l.69-.05.59-.14.5-.21.41-.28.33-.32.27-.35.2-.36.15-.36.1-.35.07-.32.04-.28.02-.21V6.07h2.09l.14.01zm-6.47 14.25l-.23.33-.08.41.08.41.23.33.33.23.41.08.41-.08.33-.23.23-.33.08-.41-.08-.41-.23-.33-.33-.23-.41-.08-.41.08z"/></svg>Python</span><span class="chip"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4a3 3 0 0 0-3 3v1.5a2 2 0 0 1-2 2 2 2 0 0 1 2 2V16a3 3 0 0 0 3 3"/><path d="M16 4a3 3 0 0 1 3 3v1.5a2 2 0 0 0 2 2 2 2 0 0 0-2 2V16a3 3 0 0 1-3 3"/></svg>REST APIs</span><span class="chip"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M22.939 10.627 13.061.749a1.505 1.505 0 0 0-2.121 0l-9.879 9.878C.478 11.21 0 12.363 0 13.187v9c0 .826.675 1.5 1.5 1.5h9.227l-4.063-4.062a2.034 2.034 0 0 1-.664.113c-1.13 0-2.05-.92-2.05-2.05s.92-2.05 2.05-2.05 2.05.92 2.05 2.05c0 .233-.041.456-.113.665l3.163 3.163V9.928a2.05 2.05 0 0 1-1.15-1.84c0-1.13.92-2.05 2.05-2.05s2.05.92 2.05 2.05a2.05 2.05 0 0 1-1.15 1.84v8.127l3.146-3.146A2.051 2.051 0 0 1 18 12.239c1.13 0 2.05.92 2.05 2.05s-.92 2.05-2.05 2.05c-.25 0-.488-.047-.709-.13L12.9 20.602v3.088h9.6c.825 0 1.5-.675 1.5-1.5v-9c0-.825-.477-1.977-1.061-2.561z"/></svg>Home Assistant</span><span class="chip"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M12.926 19.324a7.6 7.6 0 00-2.983-6.754 7.44 7.44 0 00-3.828-1.554.697.697 0 01-.606-.731.674.674 0 01.743-.617 8.97 8.97 0 018 9.805 7.828 7.828 0 01-.298 1.542l1.989.56a11.039 11.039 0 001.714-.651 12.159 12.159 0 00.217-2.343A12.57 12.57 0 007.212 6.171a5.53 5.53 0 00-2 0 4.354 4.354 0 00-2.16 1.337 4.274 4.274 0 001.909 6.856 9.896 9.896 0 001.074.195 4.011 4.011 0 013.337 3.954 3.965 3.965 0 01-.64 2.16l1.371.88a10.182 10.182 0 002.057.342 7.52 7.52 0 00.754-2.628m.16 4.73A13.073 13.073 0 01.001 10.983 12.982 12.982 0 013.83 1.737l.743.697a12.067 12.067 0 000 17.141 12.067 12.067 0 0017.141 0l.697.697a12.97 12.97 0 01-9.336 3.726M24 10.993A10.993 10.993 0 0012.949 0c-.389 0-.766 0-1.143.057l-.252.732a18.912 18.912 0 0111.588 11.576l.731-.263c0-.366.069-.732.069-1.143m-1.269 5.165A17.53 17.53 0 007.818 1.27a11.119 11.119 0 00-2.457 1.77v1.635A13.919 13.919 0 0119.268 18.57h1.634a11.713 11.713 0 001.771-2.446M7.92 17.884a1.691 1.691 0 11-1.69-1.691 1.691 1.691 0 011.69 1.691"/></svg>ESP32 / IoT</span><span class="chip"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="m0 .97 4.111 6.453v4.09h2.638v-4.09L11.053.969H8.214L5.58 5.125 2.965.969Zm12.093.024-4.47 10.544h2.114l.97-2.345h4.775l.804 2.345h2.26L14.255.994Zm1.133 2.225 1.463 3.87h-3.096zm3.06 9.475v10.29H24v-2.199h-5.454v-8.091zm-12.175.002v10.335h2.217v-7.129l2.32 4.792h1.746l2.4-4.96v7.295h2.127V12.696h-2.904L9.44 17.37l-2.455-4.674Z"/></svg>YAML</span><span class="chip"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M21.678.521c-1.032-.92-2.28-.55-3.513.544a8.71 8.71 0 0 0-.547.535c-2.109 2.237-4.066 6.38-4.674 9.544.237.48.422 1.093.544 1.561a13.044 13.044 0 0 1 .164.703s-.019-.071-.096-.296l-.05-.146a1.689 1.689 0 0 0-.033-.08c-.138-.32-.518-.995-.686-1.289-.143.423-.27.818-.376 1.176.484.884.778 2.4.778 2.4s-.025-.099-.147-.442c-.107-.303-.644-1.244-.772-1.464-.217.804-.304 1.346-.226 1.478.152.256.296.698.422 1.186.286 1.1.485 2.44.485 2.44l.017.224a22.41 22.41 0 0 0 .056 2.748c.095 1.146.273 2.13.5 2.657l.155-.084c-.334-1.038-.47-2.399-.41-3.967.09-2.398.642-5.29 1.661-8.304 1.723-4.55 4.113-8.201 6.3-9.945-1.993 1.8-4.692 7.63-5.5 9.788-.904 2.416-1.545 4.684-1.931 6.857.666-2.037 2.821-2.912 2.821-2.912s1.057-1.304 2.292-3.166c-.74.169-1.955.458-2.362.629-.6.251-.762.337-.762.337s1.945-1.184 3.613-1.72C21.695 7.9 24.195 2.767 21.678.521m-18.573.543A1.842 1.842 0 0 0 1.27 2.9v16.608a1.84 1.84 0 0 0 1.835 1.834h9.418a22.953 22.953 0 0 1-.052-2.707c-.006-.062-.011-.141-.016-.2a27.01 27.01 0 0 0-.473-2.378c-.121-.47-.275-.898-.369-1.057-.116-.197-.098-.31-.097-.432 0-.12.015-.245.037-.386a9.98 9.98 0 0 1 .234-1.045l.217-.028c-.017-.035-.014-.065-.031-.097l-.041-.381a32.8 32.8 0 0 1 .382-1.194l.2-.019c-.008-.016-.01-.038-.018-.053l-.043-.316c.63-3.28 2.587-7.443 4.8-9.791.066-.069.133-.128.198-.194Z"/></svg>SQLite</span></div>
-        </div>
-        <div class="skillrow">
-          <div class="cat" data-i18n="sk_learning">Learning</div>
-          <div class="items"><span class="chip"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M10.617 11.473l4.686 3.695-3.102-7.662zM12 0C5.371 0 0 5.371 0 12s5.371 12 12 12 12-5.371 12-12S18.629 0 12 0zm5.797 17.305c-.011.471-.403.842-.875.83-.236 0-.416-.09-.664-.293l-6.19-5-2.079 5.203H6.191L11.438 5.44c.124-.314.427-.52.764-.506.326-.014.63.189.742.506l4.774 11.494c.045.111.08.234.08.348-.001.009-.001.009-.001.023z"/></svg>Ansible</span><span class="chip"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M1.44 0v7.575l6.561 3.79V3.787zm21.12 4.227l-6.561 3.791v7.574l6.56-3.787zM8.72 4.23v7.575l6.561 3.787V8.018zm0 8.405v7.575L15.28 24v-7.578z"/></svg>Terraform</span><span class="chip"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19a4.5 4.5 0 0 0 0-9 6 6 0 0 0-11.64-1.5A4 4 0 0 0 6 19z"/></svg>AWS</span></div>
-        </div>
-        <div class="skillrow">
-          <div class="cat" data-i18n="sk_found">Foundations</div>
-          <div class="items"><span class="chip"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4"/></svg>Networking</span><span class="chip"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></svg>SSH/FTP</span><span class="chip"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M7.01 10.207h-.944l-.515 2.648h.838c.556 0 .97-.105 1.242-.314.272-.21.455-.559.55-1.049.092-.47.05-.802-.124-.995-.175-.193-.523-.29-1.047-.29zM12 5.688C5.373 5.688 0 8.514 0 12s5.373 6.313 12 6.313S24 15.486 24 12c0-3.486-5.373-6.312-12-6.312zm-3.26 7.451c-.261.25-.575.438-.917.551-.336.108-.765.164-1.285.164H5.357l-.327 1.681H3.652l1.23-6.326h2.65c.797 0 1.378.209 1.744.628.366.418.476 1.002.33 1.752a2.836 2.836 0 0 1-.305.847c-.143.255-.33.49-.561.703zm4.024.715l.543-2.799c.063-.318.039-.536-.068-.651-.107-.116-.336-.174-.687-.174H11.46l-.704 3.625H9.388l1.23-6.327h1.367l-.327 1.682h1.218c.767 0 1.295.134 1.586.401s.378.7.263 1.299l-.572 2.944h-1.389zm7.597-2.265a2.782 2.782 0 0 1-.305.847c-.143.255-.33.49-.561.703a2.44 2.44 0 0 1-.917.551c-.336.108-.765.164-1.286.164h-1.18l-.327 1.682h-1.378l1.23-6.326h2.649c.797 0 1.378.209 1.744.628.366.417.477 1.001.331 1.751zM17.766 10.207h-.943l-.516 2.648h.838c.557 0 .971-.105 1.242-.314.272-.21.455-.559.551-1.049.092-.47.049-.802-.125-.995s-.524-.29-1.047-.29z"/></svg>PHP</span><span class="chip"><svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M1.5 0h21l-1.91 21.563L11.977 24l-8.564-2.438L1.5 0zm7.031 9.75l-.232-2.718 10.059.003.23-2.622L5.412 4.41l.698 8.01h9.126l-.326 3.426-2.91.804-2.955-.81-.188-2.11H6.248l.33 4.171L12 19.351l5.379-1.443.744-8.157H8.531z"/></svg>HTML / CSS</span></div>
-        </div>
+        <div class="section-heading"><h2 data-i18n="skills_title">Skills</h2></div>
+        <dl class="skill-list">
+          <div class="skill-row"><dt data-i18n="skills_core">Core</dt><dd data-i18n="skills_core_items">Linux · Docker · Bash · Nginx</dd></div>
+          <div class="skill-row"><dt data-i18n="skills_working">Working knowledge</dt><dd data-i18n="skills_working_items">Python · APIs · Home Assistant</dd></div>
+          <div class="skill-row"><dt data-i18n="skills_learning">Learning</dt><dd data-i18n="skills_learning_items">Ansible · Terraform · AWS</dd></div>
+          <div class="skill-row"><dt data-i18n="skills_foundations">Foundations</dt><dd data-i18n="skills_foundations_items">SSH · PHP · HTML</dd></div>
+        </dl>
       </section>
 
       <section id="education">
-        <div class="eyebrow"><h2 data-i18n="eb_edu">Education &amp; Certs</h2><div class="rule"></div></div>
-        <div class="edu">
-          <div class="row">
-            <div class="when" data-i18n="ed1_w">Ongoing</div>
-            <div><h3>The Linux Command Line (TLCL)</h3><div class="sub" data-i18n="ed1_s">Self-study · chapters 1–13 · applied daily in homelab</div></div>
-          </div>
-          <div class="row">
-            <div class="when">2011 — 2013</div>
-            <div><h3 data-i18n="ed2_t">Multimedia Communication</h3><div class="sub" data-i18n="ed2_s">Rīga Stradiņš University · partial (program not completed)</div></div>
-          </div>
-          <div class="row">
-            <div class="when">2004 — 2011</div>
-            <div><h3 data-i18n="ed3_t">Secondary Education</h3><div class="sub" data-i18n="ed3_s">Riga 45th Secondary School · Latvia</div></div>
-          </div>
+        <div class="section-heading"><h2 data-i18n="education_title">Education and learning</h2></div>
+        <div class="education-list">
+          <article class="education-row"><time data-i18n="ed1_dates">Ongoing</time><div><h3 data-i18n="ed1_title">The Linux Command Line</h3><p data-i18n="ed1_sub">Self-study</p></div></article>
+          <article class="education-row"><time data-i18n="ed2_dates">2011 – 2013</time><div><h3 data-i18n="ed2_title">Multimedia Communication</h3><p data-i18n="ed2_sub">Partial studies</p></div></article>
+          <article class="education-row"><time data-i18n="ed3_dates">2004 – 2011</time><div><h3 data-i18n="ed3_title">Secondary Education</h3><p data-i18n="ed3_sub">Riga 45th Secondary School</p></div></article>
         </div>
       </section>
 
-      <div class="foot">
-        <span class="pulse"></span>
-        <span><span data-i18n-html="foot_text">This page is <b>served live</b> from a <b>Raspberry Pi 5</b> I built and operate <span class="sep">·</span> Docker + Nginx + Cloudflare Tunnel <span class="sep">·</span> last refresh</span> <span id="footTime">—</span></span>
-      </div>
-
+      <footer class="footer-card card" data-i18n="footer">Served live from a Raspberry Pi 5 I build, operate and monitor.</footer>
     </main>
   </div>
 
-  <button class="fab" id="fab" onclick="toggleChat(true)" aria-label="Open CV assistant">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"/></svg>
-    <span data-i18n="chat_fab">Ask my CV assistant</span>
-  </button>
+  <button id="chatLauncher" class="chat-launcher" type="button" data-i18n="chat_open">Ask the CV assistant</button>
 
-  <div class="chat" id="chat" role="dialog" aria-label="CV assistant">
-    <div class="head">
-      <div>
-        <div class="t" data-i18n="chat_t">CV Assistant</div>
-        <div class="s" data-i18n="chat_s">skills · projects · experience</div>
+  <div id="chatBackdrop" class="dialog-backdrop" hidden>
+    <section id="chatDialog" class="chat-dialog" role="dialog" aria-modal="true" aria-labelledby="chatTitle" aria-describedby="chatPrivacy">
+      <header class="chat-head">
+        <div><h2 id="chatTitle" data-i18n="chat_title">CV Assistant</h2><p data-i18n="chat_subtitle">Skills · projects · experience</p></div>
+        <button id="chatClose" class="icon-button" type="button" data-i18n-label="chat_close" aria-label="Close assistant">×</button>
+      </header>
+      <div id="chatLog" class="chat-log" role="log" aria-live="polite" aria-relevant="additions" aria-atomic="false">
+        <div class="message bot" role="listitem" data-i18n="chat_greeting">Hi — ask me about Andris's experience.</div>
       </div>
-      <button class="x" onclick="toggleChat(false)" aria-label="Close">×</button>
-    </div>
-    <div class="body" id="chBody">
-      <div class="msg bot" id="chGreeting" data-i18n="chat_hi">Hi — I'm Andris's CV assistant. Ask me anything about his DevOps skills, homelab projects, experience or availability.</div>
-    </div>
-    <div class="note" data-i18n="chat_note">Answers questions about this CV only · no access to personal data or systems</div>
-    <div class="input">
-      <input id="chInput" type="text" data-i18n-ph="chat_ph" placeholder="e.g. What's his Docker experience?" maxlength="500"
-             onkeydown="if(event.key==='Enter')sendChat()" aria-label="Your question">
-      <button id="chSend" onclick="sendChat()" aria-label="Send">→</button>
-    </div>
+      <p id="chatPrivacy" class="chat-privacy" data-i18n="chat_privacy">Messages are processed by the configured LLM provider and retained for up to 7 days under a pseudonymous identifier.</p>
+      <div id="chatStatus" class="chat-status" role="status" aria-live="polite"></div>
+      <form id="chatForm" class="chat-form" aria-busy="false">
+        <label class="skip-link" for="chatInput" data-i18n="chat_input">Ask about Andris's experience</label>
+        <input id="chatInput" name="message" type="text" maxlength="500" autocomplete="off" data-i18n-placeholder="chat_input" placeholder="Ask about Andris's experience">
+        <button id="chatSend" class="button" type="submit" data-i18n="chat_send">Send</button>
+      </form>
+    </section>
   </div>
 
-<script>
-  // ── i18n ──
-  const I18N = {"en": {"role": "Junior DevOps &amp; Linux Engineer", "tagline": "I build and automate Linux infrastructure — increasingly with AI agents in the loop. This page runs on it.", "fp1": "AI-augmented ops", "fp2": "Automation", "fp3": "Home Assistant", "nav_about": "About", "nav_stats": "Live Homelab", "nav_exp": "Experience", "nav_proj": "Projects", "nav_skills": "Skills", "nav_edu": "Education", "loc": "44319 Dortmund, Germany", "lang_lv": "Latvian", "lang_en": "English", "lang_de": "German", "lvl_native": "native", "lvl_fluent": "fluent", "lvl_b1": "B1", "phone": "+49 176 8513 4770", "btn_smart": "Smart-home demo", "eb_about": "About", "eb_stats": "Live Homelab", "eb_exp": "Experience", "eb_proj": "Projects", "eb_skills": "Skills", "eb_edu": "Education & Certs", "about_p1": "I'm a self-taught Linux and DevOps engineer based in Dortmund, making a deliberate move back into IT. My first hands-on experience came in secondary school — running Linux-based game servers over SSH/FTP and modifying PHP forums and HTML sites. After 14 years building a career in logistics and warehouse management, I'm returning to the work I've always been drawn to, now with the discipline and reliability those years gave me.", "about_p2": "Today I design, deploy and operate a production homelab on a Raspberry&nbsp;Pi&nbsp;5: 12+ Docker services, a full monitoring stack, DNS filtering, an AI agent and home automation, all running 24/7. <strong>The numbers below are real and pulled live from that infrastructure — this page is served from it.</strong> I'm aiming for a Junior DevOps / Linux Systems Administrator role, ideally remote, and I'm available from January&nbsp;2027.", "panel_ttl": "Raspberry Pi 5 · self-hosted", "st_uptime": "Uptime 30d", "st_containers": "Containers", "st_load": "Load avg (1m)", "st_days": "Days online", "st_cpu": "CPU load", "st_ram": "RAM used", "st_disk": "Disk used", "st_temp": "CPU temp", "note_pre": "Prometheus → Node Exporter · refreshed every 60s · last update", "e1_h3": "Warehouse Employee · <span class=\"org\">Sonepar Deutschland</span>", "e1_pl": "Region West · Dortmund, Germany", "e1_b1": "Processed high-volume electrical wholesale orders using scanner systems", "e1_b2": "Cable preparation, forklift operation and rotating-shift logistics", "e1_b3": "Built strong process discipline and reliability — directly transferable to IT operations and on-call work", "e2_h3": "Painting Area Manager · <span class=\"org\">SIA &ldquo;Koksne&rdquo;</span>", "e2_pl": "Latvia", "e2_b1": "Managed daily production and warehouse operations, staff tasks and workflow", "e2_b2": "Airless spray painting of wooden windows and doors — precision, consistency, zero-defect standard", "e3_h3": "Warehouse / Shop Manager · <span class=\"org\">SIA &ldquo;Apavu Bode&rdquo;</span>", "e3_pl": "Latvia", "e3_b1": "Ran all warehouse operations: cargo receiving, stock organisation, staff coordination", "e3_b2": "Prepared products for sale and led day-to-day operational workflow", "e4_h3": "Early IT — Self-taught <span class=\"org\">· Secondary school</span>", "e4_pl": "Riga, Latvia", "e4_b1": "Administered Linux-based Counter-Strike 1.6 servers — SSH/FTP access, config management, troubleshooting", "e4_b2": "Modified and maintained IPB (Invision Power Board) forums — PHP templates and plugins", "e4_b3": "Built and edited HTML websites — first exposure to web and server administration", "pw_homelab": "Homelab", "pw_aiops": "AI Ops", "pw_auto": "Automation", "pw_obs": "Observability", "pw_rel": "Reliability", "pw_iot": "IoT", "p1_h3": "Production Linux Server Stack", "p1_b1": "Raspberry Pi 5 + NVMe running 12+ Docker services 24/7 behind Nginx Proxy Manager", "p1_b2": "AdGuard Home network-wide DNS filtering, wildcard SSL (DuckDNS + Let's Encrypt), Cloudflare Tunnel", "p2_h3": "Hermes — Self-hosted AI Agent <span class=\"badge\" data-i18n=\"badge_focus\">Focus</span>", "p2_b1": "Production AI agent with primary/fallback LLM routing, ChromaDB vector search and persistent memory", "p2_b2": "Telegram interface, Home Assistant integration and a custom skill/tool library — systemd-managed gateway", "p3_h3": "Home Automation — Home Assistant <span class=\"badge\" data-i18n=\"badge_focus\">Focus</span>", "p3_b1": "Matter-based smart home with instant-response thermostats and a custom dark dashboard", "p3_b2": "Electricity-cost tracking with utility meters and live charts — a dedicated deep-dive page is coming soon", "p4_h3": "Monitoring & Metrics Stack", "p4_b1": "Prometheus (30-day retention) + Grafana dashboards + Node & Speedtest exporters", "p4_b2": "The live stats at the top of this page are served straight from this stack", "p5_h3": "Automated Maintenance Pipeline", "p5_b1": "Weekly APT + Docker update pipeline with before/after version reporting over Telegram", "p5_b2": "Dead-man's-switch availability monitoring via healthchecks.io", "p6_h3": "Balcony Irrigation System", "p6_b1": "ESP32 + 15 soil-moisture sensors via multiplexer, relay-controlled pump, NTP-synced scheduling", "p6_b2": "Telegram bot control with safety limits and live statistics", "badge_focus": "Focus", "sk_core": "Core", "sk_working": "Working with", "sk_learning": "Learning", "sk_found": "Foundations", "ed1_w": "Ongoing", "ed1_s": "Self-study · chapters 1–13 · applied daily in homelab", "ed2_t": "Multimedia Communication", "ed2_s": "Rīga Stradiņš University · partial (program not completed)", "ed3_t": "Secondary Education", "ed3_s": "Riga 45th Secondary School · Latvia", "foot_text": "This page is <b>served live</b> from a <b>Raspberry Pi 5</b> I built and operate <span class=\"sep\">·</span> Docker + Nginx + Cloudflare Tunnel <span class=\"sep\">·</span> last refresh", "chat_fab": "Ask my CV assistant", "chat_t": "CV Assistant", "chat_s": "skills · projects · experience", "chat_hi": "Hi — I'm Andris's CV assistant. Ask me anything about his DevOps skills, homelab projects, experience or availability.", "chat_note": "Answers questions about this CV only · no access to personal data or systems", "chat_ph": "e.g. What's his Docker experience?", "live_live": "live", "live_cached": "cached", "live_off": "offline", "chat_typing": "typing…"}, "de": {"role": "Junior DevOps- &amp; Linux-Engineer", "tagline": "Ich baue und automatisiere Linux-Infrastruktur – zunehmend mit KI-Agenten im Spiel. Diese Seite läuft darauf.", "fp1": "KI-gestützter Betrieb", "fp2": "Automatisierung", "fp3": "Home Assistant", "nav_about": "Über mich", "nav_stats": "Live-Homelab", "nav_exp": "Berufserfahrung", "nav_proj": "Projekte", "nav_skills": "Kenntnisse", "nav_edu": "Ausbildung", "loc": "44319 Dortmund, Deutschland", "lang_lv": "Lettisch", "lang_en": "Englisch", "lang_de": "Deutsch", "lvl_native": "Muttersprache", "lvl_fluent": "fließend", "lvl_b1": "B1", "phone": "+49 176 8513 4770", "btn_smart": "Smart-Home-Demo", "eb_about": "Über mich", "eb_stats": "Live-Homelab", "eb_exp": "Berufserfahrung", "eb_proj": "Projekte", "eb_skills": "Kenntnisse", "eb_edu": "Ausbildung & Zertifikate", "about_p1": "Ich bin ein autodidaktischer Linux- und DevOps-Engineer aus Dortmund und kehre bewusst in die IT zurück. Meine ersten praktischen Erfahrungen sammelte ich in der Schulzeit – ich betrieb Linux-Spieleserver über SSH/FTP und passte PHP-Foren und HTML-Seiten an. Nach 14 Jahren in Logistik und Lagerverwaltung kehre ich zu der Arbeit zurück, die mich immer fasziniert hat – jetzt mit der Disziplin und Zuverlässigkeit, die mir diese Jahre gegeben haben.", "about_p2": "Heute entwerfe, betreibe und warte ich ein produktives Homelab auf einem Raspberry&nbsp;Pi&nbsp;5: 12+ Docker-Dienste, ein komplettes Monitoring-Stack, DNS-Filterung, ein KI-Agent und Hausautomation – alles rund um die Uhr. <strong>Die Zahlen unten sind echt und werden live aus dieser Infrastruktur geladen — diese Seite wird von ihr ausgeliefert.</strong> Ich strebe eine Position als Junior DevOps / Linux-Systemadministrator an, idealerweise remote, und bin ab Januar&nbsp;2027 verfügbar.", "panel_ttl": "Raspberry Pi 5 · selbst gehostet", "st_uptime": "Uptime 30T", "st_containers": "Container", "st_load": "Systemlast (1 Min.)", "st_days": "Tage online", "st_cpu": "CPU-Last", "st_ram": "RAM belegt", "st_disk": "Disk belegt", "st_temp": "CPU-Temp.", "note_pre": "Prometheus → Node Exporter · alle 60s aktualisiert · letzte Aktualisierung", "e1_h3": "Lagermitarbeiter · <span class=\"org\">Sonepar Deutschland</span>", "e1_pl": "Region West · Dortmund, Deutschland", "e1_b1": "Bearbeitung großer Mengen an Elektro-Großhandelsbestellungen mit Scannersystemen", "e1_b2": "Kabelkonfektionierung, Staplerbetrieb und Schichtlogistik", "e1_b3": "Ausgeprägte Prozessdisziplin und Zuverlässigkeit – direkt übertragbar auf IT-Betrieb und Rufbereitschaft", "e2_h3": "Leiter Lackiererei · <span class=\"org\">SIA &ldquo;Koksne&rdquo;</span>", "e2_pl": "Lettland", "e2_b1": "Leitung des täglichen Produktions- und Lagerbetriebs, Personaleinsatz und Arbeitsabläufe", "e2_b2": "Airless-Lackierung von Holzfenstern und -türen – Präzision, Konstanz, Null-Fehler-Standard", "e3_h3": "Lager- / Filialleiter · <span class=\"org\">SIA &ldquo;Apavu Bode&rdquo;</span>", "e3_pl": "Lettland", "e3_b1": "Verantwortung für den gesamten Lagerbetrieb: Wareneingang, Bestandsorganisation, Personalkoordination", "e3_b2": "Vorbereitung der Waren für den Verkauf und Steuerung des operativen Tagesgeschäfts", "e4_h3": "Erste IT-Erfahrung — autodidaktisch <span class=\"org\">· Schulzeit</span>", "e4_pl": "Riga, Lettland", "e4_b1": "Administration von Linux-basierten Counter-Strike-1.6-Servern – SSH/FTP-Zugang, Konfigurationsmanagement, Fehlerbehebung", "e4_b2": "Anpassung und Pflege von IPB-Foren (Invision Power Board) – PHP-Templates und Plugins", "e4_b3": "Erstellung und Bearbeitung von HTML-Websites – erster Kontakt mit Web- und Serveradministration", "pw_homelab": "Homelab", "pw_aiops": "KI-Ops", "pw_auto": "Automatisierung", "pw_obs": "Observability", "pw_rel": "Zuverlässigkeit", "pw_iot": "IoT", "p1_h3": "Produktiver Linux-Server-Stack", "p1_b1": "Raspberry Pi 5 + NVMe mit 12+ Docker-Diensten rund um die Uhr hinter Nginx Proxy Manager", "p1_b2": "AdGuard Home netzwerkweite DNS-Filterung, Wildcard-SSL (DuckDNS + Let's Encrypt), Cloudflare Tunnel", "p2_h3": "Hermes — selbst gehosteter KI-Agent <span class=\"badge\" data-i18n=\"badge_focus\">Fokus</span>", "p2_b1": "Produktiver KI-Agent mit Primär-/Fallback-LLM-Routing, ChromaDB-Vektorsuche und persistentem Speicher", "p2_b2": "Telegram-Schnittstelle, Home-Assistant-Integration und eine eigene Skill-/Tool-Bibliothek – systemd-verwaltetes Gateway", "p3_h3": "Hausautomation — Home Assistant <span class=\"badge\" data-i18n=\"badge_focus\">Fokus</span>", "p3_b1": "Matter-basiertes Smart Home mit sofort reagierenden Thermostaten und einem eigenen dunklen Dashboard", "p3_b2": "Stromkosten-Tracking mit Verbrauchszählern und Live-Diagrammen – eine eigene Detailseite folgt in Kürze", "p4_h3": "Monitoring- & Metrik-Stack", "p4_b1": "Prometheus (30 Tage Aufbewahrung) + Grafana-Dashboards + Node- & Speedtest-Exporter", "p4_b2": "Die Live-Statistiken oben auf dieser Seite stammen direkt aus diesem Stack", "p5_h3": "Automatisierte Wartungs-Pipeline", "p5_b1": "Wöchentliche APT- + Docker-Update-Pipeline mit Versionsbericht vor/nach über Telegram", "p5_b2": "Totmannschalter-Verfügbarkeitsüberwachung über healthchecks.io", "p6_h3": "Balkon-Bewässerungssystem", "p6_b1": "ESP32 + 15 Bodenfeuchtesensoren über Multiplexer, relaisgesteuerte Pumpe, NTP-synchronisierte Steuerung", "p6_b2": "Steuerung per Telegram-Bot mit Sicherheitsgrenzen und Live-Statistik", "badge_focus": "Fokus", "sk_core": "Kern", "sk_working": "Arbeite mit", "sk_learning": "Lerne gerade", "sk_found": "Grundlagen", "ed1_w": "Laufend", "ed1_s": "Selbststudium · Kapitel 1–13 · täglich im Homelab angewendet", "ed2_t": "Multimedia-Kommunikation", "ed2_s": "Rīga-Stradiņš-Universität · teilweise (Studium nicht abgeschlossen)", "ed3_t": "Schulabschluss (Sekundarstufe)", "ed3_s": "45. Mittelschule Riga · Lettland", "foot_text": "Diese Seite wird <b>live ausgeliefert</b> von einem <b>Raspberry Pi 5</b>, den ich gebaut habe und betreibe <span class=\"sep\">·</span> Docker + Nginx + Cloudflare Tunnel <span class=\"sep\">·</span> letzte Aktualisierung", "chat_fab": "Frag meinen CV-Assistenten", "chat_t": "CV-Assistent", "chat_s": "Kenntnisse · Projekte · Erfahrung", "chat_hi": "Hallo – ich bin der CV-Assistent von Andris. Frag mich alles zu seinen DevOps-Kenntnissen, Homelab-Projekten, seiner Erfahrung oder Verfügbarkeit.", "chat_note": "Beantwortet nur Fragen zu diesem Lebenslauf · kein Zugriff auf persönliche Daten oder Systeme", "chat_ph": "z. B. Wie ist seine Docker-Erfahrung?", "live_live": "live", "live_cached": "zwischengespeichert", "live_off": "offline", "chat_typing": "schreibt…"}, "lv": {"role": "Junior DevOps un Linux inženieris", "tagline": "Es veidoju un automatizēju Linux infrastruktūru — arvien vairāk kopā ar AI aģentiem. Šī lapa darbojas uz tās.", "fp1": "AI atbalstīta administrēšana", "fp2": "Automatizācija", "fp3": "Home Assistant", "nav_about": "Par mani", "nav_stats": "Mājas serveris", "nav_exp": "Pieredze", "nav_proj": "Projekti", "nav_skills": "Prasmes", "nav_edu": "Izglītība", "loc": "44319 Dortmunde, Vācija", "lang_lv": "Latviešu", "lang_en": "Angļu", "lang_de": "Vācu", "lvl_native": "dzimtā", "lvl_fluent": "brīvi", "lvl_b1": "B1", "phone": "+49 176 8513 4770", "btn_smart": "Viedās mājas demo", "eb_about": "Par mani", "eb_stats": "Mājas serveris", "eb_exp": "Pieredze", "eb_proj": "Projekti", "eb_skills": "Prasmes", "eb_edu": "Izglītība un sertifikāti", "about_p1": "Esmu pašmācības ceļā apguvis Linux un DevOps inženieris no Dortmundes, un apzināti atgriežos IT jomā. Pirmā praktiskā pieredze radās skolas laikā — administrēju Linux spēļu serverus caur SSH/FTP un modificēju PHP forumus un HTML lapas. Pēc 14 gadiem loģistikā un noliktavu vadībā atgriežos pie darba, kas mani vienmēr ir saistījis — tagad ar disciplīnu un uzticamību, ko devuši šie gadi.", "about_p2": "Šobrīd es projektēju, izvietoju un uzturu produkcijas mājas serveri uz Raspberry&nbsp;Pi&nbsp;5: 12+ Docker servisi, pilns monitoringa steks, DNS filtrēšana, AI aģents un mājas automatizācija — visu diennakti. <strong>Skaitļi zemāk ir reāli un tiek ielādēti tiešraidē no šīs infrastruktūras — šī lapa tiek pasniegta no tās.</strong> Meklēju Junior DevOps / Linux sistēmu administratora lomu, ideālā gadījumā attālināti, un esmu pieejams no 2027.&nbsp;gada janvāra.", "panel_ttl": "Raspberry Pi 5 · pašmitināts", "st_uptime": "Pieejamība 30d", "st_containers": "Konteineri", "st_load": "Slodze (1 min)", "st_days": "Dienas tiešsaistē", "st_cpu": "CPU slodze", "st_ram": "RAM lietots", "st_disk": "Disks lietots", "st_temp": "CPU temp.", "note_pre": "Prometheus → Node Exporter · atjaunots ik 60s · pēdējā atjaunināšana", "e1_h3": "Noliktavas darbinieks · <span class=\"org\">Sonepar Deutschland</span>", "e1_pl": "Region West · Dortmunde, Vācija", "e1_b1": "Apstrādāju liela apjoma elektrotehnikas vairumtirdzniecības pasūtījumus ar skeneru sistēmām", "e1_b2": "Kabeļu sagatavošana, autoiekrāvēja vadīšana un maiņu loģistika", "e1_b3": "Izveidoju spēcīgu procesu disciplīnu un uzticamību — tieši pārnesamu uz IT operācijām un dežūru darbu", "e2_h3": "Krāsošanas iecirkņa vadītājs · <span class=\"org\">SIA &ldquo;Koksne&rdquo;</span>", "e2_pl": "Latvija", "e2_b1": "Vadīju ikdienas ražošanas un noliktavas darbu, personāla uzdevumus un darba plūsmu", "e2_b2": "Koka logu un durvju airless krāsošana — precizitāte, konsekvence, nulles defektu standarts", "e3_h3": "Noliktavas / veikala vadītājs · <span class=\"org\">SIA &ldquo;Apavu Bode&rdquo;</span>", "e3_pl": "Latvija", "e3_b1": "Vadīju visu noliktavas darbu: kravu pieņemšana, krājumu organizēšana, personāla koordinācija", "e3_b2": "Sagatavoju preces pārdošanai un vadīju ikdienas operatīvo darbu", "e4_h3": "Agrīnā IT — pašmācība <span class=\"org\">· Skolas laikā</span>", "e4_pl": "Rīga, Latvija", "e4_b1": "Administrēju Linux bāzētus Counter-Strike 1.6 serverus — SSH/FTP piekļuve, konfigurāciju pārvaldība, problēmu novēršana", "e4_b2": "Modificēju un uzturēju IPB (Invision Power Board) forumus — PHP veidnes un spraudņi", "e4_b3": "Veidoju un rediģēju HTML lapas — pirmā saskarsme ar web un serveru administrēšanu", "pw_homelab": "Mājas serveris", "pw_aiops": "AI Ops", "pw_auto": "Automatizācija", "pw_obs": "Novērojamība", "pw_rel": "Uzticamība", "pw_iot": "IoT", "p1_h3": "Produkcijas Linux servera steks", "p1_b1": "Raspberry Pi 5 + NVMe ar 12+ Docker servisiem 24/7 aiz Nginx Proxy Manager", "p1_b2": "AdGuard Home tīkla mēroga DNS filtrēšana, wildcard SSL (DuckDNS + Let's Encrypt), Cloudflare Tunnel", "p2_h3": "Hermes — pašmitināts AI aģents <span class=\"badge\" data-i18n=\"badge_focus\">Fokuss</span>", "p2_b1": "Produkcijas AI aģents ar primāro/rezerves LLM maršrutēšanu, ChromaDB vektoru meklēšanu un pastāvīgu atmiņu", "p2_b2": "Telegram saskarne, Home Assistant integrācija un pielāgota prasmju/rīku bibliotēka — systemd pārvaldīts vārtejas serviss", "p3_h3": "Mājas automatizācija — Home Assistant <span class=\"badge\" data-i18n=\"badge_focus\">Fokuss</span>", "p3_b1": "Matter bāzēta viedā māja ar zibveida termostatiem un pielāgotu tumšo informācijas paneli", "p3_b2": "Elektrības izmaksu uzskaite ar skaitītājiem un tiešraides diagrammām — atsevišķa detalizēta lapa drīzumā", "p4_h3": "Monitoringa un metriku steks", "p4_b1": "Prometheus (30 dienu glabāšana) + Grafana informācijas paneļi + Node un Speedtest eksporteri", "p4_b2": "Tiešraides statistika šīs lapas augšā nāk tieši no šī steka", "p5_h3": "Automatizēts uzturēšanas konveijers", "p5_b1": "Iknedēļas APT + Docker atjauninājumu konveijers ar versiju atskaiti pirms/pēc caur Telegram", "p5_b2": "„Dead-man's-switch” pieejamības uzraudzība caur healthchecks.io", "p6_h3": "Balkona laistīšanas sistēma", "p6_b1": "ESP32 + 15 augsnes mitruma sensori caur multipleksoru, releja vadīts sūknis, NTP sinhronizēts grafiks", "p6_b2": "Vadība caur Telegram botu ar drošības ierobežojumiem un tiešraides statistiku", "badge_focus": "Fokuss", "sk_core": "Pamata", "sk_working": "Strādāju ar", "sk_learning": "Mācos", "sk_found": "Pamati", "ed1_w": "Notiekošs", "ed1_s": "Pašmācība · 1.–13. nodaļa · ikdienā lietots mājas serverī", "ed2_t": "Multimediju komunikācija", "ed2_s": "Rīgas Stradiņa universitāte · daļēji (programma nav pabeigta)", "ed3_t": "Vidējā izglītība", "ed3_s": "Rīgas 45. vidusskola · Latvija", "foot_text": "Šī lapa tiek <b>pasniegta tiešraidē</b> no <b>Raspberry Pi 5</b>, ko esmu uzbūvējis un uzturu <span class=\"sep\">·</span> Docker + Nginx + Cloudflare Tunnel <span class=\"sep\">·</span> pēdējā atjaunināšana", "chat_fab": "Jautā manam CV asistentam", "chat_t": "CV asistents", "chat_s": "prasmes · projekti · pieredze", "chat_hi": "Sveiks — esmu Andra CV asistents. Jautā jebko par viņa DevOps prasmēm, mājas servera projektiem, pieredzi vai pieejamību.", "chat_note": "Atbild tikai uz jautājumiem par šo CV · nav piekļuves personas datiem vai sistēmām", "chat_ph": "piem., kāda ir viņa Docker pieredze?", "live_live": "tiešraidē", "live_cached": "kešots", "live_off": "bezsaistē", "chat_typing": "raksta…"}};
-  const LOCALE = { en:'en-GB', de:'de-DE', lv:'lv-LV' };
-  let LANG = 'en';
-  function pickLang(){
-    try{ const s = localStorage.getItem('cvlang'); if(s && I18N[s]) return s; }catch(e){}
-    const n = (navigator.language || 'en').slice(0,2).toLowerCase();
-    return I18N[n] ? n : 'en';
-  }
-  function applyLang(lang){
-    if(!I18N[lang]) lang = 'en';
-    LANG = lang;
-    const d = I18N[lang];
-    document.documentElement.lang = lang;
-    document.querySelectorAll('[data-i18n]').forEach(el => { const k = el.dataset.i18n; if(d[k]!==undefined) el.textContent = d[k]; });
-    document.querySelectorAll('[data-i18n-html]').forEach(el => { const k = el.dataset.i18nHtml; if(d[k]!==undefined) el.innerHTML = d[k]; });
-    document.querySelectorAll('[data-i18n-ph]').forEach(el => { const k = el.dataset.i18nPh; if(d[k]!==undefined) el.placeholder = d[k]; });
-    document.querySelectorAll('#langsw button').forEach(b => b.classList.toggle('on', b.dataset.lang===lang));
-    try{ localStorage.setItem('cvlang', lang); }catch(e){}
-    var _pb=document.getElementById('pdfBtn');if(_pb){_pb.href='./cv'+(lang==='en'?'':'-'+lang)+'.pdf';}
-    loadStats();
-  }
-  document.getElementById('langsw').addEventListener('click', e => {
-    const b = e.target.closest('button'); if(b) applyLang(b.dataset.lang);
-  });
-
-  // ── Live stats ──
-  let statsTimer;
-  async function loadStats(){
-    const d = I18N[LANG];
-    try{
-      const r = await fetch('./stats.json?_=' + Date.now(), {cache:'no-store'});
-      if(!r.ok) throw new Error('no stats');
-      const j = await r.json();
-      document.querySelectorAll('[data-stat]').forEach(el => {
-        let v = j[el.dataset.stat];
-        if (v !== undefined && v !== null && v !== '') {
-          if (el.dataset.decimals !== undefined && !isNaN(parseFloat(v))) {
-            v = parseFloat(v).toFixed(parseInt(el.dataset.decimals));
-          }
-          el.textContent = v + (el.dataset.suffix || '');
-        } else {
-          el.textContent = '—';
-        }
-      });
-      const dot = document.getElementById('liveDot');
-      const lbl = document.getElementById('liveLabel');
-      if(j.updated){
-        const dt = new Date(j.updated);
-        const ageMin = (Date.now() - dt.getTime())/60000;
-        const stamp = dt.toLocaleString(LOCALE[LANG]||'en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
-        document.getElementById('statsUpdated').textContent = stamp;
-        document.getElementById('footTime').textContent = stamp;
-        if(ageMin > 15){ dot.className='dot stale'; lbl.textContent=d.live_cached||'cached'; }
-        else { dot.className='dot'; lbl.textContent=d.live_live||'live'; }
-      }
-    }catch(e){
-      const dot=document.getElementById('liveDot'); const lbl=document.getElementById('liveLabel');
-      if(dot) dot.className='dot off'; if(lbl) lbl.textContent=d.live_off||'offline';
-    }
-  }
-  function startPolling(){ clearInterval(statsTimer); loadStats(); statsTimer=setInterval(loadStats,60000); }
-  window.addEventListener('load', () => { applyLang(pickLang()); startPolling(); });
-  document.addEventListener('visibilitychange', () => document.hidden ? clearInterval(statsTimer) : startPolling());
-
-  // ── Nav active-section ──
-  const navLinks = [...document.querySelectorAll('.nav a')];
-  const byId = id => navLinks.find(a => a.getAttribute('href') === '#'+id);
-  if('IntersectionObserver' in window && navLinks.length){
-    const obs = new IntersectionObserver(entries => {
-      entries.forEach(en => { if(en.isIntersecting){
-        navLinks.forEach(a => a.classList.remove('active'));
-        const link = byId(en.target.id); if(link) link.classList.add('active');
-      }});
-    }, { rootMargin:'-30% 0px -60% 0px' });
-    document.querySelectorAll('section[id]').forEach(s => obs.observe(s));
-  }
-
-  // ── Chat ──
-  const chHistory = [];
-  function toggleChat(open){
-    document.getElementById('chat').classList.toggle('open', open);
-    document.getElementById('fab').style.display = open ? 'none' : 'inline-flex';
-    if(open) setTimeout(()=>document.getElementById('chInput').focus(), 80);
-  }
-  function addMsg(text, who){
-    const b = document.getElementById('chBody');
-    const dv = document.createElement('div'); dv.className='msg '+who; dv.textContent=text;
-    b.appendChild(dv); b.scrollTop=b.scrollHeight; return dv;
-  }
-  function showTyping(){
-    const b=document.getElementById('chBody'); const tp=document.createElement('div');
-    tp.className='typing'; tp.id='chTyping'; tp.textContent=(I18N[LANG].chat_typing||'typing…');
-    b.appendChild(tp); b.scrollTop=b.scrollHeight;
-  }
-  function hideTyping(){ const tp=document.getElementById('chTyping'); if(tp) tp.remove(); }
-  async function sendChat(){
-    const inp=document.getElementById('chInput'); const btn=document.getElementById('chSend');
-    const text=inp.value.trim(); if(!text) return;
-    inp.value=''; btn.disabled=true; addMsg(text,'user');
-    chHistory.push({role:'user', content:text}); showTyping();
-    try{
-      const r=await fetch('./api/chat',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({message:text, history:chHistory.slice(-12)})});
-      if(!r.ok){ let m='Sorry, something went wrong.'; try{const j=await r.json(); if(j.reply)m=j.reply;}catch(e){}
-        hideTyping(); addMsg(m,'bot'); return; }
-      hideTyping(); const bubble=addMsg('','bot'); const reader=r.body.getReader(); const dec=new TextDecoder();
-      let full=''; const body=document.getElementById('chBody');
-      while(true){ const {value,done}=await reader.read(); if(done) break;
-        full+=dec.decode(value,{stream:true}); bubble.textContent=full; body.scrollTop=body.scrollHeight; }
-      chHistory.push({role:'assistant', content:full});
-    }catch(e){ hideTyping(); addMsg('Connection issue — please email Andris directly.','bot'); }
-    finally{ btn.disabled=false; inp.focus(); }
-  }
-</script>
-<!-- Cloudflare Web Analytics --><script type="module" src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "dcd565dd32974048b817dbbd55d8a294"}'></script><!-- End Cloudflare Web Analytics -->
+  <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token":"dcd565dd32974048b817dbbd55d8a294"}'></script>
 </body>
 </html>

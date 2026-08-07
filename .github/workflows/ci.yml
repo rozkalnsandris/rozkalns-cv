@@ -19,7 +19,19 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@v5
+      - name: Check out exact workflow SHA without third-party actions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            fetch --no-tags --depth=1 origin "$GITHUB_SHA"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
 
       - name: Install test dependencies
         shell: bash
@@ -34,13 +46,21 @@ jobs:
           echo "PYTHONPYCACHEPREFIX=${RUNNER_TEMP}/rozkalns-cv-pycache" \
             >> "$GITHUB_ENV"
 
-      - name: Validate source and application behavior
+      - name: Validate source and Python behavior
         shell: bash
         run: |
           set -Eeuo pipefail
           bash scripts/validate-source.sh "$PWD"
           "$TEST_VENV/bin/python" -m unittest discover \
             -s tests -p 'test_*.py' -v
+
+      - name: Validate frontend modules and behavior
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          node --check html/assets/app.d878d409f278.mjs
+          node --check html/assets/smarthome.70da56476fdb.mjs
+          node --test tests/frontend.test.mjs
           bash scripts/validate-source.sh "$PWD"
 
       - name: Validate nginx runtime configuration
