@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import ipaddress
 import os
 from typing import Callable
 
@@ -73,16 +74,16 @@ def verify_turnstile(
     if not config.configured:
         raise ContactVerificationError("Contact verification is not configured.")
     token = normalize_token(token)
+    data = {
+        "secret": config.secret_key,
+        "response": token,
+    }
     try:
-        response = post(
-            SITEVERIFY_URL,
-            data={
-                "secret": config.secret_key,
-                "response": token,
-                "remoteip": remote_ip,
-            },
-            timeout=timeout,
-        )
+        data["remoteip"] = ipaddress.ip_address(remote_ip).compressed
+    except ValueError:
+        pass
+    try:
+        response = post(SITEVERIFY_URL, data=data, timeout=timeout)
         response.raise_for_status()
         payload = response.json()
     except requests.RequestException as error:
