@@ -74,13 +74,11 @@ jobs:
               return git_bytes(*args).decode('utf-8', errors='strict')
 
           legacy_profile = json.loads(git_text('show', f'{pre}:content/profile.json'))
-          raw_candidates: list[tuple[str, bytes]] = [
-              ('email', legacy_profile['contact']['email']['value'].encode('utf-8')),
-              ('phone_display', legacy_profile['contact']['phone']['value'].encode('utf-8')),
-              ('phone_uri', legacy_profile['contact']['phone']['uri'].encode('utf-8')),
+          discovered: list[tuple[str, bytes]] = [
+              ('email_current_legacy', legacy_profile['contact']['email']['value'].encode('utf-8')),
+              ('phone_current_legacy', legacy_profile['contact']['phone']['value'].encode('utf-8')),
+              ('phone_uri_current_legacy', legacy_profile['contact']['phone']['uri'].encode('utf-8')),
           ]
-          if len({value for _, value in raw_candidates}) != 3:
-              raise SystemExit('legacy protected contact candidates are not distinct')
 
           objects: dict[str, set[str]] = {}
           for line in git_text('rev-list', '--objects', '--all').splitlines():
@@ -88,10 +86,13 @@ jobs:
               if path:
                   objects.setdefault(sha, set()).add(path)
 
-          address_values: set[bytes] = set()
-          address_pattern = re.compile(
-              r'(?im)^\s*(?:street\s+address|home\s+address|address)\s*:\s*(.+?)\s*$'
-          )
+          prompt_field = re.compile(r'(?im)^\s*-?\s*(email|phone|location)\s*:\s*(.+?)\s*$')
+          email_re = re.compile(r'(?i)^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$')
+          phone_re = re.compile(r'^\+?[0-9][0-9\s()./-]{7,}$')
+          historical_email: set[bytes] = set()
+          historical_phone: set[bytes] = set()
+          historical_address: set[bytes] = set()
+
           for sha, paths in objects.items():
               if not any(path.endswith(('bot/app.py', 'bot/system_prompt.txt')) for path in paths):
                   continue
@@ -101,18 +102,34 @@ jobs:
                   text = git_bytes('cat-file', '-p', sha).decode('utf-8', errors='ignore')
               except subprocess.CalledProcessError:
                   continue
-              for match in address_pattern.finditer(text):
-                  value = match.group(1).strip().strip('"\'')
-                  if len(value) >= 8:
-                      address_values.add(value.encode('utf-8'))
-          if not address_values:
-              raise SystemExit('ADDRESS_CANDIDATE_DISCOVERY=FAIL known historical address label not found')
-          for index, value in enumerate(sorted(address_values), 1):
-              raw_candidates.append((f'street_address_{index}', value))
+              for match in prompt_field.finditer(text):
+                  label = match.group(1).lower()
+                  value = match.group(2).strip().strip('"\' ,')
+                  encoded = value.encode('utf-8')
+                  if label == 'email' and email_re.fullmatch(value):
+                      historical_email.add(encoded)
+                  elif label == 'phone' and phone_re.fullmatch(value) and sum(ch.isdigit() for ch in value) >= 8:
+                      historical_phone.add(encoded)
+                  elif label == 'location' and sum(ch.isdigit() for ch in value) >= 1 and value.count(',') >= 1 and len(value) >= 8:
+                      historical_address.add(encoded)
+
+          if not historical_email:
+              raise SystemExit('HISTORICAL_EMAIL_DISCOVERY=FAIL')
+          if not historical_phone:
+              raise SystemExit('HISTORICAL_PHONE_DISCOVERY=FAIL')
+          if not historical_address:
+              raise SystemExit('HISTORICAL_ADDRESS_DISCOVERY=FAIL')
+
+          for index, value in enumerate(sorted(historical_email), 1):
+              discovered.append((f'email_historical_{index}', value))
+          for index, value in enumerate(sorted(historical_phone), 1):
+              discovered.append((f'phone_historical_{index}', value))
+          for index, value in enumerate(sorted(historical_address), 1):
+              discovered.append((f'street_address_historical_{index}', value))
 
           candidates: list[tuple[str, bytes]] = []
           seen_values: set[bytes] = set()
-          for label, value in raw_candidates:
+          for label, value in discovered:
               if value in seen_values:
                   continue
               seen_values.add(value)
@@ -120,6 +137,9 @@ jobs:
 
           print(f'PROTECTED_CANDIDATE_CLASS_COUNT={len(candidates)}')
           print('PROTECTED_CANDIDATE_CLASSES=' + ','.join(label for label, _ in candidates))
+          print(f'HISTORICAL_EMAIL_VARIANTS={len(historical_email)}')
+          print(f'HISTORICAL_PHONE_VARIANTS={len(historical_phone)}')
+          print(f'HISTORICAL_STREET_ADDRESS_VARIANTS={len(historical_address)}')
 
           matched: dict[str, set[str]] = {label: set() for label, _ in candidates}
           paths_by_candidate: dict[str, set[str]] = {label: set() for label, _ in candidates}
@@ -135,9 +155,8 @@ jobs:
                   except subprocess.CalledProcessError:
                       continue
                   data = git_bytes('cat-file', '-p', sha)
-                  is_pdf = any(path.lower().endswith('.pdf') for path in paths)
                   searchable = data
-                  if is_pdf:
+                  if any(path.lower().endswith('.pdf') for path in paths):
                       inspected_pdf_blobs += 1
                       source = temp / f'{sha}.pdf'
                       source.write_bytes(data)
@@ -171,33 +190,22 @@ jobs:
                   print(f'CANDIDATE_{label}_PATH_{index}={path}')
 
           refs = git_text(
-              'for-each-ref',
-              '--format=%(refname)',
-              'refs/remotes/origin',
-              'refs/tags',
-              'refs/remotes/pull',
+              'for-each-ref', '--format=%(refname)',
+              'refs/remotes/origin', 'refs/tags', 'refs/remotes/pull',
           ).splitlines()
           refs = [ref for ref in refs if ref != 'refs/remotes/origin/HEAD']
 
           def category(ref: str) -> str:
-              if ref == 'refs/remotes/origin/main':
-                  return 'main_history'
-              if ref.startswith('refs/remotes/origin/'):
-                  return 'branch'
-              if ref.startswith('refs/tags/'):
-                  return 'tag'
-              if ref.startswith('refs/remotes/pull/') and ref.endswith('/head'):
-                  return 'pr_head'
-              if ref.startswith('refs/remotes/pull/') and ref.endswith('/merge'):
-                  return 'pr_merge'
+              if ref == 'refs/remotes/origin/main': return 'main_history'
+              if ref.startswith('refs/remotes/origin/'): return 'branch'
+              if ref.startswith('refs/tags/'): return 'tag'
+              if ref.startswith('refs/remotes/pull/') and ref.endswith('/head'): return 'pr_head'
+              if ref.startswith('refs/remotes/pull/') and ref.endswith('/merge'): return 'pr_merge'
               return 'other'
 
           totals: dict[str, int] = {}
           affected: dict[str, int] = {}
-          candidate_ref_counts: dict[str, dict[str, int]] = {
-              label: {} for label, _ in candidates
-          }
-
+          candidate_ref_counts: dict[str, dict[str, int]] = {label: {} for label, _ in candidates}
           for ref in refs:
               cat = category(ref)
               totals[cat] = totals.get(cat, 0) + 1
@@ -206,8 +214,7 @@ jobs:
                   for line in git_text('rev-list', '--objects', ref).splitlines()
                   if line
               }
-              any_match = bool(reachable & union_matched)
-              if any_match:
+              if reachable & union_matched:
                   affected[cat] = affected.get(cat, 0) + 1
               for label, _ in candidates:
                   if reachable & matched[label]:
@@ -221,14 +228,10 @@ jobs:
           for label, _ in candidates:
               for cat in ('main_history', 'branch', 'tag', 'pr_head', 'pr_merge', 'other'):
                   if candidate_ref_counts[label].get(cat):
-                      print(
-                          f'CANDIDATE_{label}_REFS_{cat}='
-                          f'{candidate_ref_counts[label][cat]}'
-                      )
+                      print(f'CANDIDATE_{label}_REFS_{cat}={candidate_ref_counts[label][cat]}')
 
           tip_blob_shas = set()
-          raw_tree = git_bytes('ls-tree', '-r', '-z', clean_main)
-          for row in raw_tree.split(b'\0'):
+          for row in git_bytes('ls-tree', '-r', '-z', clean_main).split(b'\0'):
               if not row:
                   continue
               metadata, _, _path = row.partition(b'\t')
