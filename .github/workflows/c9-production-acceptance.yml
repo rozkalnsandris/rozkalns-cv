@@ -1,0 +1,278 @@
+name: C9 production acceptance
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/c9-production-acceptance.yml
+      - scripts/c9-production-smoke.mjs
+      - tests/test_c9_production_acceptance.py
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: c9-production-acceptance-main
+  cancel-in-progress: false
+
+jobs:
+  resolve:
+    name: Resolve exact deployed main revision
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    outputs:
+      sha: ${{ steps.resolve.outputs.sha }}
+      ci_run_id: ${{ steps.resolve.outputs.ci_run_id }}
+      deploy_run_id: ${{ steps.resolve.outputs.deploy_run_id }}
+      deploy_artifact: ${{ steps.resolve.outputs.deploy_artifact }}
+    steps:
+      - name: Wait for exact main CI and serial RPi5 deploy
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          EXPECTED_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import pathlib
+          import re
+          import time
+          import urllib.parse
+          import urllib.request
+
+          repo = os.environ['REPOSITORY']
+          expected = os.environ['EXPECTED_SHA']
+          if repo != 'rozkalnsandris/rozkalns-cv':
+              raise SystemExit('unexpected repository')
+          if not re.fullmatch(r'[0-9a-f]{40}', expected):
+              raise SystemExit('invalid expected SHA')
+
+          headers = {
+              'Accept': 'application/vnd.github+json',
+              'Authorization': f"Bearer {os.environ['GH_TOKEN']}",
+              'X-GitHub-Api-Version': '2022-11-28',
+              'User-Agent': 'rozkalns-cv-c9-production-acceptance',
+          }
+
+          def get(url):
+              request = urllib.request.Request(url, headers=headers)
+              with urllib.request.urlopen(request, timeout=20) as response:
+                  return json.load(response)
+
+          api = f'https://api.github.com/repos/{repo}'
+          encoded = urllib.parse.quote(expected, safe='')
+          deadline = time.monotonic() + 35 * 60
+          last_state = None
+
+          while time.monotonic() < deadline:
+              main_sha = str(get(f'{api}/branches/main').get('commit', {}).get('sha', ''))
+              if main_sha != expected:
+                  raise SystemExit(f'main moved during C9 acceptance expected={expected} actual={main_sha}')
+
+              ci_runs = get(
+                  f'{api}/actions/workflows/ci.yml/runs?branch=main&head_sha={encoded}&per_page=20'
+              ).get('workflow_runs', [])
+              ci_matches = [
+                  row for row in ci_runs
+                  if row.get('event') == 'push'
+                  and row.get('head_branch') == 'main'
+                  and row.get('head_sha') == expected
+              ]
+              ci_success = [row for row in ci_matches if row.get('conclusion') == 'success']
+              ci_completed_bad = [
+                  row for row in ci_matches
+                  if row.get('status') == 'completed'
+                  and row.get('conclusion') not in (None, 'success')
+              ]
+              if not ci_success:
+                  state = ('waiting_ci', tuple((row.get('id'), row.get('status'), row.get('conclusion')) for row in ci_matches))
+                  if state != last_state:
+                      print(f'C9_WAITING_FOR_MAIN_CI matches={state[1]}')
+                      last_state = state
+                  if ci_completed_bad and all(row.get('status') == 'completed' for row in ci_matches):
+                      raise SystemExit('exact main CI completed without success')
+                  time.sleep(15)
+                  continue
+
+              ci_run = max(ci_success, key=lambda row: int(row['id']))
+              deploy_runs = get(
+                  f'{api}/actions/workflows/deploy-main.yml/runs?branch=main&head_sha={encoded}&per_page=30'
+              ).get('workflow_runs', [])
+              exact = []
+              for run in deploy_runs:
+                  run_id = int(run['id'])
+                  artifacts = get(f'{api}/actions/runs/{run_id}/artifacts?per_page=100').get('artifacts', [])
+                  expected_name = f'rozkalns-cv-deploy-{expected}-run-{run_id}'
+                  if not any(str(item.get('name')) == expected_name for item in artifacts):
+                      continue
+                  jobs = get(f'{api}/actions/runs/{run_id}/jobs?per_page=100').get('jobs', [])
+                  job = next((item for item in jobs if item.get('name') == 'Deploy on RPi5'), None)
+                  if not job:
+                      continue
+                  steps = {
+                      str(step.get('name')): str(step.get('conclusion'))
+                      for step in job.get('steps', [])
+                  }
+                  exact.append((run, steps, expected_name))
+
+              successful = [
+                  row for row in exact
+                  if row[0].get('conclusion') == 'success'
+                  and all(row[1].get(name) == 'success' for name in (
+                      'Verify installed deploy helper matches target source',
+                      'Deploy queued merge SHA',
+                      'Verify public frontend contracts',
+                      'Upload deploy evidence',
+                  ))
+              ]
+              if successful:
+                  run, steps, artifact = max(successful, key=lambda row: int(row[0]['id']))
+                  deploy_run_id = int(run['id'])
+                  output = pathlib.Path(os.environ['GITHUB_OUTPUT'])
+                  with output.open('a', encoding='utf-8') as handle:
+                      handle.write(f'sha={expected}\n')
+                      handle.write(f'ci_run_id={int(ci_run["id"])}\n')
+                      handle.write(f'deploy_run_id={deploy_run_id}\n')
+                      handle.write(f'deploy_artifact={artifact}\n')
+                  print(f'C9_MAIN_CI=PASS run_id={int(ci_run["id"])}')
+                  print(f'C9_DEPLOY=PASS run_id={deploy_run_id}')
+                  print(f'C9_DEPLOY_ARTIFACT={artifact}')
+                  break
+
+              bad_deploy = [row for row in deploy_runs if row.get('status') == 'completed' and row.get('conclusion') not in (None, 'success')]
+              state = ('waiting_deploy', tuple((row.get('id'), row.get('status'), row.get('conclusion')) for row in deploy_runs))
+              if state != last_state:
+                  print(f'C9_WAITING_FOR_DEPLOY runs={state[1]}')
+                  last_state = state
+              if bad_deploy and not any(row.get('status') != 'completed' for row in deploy_runs):
+                  raise SystemExit('exact deploy completed without successful acceptance artifact')
+              time.sleep(15)
+          else:
+              raise SystemExit('timed out waiting for exact main CI/deploy')
+          PY
+
+  production:
+    name: Read-only production acceptance on RPi5
+    needs: resolve
+    runs-on:
+      - self-hosted
+      - Linux
+      - ARM64
+      - rozkalns-cv-release
+    timeout-minutes: 15
+    steps:
+      - name: Fetch exact trusted main acceptance script
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          TARGET_SHA: ${{ needs.resolve.outputs.sha }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          work="${RUNNER_TEMP}/rozkalns-cv-c9-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          rm -rf -- "$work"
+          install -d -m 0700 "$work"
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            clone --no-checkout --filter=blob:none "https://github.com/${REPOSITORY}.git" "$work/repo"
+          git -C "$work/repo" -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            fetch --no-tags origin "$TARGET_SHA"
+          git -C "$work/repo" checkout --detach FETCH_HEAD
+          test "$(git -C "$work/repo" rev-parse HEAD)" = "$TARGET_SHA"
+          printf 'C9_WORK=%s\n' "$work" >> "$GITHUB_ENV"
+          printf 'C9_REPO=%s\n' "$work/repo" >> "$GITHUB_ENV"
+
+      - name: Verify loopback and public health without mutation
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          curl --fail --silent --show-error --max-time 15 \
+            -H 'Host: rozkalns.net' http://127.0.0.1:8088/ >/dev/null
+          curl --fail --silent --show-error --max-time 20 \
+            https://rozkalns.net/ >/dev/null
+          curl --fail --silent --show-error --max-time 15 \
+            -H 'Host: rozkalns.net' http://127.0.0.1:8088/stats.json >/dev/null
+          curl --fail --silent --show-error --max-time 20 \
+            https://rozkalns.net/api/health >/dev/null
+          printf 'C9_LOOPBACK_HEALTH=PASS\n'
+          printf 'C9_PUBLIC_HEALTH=PASS\n'
+
+      - name: Run sanitized real Chromium production acceptance
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          chrome_bin=''
+          for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
+            if command -v "$candidate" >/dev/null 2>&1; then
+              chrome_bin="$(command -v "$candidate")"
+              break
+            fi
+          done
+          test -n "$chrome_bin"
+          test "$(node --version | sed 's/^v//')" != ''
+          TARGET_URL='https://rozkalns.net/' CHROME_BIN="$chrome_bin" \
+            node "$C9_REPO/scripts/c9-production-smoke.mjs"
+
+      - name: Record sanitized C9 evidence
+        if: success()
+        shell: bash
+        env:
+          TARGET_SHA: ${{ needs.resolve.outputs.sha }}
+          CI_RUN_ID: ${{ needs.resolve.outputs.ci_run_id }}
+          DEPLOY_RUN_ID: ${{ needs.resolve.outputs.deploy_run_id }}
+          DEPLOY_ARTIFACT: ${{ needs.resolve.outputs.deploy_artifact }}
+        run: |
+          set -Eeuo pipefail
+          evidence="$C9_WORK/evidence"
+          install -d -m 0700 "$evidence"
+          cat > "$evidence/summary.env" <<EOF
+          C9_RESULT=PASS
+          TARGET_SHA=$TARGET_SHA
+          MAIN_CI_RUN=$CI_RUN_ID
+          DEPLOY_RUN=$DEPLOY_RUN_ID
+          DEPLOY_ARTIFACT=$DEPLOY_ARTIFACT
+          LOOPBACK_HEALTH=PASS
+          PUBLIC_HEALTH=PASS
+          DESKTOP_BROWSER=PASS
+          PHONE_BROWSER=PASS
+          LANGUAGE_PDF=PASS
+          LIVE_STATS=PASS
+          CONTACT_PREVERIFICATION_MASKING=PASS
+          TURNSTILE_INTERACTION_ONLY=PASS
+          TURNSTILE_REAL_SUCCESS=MANUAL_ONLY
+          CHAT_STREAMING=PASS
+          SMARTHOME=PASS
+          CONTACT_OR_CHAT_CONTENT_LOGGED=false
+          PRODUCTION_WRITE=false
+          SUDO_USED=false
+          DOCKER_USED=false
+          SHARED_TUNNEL_MUTATION=false
+          EOF
+          chmod 0600 "$evidence/summary.env"
+          cat "$evidence/summary.env"
+
+      - name: Upload sanitized C9 evidence
+        if: success()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: rozkalns-cv-c9-${{ needs.resolve.outputs.sha }}-run-${{ github.run_id }}
+          path: ${{ env.C9_WORK }}/evidence
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Clean temporary checkout
+        if: always()
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          if [[ -n "${C9_WORK:-}" && "$C9_WORK" == "${RUNNER_TEMP}"/rozkalns-cv-c9-* ]]; then
+            rm -rf -- "$C9_WORK"
+          fi
