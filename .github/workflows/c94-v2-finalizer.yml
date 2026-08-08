@@ -1,20 +1,23 @@
 name: C94 v2 integration finalizer
 
 on:
-  push:
-    branches:
-      - fix/94-public-email-verified-whatsapp-v2
+  pull_request:
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: write
 
 concurrency:
-  group: c94-v2-finalizer
+  group: c94-v2-finalizer-${{ github.event.pull_request.number }}
   cancel-in-progress: false
 
 jobs:
   finalize:
-    if: github.repository == 'rozkalnsandris/rozkalns-cv' && github.actor == 'rozkalnsandris'
+    if: >-
+      github.repository == 'rozkalnsandris/rozkalns-cv' &&
+      github.actor == 'rozkalnsandris' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'fix/94-public-email-verified-whatsapp-v2'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
 
@@ -22,6 +25,7 @@ jobs:
       - name: Check out exact v2 head and prototype source
         env:
           GH_TOKEN: ${{ github.token }}
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -29,9 +33,9 @@ jobs:
           git init .
           git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
           git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
-            fetch --no-tags origin "$GITHUB_SHA"
+            fetch --no-tags origin "$EXPECTED_HEAD"
           git checkout -b fix/94-public-email-verified-whatsapp-v2 FETCH_HEAD
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
           git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
             fetch --no-tags origin \
             'refs/heads/fix/94-current-contact-privacy:refs/remotes/origin/fix/94-current-contact-privacy'
