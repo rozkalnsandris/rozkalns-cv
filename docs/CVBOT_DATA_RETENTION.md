@@ -45,3 +45,7 @@ By default `TELEGRAM_INCLUDE_CONTENT=false`, so notifications contain only the i
 ## Backup and rollback boundary
 
 The runtime SQLite database lives on the persistent `/app/data` volume. Application image rollback must reuse that volume rather than restore an older copy of `assistant.sqlite3`; otherwise expired rows could be resurrected. Deployment/rollback evidence must therefore continue to treat cvbot data as persistent runtime state, not as a versioned application artifact.
+
+## Validation provenance
+
+The #112 implementation was first validated in full CI on the pre-#119 candidate, then transplanted onto current `main` `5eb2a18d424754ff2019f0fc5cdfaa21d80eb2a3` with a bounded GitHub-hosted finalizer. The transplant explicitly preserved the merged #119 public-email/protected-phone assistant contract and reran the focused retention, contact-privacy, deploy-contract, content-build, and source-validation tests before publishing the product tree.
