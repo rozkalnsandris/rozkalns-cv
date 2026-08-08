@@ -47,82 +47,45 @@ jobs:
           path = Path('tests/browser-smoke.mjs')
           text = path.read_text(encoding='utf-8')
 
-          old_fixture = '''        response.end(JSON.stringify({
-                    email: "test@example.invalid",
-                    phone: "+49 123 4567890",
-                    phone_uri: "+491234567890"
-                  }));'''
-          new_fixture = '''        response.end(JSON.stringify({
-                    email: "test@example.invalid",
-                    phone: "+49 123 4567890",
-                    phone_uri: "+491234567890",
-                    whatsapp_url: "https://wa.me/491234567890"
-                  }));'''
-          if old_fixture not in text:
-              raise SystemExit('browser fixture contact payload anchor missing')
-          text = text.replace(old_fixture, new_fixture, 1)
+          fixture_anchor = '          phone_uri: "+491234567890"\n'
+          if text.count(fixture_anchor) != 1:
+              raise SystemExit('browser fixture phone_uri anchor count is not one')
+          text = text.replace(
+              fixture_anchor,
+              '          phone_uri: "+491234567890",\n'
+              '          whatsapp_url: "https://wa.me/491234567890"\n',
+              1,
+          )
 
-          old_assertion = '''    await cdp.evaluate(`(() => {
-                    window.turnstile = {
-                      render(mount, options) {
-                        const frame = document.createElement('iframe');
-                        frame.title = 'Synthetic Turnstile';
-                        frame.tabIndex = 0;
-                        mount.append(frame);
-                        setTimeout(() => options.callback('synthetic-turnstile-token'), 0);
-                        return 'fixture-widget';
-                      },
-                      reset() {}
-                    };
-                    document.querySelector('#contactReveal').focus();
-                  })()`);
-                  await cdp.key("Enter");
-                  await cdp.waitFor(
-                    `document.querySelector('#contactReveal')?.hidden === true && document.querySelector('#turnstileMount')?.hidden === true && document.querySelector('#contactVerifyStatus')?.dataset.state === "success" && document.activeElement?.dataset.revealed === "true"`,
-                    10_000,
-                    "keyboard contact verification focus transfer"
-                  );
-                  assert.deepEqual(state.contactRequests, [{ token: "synthetic-turnstile-token" }]);
-                  assert.equal(
-                    await cdp.evaluate(`document.activeElement?.getAttribute('href')`),
-                    "mailto:test@example.invalid"
-                  );'''
-          new_assertion = '''    assert.equal(
-                    await cdp.evaluate(`document.querySelector('#contactEmail')?.getAttribute('href')`),
-                    "mailto:andris@rozkalns.net"
-                  );
-                  assert.equal(
-                    await cdp.evaluate(`document.querySelector('#contactPhone')?.tagName`),
-                    "SPAN"
-                  );
-                  await cdp.evaluate(`(() => {
-                    window.turnstile = {
-                      render(mount, options) {
-                        const frame = document.createElement('iframe');
-                        frame.title = 'Synthetic Turnstile';
-                        frame.tabIndex = 0;
-                        mount.append(frame);
-                        setTimeout(() => options.callback('synthetic-turnstile-token'), 0);
-                        return 'fixture-widget';
-                      },
-                      reset() {}
-                    };
-                    document.querySelector('#contactReveal').focus();
-                  })()`);
-                  await cdp.key("Enter");
-                  await cdp.waitFor(
-                    `document.querySelector('#contactReveal')?.hidden === true && document.querySelector('#turnstileMount')?.hidden === true && document.querySelector('#contactVerifyStatus')?.dataset.state === "success" && document.activeElement?.dataset.revealed === "true"`,
-                    10_000,
-                    "keyboard phone verification focus transfer"
-                  );
-                  assert.deepEqual(state.contactRequests, [{ token: "synthetic-turnstile-token" }]);
-                  assert.equal(
-                    await cdp.evaluate(`document.activeElement?.getAttribute('href')`),
-                    "tel:+491234567890"
-                  );'''
-          if old_assertion not in text:
-              raise SystemExit('browser contact assertion anchor missing')
-          text = text.replace(old_assertion, new_assertion, 1)
+          turnstile_anchor = '''    await cdp.evaluate(`(() => {
+      window.turnstile = {'''
+          if text.count(turnstile_anchor) != 1:
+              raise SystemExit('browser Turnstile anchor count is not one')
+          preconditions = '''    assert.equal(
+      await cdp.evaluate(`document.querySelector('#contactEmail')?.getAttribute('href')`),
+      "mailto:andris@rozkalns.net"
+    );
+    assert.equal(
+      await cdp.evaluate(`document.querySelector('#contactPhone')?.tagName`),
+      "SPAN"
+    );
+'''
+          text = text.replace(turnstile_anchor, preconditions + turnstile_anchor, 1)
+
+          old_focus = '      "keyboard contact verification focus transfer"\n'
+          if text.count(old_focus) != 1:
+              raise SystemExit('browser contact focus label anchor count is not one')
+          text = text.replace(
+              old_focus,
+              '      "keyboard phone verification focus transfer"\n',
+              1,
+          )
+
+          old_href = '      "mailto:test@example.invalid"\n'
+          if text.count(old_href) != 1:
+              raise SystemExit('browser old contact href anchor count is not one')
+          text = text.replace(old_href, '      "tel:+491234567890"\n', 1)
+
           path.write_text(text, encoding='utf-8')
           PY
           node --check tests/browser-smoke.mjs
