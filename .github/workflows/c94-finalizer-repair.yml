@@ -1,9 +1,9 @@
 name: Repair C94 v3 finalizer
 
 on:
-  pull_request:
+  push:
     branches:
-      - main
+      - fix/94-public-email-verified-whatsapp-v3
     paths:
       - .github/workflows/c94-finalizer-repair.yml
 
@@ -14,15 +14,14 @@ jobs:
   repair:
     if: >-
       github.repository == 'rozkalnsandris/rozkalns-cv' &&
-      github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.pull_request.head.ref == 'fix/94-public-email-verified-whatsapp-v3'
+      github.ref == 'refs/heads/fix/94-public-email-verified-whatsapp-v3'
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:
       - name: Check out exact owner branch
         env:
           GH_TOKEN: ${{ github.token }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_SHA: ${{ github.sha }}
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -92,7 +91,7 @@ jobs:
       - name: Self-clean and push repair only
         env:
           GH_TOKEN: ${{ github.token }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_SHA: ${{ github.sha }}
         shell: bash
         run: |
           set -Eeuo pipefail
