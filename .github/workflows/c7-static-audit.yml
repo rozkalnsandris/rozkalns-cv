@@ -123,7 +123,7 @@ jobs:
           css = css_candidates[0]
           i18n = manifest['../content/translations/en.json']['file']
           pathlib.Path('/tmp/c7-paths').write_text('\n'.join([
-              '/', '/smarthome.html', '/photo.jpg', '/favicon.svg', '/cv.pdf', '/cv-de.pdf', '/cv-lv.pdf', '/stats.json',
+              '/', '/smarthome.html', '/photo.jpg', '/favicon.svg', '/cv.pdf', '/cv-de.pdf', '/cv-lv.pdf',
               '/' + app, '/' + css, '/' + i18n,
           ]) + '\n', encoding='utf-8')
           PY
