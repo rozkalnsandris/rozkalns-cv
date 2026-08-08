@@ -11,7 +11,7 @@ on:
       - content/translations/**
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -21,6 +21,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: refactor/72-frontend-source-dist-v01
 
       - uses: actions/setup-node@v6
         with:
@@ -43,6 +45,20 @@ jobs:
           cmp "$first/smarthome.html" html/smarthome.html
           cmp "$first/frontend-dist-manifest.json" frontend-dist-manifest.json
           printf 'C2_DOUBLE_BUILD_DETERMINISTIC=PASS\n'
+
+      - name: Commit runner-generated lock and dist to owner branch
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A -- package-lock.json frontend-dist-manifest.json html/assets html/i18n html/index.html html/smarthome.html
+          if git diff --cached --quiet; then
+            printf 'C2_GENERATED_TREE_ALREADY_CURRENT=PASS\n'
+            exit 0
+          fi
+          git commit -m 'build: commit deterministic Vite frontend dist'
+          git push origin HEAD:refactor/72-frontend-source-dist-v01
 
       - name: Upload lock and generated dist
         uses: actions/upload-artifact@v7
