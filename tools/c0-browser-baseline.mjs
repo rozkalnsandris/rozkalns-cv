@@ -21,6 +21,7 @@ class CDP {
   async wait(x,ms=10000){const end=Date.now()+ms;while(Date.now()<end){if(await this.eval(x))return;await sleep(100)}throw new Error(`timeout: ${x}`)}
   async nav(url){const p=this.waitEvent('Page.loadEventFired');await this.send('Page.navigate',{url});await p}
   async key(key,code=key,keyCode=0){const p={key,code,...(keyCode?{windowsVirtualKeyCode:keyCode,nativeVirtualKeyCode:keyCode}:{})};await this.send('Input.dispatchKeyEvent',{type:'rawKeyDown',...p});await this.send('Input.dispatchKeyEvent',{type:'keyUp',...p})}
+  async activate(key='Enter',code='Enter',keyCode=13){const p={key,code,windowsVirtualKeyCode:keyCode,nativeVirtualKeyCode:keyCode};await this.send('Input.dispatchKeyEvent',{type:'keyDown',...p});await this.send('Input.dispatchKeyEvent',{type:'keyUp',...p})}
   close(){this.ws.close()}
 }
 
@@ -32,7 +33,8 @@ const netSummary=(m,phase)=>{const rows=[...m.values()].filter(x=>x.phase===phas
 const intervalsBytes=r=>{const a=r.filter(x=>x[1]>x[0]).sort((x,y)=>x[0]-y[0]),m=[];for(const x of a){const z=m.at(-1);if(!z||x[0]>z[1])m.push([...x]);else z[1]=Math.max(z[1],x[1])}return m.reduce((n,x)=>n+x[1]-x[0],0)};
 function v8Used(functions,len){const r=functions.flatMap(f=>f.ranges||[]),b=[...new Set(r.flatMap(x=>[x.startOffset,x.endOffset]))].filter(x=>x>=0&&x<=len).sort((x,y)=>x-y);let n=0;for(let i=0;i<b.length-1;i++){const s=b[i],e=b[i+1],mid=(s+e)/2,c=r.filter(x=>x.startOffset<=mid&&x.endOffset>=mid).sort((x,y)=>(x.endOffset-x.startOffset)-(y.endOffset-y.startOffset))[0];if(c?.count>0)n+=e-s}return n}
 async function metrics(c){return await c.eval(`(()=>{const n=performance.getEntriesByType('navigation')[0],p=Object.fromEntries(performance.getEntriesByType('paint').map(e=>[e.name,e.startTime])),l=performance.getEntriesByType('largest-contentful-paint'),s=performance.getEntriesByType('layout-shift').filter(e=>!e.hadRecentInput);return{ttfbMs:n?.responseStart??null,dclMs:n?.domContentLoadedEventEnd??null,loadMs:n?.loadEventEnd??null,fcpMs:p['first-contentful-paint']??null,lcpMs:l.length?l.at(-1).startTime:null,cls:s.reduce((a,e)=>a+e.value,0)}})()`)}
-async function focus(c){return await c.eval(`(()=>{const e=document.activeElement;return e?{tag:e.tagName,id:e.id||null,cls:typeof e.className==='string'?e.className:null,lang:e.getAttribute?.('data-lang')||null,href:e.getAttribute?.('href')||null}:null})()`)}
+async function focus(c){return await c.eval(`(()=>{const e=document.activeElement;return e?{tag:e.tagName,id:e.id||null,cls:typeof e.className==='string'?e.className:null,lang:e.getAttribute?.('data-lang')||null,href:e.getAttribute?.('href')||null,type:e.getAttribute?.('type')||null}:null})()`)}
+async function languageDiagnostics(c){return await c.eval(`(()=>({readyState:document.readyState,lang:document.documentElement.lang,pdfHref:document.querySelector('#pdfLink')?.getAttribute('href')??null,active:(()=>{const e=document.activeElement;return e?{tag:e.tagName,id:e.id||null,lang:e.getAttribute?.('data-lang')||null,text:e.textContent?.trim()||null}:null})(),buttons:[...document.querySelectorAll('[data-lang]')].map(e=>({tag:e.tagName,lang:e.getAttribute('data-lang'),pressed:e.getAttribute('aria-pressed'),text:e.textContent?.trim()||null}))}))()`)}
 
 async function run(name,vp){
   const profile=await mkdtemp(join(tmpdir(),`cv-c0-${name}-`)),proc=spawn(CHROME,['--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--disable-background-networking','--disable-component-update','--disable-default-apps','--disable-sync','--no-first-run','--lang=en-US','--remote-debugging-port=0',`--user-data-dir=${profile}`,'about:blank'],{stdio:['ignore','pipe','pipe']});let err='',c;
@@ -46,11 +48,36 @@ async function run(name,vp){
     phase='warm';await c.nav(`${ORIGIN}/`);await c.wait(`document.readyState==='complete'`,15000);await sleep(1200);const warm={metrics:await metrics(c),network:netSummary(net,'warm')};
     const state=await c.eval(`(()=>({lang:document.documentElement.lang,statsState:document.querySelector('#liveDot')?.dataset.state||null,statsRendered:[...document.querySelectorAll('[data-stat]')].some(e=>e.textContent.trim()!=='—'),contactMasked:document.querySelector('#contactEmail')?.classList.contains('contact-masked')===true&&document.querySelector('#contactPhone')?.classList.contains('contact-masked')===true}))()`);assert.equal(state.contactMasked,true);
     const shot=await c.send('Page.captureScreenshot',{format:'png',fromSurface:true,captureBeyondViewport:false});await writeFile(join(OUT,`screenshot-${name}.png`),Buffer.from(shot.data,'base64'));
-    phase='interaction';const kb={tab:[]};await c.eval(`document.activeElement?.blur()`);for(let i=0;i<18;i++){await c.key('Tab','Tab',9);kb.tab.push(await focus(c))}kb.skipFirst=kb.tab[0]?.cls?.split(/\s+/).includes('skip-link')||false;kb.langButtons=['en','de','lv'].every(l=>kb.tab.some(x=>x?.lang===l));
-    await c.eval(`document.querySelector('[data-lang="lv"]')?.focus()`);await c.key('Enter','Enter',13);await c.wait(`document.documentElement.lang==='lv'&&document.querySelector('#pdfLink')?.getAttribute('href')==='/cv-lv.pdf'`);kb.langSwitch=true;
-    await c.eval(`document.querySelector('.site-nav a[href="#about"]')?.focus()`);await c.key('Enter','Enter',13);await c.wait(`location.hash==='#about'`,5000);kb.nav=true;
-    await c.send('Network.setBlockedURLs',{urls:['*://rozkalns.net/api/contact-reveal*','*://rozkalns.net/api/chat*']});await c.eval(`document.querySelector('#contactReveal')?.focus()`);await c.key('Enter','Enter',13);await sleep(1000);kb.contact=await c.eval(`(()=>({mount:document.querySelector('#turnstileMount')?.hidden===false,iframe:!!document.querySelector('#turnstileMount iframe'),disabled:!!document.querySelector('#contactReveal')?.disabled,status:!!document.querySelector('#contactVerifyStatus')?.textContent?.trim()}))()`);
-    await c.eval(`document.querySelector('#chatLauncher')?.focus()`);await c.key('Enter','Enter',13);await c.wait(`document.querySelector('#chatBackdrop')?.hidden===false&&document.activeElement?.id==='chatInput'`,5000);await c.send('Input.insertText',{text:'Baseline read-only interaction'});await c.eval(`document.querySelector('#chatSend')?.focus()`);await c.key('Enter','Enter',13);await sleep(700);kb.chatBlocked=[...net.values()].some(x=>x.phase==='interaction'&&x.url.includes('/api/chat')&&x.failed);await c.key('Escape','Escape',27);await c.wait(`document.querySelector('#chatBackdrop')?.hidden===true&&document.activeElement?.id==='chatLauncher'`,5000);kb.chatFocusReturn=true;
+
+    phase='interaction';
+    const kb={tab:[]};
+    await c.eval(`document.activeElement?.blur()`);
+    let lvReached=false;
+    for(let i=0;i<18;i++){
+      await c.key('Tab','Tab',9);
+      const active=await focus(c);
+      kb.tab.push(active);
+      if(!lvReached&&active?.lang==='lv'){
+        try{
+          await c.activate('Enter','Enter',13);
+          await c.wait(`document.documentElement.lang==='lv'&&document.querySelector('#pdfLink')?.getAttribute('href')==='/cv-lv.pdf'`,10000);
+          lvReached=true;
+        }catch(e){
+          const diagnostics=await languageDiagnostics(c);
+          throw new Error(`${e instanceof Error?e.message:e}; language-state=${JSON.stringify(diagnostics)}`);
+        }
+      }
+    }
+    kb.skipFirst=kb.tab[0]?.cls?.split(/\s+/).includes('skip-link')||false;
+    kb.langButtons=['en','de','lv'].every(l=>kb.tab.some(x=>x?.lang===l));
+    kb.langSwitch=lvReached;
+    assert.equal(kb.langSwitch,true,`language-state=${JSON.stringify(await languageDiagnostics(c))}`);
+
+    await c.eval(`document.querySelector('.site-nav a[href="#about"]')?.focus()`);await c.activate('Enter','Enter',13);await c.wait(`location.hash==='#about'`,5000);kb.nav=true;
+    await c.send('Network.setBlockedURLs',{urls:['*://rozkalns.net/api/contact-reveal*','*://rozkalns.net/api/chat*']});
+    await c.eval(`document.querySelector('#contactReveal')?.focus()`);await c.activate('Enter','Enter',13);await sleep(1000);kb.contact=await c.eval(`(()=>({mount:document.querySelector('#turnstileMount')?.hidden===false,iframe:!!document.querySelector('#turnstileMount iframe'),disabled:!!document.querySelector('#contactReveal')?.disabled,status:!!document.querySelector('#contactVerifyStatus')?.textContent?.trim()}))()`);
+    await c.eval(`document.querySelector('#chatLauncher')?.focus()`);await c.activate('Enter','Enter',13);await c.wait(`document.querySelector('#chatBackdrop')?.hidden===false&&document.activeElement?.id==='chatInput'`,5000);await c.send('Input.insertText',{text:'Baseline read-only interaction'});await c.eval(`document.querySelector('#chatSend')?.focus()`);await c.activate('Enter','Enter',13);await sleep(700);kb.chatBlocked=[...net.values()].some(x=>x.phase==='interaction'&&x.url.includes('/api/chat')&&x.failed);await c.key('Escape','Escape',27);await c.wait(`document.querySelector('#chatBackdrop')?.hidden===true&&document.activeElement?.id==='chatLauncher'`,5000);kb.chatFocusReturn=true;
+
     const js=await c.send('Profiler.takePreciseCoverage');await c.send('Profiler.stopPreciseCoverage');const css=await c.send('CSS.stopRuleUsageTracking'),jsRows=[];for(const s of js.result||[]){if(!s.url)continue;let u;try{u=new URL(s.url)}catch{continue}if(u.origin!==ORIGIN)continue;let src='';try{src=(await c.send('Debugger.getScriptSource',{scriptId:s.scriptId})).scriptSource||''}catch{continue}const used=v8Used(s.functions||[],src.length);jsRows.push({url:u.pathname+u.search,bytes:src.length,usedBytes:used,percent:src.length?+(100*used/src.length).toFixed(2):null})}
     const by=new Map();for(const x of css.ruleUsage||[]){if(!x.used)continue;const q=by.get(x.styleSheetId)||[];q.push([x.startOffset,x.endOffset]);by.set(x.styleSheetId,q)}const cssRows=[];for(const[id,h]of sheets){if(!h.sourceURL)continue;let u;try{u=new URL(h.sourceURL)}catch{continue}if(u.origin!==ORIGIN)continue;let text='';try{text=(await c.send('CSS.getStyleSheetText',{styleSheetId:id})).text||''}catch{continue}const used=intervalsBytes(by.get(id)||[]);cssRows.push({url:u.pathname+u.search,bytes:text.length,usedBytes:used,percent:text.length?+(100*used/text.length).toFixed(2):null})}
     return{browser:ver.Browser||null,protocol:ver['Protocol-Version']||null,viewport:vp,state,cold,warm,interactionNetwork:netSummary(net,'interaction'),keyboard:kb,coverage:{javascript:jsRows.sort((x,y)=>x.url.localeCompare(y.url)),css:cssRows.sort((x,y)=>x.url.localeCompare(y.url))}};
