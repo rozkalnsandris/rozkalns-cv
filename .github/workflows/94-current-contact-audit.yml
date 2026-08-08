@@ -28,8 +28,7 @@ jobs:
           auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
           git init .
           git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
-          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
-            fetch --no-tags origin "$GITHUB_SHA"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "$GITHUB_SHA"
           git checkout --detach FETCH_HEAD
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
 
@@ -50,7 +49,6 @@ jobs:
           email_re = re.compile(r'(?i)[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}')
           phone_re = re.compile(r'(?<!\w)\+?\d(?:[\s()./-]*\d){7,}(?!\w)')
           version_re = re.compile(r'^\d{4}-\d{2}-\d{2}\.\d+$')
-
           candidates: list[tuple[str, str, bytes]] = []
           seen: set[bytes] = set()
           contact_structure: list[tuple[str, str, int]] = []
@@ -58,37 +56,29 @@ jobs:
           def classify(path: str, text: str) -> str | None:
               if path == '$.content_version' and version_re.fullmatch(text):
                   return None
-              if email_re.search(text):
-                  return 'email_like'
-              if phone_re.search(text):
-                  return 'phone_like'
+              if email_re.search(text): return 'email_like'
+              if phone_re.search(text): return 'phone_like'
               return None
 
           def add_candidate(path: str, kind: str, text: str) -> None:
               encoded = text.strip().encode('utf-8')
-              if len(encoded) < 6 or encoded in seen:
-                  return
+              if len(encoded) < 6 or encoded in seen: return
               seen.add(encoded)
               candidates.append((path, kind, encoded))
 
           def walk(value, path: str = '$') -> None:
               if isinstance(value, dict):
-                  for key, item in value.items():
-                      walk(item, f'{path}.{key}')
+                  for key, item in value.items(): walk(item, f'{path}.{key}')
                   return
               if isinstance(value, list):
-                  for index, item in enumerate(value):
-                      walk(item, f'{path}[{index}]')
+                  for index, item in enumerate(value): walk(item, f'{path}[{index}]')
                   return
-              if not isinstance(value, str):
-                  return
+              if not isinstance(value, str): return
               text = value.strip()
               kind = classify(path, text)
-              path_lower = path.lower()
-              if any(word in path_lower for word in ('contact', 'email', 'phone', 'mobile')):
+              if any(word in path.lower() for word in ('contact', 'email', 'phone', 'mobile')):
                   contact_structure.append((path, kind or 'other_string', len(text)))
-              if kind:
-                  add_candidate(path, kind, text)
+              if kind: add_candidate(path, kind, text)
 
           walk(profile)
           print(f'PROFILE_CONTACT_STRUCTURE_COUNT={len(contact_structure)}')
@@ -98,10 +88,7 @@ jobs:
           for index, (path, kind, _) in enumerate(candidates, 1):
               print(f'PROTECTED_CANDIDATE_{index}=path:{path};kind:{kind}')
 
-          tracked = [
-              raw.decode('utf-8') for raw in subprocess.check_output(['git', 'ls-files', '-z']).split(b'\0')
-              if raw
-          ]
+          tracked = [raw.decode('utf-8') for raw in subprocess.check_output(['git','ls-files','-z']).split(b'\0') if raw]
           findings: list[list[str]] = [[] for _ in candidates]
           pdf_files: list[Path] = []
           dependency_patterns = {
@@ -111,65 +98,49 @@ jobs:
               'GIT_EMAIL_CONFIG_REFS': re.compile(rb'user\.email|git\s+config[^\n]*email'),
           }
           dependencies = {key: [] for key in dependency_patterns}
-
           for relative in tracked:
               path = root / relative
-              if not path.is_file():
-                  continue
+              if not path.is_file(): continue
               if path.suffix.lower() == '.pdf':
-                  pdf_files.append(path)
-                  continue
+                  pdf_files.append(path); continue
               data = path.read_bytes()
               for index, (_, _, candidate) in enumerate(candidates):
-                  if candidate in data:
-                      findings[index].append(relative)
+                  if candidate in data: findings[index].append(relative)
               for key, pattern in dependency_patterns.items():
-                  if pattern.search(data):
-                      dependencies[key].append(relative)
+                  if pattern.search(data): dependencies[key].append(relative)
 
           total_hits = 0
           for index, files in enumerate(findings, 1):
-              unique = sorted(set(files))
-              total_hits += len(unique)
+              unique = sorted(set(files)); total_hits += len(unique)
               print(f'CANDIDATE_{index}_TRACKED_FILE_COUNT={len(unique)}')
-              for file_index, relative in enumerate(unique, 1):
-                  print(f'CANDIDATE_{index}_TRACKED_FILE_{file_index}={relative}')
-
+              for file_index, relative in enumerate(unique, 1): print(f'CANDIDATE_{index}_TRACKED_FILE_{file_index}={relative}')
           for key, files in dependencies.items():
-              unique = sorted(set(files))
-              print(f'{key}_COUNT={len(unique)}')
-              for index, relative in enumerate(unique, 1):
-                  print(f'{key}_{index}={relative}')
+              unique = sorted(set(files)); print(f'{key}_COUNT={len(unique)}')
+              for index, relative in enumerate(unique, 1): print(f'{key}_{index}={relative}')
+
+          bootstrap = (root / 'scripts/bootstrap-github.sh').read_text(encoding='utf-8')
+          for _, _, candidate in candidates:
+              bootstrap = bootstrap.replace(candidate.decode('utf-8'), '<PROTECTED_CONTACT>')
+          for index, line in enumerate(bootstrap.splitlines(), 1):
+              if 'user.email' in line or ('git config' in line and 'email' in line.lower()):
+                  print(f'BOOTSTRAP_EMAIL_CONTEXT_LINE={index}:{line.strip()}')
 
           pdftotext = shutil.which('pdftotext')
           if pdftotext:
-              pdf_hit_count = 0
+              count = 0
               for path in pdf_files:
-                  completed = subprocess.run(
-                      [pdftotext, '-layout', str(path), '-'],
-                      stdout=subprocess.PIPE,
-                      stderr=subprocess.DEVNULL,
-                      check=True,
-                  )
-                  if any(candidate in completed.stdout for _, _, candidate in candidates):
-                      pdf_hit_count += 1
-                      print(f'PDF_PROTECTED_LITERAL_PRESENT={path.relative_to(root)}')
-              print(f'PDF_PROTECTED_LITERAL_FILE_COUNT={pdf_hit_count}')
-              print('PDF_TEXT_AUDIT=PASS')
+                  completed = subprocess.run([pdftotext,'-layout',str(path),'-'],stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,check=True)
+                  if any(candidate in completed.stdout for _,_,candidate in candidates):
+                      count += 1; print(f'PDF_PROTECTED_LITERAL_PRESENT={path.relative_to(root)}')
+              print(f'PDF_PROTECTED_LITERAL_FILE_COUNT={count}'); print('PDF_TEXT_AUDIT=PASS')
           else:
               print('PDF_TEXT_AUDIT=UNAVAILABLE')
 
           profile_hit = any('content/profile.json' in files for files in findings)
-          assistant_files = sorted({
-              name
-              for files in findings
-              for name in files
-              if name.startswith('bot/')
-          })
+          assistant_files = sorted({name for files in findings for name in files if name.startswith('bot/')})
           print(f'CANONICAL_PROFILE_LITERAL_PRESENT={str(profile_hit).lower()}')
           print(f'GENERATED_ASSISTANT_LITERAL_PRESENT={str(bool(assistant_files)).lower()}')
-          for index, name in enumerate(assistant_files, 1):
-              print(f'GENERATED_ASSISTANT_LITERAL_FILE_{index}={name}')
+          for index, name in enumerate(assistant_files, 1): print(f'GENERATED_ASSISTANT_LITERAL_FILE_{index}={name}')
           print(f'TRACKED_LITERAL_FILE_HITS={total_hits}')
           print('CURRENT_CONTACT_LITERAL_AUDIT=FINDINGS' if candidates else 'CURRENT_CONTACT_LITERAL_AUDIT=PASS')
           PY
