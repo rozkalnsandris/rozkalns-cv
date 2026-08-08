@@ -1,0 +1,71 @@
+name: Gate C0 RPi5 read-only probe
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/gate-c0-rpi-probe.yml
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    if: github.event.pull_request.head.ref == 'audit/gate-c0-baseline-70'
+    runs-on:
+      - self-hosted
+      - Linux
+      - ARM64
+      - rozkalns-cv-release
+    timeout-minutes: 8
+
+    steps:
+      - name: Prove isolated read-only runner context
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$PWD" != /home/andris/rozkalns-cv
+          test "$PWD" != /home/andris/docker/cv
+          case "$PWD" in
+            /home/github-cv-runner/actions-runner/_work/*) ;;
+            *) printf 'unexpected runner workspace: %s\n' "$PWD" >&2; exit 1 ;;
+          esac
+          printf 'RUNNER_WORKSPACE=PASS\n'
+          printf 'SUDO_USED=false\n'
+          printf 'DOCKER_ACCESS=false\n'
+
+      - name: Probe tools and read-only HTTP paths
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          for tool in node npm chromium chromium-browser google-chrome google-chrome-stable curl python3; do
+            if command -v "$tool" >/dev/null 2>&1; then
+              printf 'TOOL_%s=present path=%s\n' "$tool" "$(command -v "$tool")"
+              if [[ "$tool" == node || "$tool" == npm || "$tool" == chromium || "$tool" == chromium-browser || "$tool" == google-chrome || "$tool" == google-chrome-stable ]]; then
+                "$tool" --version 2>/dev/null | head -n 1 || true
+              fi
+            else
+              printf 'TOOL_%s=absent\n' "$tool"
+            fi
+          done
+
+          public_status="$(curl --silent --show-error --max-time 20 --output /dev/null --write-out '%{http_code}' https://rozkalns.net/ || true)"
+          origin_status="$(curl --silent --show-error --max-time 20 --header 'Host: rozkalns.net' --output /dev/null --write-out '%{http_code}' http://127.0.0.1:8088/ || true)"
+          public_stats="$(curl --silent --show-error --max-time 20 --output /dev/null --write-out '%{http_code}' https://rozkalns.net/stats.json || true)"
+          origin_stats="$(curl --silent --show-error --max-time 20 --header 'Host: rozkalns.net' --output /dev/null --write-out '%{http_code}' http://127.0.0.1:8088/stats.json || true)"
+          printf 'PUBLIC_ROOT_STATUS=%s\n' "${public_status:-000}"
+          printf 'ORIGIN_ROOT_STATUS=%s\n' "${origin_status:-000}"
+          printf 'PUBLIC_STATS_STATUS=%s\n' "${public_stats:-000}"
+          printf 'ORIGIN_STATS_STATUS=%s\n' "${origin_stats:-000}"
+
+      - name: Prove production paths were not entered or written
+        if: always()
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$PWD" != /home/andris/rozkalns-cv
+          test "$PWD" != /home/andris/docker/cv
+          test ! -e cloudflared.env
+          test ! -e bot/.env
+          printf 'PRODUCTION_WRITE=false\n'
+          printf 'DOCKER_ACCESS=false\n'
+          printf 'SUDO_USED=false\n'
