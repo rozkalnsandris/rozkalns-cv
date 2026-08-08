@@ -79,13 +79,21 @@ The permanent Chromium smoke exercises the generated frontend with controlled AP
 - Latvian switch, translated role, `/cv-lv.pdf`, and `aria-pressed` state;
 - live/stale/invalid statistics behavior;
 - chat open, focus trap, Escape close, focus return, streamed reply, completed-history bounds, and failure exclusion;
-- Turnstile-gated contact reveal, token-only POST shape, successful reveal, and focus transfer to the newly revealed contact link;
+- Turnstile-gated contact reveal, token-only POST shape, successful fixture reveal, and focus transfer to the newly revealed contact link;
 - content-addressed WebP decode at 480×480 with reserved layout dimensions;
 - Smart Home mobile landmarks, heading hierarchy, language controls, and device headings.
 
 C9 additionally ran temporary GitHub-hosted browser proof `31267843383` against the same unchanged product tree. The workflow modified only the test workspace, not repository product source, to add an explicit German switch assertion before the existing Latvian switch. Real Chromium passed the full EN → DE → LV sequence, including German `/cv-de.pdf`, German role text, and language toggle state. The temporary workflow was removed after PASS.
 
 This separation is intentional: production RPi5 evidence proves the exact deployed revision and real network/runtime health, while exact-source Chromium fixtures prove protected interaction semantics without bypassing Turnstile or logging/retrieving real contact data.
+
+## Manual production acceptance boundary
+
+One C9 item cannot be honestly automated against the real production Turnstile widget: a successful human challenge followed by the protected contact reveal. Cloudflare documents that automated browser suites are detected as bots and recommends dedicated dummy sitekeys/secrets for automated tests; production secrets reject dummy tokens. This repository therefore does **not** introduce a test-key path, Siteverify bypass, or automation backdoor in production.
+
+Automated evidence already proves that full contact values are absent before verification, the Turnstile flow is interaction-only, server-side validation fails closed, and the successful reveal/focus behavior works with controlled test fixtures. Final human acceptance still requires one real production interaction on `https://rozkalns.net/`: activate **Verify to show contact details**, complete the real Turnstile challenge, and confirm that the protected contact links appear. No contact values or Turnstile token should be copied into GitHub evidence; a simple owner confirmation is sufficient.
+
+Until that human production interaction is confirmed, C9 automated proof is PASS but the overall C9 gate remains **pending manual Turnstile acceptance**.
 
 ## Before/after evidence
 
@@ -167,8 +175,8 @@ Rollback remains available and tested rather than exercised unnecessarily on a h
 
 ## C9 pre-merge verdict
 
-PASS.
+**Automated acceptance: PASS. Overall gate: PENDING MANUAL TURNSTILE ACCEPTANCE.**
 
 The real production revision is healthy and exact-SHA proven; the same product source passes deterministic build, browser, API-contract, security and supply-chain gates; controlled performance evidence shows less startup work; and no final production code/config correction is justified.
 
-After this evidence-only PR is merged, close #102 and parent #68 only after the new documentation-only merge SHA completes the repository's normal `main` CI → serial RPi5 deployment proof. Because the PR changes documentation only, no served behavior change is expected.
+After the real production Turnstile reveal is manually confirmed, this evidence-only PR can be marked ready and merged. Then close #102 and parent #68 only after the new documentation-only merge SHA completes the repository's normal `main` CI → serial RPi5 deployment proof. Because the PR changes documentation only, no served behavior change is expected.
