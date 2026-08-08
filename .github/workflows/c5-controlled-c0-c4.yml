@@ -1,0 +1,140 @@
+name: C5 controlled C0-C4 comparison
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/c5-controlled-c0-c4.yml
+      - tools/c5-startup-baseline.mjs
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    if: >-
+      github.repository == 'rozkalnsandris/rozkalns-cv' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'perf/82-reduce-initial-background-work-v01'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      C0_SHA: ef5422ff3b2ac11934058478fcef9435df2fe8c3
+      C4_SHA: c01a2beea0df8050a6e192504428c17574a852af
+      PYTHONDONTWRITEBYTECODE: "1"
+
+    steps:
+      - name: Check out measurement tool and frozen product SHAs
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Materialize exact C0 and C4 trees
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "$C0_SHA" "$C4_SHA"
+          git worktree add --detach "${RUNNER_TEMP}/c0" "$C0_SHA"
+          git worktree add --detach "${RUNNER_TEMP}/c4" "$C4_SHA"
+          test "$(git -C "${RUNNER_TEMP}/c0" rev-parse HEAD)" = "$C0_SHA"
+          test "$(git -C "${RUNNER_TEMP}/c4" rev-parse HEAD)" = "$C4_SHA"
+
+      - name: Set up pinned Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.18.0
+          package-manager-cache: false
+
+      - name: Capture three controlled C0 and C4 runs
+        id: capture
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          chrome=''
+          for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
+            if command -v "$candidate" >/dev/null 2>&1; then chrome="$(command -v "$candidate")"; break; fi
+          done
+          test -n "$chrome"
+          root="${RUNNER_TEMP}/c5-controlled"
+          mkdir -p "$root"
+          python3 -m http.server 18081 --bind 127.0.0.1 --directory "${RUNNER_TEMP}/c0/html" >"${RUNNER_TEMP}/c0-http.log" 2>&1 &
+          c0_pid=$!
+          python3 -m http.server 18082 --bind 127.0.0.1 --directory "${RUNNER_TEMP}/c4/html" >"${RUNNER_TEMP}/c4-http.log" 2>&1 &
+          c4_pid=$!
+          cleanup() { kill "$c0_pid" "$c4_pid" >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+          for port in 18081 18082; do
+            for attempt in $(seq 1 20); do
+              if curl -fsS "http://127.0.0.1:${port}/" >/dev/null; then break; fi
+              test "$attempt" -lt 20
+              sleep 0.25
+            done
+          done
+          for n in 1 2 3; do
+            node tools/c5-startup-baseline.mjs --output "$root/c0-$n" --url http://127.0.0.1:18081/ --chrome "$chrome" --sha "$C0_SHA"
+            node tools/c5-startup-baseline.mjs --output "$root/c4-$n" --url http://127.0.0.1:18082/ --chrome "$chrome" --sha "$C4_SHA"
+          done
+          printf 'evidence=%s\n' "$root" >> "$GITHUB_OUTPUT"
+
+      - name: Summarize controlled delta
+        env:
+          EVIDENCE: ${{ steps.capture.outputs.evidence }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import json, os, statistics
+          from collections import defaultdict
+          from pathlib import Path
+          root=Path(os.environ['EVIDENCE'])
+          data={version:[json.loads((root/f'{version}-{n}'/'startup-baseline.json').read_text()) for n in (1,2,3)] for version in ('c0','c4')}
+          summary={'c0Sha':os.environ['C0_SHA'],'c4Sha':os.environ['C4_SHA'],'runs':3,'results':{}}
+          for vp in ('desktop','phone'):
+              summary['results'][vp]={}
+              for version in ('c0','c4'):
+                  runs=data[version]
+                  row={'network':{},'coverage':{},'types':{}}
+                  for phase in ('cold','warm'):
+                      bs=[r[vp][phase]['network']['transferredBytes'] for r in runs]
+                      qs=[r[vp][phase]['network']['requests'] for r in runs]
+                      row['network'][phase]={'medianBytes':int(statistics.median(bs)),'runsBytes':bs,'medianRequests':int(statistics.median(qs)),'runsRequests':qs}
+                  js_bytes=[]; js_used=[]
+                  for r in runs:
+                      rows=r[vp]['coverage']['javascript']
+                      js_bytes.append(sum(x['bytes'] for x in rows))
+                      js_used.append(sum(x['usedBytes'] for x in rows))
+                  total=int(statistics.median(js_bytes)); used=int(statistics.median(js_used))
+                  row['coverage']={'medianJsBytes':total,'medianUsedBytes':used,'usedPercent':round(100*used/total,2) if total else None}
+                  type_runs=[]
+                  for r in runs:
+                      bucket=defaultdict(int)
+                      for x in r[vp]['cold']['network']['rows']:
+                          bucket[x['type']]+=x['bytes']
+                      type_runs.append(bucket)
+                  for typ in sorted(set().union(*[set(x) for x in type_runs])):
+                      row['types'][typ]=int(statistics.median([x.get(typ,0) for x in type_runs]))
+                  summary['results'][vp][version]=row
+              c0=summary['results'][vp]['c0']; c4=summary['results'][vp]['c4']
+              for phase in ('cold','warm'):
+                  a=c0['network'][phase]['medianBytes']; b=c4['network'][phase]['medianBytes']
+                  print(f'C5_CONTROLLED_{vp.upper()}_{phase.upper()}_C0={a} C4={b} DELTA={b-a:+d}B ({(b/a-1)*100:+.2f}%)')
+                  print(f'C5_CONTROLLED_{vp.upper()}_{phase.upper()}_REQUESTS_C0={c0["network"][phase]["medianRequests"]} C4={c4["network"][phase]["medianRequests"]}')
+              print(f'C5_CONTROLLED_{vp.upper()}_JS_BYTES_C0={c0["coverage"]["medianJsBytes"]} C4={c4["coverage"]["medianJsBytes"]} DELTA={c4["coverage"]["medianJsBytes"]-c0["coverage"]["medianJsBytes"]:+d}')
+              print(f'C5_CONTROLLED_{vp.upper()}_JS_USED_C0={c0["coverage"]["medianUsedBytes"]}/{c0["coverage"]["medianJsBytes"]} ({c0["coverage"]["usedPercent"]}%) C4={c4["coverage"]["medianUsedBytes"]}/{c4["coverage"]["medianJsBytes"]} ({c4["coverage"]["usedPercent"]}%)')
+              print(f'C5_CONTROLLED_{vp.upper()}_C0_TYPES={c0["types"]}')
+              print(f'C5_CONTROLLED_{vp.upper()}_C4_TYPES={c4["types"]}')
+          (root/'controlled-summary.json').write_text(json.dumps(summary,indent=2)+'\n')
+          PY
+
+      - name: Upload controlled comparison evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: c5-controlled-c0-c4-${{ github.event.pull_request.head.sha }}
+          path: ${{ steps.capture.outputs.evidence }}
+          if-no-files-found: error
+          retention-days: 30
