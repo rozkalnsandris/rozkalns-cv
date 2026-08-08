@@ -107,7 +107,7 @@ class ContactEndpointTests(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         env = {
             "LLM_API_KEY": "test-llm-key",
-            "CLIENT_KEY_SECRET": "test-client-secret",
+            "CLIENT_KEY_SECRET": "A" * 43,
             "ASSISTANT_DB_PATH": str(Path(self.tmp.name) / "assistant.sqlite3"),
             "TRUSTED_PROXY_CIDRS": "172.19.0.10/32",
             "TELEGRAM_TOKEN": "",

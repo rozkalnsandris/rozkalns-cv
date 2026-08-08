@@ -413,6 +413,58 @@ capture_runtime_diagnostics() {
     } >"$output" 2>&1
 }
 
+
+validate_cvbot_runtime_secret() {
+    local env_file="$RUNTIME/bot/.env"
+    [[ -f "$env_file" && ! -L "$env_file" ]] || return 1
+    python3 - "$env_file" <<'PY_SECRET'
+from __future__ import annotations
+
+import base64
+import binascii
+import hmac
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+values: dict[str, str] = {}
+for raw in path.read_text(encoding="utf-8").splitlines():
+    line = raw.strip()
+    if not line or line.startswith("#"):
+        continue
+    key, separator, value = line.partition("=")
+    key = key.strip()
+    if not separator or key not in {"CLIENT_KEY_SECRET", "LLM_API_KEY"}:
+        continue
+    if key in values:
+        raise SystemExit("cvbot secret contract failed: duplicate key")
+    value = value.strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+        value = value[1:-1]
+    values[key] = value
+
+secret = values.get("CLIENT_KEY_SECRET", "")
+allowed = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_")
+if not secret or not secret.isascii() or any(
+    character not in allowed for character in secret
+):
+    raise SystemExit("cvbot client pseudonymization secret contract failed")
+padding = "=" * ((4 - len(secret) % 4) % 4)
+try:
+    decoded = base64.b64decode(secret + padding, altchars=b"-_", validate=True)
+except (binascii.Error, ValueError):
+    raise SystemExit(
+        "cvbot client pseudonymization secret contract failed"
+    ) from None
+if len(decoded) < 32:
+    raise SystemExit("cvbot client pseudonymization secret contract failed")
+provider = values.get("LLM_API_KEY", "")
+if provider and hmac.compare_digest(secret, provider):
+    raise SystemExit("cvbot client pseudonymization secret must be dedicated")
+print("CVBOT_CLIENT_KEY_SECRET=PASS")
+PY_SECRET
+}
+
 prepare_cvbot_data() {
     local data_dir="$RUNTIME/bot/data"
     [[ -d "$RUNTIME/bot" && ! -L "$RUNTIME/bot" ]] || return 1
@@ -515,6 +567,7 @@ PY
 
 deploy_runtime() {
     normalize_managed_permissions "$RUNTIME" || return 1
+    validate_cvbot_runtime_secret || return 1
     prepare_cvbot_data || return 1
     prepare_cvbot_build_identity || return 1
     validate_rendered_network "$RUNTIME" || return 1
