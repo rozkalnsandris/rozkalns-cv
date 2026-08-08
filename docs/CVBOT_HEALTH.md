@@ -25,6 +25,6 @@ Readiness never calls DeepSeek, Telegram, Turnstile, Cloudflare, DNS, or another
 
 Docker health checks `http://localhost:5000/health/ready`. The release helper already waits for Docker to report cvbot healthy before starting/reloading the Nginx frontend, so deployment cannot proceed to public acceptance while local cvbot storage/config prerequisites are failing.
 
-Nginx returns 404 for `/api/health/ready`; the readiness contract is intentionally internal. The existing lightweight `/api/health` path remains available as a sanitized liveness signal.
+The endpoint returns only `{"ready": true}` or the same boolean with HTTP 503. It never exposes which configuration value or storage check failed. The existing `/api/health` path remains a cheaper liveness signal. Nginx itself is intentionally unchanged by this issue, so the established frontend cache/config identity stays stable.
 
 No secret value, database content, file path, provider payload, or detailed failure reason is returned by either endpoint.
