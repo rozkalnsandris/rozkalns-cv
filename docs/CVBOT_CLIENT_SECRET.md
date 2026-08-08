@@ -23,3 +23,9 @@ Pseudonyms are deterministic only while this secret is unchanged. Rotating it ch
 If old pseudonymous identity state must be cleared for an operational reason, that is a separate, explicit maintenance action with its own authorization and evidence. Secret rotation itself must not silently delete rate-limit or retained-chat rows.
 
 The runtime `.env` is excluded from source synchronization, application backups, manifests, logs, and normal deployment evidence; no secret value belongs in tracked files.
+
+## Validation provenance
+
+The #113 product tree is stacked on ready #124 head `682a66a7db419cf151502224646c4d0437f2b9c5`. Bounded finalizer run `31272192094` applied the dedicated-secret policy, ran the focused startup, storage, retention, contact-privacy and deploy-contract regressions plus source validation, guarded the diff scope, removed its temporary bootstrap files, and published product head `0769c4649c8dcc7b581c16016c65a36d08f4fec2` successfully.
+
+No production secret was generated or rotated, no SQLite state was cleared, and no deployment or production runtime mutation occurred during that validation.
