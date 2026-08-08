@@ -97,3 +97,24 @@ export function createStatsController(languageController, {
 
   return { load, start, stop };
 }
+
+export function bindStatsVisibility(statsController, {
+  documentLike = globalThis.document,
+  windowLike = globalThis.window
+} = {}) {
+  const sync = () => {
+    if (documentLike.hidden) statsController.stop();
+    else statsController.start();
+  };
+  const stop = () => statsController.stop();
+
+  sync();
+  documentLike.addEventListener("visibilitychange", sync);
+  windowLike.addEventListener("pagehide", stop, { once: true });
+
+  return () => {
+    documentLike.removeEventListener("visibilitychange", sync);
+    windowLike.removeEventListener("pagehide", stop);
+    statsController.stop();
+  };
+}
