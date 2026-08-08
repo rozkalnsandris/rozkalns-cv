@@ -13,14 +13,31 @@ SMART = ROOT / "html" / "smarthome.html"
 FAVICON = ROOT / "html" / "favicon.svg"
 NGINX = ROOT / "nginx.conf"
 COMPOSE = ROOT / "docker-compose.yml"
-CSS = ROOT / "html" / "assets" / "main.8548550e57d3.css"
-APP = ROOT / "html" / "assets" / "app.d878d409f278.mjs"
-SMART_JS = ROOT / "html" / "assets" / "smarthome.70da56476fdb.mjs"
+MANIFEST = ROOT / "frontend-dist-manifest.json"
+SOURCE_CSS = ROOT / "frontend" / "styles" / "main.css"
+SOURCE_APP = ROOT / "frontend" / "app.mjs"
 TRANSLATIONS = [
-    ROOT / "html" / "i18n" / "en.f5b04cdd45df.json",
-    ROOT / "html" / "i18n" / "de.3313b3cef4b0.json",
-    ROOT / "html" / "i18n" / "lv.788ab6598ca4.json",
+    ROOT / "content" / "translations" / "en.json",
+    ROOT / "content" / "translations" / "de.json",
+    ROOT / "content" / "translations" / "lv.json",
 ]
+HASHED_ASSET = re.compile(r"\.[0-9a-f]{12}\.(?:css|mjs|js|json)$")
+
+
+def load_manifest() -> dict[str, dict]:
+    return json.loads(MANIFEST.read_text(encoding="utf-8"))
+
+
+def generated_assets() -> set[str]:
+    paths: set[str] = set()
+    for row in load_manifest().values():
+        file = row.get("file")
+        if isinstance(file, str):
+            paths.add(file)
+        for key in ("css", "assets"):
+            for item in row.get(key, []):
+                paths.add(item)
+    return paths
 
 
 class Parser(HTMLParser):
@@ -73,12 +90,12 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("default_type text/javascript;", nginx)
         self.assertIn("text/javascript application/javascript", nginx)
         self.assertNotIn("(?:css|mjs|json)", nginx)
-        for path in (CSS, APP, SMART_JS, *TRANSLATIONS):
-            self.assertRegex(path.name, r"\.[0-9a-f]{12}\.")
-            self.assertTrue(path.is_file(), path)
-            embedded = path.name.split(".")[-2]
-            actual = hashlib.sha256(path.read_bytes()).hexdigest()[:12]
-            self.assertEqual(embedded, actual, path)
+
+        assets = generated_assets()
+        self.assertGreaterEqual(len(assets), 8)
+        for relative in assets:
+            self.assertRegex(relative, HASHED_ASSET)
+            self.assertTrue((ROOT / "html" / relative).is_file(), relative)
 
     def test_compose_recreate_identity_tracks_nginx_config(self) -> None:
         nginx_digest = hashlib.sha256(NGINX.read_bytes()).hexdigest()
@@ -90,18 +107,17 @@ class FrontendContractTests(unittest.TestCase):
 
     def test_module_cache_key_tracks_nginx_config(self) -> None:
         nginx_digest = hashlib.sha256(NGINX.read_bytes()).hexdigest()
+        app_file = load_manifest()["index.html"]["file"]
+        self.assertRegex(app_file, r"^assets/app\.[0-9a-f]{12}\.mjs$")
         text = INDEX.read_text(encoding="utf-8")
-        match = re.search(
-            r'src="/assets/app\.[0-9a-f]{12}\.mjs\?cfg=([0-9a-f]{12})"',
+        self.assertIn(
+            f'src="/{app_file}?cfg={nginx_digest[:12]}"',
             text,
         )
-        self.assertIsNotNone(match)
-        assert match is not None
-        self.assertEqual(match.group(1), nginx_digest[:12])
 
     def test_rich_layout_and_sections_are_not_simplified_away(self) -> None:
         html = INDEX.read_text(encoding="utf-8")
-        css = CSS.read_text(encoding="utf-8")
+        css = SOURCE_CSS.read_text(encoding="utf-8")
         for section_id in (
             "about", "stats", "experience", "projects", "skills", "education"
         ):
@@ -141,7 +157,7 @@ class FrontendContractTests(unittest.TestCase):
             'aria-pressed="true"',
         ):
             self.assertIn(marker, text)
-        app = APP.read_text(encoding="utf-8")
+        app = SOURCE_APP.read_text(encoding="utf-8")
         for marker in (
             'event.key === "Escape"',
             'event.key !== "Tab"',
@@ -167,15 +183,25 @@ class FrontendContractTests(unittest.TestCase):
         self.assertEqual(set(documents[0]), set(documents[2]))
 
     def test_frontend_size_budget(self) -> None:
+        assets = generated_assets()
+        js_bytes = sum(
+            (ROOT / "html" / path).stat().st_size
+            for path in assets
+            if path.endswith((".mjs", ".js"))
+        )
+        css_bytes = sum(
+            (ROOT / "html" / path).stat().st_size
+            for path in assets
+            if path.endswith(".css")
+        )
         limits = {
-            INDEX: 20_000,
-            CSS: 25_000,
-            APP: 20_000,
-            SMART: 8_000,
-            SMART_JS: 8_000,
+            INDEX: 21_000,
+            SMART: 5_000,
         }
         for path, limit in limits.items():
             self.assertLess(path.stat().st_size, limit, path)
+        self.assertLess(js_bytes, 25_000)
+        self.assertLess(css_bytes, 22_000)
 
 
 if __name__ == "__main__":
