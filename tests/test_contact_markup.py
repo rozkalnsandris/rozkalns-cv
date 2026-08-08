@@ -9,15 +9,33 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ContactMarkupTests(unittest.TestCase):
-    def test_initial_html_does_not_expose_full_contact(self) -> None:
+    def test_initial_html_does_not_embed_contact_channels(self) -> None:
         index = (ROOT / "html" / "index.html").read_text(encoding="utf-8")
-        self.assertNotIn("andris@rozkalns.net", index)
-        self.assertNotIn("+4917685134770", index)
-        self.assertNotIn("+49 176 8513 4770", index)
+        self.assertNotRegex(index, r'(?i)href=["\'](?:mailto|tel):')
+        self.assertNotRegex(
+            index,
+            r"(?i)[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@"
+            r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?"
+            r"(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+",
+        )
         self.assertIn('id="contactEmail"', index)
         self.assertIn('id="contactPhone"', index)
         self.assertIn('id="contactReveal"', index)
         self.assertIn('id="turnstileMount"', index)
+
+    def test_contact_config_has_no_embedded_contact_fallbacks(self) -> None:
+        source = (ROOT / "bot" / "contact.py").read_text(encoding="utf-8")
+        for variable in (
+            "CONTACT_EMAIL",
+            "CONTACT_PHONE_DISPLAY",
+            "CONTACT_PHONE_URI",
+        ):
+            with self.subTest(variable=variable):
+                self.assertIn(f'os.getenv("{variable}", "")', source)
+                self.assertNotRegex(
+                    source,
+                    rf'os\.getenv\("{variable}",\s*"[^\"]+"\)',
+                )
 
     def test_enhancement_sources_are_in_authoritative_build_graph(self) -> None:
         source = (ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
