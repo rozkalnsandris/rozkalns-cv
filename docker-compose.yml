@@ -13,7 +13,7 @@ services:
       - ./html:/usr/share/nginx/html:ro
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     labels:
-      net.rozkalns.cv.nginx-config-sha256: "24a4b18221429dce78485d2ff4c8d65380cc94301c9409714dec882064dd74ff"
+      net.rozkalns.cv.nginx-config-sha256: "90580f5cef0fb5b5fc4c794e827190d8dc89db244bc2b2e79f12d17d89e0d9b5"
     networks:
       default:
         ipv4_address: 172.19.0.10
