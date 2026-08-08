@@ -1,0 +1,225 @@
+name: C4 final source transaction
+
+on:
+  push:
+    branches:
+      - refactor/80-consolidate-css-v01
+    paths:
+      - .github/workflows/c4-final-transaction.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: github.repository == 'rozkalnsandris/rozkalns-cv' && github.ref == 'refs/heads/refactor/80-consolidate-css-v01'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out exact owner branch SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "$GITHUB_SHA"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Complete design-token and source contracts
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          cat > frontend/styles/tokens.css <<'EOF'
+          :root {
+            color-scheme: dark;
+            --bg: #0e1014;
+            --surface: #15181f;
+            --surface-2: #1a1e27;
+            --border: #242a36;
+            --border-soft: #1e232d;
+            --text: #dde1e8;
+            --text-dim: #9aa1ae;
+            --text-faint: #646c7a;
+            --accent: #e0a96d;
+            --accent-soft: rgba(224,169,109,.10);
+            --accent-line: rgba(224,169,109,.32);
+            --ok: #74c98a;
+            --warn: #e0a96d;
+            --err: #d97a6c;
+            --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Fira Code", "Cascadia Code", Menlo, Consolas, monospace;
+            --maxw: 1080px;
+            --section-gap: clamp(46px,6.5vw,68px);
+            --space-1: 4px;
+            --space-2: 8px;
+            --space-3: 12px;
+            --space-4: 16px;
+            --space-5: 20px;
+            --space-6: 24px;
+            --radius-sm: 7px;
+            --radius-md: 10px;
+            --radius-lg: 12px;
+            --radius-xl: 16px;
+            --breakpoint-layout: 760px;
+            --breakpoint-compact: 560px;
+            --breakpoint-contact: 620px;
+          }
+          EOF
+          sed -i 's/^          //' frontend/styles/tokens.css
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('tests/test_css_source_contract.py')
+          text = path.read_text(encoding='utf-8')
+          old = '''        for token in (
+              "--bg:",
+              "--surface:",
+              "--text:",
+              "--accent:",
+              "--sans:",
+              "--mono:",
+              "--maxw:",
+              "--section-gap:",
+          ):
+'''
+          new = '''        for token in (
+              "--bg:",
+              "--surface:",
+              "--text:",
+              "--accent:",
+              "--sans:",
+              "--mono:",
+              "--maxw:",
+              "--section-gap:",
+              "--space-1:",
+              "--space-6:",
+              "--radius-sm:",
+              "--radius-xl:",
+              "--breakpoint-layout:",
+              "--breakpoint-compact:",
+              "--breakpoint-contact:",
+          ):
+'''
+          if text.count(old) != 1:
+              raise SystemExit('unexpected token test anchor')
+          text = text.replace(old, new)
+          marker = '    def test_responsive_print_and_reduced_motion_have_single_owners(self) -> None:\n'
+          addition = '''    def test_breakpoint_tokens_match_the_single_responsive_owner(self) -> None:
+          tokens = (STYLES / "tokens.css").read_text(encoding="utf-8")
+          responsive = (STYLES / "responsive.css").read_text(encoding="utf-8")
+          values = dict(re.findall(r"--(breakpoint-[a-z-]+):\\s*([0-9]+px);", tokens))
+          self.assertEqual(
+              values,
+              {
+                  "breakpoint-layout": "760px",
+                  "breakpoint-compact": "560px",
+                  "breakpoint-contact": "620px",
+              },
+          )
+          self.assertEqual(
+              re.findall(r"@media \\(max-width: ([0-9]+px)\\)", responsive),
+              [
+                  values["breakpoint-layout"],
+                  values["breakpoint-compact"],
+                  values["breakpoint-contact"],
+              ],
+          )
+
+'''
+          if addition not in text:
+              if text.count(marker) != 1:
+                  raise SystemExit('unexpected breakpoint test insertion anchor')
+              text = text.replace(marker, addition + marker)
+          path.write_text(text, encoding='utf-8')
+          PY
+
+          python3 -m unittest tests.test_css_source_contract -v
+
+      - name: Set up pinned Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.18.0
+          cache: npm
+
+      - name: Build twice and run complete C4 gates
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build:frontend
+          cp -a html "${RUNNER_TEMP}/c4-first-html"
+          cp frontend-dist-manifest.json "${RUNNER_TEMP}/c4-first-manifest.json"
+          npm run build:frontend
+          diff -ruN "${RUNNER_TEMP}/c4-first-html" html
+          cmp "${RUNNER_TEMP}/c4-first-manifest.json" frontend-dist-manifest.json
+          npm run check:frontend
+          node --test tests/frontend.test.mjs
+          python3 -m unittest tests.test_css_source_contract tests.test_contact_markup tests.test_frontend_contract tests.test_html_semantics -v
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          manifest = json.loads(Path('frontend-dist-manifest.json').read_text(encoding='utf-8'))
+          css = sorted({item for row in manifest.values() for item in row.get('css', [])})
+          if len(css) != 1:
+              raise SystemExit(f'expected exactly one production CSS asset, got {css}')
+          css_path = Path('html') / css[0]
+          css_size = css_path.stat().st_size
+          doc = Path('docs/CSS_C4_AUDIT.md')
+          text = doc.read_text(encoding='utf-8')
+          start = text.index('## Generated output\n')
+          tail = text.index('No RPi5 pull-request execution', start)
+          replacement = f'''## Generated output
+
+The final C4 Vite graph emits exactly one shared production CSS asset:
+
+- `{css[0]}` ({css_size} bytes)
+
+The final transaction built the frontend twice with pinned Node 24.18.0 and Vite 8.1.5; the generated trees and manifests were byte-identical. `npm run check:frontend` and the focused Python/frontend contracts passed with 7 manifest assets and CSS within the existing 22 KB budget.
+
+'''
+          doc.write_text(text[:start] + replacement + text[tail:], encoding='utf-8')
+          print(f'C4_FINAL_CSS_ASSET={css[0]}')
+          print(f'C4_FINAL_CSS_BYTES={css_size}')
+          PY
+
+          rm -rf -- node_modules
+          bash scripts/validate-source.sh .
+
+      - name: Commit final C4 source, evidence and generated output
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          rm -f -- .github/workflows/c4-generated-refresh.yml .github/workflows/c4-final-transaction.yml
+          git add -- \
+            .github/workflows/c4-generated-refresh.yml \
+            .github/workflows/c4-final-transaction.yml \
+            frontend/styles/tokens.css \
+            tests/test_css_source_contract.py \
+            docs/CSS_C4_AUDIT.md \
+            frontend-dist-manifest.json \
+            html/index.html \
+            html/smarthome.html \
+            html/assets \
+            html/i18n
+          staged="$(git diff --cached --name-only)"
+          test -n "$staged"
+          printf '%s\n' "$staged"
+          if grep -E '^html/.*\.pdf$' <<<"$staged"; then
+            echo 'PDF files changed unexpectedly' >&2
+            exit 1
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'refactor: finalize C4 style system evidence'
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" push origin HEAD:refs/heads/refactor/80-consolidate-css-v01
