@@ -53,6 +53,17 @@ replace_once(
     '''        self.assertEqual(len(skip_links), 1)\n\n    def test_profile_photo_uses_hashed_webp_with_explicit_dimensions(self) -> None:\n        parsed = parse(HTML_ROOT / "index.html")\n        photos = [\n            row for row in parsed.elements\n            if row.tag == "img" and row.attrs.get("class") == "profile-photo"\n        ]\n        self.assertEqual(len(photos), 1)\n        photo = photos[0]\n        self.assertRegex(\n            photo.attrs.get("src", ""),\n            r"^/assets/photo\\.[0-9a-f]{12}\\.webp$",\n        )\n        self.assertEqual(photo.attrs.get("width"), "118")\n        self.assertEqual(photo.attrs.get("height"), "118")\n        self.assertEqual(photo.attrs.get("alt"), "Andris Rožkalns")\n\n    def test_fingerprinted_assets_are_manifest_owned''',
 )
 
+replace_once(
+    "tests/browser-smoke.mjs",
+    '[".jpg", "image/jpeg"],\n  [".jpeg", "image/jpeg"]',
+    '[".jpg", "image/jpeg"],\n  [".jpeg", "image/jpeg"],\n  [".webp", "image/webp"]',
+)
+replace_once(
+    "tests/browser-smoke.mjs",
+    '''      dialogModal: document.querySelector('#chatDialog')?.getAttribute('aria-modal'),\n      privacy: document.querySelector('[data-i18n="chat_privacy"]')?.textContent\n    }))()`);\n    assert.equal(initialContract.role, "Junior DevOps & Linux Engineer");''',
+    '''      dialogModal: document.querySelector('#chatDialog')?.getAttribute('aria-modal'),\n      privacy: document.querySelector('[data-i18n="chat_privacy"]')?.textContent,\n      photoSrc: document.querySelector('.profile-photo')?.currentSrc,\n      photoNaturalWidth: document.querySelector('.profile-photo')?.naturalWidth,\n      photoNaturalHeight: document.querySelector('.profile-photo')?.naturalHeight\n    }))()`);\n    assert.equal(initialContract.role, "Junior DevOps & Linux Engineer");\n    assert.match(initialContract.photoSrc, /\\/assets\\/photo\\.[0-9a-f]{12}\\.webp$/);\n    assert.equal(initialContract.photoNaturalWidth, 480);\n    assert.equal(initialContract.photoNaturalHeight, 480);''',
+)
+
 audit = (
     "# Gate C7 — static payload and cache audit\n\n"
     "Baseline: C6 production SHA `81a1cfcb63d53a7b05e1304907c1951495ca2d9b`.\n\n"
