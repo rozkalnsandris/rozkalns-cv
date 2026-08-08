@@ -4,10 +4,15 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 import hashlib
 import hmac
+import logging
 from pathlib import Path
 import sqlite3
+import threading
 import time
 from typing import Callable
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -20,7 +25,7 @@ class RateDecision:
 
 
 class AssistantStore:
-    """Durable rate limits and bounded chat telemetry in one SQLite file."""
+    """Durable rate limits and privacy-bounded chat telemetry in SQLite."""
 
     def __init__(
         self,
@@ -30,18 +35,31 @@ class AssistantStore:
         daily_global_cap: int,
         chat_retention_days: int,
         clock: Callable[[], float] = time.time,
+        maintenance_max_sleep_seconds: float = 60.0,
     ) -> None:
         if per_client_hour <= 0 or daily_global_cap <= 0:
             raise ValueError("rate limits must be positive")
         if chat_retention_days < 0:
             raise ValueError("chat retention days cannot be negative")
+        if maintenance_max_sleep_seconds <= 0:
+            raise ValueError("maintenance sleep must be positive")
         self.path = Path(path)
         self.per_client_hour = per_client_hour
         self.daily_global_cap = daily_global_cap
         self.chat_retention_days = chat_retention_days
         self.clock = clock
+        self.maintenance_max_sleep_seconds = float(
+            maintenance_max_sleep_seconds
+        )
+        self._maintenance_stop = threading.Event()
+        self._maintenance_wake = threading.Event()
+        self._maintenance_thread: threading.Thread | None = None
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._initialize()
+        # Startup maintenance makes a restart enforce the current retention
+        # policy before any new chat succeeds. A zero-day policy removes raw
+        # chat content immediately while leaving durable quota tables intact.
+        self.purge_expired_chats()
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(
@@ -206,25 +224,25 @@ class AssistantStore:
         question: str,
         answer: str,
     ) -> None:
+        """Persist raw chat text only when retention is explicitly nonzero."""
+
+        if self.chat_retention_days == 0:
+            return
         now = float(self.clock())
-        cutoff = now - (self.chat_retention_days * 86400)
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
-            if self.chat_retention_days == 0:
-                connection.execute("DELETE FROM chats")
-            else:
-                connection.execute(
-                    "DELETE FROM chats WHERE occurred_at < ?", (cutoff,)
-                )
-                connection.execute(
-                    """
-                    INSERT INTO chats(
-                        occurred_at, client_key, question, answer
-                    ) VALUES (?, ?, ?, ?)
-                    """,
-                    (now, client_key, question, answer),
-                )
+            connection.execute(
+                """
+                INSERT INTO chats(
+                    occurred_at, client_key, question, answer
+                ) VALUES (?, ?, ?, ?)
+                """,
+                (now, client_key, question, answer),
+            )
             connection.execute("COMMIT")
+        # Recompute the next expiry promptly instead of waiting for an
+        # unrelated request or for the maximum maintenance sleep to elapse.
+        self._maintenance_wake.set()
 
     def purge_chats(self, *, older_than_days: int | None = None) -> int:
         with self._connect() as connection:
@@ -236,7 +254,70 @@ class AssistantStore:
                     raise ValueError("older_than_days cannot be negative")
                 cutoff = float(self.clock()) - (older_than_days * 86400)
                 cursor = connection.execute(
-                    "DELETE FROM chats WHERE occurred_at < ?", (cutoff,)
+                    "DELETE FROM chats WHERE occurred_at <= ?", (cutoff,)
                 )
             connection.execute("COMMIT")
             return max(0, cursor.rowcount)
+
+    def purge_expired_chats(self) -> int:
+        """Apply the configured raw-content retention policy immediately."""
+
+        if self.chat_retention_days == 0:
+            return self.purge_chats()
+        return self.purge_chats(older_than_days=self.chat_retention_days)
+
+    def _seconds_until_next_chat_expiry(self) -> float | None:
+        if self.chat_retention_days == 0:
+            return None
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT MIN(occurred_at) FROM chats"
+            ).fetchone()
+        if not row or row[0] is None:
+            return None
+        expires_at = float(row[0]) + (self.chat_retention_days * 86400)
+        return max(0.0, expires_at - float(self.clock()))
+
+    def _retention_maintenance_loop(self) -> None:
+        while not self._maintenance_stop.is_set():
+            try:
+                self.purge_expired_chats()
+                until_expiry = self._seconds_until_next_chat_expiry()
+            except Exception as error:
+                # Never include row content or DB payloads in maintenance logs.
+                LOGGER.error(
+                    "chat retention maintenance failed: %s",
+                    type(error).__name__,
+                )
+                until_expiry = None
+
+            sleep_for = self.maintenance_max_sleep_seconds
+            if until_expiry is not None:
+                sleep_for = min(sleep_for, max(0.01, until_expiry))
+            self._maintenance_wake.wait(sleep_for)
+            self._maintenance_wake.clear()
+
+    def start_retention_maintenance(self) -> None:
+        """Start one idempotent janitor for nonzero raw-chat retention."""
+
+        if self.chat_retention_days == 0:
+            return
+        if self._maintenance_thread and self._maintenance_thread.is_alive():
+            return
+        self._maintenance_stop.clear()
+        self._maintenance_thread = threading.Thread(
+            target=self._retention_maintenance_loop,
+            name="cvbot-chat-retention",
+            daemon=True,
+        )
+        self._maintenance_thread.start()
+
+    def close(self, *, timeout: float = 2.0) -> None:
+        """Stop the retention janitor without touching durable quota state."""
+
+        self._maintenance_stop.set()
+        self._maintenance_wake.set()
+        thread = self._maintenance_thread
+        if thread and thread.is_alive():
+            thread.join(timeout=timeout)
+        self._maintenance_thread = None

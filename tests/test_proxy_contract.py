@@ -34,7 +34,7 @@ class ProxyContractTests(unittest.TestCase):
         text = ENV_EXAMPLE.read_text(encoding="utf-8")
         self.assertIn("TRUSTED_PROXY_CIDRS=172.19.0.10/32", text)
         self.assertIn("CLIENT_KEY_SECRET=", text)
-        self.assertIn("CHAT_RETENTION_DAYS=7", text)
+        self.assertIn("CHAT_RETENTION_DAYS=0", text)
         self.assertIn("TELEGRAM_INCLUDE_CONTENT=false", text)
 
 

@@ -73,6 +73,7 @@ class BotBehaviorTests(unittest.TestCase):
         sys.modules[module_name] = self.module
         self.addCleanup(sys.modules.pop, module_name, None)
         spec.loader.exec_module(self.module)
+        self.addCleanup(self.module.STORE.close)
         self.client = self.module.app.test_client()
 
     def _post(self, message: str, history=None, *, address="203.0.113.10"):
