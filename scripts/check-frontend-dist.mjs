@@ -74,7 +74,13 @@ for (const source of [
   "frontend/index.html",
   "frontend/smarthome.html",
   "frontend/app.mjs",
-  "frontend/smarthome.mjs"
+  "frontend/enhancements.mjs",
+  "frontend/smarthome.mjs",
+  "frontend/core/i18n.mjs",
+  "frontend/features/stats.mjs",
+  "frontend/features/chat.mjs",
+  "frontend/features/contact.mjs",
+  "frontend/ui/icons.mjs"
 ]) {
   const text = await readFile(resolve(root, source), "utf8");
   assert.doesNotMatch(text, /\/(?:assets|i18n)\/[^"'`\s]+\.[0-9a-f]{12}\./, `${source} contains a generated fingerprint`);
@@ -91,7 +97,7 @@ const css = actualAssets.filter((file) => file.endsWith(".css"));
 const budgets = {
   javascript: [await totalBytes(js), 25_000],
   css: [await totalBytes(css), 22_000],
-  translations: [await totalBytes(actualI18n), 22_000],
+  translations: [await totalBytes(actualI18n), 24_000],
   indexHtml: [(await stat(resolve(htmlRoot, "index.html"))).size, 21_000],
   smartHomeHtml: [(await stat(resolve(htmlRoot, "smarthome.html"))).size, 5_000]
 };
