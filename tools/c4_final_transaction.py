@@ -47,53 +47,65 @@ TOKEN_TEXT = """:root {
 }
 """
 
+TEST_TEXT = r'''from __future__ import annotations
 
-def replace_once(text: str, old: str, new: str, label: str) -> str:
-    if text.count(old) != 1:
-        raise SystemExit(f"unexpected {label}: count={text.count(old)}")
-    return text.replace(old, new)
+from pathlib import Path
+import re
+import unittest
+
+ROOT = Path(__file__).resolve().parents[1]
+STYLES = ROOT / "frontend" / "styles"
+ENTRY = STYLES / "index.css"
+EXPECTED_IMPORTS = [
+    "./tokens.css",
+    "./base.css",
+    "./layout.css",
+    "./components.css",
+    "./features/stats.css",
+    "./features/chat.css",
+    "./features/contact.css",
+    "./features/smarthome.css",
+    "./responsive.css",
+    "./print.css",
+]
 
 
-def prepare() -> None:
-    TOKENS.write_text(TOKEN_TEXT, encoding="utf-8")
+class CssSourceContractTests(unittest.TestCase):
+    def test_one_authoritative_style_entry_has_explicit_order(self) -> None:
+        text = ENTRY.read_text(encoding="utf-8")
+        imports = re.findall(r'^@import "([^"]+)";$', text, flags=re.MULTILINE)
+        self.assertEqual(imports, EXPECTED_IMPORTS)
+        self.assertFalse((STYLES / "main.css").exists())
+        self.assertFalse((STYLES / "extra.css").exists())
+        for page in ("index.html", "smarthome.html"):
+            html = (ROOT / "frontend" / page).read_text(encoding="utf-8")
+            self.assertEqual(html.count('href="./styles/index.css"'), 1)
+            self.assertNotIn("styles/main.css", html)
+            self.assertNotIn("styles/extra.css", html)
 
-    text = TEST.read_text(encoding="utf-8")
-    old = '''        for token in (
-            "--bg:",
-            "--surface:",
-            "--text:",
-            "--accent:",
-            "--sans:",
-            "--mono:",
-            "--maxw:",
-            "--section-gap:",
+    def test_design_tokens_have_one_source(self) -> None:
+        tokens = (STYLES / "tokens.css").read_text(encoding="utf-8")
+        self.assertEqual(tokens.count(":root"), 1)
+        for token in (
+            "--bg:", "--surface:", "--surface-2:", "--border:",
+            "--border-soft:", "--text:", "--text-dim:", "--text-faint:",
+            "--accent:", "--accent-soft:", "--accent-line:", "--ok:",
+            "--warn:", "--err:", "--sans:", "--mono:", "--maxw:",
+            "--section-gap:", "--space-1:", "--space-6:",
+            "--radius-sm:", "--radius-xl:", "--breakpoint-layout:",
+            "--breakpoint-compact:", "--breakpoint-contact:",
         ):
-'''
-    new = '''        for token in (
-            "--bg:",
-            "--surface:",
-            "--text:",
-            "--accent:",
-            "--sans:",
-            "--mono:",
-            "--maxw:",
-            "--section-gap:",
-            "--space-1:",
-            "--space-6:",
-            "--radius-sm:",
-            "--radius-xl:",
-            "--breakpoint-layout:",
-            "--breakpoint-compact:",
-            "--breakpoint-contact:",
-        ):
-'''
-    text = replace_once(text, old, new, "token-test anchor")
-    marker = "    def test_responsive_print_and_reduced_motion_have_single_owners(self) -> None:\n"
-    addition = '''    def test_breakpoint_tokens_match_the_single_responsive_owner(self) -> None:
+            self.assertIn(token, tokens)
+        for path in STYLES.rglob("*.css"):
+            if path.name in {"tokens.css", "index.css"}:
+                continue
+            self.assertNotIn(":root", path.read_text(encoding="utf-8"), path)
+
+    def test_breakpoint_tokens_match_the_single_responsive_owner(self) -> None:
         tokens = (STYLES / "tokens.css").read_text(encoding="utf-8")
         responsive = (STYLES / "responsive.css").read_text(encoding="utf-8")
         values = dict(
-            re.findall(r"--(breakpoint-[a-z-]+):\\s*([0-9]+px);", tokens)
+            re.findall(r"--(breakpoint-[a-z-]+):\s*([0-9]+px);", tokens)
         )
         self.assertEqual(
             values,
@@ -104,18 +116,60 @@ def prepare() -> None:
             },
         )
         self.assertEqual(
-            re.findall(r"@media \\(max-width: ([0-9]+px)\\)", responsive),
+            re.findall(r"@media \(max-width: ([0-9]+px)\)", responsive),
             [
                 values["breakpoint-layout"],
                 values["breakpoint-compact"],
                 values["breakpoint-contact"],
             ],
         )
+        for path in STYLES.rglob("*.css"):
+            if path.name == "responsive.css":
+                continue
+            self.assertNotRegex(
+                path.read_text(encoding="utf-8"), r"@media \(max-width:", path
+            )
 
+    def test_print_and_reduced_motion_have_single_owners(self) -> None:
+        print_css = (STYLES / "print.css").read_text(encoding="utf-8")
+        base = (STYLES / "base.css").read_text(encoding="utf-8")
+        self.assertIn("@media print", print_css)
+        self.assertIn(".contact-verify", print_css)
+        self.assertIn(".chat-launcher", print_css)
+        self.assertIn(".dialog-backdrop", print_css)
+        self.assertIn("@media (prefers-reduced-motion: reduce)", base)
+        for path in STYLES.rglob("*.css"):
+            text = path.read_text(encoding="utf-8")
+            if path.name != "print.css":
+                self.assertNotIn("@media print", text, path)
+            if path.name != "base.css":
+                self.assertNotIn("prefers-reduced-motion", text, path)
+
+    def test_components_have_no_historical_patch_or_new_specificity_shortcuts(self) -> None:
+        combined = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in sorted(STYLES.rglob("*.css"))
+        )
+        self.assertNotIn(".skill-chip::before", combined)
+        self.assertIn(".skill-chip svg", combined)
+        for relative in (
+            "layout.css", "components.css", "features/stats.css",
+            "features/chat.css", "features/contact.css",
+            "features/smarthome.css", "responsive.css",
+        ):
+            self.assertNotIn(
+                "!important", (STYLES / relative).read_text(encoding="utf-8"), relative
+            )
+
+
+if __name__ == "__main__":
+    unittest.main()
 '''
-    if "def test_breakpoint_tokens_match_the_single_responsive_owner" not in text:
-        text = replace_once(text, marker, addition + marker, "breakpoint-test anchor")
-    TEST.write_text(text, encoding="utf-8")
+
+
+def prepare() -> None:
+    TOKENS.write_text(TOKEN_TEXT, encoding="utf-8")
+    TEST.write_text(TEST_TEXT, encoding="utf-8")
 
 
 def finalize_audit() -> None:
@@ -146,11 +200,12 @@ The final transaction built the frontend twice with pinned Node 24.18.0 and Vite
 def verify_tokens() -> None:
     text = TOKENS.read_text(encoding="utf-8")
     values = dict(re.findall(r"--(breakpoint-[a-z-]+):\s*([0-9]+px);", text))
-    if values != {
+    expected = {
         "breakpoint-layout": "760px",
         "breakpoint-compact": "560px",
         "breakpoint-contact": "620px",
-    }:
+    }
+    if values != expected:
         raise SystemExit(f"unexpected breakpoint tokens: {values}")
 
 
