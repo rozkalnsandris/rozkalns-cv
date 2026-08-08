@@ -71,16 +71,6 @@ done
     || fail 'repository-local .venv is generated state and must not exist'
 [[ ! -e "$ROOT/node_modules" ]] \
     || fail 'repository-local node_modules is generated state and must not exist'
-[[ ! -e "$ROOT/node_modules" ]] \
-    || fail 'repository-local node_modules is generated state and must not exist'
-[[ ! -e "$ROOT/node_modules" ]] \
-    || fail 'repository-local node_modules is generated state and must not exist'
-[[ ! -e "$ROOT/node_modules" ]] \
-    || fail 'repository-local node_modules is generated state and must not exist'
-[[ ! -e "$ROOT/node_modules" ]] \
-    || fail 'repository-local node_modules is generated state and must not exist'
-[[ ! -e "$ROOT/node_modules" ]] \
-    || fail 'repository-local node_modules is generated state and must not exist'
 [[ ! -e "$ROOT/.github/workflows/canonical-content-artifact.yml" ]] \
     || fail 'temporary canonical content finalizer must not remain in the repository'
 
