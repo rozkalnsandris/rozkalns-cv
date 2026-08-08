@@ -26,6 +26,6 @@ The runtime `.env` is excluded from source synchronization, application backups,
 
 ## Validation provenance
 
-The #113 product tree is stacked on ready #124 head `682a66a7db419cf151502224646c4d0437f2b9c5`. Bounded finalizer run `31272192094` applied the dedicated-secret policy, ran the focused startup, storage, retention, contact-privacy and deploy-contract regressions plus source validation, guarded the diff scope, removed its temporary bootstrap files, and published product head `0769c4649c8dcc7b581c16016c65a36d08f4fec2` successfully.
+After #112 was squash-merged to `main` as `0149bed2b84803f6fd8c191920191730c7a887cb`, #113 was transplanted onto a clean current-main branch from previously full-CI-validated source head `449d9f5f21bad356e653ee8ea65d7c3b84aeaedf`. Bounded transplant run `31272628232` preserved the merged retention and public-contact contracts, reran the focused secret, storage, retention, contact, deploy, content and source validations, guarded exact diff scope, removed its temporary workflow, and published clean product head `5f9b96a2412c315b2a3190ddc2fac21c56da923b` successfully.
 
 No production secret was generated or rotated, no SQLite state was cleared, and no deployment or production runtime mutation occurred during that validation.
