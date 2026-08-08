@@ -6,7 +6,7 @@ The repository is now public. Keep the remaining cleanup items below visible unt
 
 ## Public-readiness gates
 
-- [ ] #94 — dedicated recruiting email is intentionally public; phone remains runtime-protected; one-page public PDFs use a protected-site WhatsApp QR. Final merge/deploy evidence is pending.
+- [ ] #94 — dedicated recruiting email is intentionally public; phone remains runtime-protected; one-page public PDFs use a protected-site WhatsApp QR. Draft candidate build, focused regressions, source validation, and PDF/QR verification are complete; final merge/deploy evidence is pending.
 - [ ] Decide how to handle historical commits that contain those contact values. Public visibility exposes reachable Git history; sanitizing only the current tree does not remove historical values.
 - [x] Keep normal pull-request CI on GitHub-hosted runners. Current `main` does not contain a pull-request workflow targeting the `rozkalns-cv-release` self-hosted runner.
 - [x] Keep production deploy restricted to successful trusted `main` CI / explicit owner-controlled dispatch.
