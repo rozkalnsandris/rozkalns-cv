@@ -1,0 +1,127 @@
+name: C7 static payload and cache audit
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/c7-static-audit.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out exact PR head
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "$GITHUB_SHA"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Inventory committed static payload
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          echo '=== TOP-LEVEL SERVED FILES ==='
+          find html -maxdepth 1 -type f -printf '%f\t%s\n' | sort
+          echo
+          echo '=== GENERATED ASSET TOTALS ==='
+          find html/assets -type f -printf '%s\n' | awk '{sum+=$1; n+=1} END {printf "assets_count=%d assets_bytes=%d\n", n, sum}'
+          find html/i18n -type f -printf '%s\n' | awk '{sum+=$1; n+=1} END {printf "i18n_count=%d i18n_bytes=%d\n", n, sum}'
+          echo
+          echo '=== STATIC HASH / MIME ==='
+          for path in html/photo.jpg html/favicon.svg html/cv.pdf html/cv-de.pdf html/cv-lv.pdf; do
+            test -f "$path"
+            printf '%s\tbytes=%s\tmime=%s\tsha256=%s\n' \
+              "$path" \
+              "$(stat -c '%s' "$path")" \
+              "$(file --brief --mime-type "$path")" \
+              "$(sha256sum "$path" | awk '{print $1}')"
+          done
+          echo
+          echo '=== IMAGE DIMENSIONS / HTML RESERVATION ==='
+          python3 - <<'PY'
+          import re
+          import struct
+          from pathlib import Path
+
+          def jpeg_size(path: Path):
+              data = path.read_bytes()
+              if data[:2] != b'\xff\xd8':
+                  raise SystemExit('not jpeg')
+              i = 2
+              while i + 9 < len(data):
+                  if data[i] != 0xFF:
+                      i += 1
+                      continue
+                  marker = data[i+1]
+                  i += 2
+                  if marker in {0xD8, 0xD9}:
+                      continue
+                  if i + 2 > len(data):
+                      break
+                  length = struct.unpack('>H', data[i:i+2])[0]
+                  if marker in {0xC0,0xC1,0xC2,0xC3,0xC5,0xC6,0xC7,0xC9,0xCA,0xCB,0xCD,0xCE,0xCF}:
+                      height, width = struct.unpack('>HH', data[i+3:i+7])
+                      return width, height
+                  i += length
+              raise SystemExit('jpeg dimensions not found')
+
+          width, height = jpeg_size(Path('html/photo.jpg'))
+          source = Path('frontend/index.html').read_text(encoding='utf-8')
+          match = re.search(r'<img class="profile-photo"[^>]*width="(\d+)"[^>]*height="(\d+)"', source)
+          if not match:
+              raise SystemExit('profile image width/height reservation missing')
+          print(f'photo_intrinsic={width}x{height}')
+          print(f'photo_html_reservation={match.group(1)}x{match.group(2)}')
+          PY
+
+      - name: Audit public cache and transfer behavior
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import json
+          import pathlib
+          import re
+          manifest = json.loads(pathlib.Path('frontend-dist-manifest.json').read_text(encoding='utf-8'))
+          app = manifest['index.html']['file']
+          css = manifest['index.html']['css'][0]
+          i18n = next(row['file'] for key, row in manifest.items() if key.endswith('en.json'))
+          pathlib.Path('/tmp/c7-paths').write_text('\n'.join([
+              '/', '/smarthome.html', '/photo.jpg', '/favicon.svg', '/cv.pdf', '/cv-de.pdf', '/cv-lv.pdf', '/stats.json',
+              '/' + app, '/' + css, '/' + i18n,
+          ]) + '\n', encoding='utf-8')
+          PY
+          while IFS= read -r path; do
+            echo "--- ${path} ---"
+            curl --fail --silent --show-error --head --max-time 20 "https://rozkalns.net${path}" \
+              | awk 'BEGIN{IGNORECASE=1} /^(HTTP\/|content-type:|content-length:|cache-control:|etag:|last-modified:|content-encoding:|vary:|x-content-type-options:)/ {sub(/\r$/,""); print}'
+            curl --fail --silent --show-error --compressed --max-time 20 -o /dev/null \
+              -w 'transfer_download=%{size_download}\n' "https://rozkalns.net${path}"
+          done < /tmp/c7-paths
+
+      - name: Report available image encoders
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          for tool in cwebp avifenc magick convert ffmpeg; do
+            if command -v "$tool" >/dev/null 2>&1; then
+              printf '%s=%s\n' "$tool" "$(command -v "$tool")"
+              "$tool" -version 2>/dev/null | head -n 2 || true
+            else
+              printf '%s=unavailable\n' "$tool"
+            fi
+          done
