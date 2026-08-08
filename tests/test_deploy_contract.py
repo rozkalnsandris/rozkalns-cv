@@ -374,6 +374,25 @@ class DeployContractTests(unittest.TestCase):
             helper,
         )
 
+    def test_cvbot_client_secret_is_validated_without_disclosure(self) -> None:
+        helper = read(HELPER)
+        for marker in (
+            "validate_cvbot_runtime_secret()",
+            'values.get("CLIENT_KEY_SECRET", "")',
+            "len(decoded) < 32",
+            "hmac.compare_digest(secret, provider)",
+            "CVBOT_CLIENT_KEY_SECRET=PASS",
+            "validate_cvbot_runtime_secret || return 1",
+        ):
+            self.assertIn(marker, helper)
+        for forbidden in (
+            'echo "$CLIENT_KEY_SECRET"',
+            'echo "$LLM_API_KEY"',
+            'printf "%s" "$CLIENT_KEY_SECRET"',
+            'printf "%s" "$LLM_API_KEY"',
+        ):
+            self.assertNotIn(forbidden, helper)
+
 
 if __name__ == "__main__":
     unittest.main()

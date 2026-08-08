@@ -37,7 +37,7 @@ class BotFailureBehaviorTests(unittest.TestCase):
         self.db_path = str(Path(self.tmp.name) / "assistant.sqlite3")
         env = {
             "LLM_API_KEY": "test-llm-key",
-            "CLIENT_KEY_SECRET": "test-client-secret",
+            "CLIENT_KEY_SECRET": "A" * 43,
             "ASSISTANT_DB_PATH": self.db_path,
             "RATE_PER_IP_HOUR": "20",
             "DAILY_GLOBAL_CAP": "100",

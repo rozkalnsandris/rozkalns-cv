@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import base64
+import binascii
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 import hashlib
@@ -13,6 +15,42 @@ from typing import Callable
 
 
 LOGGER = logging.getLogger(__name__)
+
+CLIENT_KEY_SECRET_MIN_BYTES = 32
+_CLIENT_KEY_SECRET_ALPHABET = frozenset(
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
+)
+
+
+class ClientKeySecretError(RuntimeError):
+    """Raised when the dedicated pseudonymization key is unsafe to use."""
+
+
+def validate_client_key_secret(value: str, provider_key: str = "") -> str:
+    """Validate a dedicated URL-safe HMAC key without exposing its value."""
+
+    if not isinstance(value, str) or not value:
+        raise ClientKeySecretError("CLIENT_KEY_SECRET is required")
+    if not value.isascii() or any(
+        character not in _CLIENT_KEY_SECRET_ALPHABET for character in value
+    ):
+        raise ClientKeySecretError("CLIENT_KEY_SECRET has invalid format")
+    padding = "=" * ((4 - len(value) % 4) % 4)
+    try:
+        decoded = base64.b64decode(
+            value + padding, altchars=b"-_", validate=True
+        )
+    except (binascii.Error, ValueError) as error:
+        raise ClientKeySecretError(
+            "CLIENT_KEY_SECRET has invalid format"
+        ) from error
+    if len(decoded) < CLIENT_KEY_SECRET_MIN_BYTES:
+        raise ClientKeySecretError("CLIENT_KEY_SECRET is too short")
+    if provider_key and hmac.compare_digest(value, provider_key):
+        raise ClientKeySecretError(
+            "CLIENT_KEY_SECRET must be dedicated to pseudonymization"
+        )
+    return value
 
 
 @dataclass(frozen=True)

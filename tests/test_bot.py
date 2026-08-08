@@ -51,7 +51,7 @@ class BotBehaviorTests(unittest.TestCase):
         env = {
             "LLM_API_KEY": "test-llm-key",
             "LLM_MODEL": "deepseek-v4-flash",
-            "CLIENT_KEY_SECRET": "test-client-secret",
+            "CLIENT_KEY_SECRET": "A" * 43,
             "ASSISTANT_DB_PATH": self.db_path,
             "RATE_PER_IP_HOUR": "2",
             "DAILY_GLOBAL_CAP": "20",
