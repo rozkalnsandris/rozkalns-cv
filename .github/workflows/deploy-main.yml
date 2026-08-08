@@ -238,7 +238,7 @@ jobs:
           printf '%s\n' "$module_headers" | grep -Eiq '^Cache-Control:.*immutable'
           printf '%s\n' "$module_headers" | grep -Eiq '^X-Content-Type-Options:[[:space:]]*nosniff'
 
-          csp="$(awk 'tolower($1) == "content-security-policy:" { line=$0; sub(/\r$/, "", line); sub(/^[^:]+:[[:space:]]*/, "", line); print line; exit }' \
+          csp="$(awk 'tolower($1) == "content-security-policy:" { sub(/\r$/, ""); sub(/^[^:]+:[[:space:]]*/, ""); print; exit }' \
             "$root_headers")"
           [[ "$csp" =~ nonce-[0-9a-f]{32} ]]
           [[ "$csp" == *"script-src-attr 'none'"* ]]
