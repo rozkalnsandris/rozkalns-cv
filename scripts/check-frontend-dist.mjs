@@ -80,7 +80,18 @@ for (const source of [
   "frontend/features/stats.mjs",
   "frontend/features/chat.mjs",
   "frontend/features/contact.mjs",
-  "frontend/ui/icons.mjs"
+  "frontend/ui/icons.mjs",
+  "frontend/styles/index.css",
+  "frontend/styles/tokens.css",
+  "frontend/styles/base.css",
+  "frontend/styles/layout.css",
+  "frontend/styles/components.css",
+  "frontend/styles/features/stats.css",
+  "frontend/styles/features/chat.css",
+  "frontend/styles/features/contact.css",
+  "frontend/styles/features/smarthome.css",
+  "frontend/styles/responsive.css",
+  "frontend/styles/print.css"
 ]) {
   const text = await readFile(resolve(root, source), "utf8");
   assert.doesNotMatch(text, /\/(?:assets|i18n)\/[^"'`\s]+\.[0-9a-f]{12}\./, `${source} contains a generated fingerprint`);

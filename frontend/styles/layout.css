@@ -1,0 +1,11 @@
+.page { width: min(calc(100% - 40px), var(--maxw)); margin: 0 auto; padding: clamp(36px,5vw,72px) 0; display: grid; grid-template-columns: 340px minmax(0,1fr); gap: clamp(40px,5vw,72px); align-items: start; }
+.sidebar { position: sticky; top: clamp(20px,3vw,40px); max-height: calc(100vh - clamp(40px,6vw,80px)); overflow-y: auto; overflow-x: hidden; padding-right: 7px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+.sidebar::-webkit-scrollbar { width: 5px; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+main { min-width: 0; padding-top: 4px; }
+section { margin-bottom: var(--section-gap); scroll-margin-top: 32px; }
+.section-heading { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+.section-heading h2 { margin: 0; color: var(--accent); font: 600 12px/1.2 var(--mono); letter-spacing: .18em; text-transform: uppercase; white-space: nowrap; }
+.section-heading::after { content: ""; height: 1px; flex: 1; background: var(--border-soft); }
+.lead { max-width: 62ch; margin: 0; color: var(--text-dim); line-height: 1.7; }
+.lead + .lead { margin-top: 15px; }

@@ -1,11 +1,3 @@
-.skill-chip svg {
-  width: 14px;
-  height: 14px;
-  flex: 0 0 14px;
-  color: var(--accent);
-  opacity: .9;
-}
-.skill-chip::before { content: none; }
 .contact-masked {
   font-family: var(--mono);
   letter-spacing: .02em;
@@ -45,14 +37,3 @@
 }
 .contact-verify-status[data-state="success"] { color: var(--ok); }
 .contact-verify-status[data-state="error"] { color: var(--err); }
-.action-icon {
-  width: 14px;
-  height: 14px;
-  flex: 0 0 14px;
-}
-@media (max-width: 620px) {
-  .contact-reveal { max-width: 100%; }
-}
-@media print {
-  .contact-verify { display: none !important; }
-}
