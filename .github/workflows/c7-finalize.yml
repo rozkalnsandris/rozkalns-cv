@@ -127,16 +127,25 @@ jobs:
           print('/' + matches[0])
           PY
           )"
-          headers="$(curl --fail --silent --show-error --head "http://127.0.0.1:18090${webp_path}")"
-          printf '%s\n' "$headers"
-          grep -Eiq '^Content-Type: image/webp\r?$' <<<"$headers"
-          grep -Eiq '^Cache-Control: public, max-age=31536000, immutable\r?$' <<<"$headers"
-          jpeg_headers="$(curl --fail --silent --show-error --head http://127.0.0.1:18090/photo.jpg)"
-          grep -Eiq '^Cache-Control: max-age=3600\r?$' <<<"$jpeg_headers"
+          webp_headers="$(curl --fail --silent --show-error --head "http://127.0.0.1:18090${webp_path}" | tr -d '\r')"
+          printf '%s\n' '=== WEBP HEADERS ===' "$webp_headers"
+          grep -Fqx 'Content-Type: image/webp' <<<"$webp_headers"
+          grep -Fqx 'Cache-Control: public, max-age=31536000, immutable' <<<"$webp_headers"
+          echo 'C7_WEBP_HEADERS=PASS'
+
+          jpeg_headers="$(curl --fail --silent --show-error --head http://127.0.0.1:18090/photo.jpg | tr -d '\r')"
+          printf '%s\n' '=== JPEG HEADERS ===' "$jpeg_headers"
+          grep -Fqx 'Cache-Control: max-age=3600' <<<"$jpeg_headers"
+          echo 'C7_JPEG_STABLE_CACHE=PASS'
+
           grep -Fq 'https://rozkalns.net/photo.jpg' frontend/index.html
+          echo 'C7_OG_JPEG_REFERENCE=PASS'
           test "$(sha256sum html/cv.pdf | awk '{print $1}')" = '1234942691c7bd90502f43fabdf312267567cad0e5d0a09f9ab427e024364776'
+          echo 'C7_PDF_EN_HASH=PASS'
           test "$(sha256sum html/cv-de.pdf | awk '{print $1}')" = '3e03d46adc75b95c9359802f5e6b5d541a6a8bbcd663300dbc5f2657b1ff7b64'
+          echo 'C7_PDF_DE_HASH=PASS'
           test "$(sha256sum html/cv-lv.pdf | awk '{print $1}')" = 'a1677d8160f96516aa73595ca9959ad5d52f63f4363259fd29eb64091a6736b0'
+          echo 'C7_PDF_LV_HASH=PASS'
           echo 'C7_NGINX_CACHE=PASS'
 
       - name: Validate source hygiene
