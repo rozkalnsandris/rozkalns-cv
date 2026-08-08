@@ -1,0 +1,109 @@
+name: Repair C94 v3 finalizer
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/c94-finalizer-repair.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: >-
+      github.repository == 'rozkalnsandris/rozkalns-cv' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'fix/94-public-email-verified-whatsapp-v3'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Check out exact owner branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "$HEAD_SHA"
+          git checkout -b fix/94-public-email-verified-whatsapp-v3 FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+
+      - name: Pin prototype source and repair current-main builder anchor
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('.github/workflows/c94-pdf-layout-audit.yml')
+          text = path.read_text(encoding='utf-8')
+          exact_v2 = '4a85a475d94e3383d54deef36ea9a9e67dd0a43b'
+
+          moving_ref = "'refs/heads/fix/94-public-email-verified-whatsapp-v2:refs/remotes/origin/c94-v2'"
+          if text.count(moving_ref) != 1:
+              raise SystemExit('moving v2 fetch ref anchor drifted')
+          text = text.replace(moving_ref, f"'{exact_v2}'", 1)
+          if text.count('git show origin/c94-v2:') != 3:
+              raise SystemExit('moving v2 git-show anchor count drifted')
+          text = text.replace('git show origin/c94-v2:', f'git show {exact_v2}:')
+
+          start_marker = "          old_validation = '''"
+          end_marker = "          old_prompt = "
+          start = text.find(start_marker)
+          end = text.find(end_marker, start)
+          if start < 0 or end < 0 or end <= start:
+              raise SystemExit('builder validation migration region not found')
+          replacement = '''          validation_start_marker = '    for key in ("email", "phone"):\\n'
+          validation_end_marker = '    for key in ("github", "website"):\\n'
+          validation_start = builder.find(validation_start_marker)
+          validation_end = builder.find(validation_end_marker, validation_start)
+          if validation_start < 0 or validation_end < 0 or validation_end <= validation_start:
+              raise SystemExit('builder contact validation boundaries missing')
+          new_validation = ''' + "'''" + '''    email = require_object(
+              contact["email"], "profile.contact.email", {"value", "visibility"}
+          )
+          require_text(email["value"], "profile.contact.email.value", 3)
+          if email["visibility"] != "public":
+              raise ContentError("profile.contact.email must be public")
+          phone = require_object(
+              contact["phone"], "profile.contact.phone", {"visibility"}
+          )
+          if phone["visibility"] != "runtime-protected":
+              raise ContentError("profile.contact.phone must be runtime-protected")
+''' + "'''" + '''
+          builder = (
+              builder[:validation_start]
+              + new_validation
+              + builder[validation_end:]
+          )
+'''
+          text = text[:start] + replacement + text[end:]
+          path.write_text(text, encoding='utf-8')
+          print('C94_FINALIZER_REPAIR=PASS')
+          PY
+          grep -Fq '4a85a475d94e3383d54deef36ea9a9e67dd0a43b:bot/contact.py' .github/workflows/c94-pdf-layout-audit.yml
+          ! grep -Fq 'origin/c94-v2:' .github/workflows/c94-pdf-layout-audit.yml
+
+      - name: Self-clean and push repair only
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          rm -f .github/workflows/c94-finalizer-repair.yml
+          git add -A -- .github/workflows/c94-pdf-layout-audit.yml .github/workflows/c94-finalizer-repair.yml
+          test "$(git diff --cached --name-only | wc -l)" -eq 2
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'ci: pin and repair C94 v3 finalizer'
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          remote_head="$(git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" ls-remote origin refs/heads/fix/94-public-email-verified-whatsapp-v3 | awk '{print $1}')"
+          test "$remote_head" = "$HEAD_SHA"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" push origin HEAD:refs/heads/fix/94-public-email-verified-whatsapp-v3
