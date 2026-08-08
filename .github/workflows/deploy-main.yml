@@ -227,7 +227,7 @@ jobs:
           printf '%s\n' "$module_headers"
 
           content_type="$(printf '%s\n' "$module_headers" \
-            | awk 'BEGIN { IGNORECASE=1 } /^Content-Type:/ { sub(/\r$/, ""); print $2; exit }')"
+            | awk 'tolower($1) == "content-type:" { value=$2; sub(/\r$/, "", value); print value; exit }')"
           case "$content_type" in
             text/javascript|application/javascript) ;;
             *)
@@ -238,7 +238,7 @@ jobs:
           printf '%s\n' "$module_headers" | grep -Eiq '^Cache-Control:.*immutable'
           printf '%s\n' "$module_headers" | grep -Eiq '^X-Content-Type-Options:[[:space:]]*nosniff'
 
-          csp="$(awk 'BEGIN { IGNORECASE=1 } /^Content-Security-Policy:/ { sub(/\r$/, ""); sub(/^[^:]+:[[:space:]]*/, ""); print; exit }' \
+          csp="$(awk 'tolower($1) == "content-security-policy:" { line=$0; sub(/\r$/, "", line); sub(/^[^:]+:[[:space:]]*/, "", line); print line; exit }' \
             "$root_headers")"
           [[ "$csp" =~ nonce-[0-9a-f]{32} ]]
           [[ "$csp" == *"script-src-attr 'none'"* ]]
