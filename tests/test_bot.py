@@ -28,8 +28,11 @@ class FakeUpstreamResponse:
     def iter_lines(self, decode_unicode: bool = False):
         return iter(
             [
-                'data: {"choices":[{"delta":{"content":"Hello"}}]}',
-                'data: {"choices":[{"delta":{"content":" world"}}]}',
+                'data: {"choices":[{"delta":{"reasoning_content":"hidden chain"},"finish_reason":null}]}',
+                'data: {"choices":[{"delta":{},"finish_reason":null}]}',
+                'data: {"choices":[{"delta":{"content":"Hello"},"finish_reason":null}]}',
+                'data: {"choices":[{"delta":{"content":" world"},"finish_reason":null}]}',
+                'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}',
                 "data: [DONE]",
             ]
         )
@@ -47,6 +50,7 @@ class BotBehaviorTests(unittest.TestCase):
         self.db_path = str(Path(self.tmp.name) / "assistant.sqlite3")
         env = {
             "LLM_API_KEY": "test-llm-key",
+            "LLM_MODEL": "deepseek-v4-flash",
             "CLIENT_KEY_SECRET": "test-client-secret",
             "ASSISTANT_DB_PATH": self.db_path,
             "RATE_PER_IP_HOUR": "2",
@@ -125,6 +129,32 @@ class BotBehaviorTests(unittest.TestCase):
         self.assertEqual(
             captured[0]["messages"][-1]["content"], "New question"
         )
+
+    def test_v4_request_contract_is_explicit_non_thinking(self) -> None:
+        response, captured = self._post("Question")
+        self.assertEqual(response.status_code, 200)
+        payload = captured[0]
+        self.assertEqual(payload["model"], "deepseek-v4-flash")
+        self.assertEqual(payload["thinking"], {"type": "disabled"})
+        self.assertTrue(payload["stream"])
+        self.assertEqual(payload["max_tokens"], self.module.MAX_RESPONSE_TOKENS)
+        self.assertEqual(payload["temperature"], 0.4)
+        self.assertNotIn("reasoning_effort", payload)
+
+    def test_v4_reasoning_content_is_never_forwarded(self) -> None:
+        response, _ = self._post("Question")
+        body = response.get_data(as_text=True)
+        self.assertEqual(body, "Hello world")
+        self.assertNotIn("hidden chain", body)
+
+    def test_only_supported_v4_models_are_allowed(self) -> None:
+        self.assertEqual(
+            self.module.SUPPORTED_LLM_MODELS,
+            frozenset({"deepseek-v4-flash", "deepseek-v4-pro"}),
+        )
+        self.assertIn(self.module.LLM_MODEL, self.module.SUPPORTED_LLM_MODELS)
+        self.assertNotIn("deepseek-chat", self.module.SUPPORTED_LLM_MODELS)
+        self.assertNotIn("deepseek-reasoner", self.module.SUPPORTED_LLM_MODELS)
 
     def test_invalid_payload_does_not_consume_quota(self) -> None:
         response = self.client.post(
