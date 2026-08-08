@@ -47,6 +47,13 @@ class CssSourceContractTests(unittest.TestCase):
             "--mono:",
             "--maxw:",
             "--section-gap:",
+            "--space-1:",
+            "--space-6:",
+            "--radius-sm:",
+            "--radius-xl:",
+            "--breakpoint-layout:",
+            "--breakpoint-compact:",
+            "--breakpoint-contact:",
         ):
             self.assertIn(token, tokens)
 
@@ -54,6 +61,32 @@ class CssSourceContractTests(unittest.TestCase):
             if path.name in {"tokens.css", "index.css"}:
                 continue
             self.assertNotIn(":root", path.read_text(encoding="utf-8"), path)
+
+    def test_breakpoint_tokens_match_the_single_responsive_owner(self) -> None:
+        tokens = (STYLES / "tokens.css").read_text(encoding="utf-8")
+        responsive = (STYLES / "responsive.css").read_text(encoding="utf-8")
+        values = dict(
+            re.findall(
+                r"--(breakpoint-[a-z-]+):\s*([0-9]+px);",
+                tokens,
+            )
+        )
+        self.assertEqual(
+            values,
+            {
+                "breakpoint-layout": "760px",
+                "breakpoint-compact": "560px",
+                "breakpoint-contact": "620px",
+            },
+        )
+        self.assertEqual(
+            re.findall(r"@media \(max-width: ([0-9]+px)\)", responsive),
+            [
+                values["breakpoint-layout"],
+                values["breakpoint-compact"],
+                values["breakpoint-contact"],
+            ],
+        )
 
     def test_responsive_print_and_reduced_motion_have_single_owners(self) -> None:
         responsive = (STYLES / "responsive.css").read_text(encoding="utf-8")
