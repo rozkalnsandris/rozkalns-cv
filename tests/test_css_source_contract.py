@@ -41,52 +41,47 @@ class CssSourceContractTests(unittest.TestCase):
         for token in (
             "--bg:",
             "--surface:",
+            "--surface-2:",
+            "--border:",
+            "--border-soft:",
             "--text:",
+            "--text-dim:",
+            "--text-faint:",
             "--accent:",
+            "--accent-soft:",
+            "--accent-line:",
+            "--ok:",
+            "--warn:",
+            "--err:",
             "--sans:",
             "--mono:",
             "--maxw:",
             "--section-gap:",
-            "--space-1:",
-            "--space-6:",
-            "--radius-sm:",
-            "--radius-xl:",
-            "--breakpoint-layout:",
-            "--breakpoint-compact:",
-            "--breakpoint-contact:",
         ):
             self.assertIn(token, tokens)
 
+        self.assertNotIn("--space-", tokens)
+        self.assertNotIn("--radius-", tokens)
+        self.assertNotIn("--breakpoint-", tokens)
         for path in STYLES.rglob("*.css"):
             if path.name in {"tokens.css", "index.css"}:
                 continue
             self.assertNotIn(":root", path.read_text(encoding="utf-8"), path)
 
-    def test_breakpoint_tokens_match_the_single_responsive_owner(self) -> None:
-        tokens = (STYLES / "tokens.css").read_text(encoding="utf-8")
+    def test_responsive_breakpoints_have_one_explicit_owner(self) -> None:
         responsive = (STYLES / "responsive.css").read_text(encoding="utf-8")
-        values = dict(
-            re.findall(
-                r"--(breakpoint-[a-z-]+):\s*([0-9]+px);",
-                tokens,
-            )
-        )
-        self.assertEqual(
-            values,
-            {
-                "breakpoint-layout": "760px",
-                "breakpoint-compact": "560px",
-                "breakpoint-contact": "620px",
-            },
-        )
         self.assertEqual(
             re.findall(r"@media \(max-width: ([0-9]+px)\)", responsive),
-            [
-                values["breakpoint-layout"],
-                values["breakpoint-compact"],
-                values["breakpoint-contact"],
-            ],
+            ["760px", "560px", "620px"],
         )
+        for path in STYLES.rglob("*.css"):
+            if path.name == "responsive.css":
+                continue
+            self.assertNotRegex(
+                path.read_text(encoding="utf-8"),
+                r"@media \(max-width:",
+                path,
+            )
 
     def test_responsive_print_and_reduced_motion_have_single_owners(self) -> None:
         responsive = (STYLES / "responsive.css").read_text(encoding="utf-8")
@@ -100,8 +95,6 @@ class CssSourceContractTests(unittest.TestCase):
 
         for path in STYLES.rglob("*.css"):
             text = path.read_text(encoding="utf-8")
-            if path.name != "responsive.css":
-                self.assertNotRegex(text, r"@media \(max-width:", path)
             if path.name != "print.css":
                 self.assertNotIn("@media print", text, path)
             if path.name != "base.css":
