@@ -1,31 +1,31 @@
 {
   "../content/translations/de.json": {
-    "file": "i18n/de.e5b19aec28a6.json",
+    "file": "i18n/de.d55ab06c1081.json",
     "src": "../content/translations/de.json"
   },
   "../content/translations/en.json": {
-    "file": "i18n/en.7a22942a1ff8.json",
+    "file": "i18n/en.b7985c664066.json",
     "src": "../content/translations/en.json"
   },
   "../content/translations/lv.json": {
-    "file": "i18n/lv.adc94191d104.json",
+    "file": "i18n/lv.59ab2290af98.json",
     "src": "../content/translations/lv.json"
   },
-  "_i18n.42f98e057bb2.mjs": {
-    "file": "assets/i18n.42f98e057bb2.mjs",
+  "_i18n.5b959e709ae3.mjs": {
+    "file": "assets/i18n.5b959e709ae3.mjs",
     "name": "i18n",
     "css": [
-      "assets/i18n.bd5c11e7bd22.css"
+      "assets/i18n.c6cd3f419090.css"
     ],
     "assets": [
-      "i18n/en.7a22942a1ff8.json",
-      "i18n/de.e5b19aec28a6.json",
-      "i18n/lv.adc94191d104.json"
+      "i18n/en.b7985c664066.json",
+      "i18n/de.d55ab06c1081.json",
+      "i18n/lv.59ab2290af98.json"
     ]
   },
-  "_i18n.bd5c11e7bd22.css": {
-    "file": "assets/i18n.bd5c11e7bd22.css",
-    "src": "_i18n.bd5c11e7bd22.css"
+  "_i18n.c6cd3f419090.css": {
+    "file": "assets/i18n.c6cd3f419090.css",
+    "src": "_i18n.c6cd3f419090.css"
   },
   "features/chat.mjs": {
     "file": "assets/chat.215646ab0dd8.mjs",
@@ -34,38 +34,43 @@
     "isDynamicEntry": true
   },
   "features/contact.mjs": {
-    "file": "assets/contact.f239dce0823e.mjs",
+    "file": "assets/contact.323ee5f2bde0.mjs",
     "name": "contact",
     "src": "features/contact.mjs",
     "isDynamicEntry": true
   },
   "index.html": {
-    "file": "assets/app.4179e74375c8.mjs",
+    "file": "assets/app.be01657eb7b0.mjs",
     "name": "app",
     "src": "index.html",
     "isEntry": true,
     "imports": [
-      "_i18n.42f98e057bb2.mjs"
+      "_i18n.5b959e709ae3.mjs"
     ],
     "dynamicImports": [
       "features/chat.mjs",
       "features/contact.mjs"
     ],
     "assets": [
+      "assets/whatsapp-contact-qr.98727e6cfd57.svg",
       "assets/photo.18997b6089ce.webp"
     ]
+  },
+  "media/whatsapp-contact-qr.svg": {
+    "file": "assets/whatsapp-contact-qr.98727e6cfd57.svg",
+    "src": "media/whatsapp-contact-qr.svg"
   },
   "photo.webp": {
     "file": "assets/photo.18997b6089ce.webp",
     "src": "photo.webp"
   },
   "smarthome.html": {
-    "file": "assets/smarthome.9d9b6248aa0b.mjs",
+    "file": "assets/smarthome.c0c0b3104a91.mjs",
     "name": "smarthome",
     "src": "smarthome.html",
     "isEntry": true,
     "imports": [
-      "_i18n.42f98e057bb2.mjs"
+      "_i18n.5b959e709ae3.mjs"
     ]
   }
 }

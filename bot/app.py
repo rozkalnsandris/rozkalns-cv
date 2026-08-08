@@ -77,7 +77,7 @@ Career goal: Junior DevOps or Linux Systems Administrator, progressing toward ML
 
 PUBLIC CONTACT
 Email: andris@rozkalns.net
-Phone: +49 176 8513 4770
+Phone and WhatsApp are available only through the verified contact flow on the CV website.
 GitHub: https://github.com/rozkalnsandris
 Website: https://rozkalns.net/
 
@@ -128,15 +128,12 @@ INFRASTRUCTURE
 
 RULES
 - Do not answer unrelated questions.
-- Do not reveal personal data beyond the public contact and facts listed above.
+- The public recruiting email may be provided directly.
+- Never provide the phone number in chat; direct visitors to the verified phone/WhatsApp contact flow on the CV website.
 - For salary expectations, say Andris is open to discussion based on the role and company.
 - For the start date, say Andris is available from 2027-01.
 - Keep answers concise, factual, and professional."""
 # END GENERATED SYSTEM PROMPT
-SYSTEM_PROMPT += (
-    "\n- Do not provide the full email address or phone number in chat. "
-    "Direct visitors to the verified contact section on the CV page."
-)
 
 
 class RequestValidationError(ValueError):
@@ -186,8 +183,6 @@ def _normalize_history(raw_history: Any, current_message: str) -> list[dict[str,
             raise RequestValidationError("History contains invalid content.")
         normalized.append({"role": role, "content": content})
 
-    # Compatibility with the old browser client, which included the current
-    # message both in `history` and in `message`.
     if (
         normalized
         and normalized[-1]["role"] == "user"
@@ -195,9 +190,6 @@ def _normalize_history(raw_history: Any, current_message: str) -> list[dict[str,
     ):
         normalized.pop()
 
-    # A failed previous browser request may leave one unpaired user turn.
-    # It is not completed conversation context, so omit it rather than sending
-    # malformed history to the model.
     if normalized and normalized[-1]["role"] == "user":
         normalized.pop()
 
@@ -264,7 +256,7 @@ def _notify_telegram(client_key: str, question: str, answer: str) -> None:
             timeout=10,
         )
         response.raise_for_status()
-    except Exception as error:  # notification failure must not affect visitor
+    except Exception as error:
         app.logger.error("telegram notification failed: %s", type(error).__name__)
 
 
@@ -309,10 +301,17 @@ def contact_reveal() -> Response:
     if not verified:
         return jsonify(error="Verification failed. Please try again."), 403
 
+    try:
+        whatsapp_url = CONTACT_CONFIG.whatsapp_url
+    except ContactVerificationError as error:
+        app.logger.error("verified contact target failed: %s", type(error).__name__)
+        return jsonify(error="Contact verification is temporarily unavailable."), 503
+
     response = jsonify(
         email=CONTACT_CONFIG.email,
         phone=CONTACT_CONFIG.phone_display,
         phone_uri=CONTACT_CONFIG.phone_uri,
+        whatsapp_url=whatsapp_url,
     )
     response.headers["Cache-Control"] = "no-store"
     return response

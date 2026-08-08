@@ -1,3 +1,5 @@
+.print-whatsapp-contact { display: none; }
+
 @media print {
   body { background: #fff; color: #000; font-size: 11px; }
   .page { display: block; width: 100%; padding: 0; }
@@ -7,5 +9,28 @@
   .panel, .project-entry, .demo-device { border-color: #ccc; background: #fff; }
   h1, .entry h3, .project-copy h3 { color: #000; }
   .role, .section-heading h2, .stat-value, .org, .tech-tag { color: #444; }
-  .contact-verify { display: none !important; }
+  .contact-verify, .protected-phone-row { display: none !important; }
+  .print-whatsapp-contact {
+    display: flex !important;
+    align-items: center;
+    gap: 10px;
+    width: fit-content;
+    margin-top: 14px;
+    color: #111;
+    text-decoration: none;
+    break-inside: avoid;
+  }
+  .print-whatsapp-contact img {
+    display: block;
+    width: 76px;
+    height: 76px;
+  }
+  .print-whatsapp-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    max-width: 170px;
+  }
+  .print-whatsapp-copy strong { font-size: 11px; color: #111; }
+  .print-whatsapp-copy small { font-size: 9px; line-height: 1.35; color: #555; }
 }

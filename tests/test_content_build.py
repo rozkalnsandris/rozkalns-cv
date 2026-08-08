@@ -34,17 +34,30 @@ class CanonicalContentTests(unittest.TestCase):
         self.assertEqual(set(raw), {"en", "de", "lv"})
         self.assertEqual(set(translations["en"]), set(translations["de"]))
         self.assertEqual(set(translations["en"]), set(translations["lv"]))
+        self.assertEqual(profile["schema_version"], 2)
         self.assertEqual(profile["identity"]["name"], "Andris Rožkalns")
+
+    def test_recruiting_email_is_public_but_phone_is_runtime_only(self) -> None:
+        profile = builder.validate_profile(copy.deepcopy(self.profile))
+        self.assertEqual(profile["contact"]["email"]["visibility"], "public")
+        self.assertIn("@", profile["contact"]["email"]["value"])
+        self.assertEqual(
+            profile["contact"]["phone"], {"visibility": "verified-runtime"}
+        )
+
+        private_email = copy.deepcopy(self.profile)
+        private_email["contact"]["email"]["visibility"] = "verified-runtime"
+        with self.assertRaises(builder.ContentError):
+            builder.validate_profile(private_email)
+
+        embedded_phone = copy.deepcopy(self.profile)
+        embedded_phone["contact"]["phone"]["value"] = "+490000000000"
+        with self.assertRaises(builder.ContentError):
+            builder.validate_profile(embedded_phone)
 
     def test_duplicate_ids_are_rejected(self) -> None:
         profile = copy.deepcopy(self.profile)
         profile["projects"][1]["id"] = profile["projects"][0]["id"]
-        with self.assertRaises(builder.ContentError):
-            builder.validate_profile(profile)
-
-    def test_non_public_contact_is_rejected(self) -> None:
-        profile = copy.deepcopy(self.profile)
-        profile["contact"]["email"]["visibility"] = "private"
         with self.assertRaises(builder.ContentError):
             builder.validate_profile(profile)
 
@@ -57,14 +70,37 @@ class CanonicalContentTests(unittest.TestCase):
             builder.source_digest(reordered, translations),
         )
 
-    def test_generated_prompt_uses_canonical_facts(self) -> None:
-        prompt = builder.build_system_prompt(
-            builder.validate_profile(copy.deepcopy(self.profile))
-        )
+    def test_generated_prompt_exposes_email_but_not_phone(self) -> None:
+        profile = builder.validate_profile(copy.deepcopy(self.profile))
+        prompt = builder.build_system_prompt(profile)
         self.assertIn("Andris Rožkalns", prompt)
         self.assertIn("2027-01", prompt)
         self.assertIn("Raspberry Pi 5", prompt)
         self.assertIn("Do not answer unrelated questions.", prompt)
+        self.assertIn("PUBLIC CONTACT", prompt)
+        self.assertIn(f"Email: {profile['contact']['email']['value']}", prompt)
+        self.assertIn("Phone and WhatsApp are available only through", prompt)
+        self.assertNotIn("Phone: +", prompt)
+
+    def test_public_contact_module_contains_no_phone_or_direct_whatsapp_number(self) -> None:
+        profile = builder.validate_profile(copy.deepcopy(self.profile))
+        module = builder.build_public_contact_module(profile)
+        self.assertIn(profile["contact"]["email"]["value"], module)
+        self.assertIn("https://rozkalns.net/?contact=whatsapp", module)
+        self.assertNotIn("wa.me/", module)
+        self.assertNotIn("phone_uri", module)
+
+    def test_pdf_privacy_state_is_accepted_and_source_bound(self) -> None:
+        profile = builder.validate_profile(copy.deepcopy(self.profile))
+        translations, _ = builder.load_translations()
+        manifest = builder.load_json(ROOT / "content" / "pdf-manifest.json")
+        self.assertEqual(manifest["schema_version"], 2)
+        self.assertEqual(
+            manifest["contact_privacy_status"], builder.PDF_PRIVACY_SAFE
+        )
+        self.assertEqual(
+            manifest["source_sha256"], builder.source_digest(profile, translations)
+        )
 
     def test_prompt_sync_migrates_once_and_is_idempotent(self) -> None:
         old = (

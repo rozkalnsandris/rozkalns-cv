@@ -37,6 +37,15 @@ class ContactConfig:
             and self.hostnames
         )
 
+    @property
+    def whatsapp_url(self) -> str:
+        if not self.phone_uri.startswith("+"):
+            raise ContactVerificationError("Configured phone URI is invalid.")
+        digits = self.phone_uri[1:]
+        if not digits.isdigit() or not 8 <= len(digits) <= 15:
+            raise ContactVerificationError("Configured phone URI is invalid.")
+        return f"https://wa.me/{digits}"
+
 
 def load_contact_config() -> ContactConfig:
     hostnames = frozenset(

@@ -42,6 +42,8 @@ for required in \
     frontend/index.html \
     frontend/smarthome.html \
     frontend/app.mjs \
+    frontend/public-contact.mjs \
+    frontend/media/whatsapp-contact-qr.svg \
     frontend/enhancements.mjs \
     frontend/smarthome.mjs \
     frontend/core/i18n.mjs \
@@ -67,6 +69,7 @@ for required in \
     scripts/build-frontend.mjs \
     scripts/check-frontend-dist.mjs \
     scripts/build-content.py \
+    scripts/render-public-pdfs.py \
     scripts/sync-system-prompt.py \
     scripts/validate-source.sh \
     .github/workflows/ci.yml \
