@@ -1,0 +1,171 @@
+name: C4 visual equivalence
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/c4-visual-equivalence.yml
+
+permissions:
+  contents: read
+
+jobs:
+  compare:
+    if: >-
+      github.repository == 'rozkalnsandris/rozkalns-cv' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'refactor/80-consolidate-css-v01'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out exact C4 head and frozen C3 baseline
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASELINE_SHA: 88d20510e80b9dd7665cb19a24b14b3c9d30ee89
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            fetch --no-tags origin "$HEAD_SHA" "$BASELINE_SHA"
+          git checkout --detach "$HEAD_SHA"
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          git worktree add --detach "${RUNNER_TEMP}/c3-baseline" "$BASELINE_SHA"
+          test "$(git -C "${RUNNER_TEMP}/c3-baseline" rev-parse HEAD)" = "$BASELINE_SHA"
+
+      - name: Set up pinned Node.js and build C4 candidate
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.18.0
+          cache: npm
+
+      - name: Build deterministic C4 candidate
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build:frontend
+          npm run check:frontend
+
+      - name: Capture C3 and C4 browser evidence
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          evidence="${RUNNER_TEMP}/c4-visual-evidence"
+          mkdir -p "$evidence"
+
+          chrome_bin=''
+          for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
+            if command -v "$candidate" >/dev/null 2>&1; then
+              chrome_bin="$(command -v "$candidate")"
+              break
+            fi
+          done
+          test -n "$chrome_bin"
+          "$chrome_bin" --version | tee "$evidence/chrome-version.txt"
+
+          python3 -m http.server 18101 --bind 127.0.0.1 --directory "${RUNNER_TEMP}/c3-baseline/html" \
+            >"$evidence/c3-server.log" 2>&1 &
+          c3_pid=$!
+          python3 -m http.server 18102 --bind 127.0.0.1 --directory "$PWD/html" \
+            >"$evidence/c4-server.log" 2>&1 &
+          c4_pid=$!
+          cleanup() {
+            kill "$c3_pid" "$c4_pid" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          for port in 18101 18102; do
+            for attempt in $(seq 1 30); do
+              if curl --fail --silent --show-error "http://127.0.0.1:${port}/" >/dev/null; then
+                break
+              fi
+              test "$attempt" -lt 30
+              sleep .2
+            done
+          done
+
+          capture() {
+            local label="$1"
+            local port="$2"
+            local path="$3"
+            local size="$4"
+            "$chrome_bin" \
+              --headless=new \
+              --no-sandbox \
+              --disable-gpu \
+              --hide-scrollbars \
+              --force-device-scale-factor=1 \
+              --window-size="$size" \
+              --virtual-time-budget=3500 \
+              --screenshot="$evidence/${label}.png" \
+              "http://127.0.0.1:${port}${path}" >/dev/null 2>&1
+            test -s "$evidence/${label}.png"
+          }
+
+          capture c3-cv-desktop 18101 / 1440,1000
+          capture c4-cv-desktop 18102 / 1440,1000
+          capture c3-cv-mobile 18101 / 390,844
+          capture c4-cv-mobile 18102 / 390,844
+          capture c3-smart-desktop 18101 /smarthome.html 1440,1000
+          capture c4-smart-desktop 18102 /smarthome.html 1440,1000
+          capture c3-smart-mobile 18101 /smarthome.html 390,844
+          capture c4-smart-mobile 18102 /smarthome.html 390,844
+
+          printf '=== screenshot sha256 ===\n' | tee "$evidence/screenshot-sha256.txt"
+          sha256sum "$evidence"/*.png | tee -a "$evidence/screenshot-sha256.txt"
+
+          compare_pair() {
+            local baseline="$1"
+            local candidate="$2"
+            local name="$3"
+            if ! cmp "$evidence/$baseline" "$evidence/$candidate"; then
+              printf 'VISUAL_%s=FAIL screenshots differ\n' "$name" >&2
+              return 1
+            fi
+            printf 'VISUAL_%s=PASS pixel-identical\n' "$name"
+          }
+
+          visual_status=0
+          compare_pair c3-cv-desktop.png c4-cv-desktop.png CV_DESKTOP || visual_status=1
+          compare_pair c3-cv-mobile.png c4-cv-mobile.png CV_MOBILE || visual_status=1
+          compare_pair c3-smart-desktop.png c4-smart-desktop.png SMART_DESKTOP || visual_status=1
+          compare_pair c3-smart-mobile.png c4-smart-mobile.png SMART_MOBILE || visual_status=1
+
+          "$chrome_bin" --headless=new --no-sandbox --disable-gpu \
+            --virtual-time-budget=3500 --print-to-pdf="$evidence/c3-cv-print.pdf" \
+            --no-pdf-header-footer "http://127.0.0.1:18101/" >/dev/null 2>&1
+          "$chrome_bin" --headless=new --no-sandbox --disable-gpu \
+            --virtual-time-budget=3500 --print-to-pdf="$evidence/c4-cv-print.pdf" \
+            --no-pdf-header-footer "http://127.0.0.1:18102/" >/dev/null 2>&1
+          test -s "$evidence/c3-cv-print.pdf"
+          test -s "$evidence/c4-cv-print.pdf"
+          c3_pages="$(grep -a -o '/Type /Page\b' "$evidence/c3-cv-print.pdf" | wc -l | tr -d '[:space:]')"
+          c4_pages="$(grep -a -o '/Type /Page\b' "$evidence/c4-cv-print.pdf" | wc -l | tr -d '[:space:]')"
+          test "$c3_pages" -gt 0
+          test "$c3_pages" = "$c4_pages"
+          printf 'PRINT_PAGE_COUNT=PASS pages=%s\n' "$c3_pages" | tee "$evidence/print-summary.txt"
+
+          printf 'BASELINE_SHA=%s\n' '88d20510e80b9dd7665cb19a24b14b3c9d30ee89' | tee "$evidence/summary.env"
+          printf 'CANDIDATE_SHA=%s\n' "$GITHUB_SHA" | tee -a "$evidence/summary.env"
+          printf 'SCREENSHOT_PAIR_COUNT=4\n' | tee -a "$evidence/summary.env"
+          printf 'PRINT_PAGE_COUNT=%s\n' "$c3_pages" | tee -a "$evidence/summary.env"
+          if [[ "$visual_status" -ne 0 ]]; then
+            printf 'VISUAL_EQUIVALENCE=FAIL\n' | tee -a "$evidence/summary.env"
+            exit 1
+          fi
+          printf 'VISUAL_EQUIVALENCE=PASS\n' | tee -a "$evidence/summary.env"
+
+      - name: Upload C4 visual evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: c4-visual-equivalence-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}/c4-visual-evidence
+          if-no-files-found: error
+          retention-days: 30
