@@ -53,8 +53,8 @@ replace_once(
     '''        self.assertEqual(len(skip_links), 1)\n\n    def test_profile_photo_uses_hashed_webp_with_explicit_dimensions(self) -> None:\n        parsed = parse(HTML_ROOT / "index.html")\n        photos = [\n            row for row in parsed.elements\n            if row.tag == "img" and row.attrs.get("class") == "profile-photo"\n        ]\n        self.assertEqual(len(photos), 1)\n        photo = photos[0]\n        self.assertRegex(\n            photo.attrs.get("src", ""),\n            r"^/assets/photo\\.[0-9a-f]{12}\\.webp$",\n        )\n        self.assertEqual(photo.attrs.get("width"), "118")\n        self.assertEqual(photo.attrs.get("height"), "118")\n        self.assertEqual(photo.attrs.get("alt"), "Andris Rožkalns")\n\n    def test_fingerprinted_assets_are_manifest_owned''',
 )
 
-(ROOT / "docs/C7_STATIC_AUDIT.md").write_text(
-    """# Gate C7 — static payload and cache audit\n\n"
+audit = (
+    "# Gate C7 — static payload and cache audit\n\n"
     "Baseline: C6 production SHA `81a1cfcb63d53a7b05e1304907c1951495ca2d9b`.\n\n"
     "## Inventory\n\n"
     "- Profile JPEG: 29,454 bytes, 480×480, SHA-256 `f9a54c7dd9df18ed6938981b418d8a5d7b4068efc26962a9a489c4957f93e6aa`.\n"
@@ -78,8 +78,7 @@ replace_once(
     "- Do not change PDFs, favicon, runtime endpoints, Cloudflare ownership, or the deploy model.\n"
     "- Preserve explicit 118×118 image dimensions and all C6 accessibility behavior.\n\n"
     "`PRODUCTION_IMPACT=yes` because the served profile asset and Nginx cache matching change.\n"
-    """,
-    encoding="utf-8",
 )
+(ROOT / "docs/C7_STATIC_AUDIT.md").write_text(audit, encoding="utf-8")
 
 print("C7_SOURCE_TRANSFORM=PASS")
