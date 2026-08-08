@@ -1,0 +1,60 @@
+name: C3 sync current main ancestry
+
+on:
+  push:
+    branches:
+      - refactor/75-unify-i18n-features-v01
+    paths:
+      - .github/workflows/c3-sync-main.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    if: github.repository == 'rozkalnsandris/rozkalns-cv' && github.ref == 'refs/heads/refactor/75-unify-i18n-features-v01'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out exact C3 head and current main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_MAIN: f5fc8ce02e974d78241a10f2fbe3b861e4a2642e
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "$GITHUB_SHA" main
+          git checkout --detach "$GITHUB_SHA"
+          test "$(git rev-parse origin/main)" = "$EXPECTED_MAIN"
+
+      - name: Prove main security and deploy fixes are present in C3 tree
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          grep -Fq 'os.getenv("CONTACT_EMAIL", "")' bot/contact.py
+          grep -Fq 'tolower($1) == "content-type:"' .github/workflows/deploy-main.yml
+          grep -Fq 'tolower($1) == "content-security-policy:"' .github/workflows/deploy-main.yml
+          grep -Fq 'self.assertNotIn("IGNORECASE=1", text)' tests/test_deploy_public_headers.py
+          grep -Fq 'Status: **PUBLIC — remediation in progress**.' docs/PUBLIC_READINESS.md
+          python3 -m unittest tests.test_contact_markup tests.test_deploy_public_headers -v
+
+      - name: Merge current main ancestry without changing C3 tree
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_MAIN: f5fc8ce02e974d78241a10f2fbe3b861e4a2642e
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          before_tree="$(git rev-parse HEAD^{tree})"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git merge --no-ff -s ours "$EXPECTED_MAIN" -m 'chore: sync current main into C3 branch'
+          test "$(git rev-parse HEAD^1)" = "$GITHUB_SHA"
+          test "$(git rev-parse HEAD^2)" = "$EXPECTED_MAIN"
+          test "$(git rev-parse HEAD^{tree})" = "$before_tree"
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" push origin HEAD:refs/heads/refactor/75-unify-i18n-features-v01
