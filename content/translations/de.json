@@ -96,10 +96,10 @@
   "chat_typing": "Antwort wird vorbereitet…",
   "chat_complete": "Antwort vollständig.",
   "chat_error": "Verbindungsproblem — bitte kontaktieren Sie Andris per E-Mail.",
-  "contact_reveal": "Prüfen, um Kontaktdaten anzuzeigen",
+  "contact_reveal": "Prüfen, um Telefon / WhatsApp anzuzeigen",
   "contact_loading": "Überprüfung wird geladen…",
   "contact_verifying": "Wird überprüft…",
-  "contact_success": "Kontaktdaten freigeschaltet.",
+  "contact_success": "Kontakt bestätigt.",
   "contact_failed": "Überprüfung fehlgeschlagen. Bitte erneut versuchen.",
   "contact_unavailable": "Kontaktüberprüfung ist vorübergehend nicht verfügbar.",
   "contact_email_hidden": "E-Mail-Adresse bis zur Überprüfung verborgen",
@@ -118,5 +118,6 @@
   "smart_heating": "Heizt",
   "smart_on": "An",
   "smart_off": "Aus",
-  "smart_footer": "Nur statische Demonstration — kein Zugriff auf das echte Zuhause oder Geräte."
+  "smart_footer": "Nur statische Demonstration — kein Zugriff auf das echte Zuhause oder Geräte.",
+  "contact_whatsapp_verify": "Prüfen, um WhatsApp zu öffnen"
 }

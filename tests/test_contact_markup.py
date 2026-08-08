@@ -9,17 +9,13 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class ContactMarkupTests(unittest.TestCase):
-    def test_initial_html_does_not_embed_contact_channels(self) -> None:
+    def test_initial_html_exposes_public_email_but_not_phone(self) -> None:
         index = (ROOT / "html" / "index.html").read_text(encoding="utf-8")
-        self.assertNotRegex(index, r'(?i)href=["\'](?:mailto|tel):')
-        self.assertNotRegex(
-            index,
-            r"(?i)[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@"
-            r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?"
-            r"(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+",
-        )
-        self.assertIn('id="contactEmail"', index)
+        self.assertIn('href="mailto:andris@rozkalns.net"', index)
+        self.assertIn('>andris@rozkalns.net</a>', index)
+        self.assertNotRegex(index, r'(?i)href=["\'](?:tel:|https://wa\.me/[0-9])')
         self.assertIn('id="contactPhone"', index)
+        self.assertIn('class="contact-masked"', index)
         self.assertIn('id="contactReveal"', index)
         self.assertIn('id="turnstileMount"', index)
 

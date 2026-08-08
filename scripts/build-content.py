@@ -114,12 +114,17 @@ def validate_profile(profile: Any) -> dict[str, Any]:
         "profile.contact",
         {"email", "phone", "github", "website"},
     )
-    for key in ("email", "phone"):
-        entry = require_object(
-            contact[key], f"profile.contact.{key}", {"visibility"}
-        )
-        if entry["visibility"] != "runtime-protected":
-            raise ContentError(f"profile.contact.{key} must be runtime-protected")
+    email = require_object(
+        contact["email"], "profile.contact.email", {"value", "visibility"}
+    )
+    require_text(email["value"], "profile.contact.email.value", 3)
+    if email["visibility"] != "public":
+        raise ContentError("profile.contact.email must be public")
+    phone = require_object(
+        contact["phone"], "profile.contact.phone", {"visibility"}
+    )
+    if phone["visibility"] != "runtime-protected":
+        raise ContentError("profile.contact.phone must be runtime-protected")
     for key in ("github", "website"):
         entry = require_object(
             contact[key], f"profile.contact.{key}", {"value", "visibility"}
@@ -287,7 +292,8 @@ def build_system_prompt(profile: dict[str, Any]) -> str:
         f"Career goal: {identity['career_goal']}",
         "",
         "PUBLIC CONTACT",
-        "Email and phone: available only through the verified contact section on the public CV.",
+        f"Email: {contact['email']['value']}",
+        "Phone and WhatsApp: available only through the verified contact section on the public CV.",
         f"GitHub: {contact['github']['value']}",
         f"Website: {contact['website']['value']}",
         "",
@@ -337,7 +343,8 @@ def build_system_prompt(profile: dict[str, Any]) -> str:
             "",
             "RULES",
             "- Do not answer unrelated questions.",
-            "- Do not reveal, infer, or guess protected email or phone details; direct contact requests to the verified contact section on the public CV.",
+            "- The dedicated recruiting email is public and may be provided directly.",
+            "- Do not reveal, infer, or guess the protected phone number; direct phone or WhatsApp requests to the verified contact section on the public CV.",
             "- For salary expectations, say Andris is open to discussion based on the role and company.",
             f"- For the start date, say Andris is available from {identity['availability']}.",
             "- Keep answers concise, factual, and professional.",

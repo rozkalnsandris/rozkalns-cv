@@ -68,7 +68,7 @@
       ],
       "properties": {
         "email": {
-          "$ref": "#/$defs/protectedValue"
+          "$ref": "#/$defs/publicValue"
         },
         "phone": {
           "$ref": "#/$defs/protectedValue"

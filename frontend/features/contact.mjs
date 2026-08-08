@@ -34,6 +34,16 @@ function revealLink(root, element, value, href) {
   return link;
 }
 
+export function contactPurpose(windowLike = globalThis.window) {
+  try {
+    return new URL(windowLike.location.href).searchParams.get("contact") === "whatsapp"
+      ? "whatsapp"
+      : "phone";
+  } catch {
+    return "phone";
+  }
+}
+
 export function contactPayloadIsValid(payload) {
   return Boolean(
     payload &&
@@ -55,6 +65,7 @@ export function createContactController(languageController, {
   const mount = root.querySelector("#turnstileMount");
   if (!button || !mount) return null;
 
+  const purpose = contactPurpose(windowLike);
   const message = (key) => {
     const value = languageController.messages?.[key];
     return typeof value === "string" ? value : "";
@@ -62,13 +73,11 @@ export function createContactController(languageController, {
 
   function refreshCopy() {
     const label = button.querySelector(".contact-reveal-label");
-    const email = root.querySelector("#contactEmail");
     const phone = root.querySelector("#contactPhone");
     if (label && !button.dataset.locked) {
-      label.textContent = message("contact_reveal");
-    }
-    if (email && email.dataset.revealed !== "true") {
-      email.setAttribute("aria-label", message("contact_email_hidden"));
+      label.textContent = message(
+        purpose === "whatsapp" ? "contact_whatsapp_verify" : "contact_reveal"
+      );
     }
     if (phone && phone.dataset.revealed !== "true") {
       phone.setAttribute("aria-label", message("contact_phone_hidden"));
@@ -90,15 +99,18 @@ export function createContactController(languageController, {
       turnstile.reset(widgetId);
       return false;
     }
-    const email = root.querySelector("#contactEmail");
     const phone = root.querySelector("#contactPhone");
-    const emailLink = email ? revealLink(root, email, payload.email, `mailto:${payload.email}`) : null;
     const whatsappNumber = payload.phone_uri.slice(1);
-    const phoneLink = phone ? revealLink(root, phone, payload.phone, `https://wa.me/${whatsappNumber}`) : null;
+    const whatsappUrl = `https://wa.me/${whatsappNumber}`;
     button.hidden = true;
     mount.hidden = true;
     setStatus(root, message("contact_success"), "success");
-    windowLike.setTimeout(() => (emailLink || phoneLink)?.focus(), 0);
+    if (purpose === "whatsapp") {
+      windowLike.setTimeout(() => windowLike.location.assign(whatsappUrl), 0);
+      return true;
+    }
+    const phoneLink = phone ? revealLink(root, phone, payload.phone, whatsappUrl) : null;
+    windowLike.setTimeout(() => phoneLink?.focus(), 0);
     return true;
   }
 
@@ -137,5 +149,5 @@ export function createContactController(languageController, {
   button.addEventListener("click", start);
   const observer = new MutationObserver(refreshCopy);
   observer.observe(root.documentElement, { attributes: true, attributeFilter: ["lang"] });
-  return { start, refreshCopy };
+  return { start, refreshCopy, purpose };
 }

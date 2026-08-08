@@ -96,10 +96,10 @@
   "chat_typing": "Preparing answer…",
   "chat_complete": "Answer complete.",
   "chat_error": "Connection issue — please email Andris directly.",
-  "contact_reveal": "Verify to show contact details",
+  "contact_reveal": "Verify to show phone / WhatsApp",
   "contact_loading": "Loading verification…",
   "contact_verifying": "Verifying…",
-  "contact_success": "Contact details unlocked.",
+  "contact_success": "Contact verified.",
   "contact_failed": "Verification failed. Please try again.",
   "contact_unavailable": "Contact verification is temporarily unavailable.",
   "contact_email_hidden": "Email address hidden until verification",
@@ -118,5 +118,6 @@
   "smart_heating": "Heating",
   "smart_on": "On",
   "smart_off": "Off",
-  "smart_footer": "Static demonstration only — no access to the real home or devices."
+  "smart_footer": "Static demonstration only — no access to the real home or devices.",
+  "contact_whatsapp_verify": "Verify to open WhatsApp"
 }

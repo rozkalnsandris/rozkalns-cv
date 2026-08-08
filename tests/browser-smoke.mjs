@@ -537,6 +537,14 @@ async function runBrowserSmoke(baseUrl, state) {
       5_000,
       "chat focus return before contact verification"
     );
+    assert.equal(
+      await cdp.evaluate(`document.querySelector('#contactEmail')?.getAttribute('href')`),
+      "mailto:andris@rozkalns.net"
+    );
+    assert.equal(
+      await cdp.evaluate(`document.querySelector('#contactPhone')?.tagName`),
+      "SPAN"
+    );
     await cdp.evaluate(`(() => {
       window.turnstile = {
         render(mount, options) {
@@ -555,12 +563,12 @@ async function runBrowserSmoke(baseUrl, state) {
     await cdp.waitFor(
       `document.querySelector('#contactReveal')?.hidden === true && document.querySelector('#turnstileMount')?.hidden === true && document.querySelector('#contactVerifyStatus')?.dataset.state === "success" && document.activeElement?.dataset.revealed === "true"`,
       10_000,
-      "keyboard contact verification focus transfer"
+      "keyboard WhatsApp phone verification focus transfer"
     );
     assert.deepEqual(state.contactRequests, [{ token: "synthetic-turnstile-token" }]);
     assert.equal(
       await cdp.evaluate(`document.activeElement?.getAttribute('href')`),
-      "mailto:test@example.invalid"
+      "https://wa.me/491234567890"
     );
     assert.equal(
       await cdp.evaluate(`document.querySelector('.contacts a[href^="https://wa.me/"]')?.getAttribute('href')`),
