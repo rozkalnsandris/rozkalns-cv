@@ -79,12 +79,14 @@ for path in sorted((src/"html").rglob("*")):
         continue
     body=path.read_bytes()
     rows.append({"path":rel,"bytes":len(body),"sha256":hashlib.sha256(body).hexdigest()})
+if not any(row["path"]=="html/index.html" for row in rows):
+    raise SystemExit("index.html missing from static inventory")
 pathlib.Path(os.environ["OUT"],"static-inventory.json").write_text(
     json.dumps(rows,indent=2)+"\n",encoding="utf-8"
 )
 PY
 
-mapfile -t header_paths < <(SRC="$src" OUT="$out" python3 - <<'PY'
+mapfile -t header_paths < <(OUT="$out" python3 - <<'PY'
 import json, os, pathlib, re
 rows=json.loads(pathlib.Path(os.environ["OUT"],"static-inventory.json").read_text())
 def pick(pattern):
@@ -120,7 +122,7 @@ print("\n".join(values))
 PY
 )
 
-default_hashes() {
+hash_served_immutable() {
   local output="$1" path body
   : > "$output"
   for path in "${immutable_paths[@]}"; do
@@ -133,7 +135,7 @@ default_hashes() {
   sort -k2,2 -o "$output" "$output"
 }
 
-default_hashes "$out/served-immutable-before.sha256"
+hash_served_immutable "$out/served-immutable-before.sha256"
 
 install -d -m 0700 "$out/headers/public" "$out/headers/origin"
 : > "$out/http-status.tsv"
@@ -198,7 +200,7 @@ npx --yes lighthouse@13.4.1 https://rozkalns.net/ \
   --only-categories=performance,accessibility,best-practices,seo \
   --chrome-flags='--headless=new --no-sandbox --disable-dev-shm-usage'
 
-default_hashes "$out/served-immutable-after.sha256"
+hash_served_immutable "$out/served-immutable-after.sha256"
 cmp -s "$out/served-immutable-before.sha256" "$out/served-immutable-after.sha256"
 printf 'SERVED_IMMUTABLE_UNCHANGED=PASS\n'
 
@@ -258,12 +260,46 @@ lines=[
 (out/"SUMMARY.md").write_text("\n".join(lines),encoding="utf-8")
 PY
 
-for path in "$out/browser-baseline.json" "$out/SUMMARY.md"; do
-  if grep -Ein '"(email|phone|phone_uri|token|cookie)"[[:space:]]*:' "$path"; then
-    printf 'privacy-sensitive key found in %s\n' "$path" >&2
-    exit 1
-  fi
-done
+OUT="$out" python3 - <<'PY'
+import json, os, pathlib, re
+out=pathlib.Path(os.environ["OUT"])
+data=json.loads((out/"browser-baseline.json").read_text(encoding="utf-8"))
+forbidden_keys={
+    "email","phone_uri","token","tokens","cookie","cookies",
+    "turnstile_token","cf-turnstile-response","contact_email","contact_phone"
+}
+email_re=re.compile(r"(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b")
+phone_re=re.compile(r"\+49(?:[\s()./-]*\d){7,}")
+violations=[]
+def walk(value,path="$"):
+    if isinstance(value,dict):
+        for key,item in value.items():
+            normalized=str(key).strip().lower()
+            if normalized in forbidden_keys:
+                violations.append(f"forbidden-key:{path}.{key}")
+            walk(item,f"{path}.{key}")
+    elif isinstance(value,list):
+        for index,item in enumerate(value):
+            walk(item,f"{path}[{index}]")
+    elif isinstance(value,str):
+        if email_re.search(value):
+            violations.append(f"email-like-value:{path}")
+        if phone_re.search(value):
+            violations.append(f"phone-like-value:{path}")
+walk(data)
+if violations:
+    raise SystemExit("privacy artifact violations: "+", ".join(violations[:10]))
+privacy=data.get("privacy") or {}
+required={
+    "contactValuesLogged":False,
+    "tokensLogged":False,
+    "chatPostDelivered":False,
+    "contactRevealPostDelivered":False,
+}
+for key,expected in required.items():
+    if privacy.get(key) is not expected:
+        raise SystemExit(f"privacy assertion failed: {key}={privacy.get(key)!r}")
+PY
 printf 'C0_PRIVACY_ARTIFACT_GATE=PASS\n'
 printf 'PRODUCTION_WRITE=false\n'
 printf 'DOCKER_ACCESS=false\n'
