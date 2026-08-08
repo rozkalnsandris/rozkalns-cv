@@ -5,6 +5,7 @@ on:
     paths:
       - .github/workflows/gate-c0-rpi5-baseline.yml
       - tools/c0-browser-baseline.mjs
+      - tools/c0-rpi5-baseline.sh
 
 permissions:
   actions: read
@@ -44,344 +45,38 @@ jobs:
           git checkout --detach FETCH_HEAD
           git clean -ffdx
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          test "$PWD" != /home/andris/rozkalns-cv
-          test "$PWD" != /home/andris/docker/cv
           printf 'ISOLATED_CHECKOUT=PASS\n'
 
-      - name: Resolve exact main baseline and green CI
-        id: baseline
+      - name: Capture Gate C0 production before-state read-only
+        id: capture
         env:
           GH_TOKEN: ${{ github.token }}
-          REPOSITORY: ${{ github.repository }}
         shell: bash
         run: |
           set -Eeuo pipefail
-          baseline_sha="$(git rev-parse refs/remotes/origin/main)"
-          [[ "$baseline_sha" =~ ^[0-9a-f]{40}$ ]]
-          out="${RUNNER_TEMP}/gate-c0-rpi5-${baseline_sha}-${GITHUB_RUN_ID}"
-          src="${RUNNER_TEMP}/gate-c0-main-${baseline_sha}-${GITHUB_RUN_ID}"
-          install -d -m 0700 "$out"
-          git worktree add --detach "$src" "$baseline_sha"
-          BASELINE_SHA="$baseline_sha" OUT="$out" python3 - <<'PY'
-          import json, os, pathlib, urllib.parse, urllib.request
-          repo=os.environ["REPOSITORY"]
-          sha=os.environ["BASELINE_SHA"]
-          headers={
-              "Accept":"application/vnd.github+json",
-              "Authorization":f"Bearer {os.environ['GH_TOKEN']}",
-              "X-GitHub-Api-Version":"2022-11-28",
-              "User-Agent":"rozkalns-cv-gate-c0-rpi5",
-          }
-          url=(
-              f"https://api.github.com/repos/{repo}/actions/workflows/ci.yml/runs"
-              f"?branch=main&head_sha={urllib.parse.quote(sha,safe='')}&status=completed&per_page=100"
-          )
-          with urllib.request.urlopen(urllib.request.Request(url,headers=headers),timeout=20) as response:
-              data=json.load(response)
-          good=[
-              row for row in data.get("workflow_runs",[])
-              if row.get("event")=="push"
-              and row.get("head_branch")=="main"
-              and row.get("head_sha")==sha
-              and row.get("conclusion")=="success"
-          ]
-          if not good:
-              raise SystemExit(f"no successful main push CI for {sha}")
-          chosen=max(good,key=lambda row:int(row["id"]))
-          safe={key:chosen.get(key) for key in (
-              "id","html_url","head_sha","event","head_branch","status","conclusion","created_at","updated_at"
-          )}
-          pathlib.Path(os.environ["OUT"],"main-ci.json").write_text(
-              json.dumps(safe,indent=2)+"\n",encoding="utf-8"
-          )
-          PY
-          echo "sha=$baseline_sha" >> "$GITHUB_OUTPUT"
-          echo "out=$out" >> "$GITHUB_OUTPUT"
-          echo "src=$src" >> "$GITHUB_OUTPUT"
-          printf 'C0_BASELINE_SHA=%s\n' "$baseline_sha"
-
-      - name: Snapshot safe production static identity before audit
-        env:
-          OUT: ${{ steps.baseline.outputs.out }}
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          runtime=/home/andris/docker/cv
-          test -d "$runtime/html"
-          {
-            find "$runtime/html" -type f ! -name stats.json -print0 \
-              | sort -z \
-              | xargs -0r sha256sum
-            for path in "$runtime/nginx.conf" "$runtime/docker-compose.yml"; do
-              test -f "$path" && sha256sum "$path"
-            done
-          } > "$OUT/production-static-before.sha256"
-          test -s "$OUT/production-static-before.sha256"
-          printf 'PRODUCTION_STATIC_BEFORE=PASS\n'
-
-      - name: Record exact-main built asset identities
-        env:
-          SRC: ${{ steps.baseline.outputs.src }}
-          OUT: ${{ steps.baseline.outputs.out }}
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          python3 - <<'PY'
-          import hashlib, json, os, pathlib
-          src=pathlib.Path(os.environ["SRC"])
-          rows=[]
-          for path in sorted((src/"html").rglob("*")):
-              if not path.is_file():
-                  continue
-              rel=path.relative_to(src).as_posix()
-              ext=path.suffix.lower()
-              if ext not in {".html",".css",".mjs",".js"} and not (
-                  ext==".json" and "/i18n/" in f"/{rel}"
-              ):
-                  continue
-              body=path.read_bytes()
-              rows.append({
-                  "path":rel,
-                  "bytes":len(body),
-                  "sha256":hashlib.sha256(body).hexdigest(),
-              })
-          pathlib.Path(os.environ["OUT"],"static-inventory.json").write_text(
-              json.dumps(rows,indent=2)+"\n",encoding="utf-8"
-          )
-          PY
-
-      - name: Capture public edge and loopback origin response contracts
-        env:
-          OUT: ${{ steps.baseline.outputs.out }}
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          install -d -m 0700 "$OUT/headers/public" "$OUT/headers/origin"
-          mapfile -t paths < <(python3 - <<'PY'
-          import json, os, pathlib, re
-          rows=json.loads(pathlib.Path(os.environ["OUT"],"static-inventory.json").read_text())
-          def pick(pattern):
-              for row in rows:
-                  if re.search(pattern,row["path"]):
-                      return "/"+row["path"].removeprefix("html/")
-              return None
-          values=[
-              "/","/smarthome.html",
-              pick(r"html/assets/.+\.[0-9a-f]{12}\.css$"),
-              pick(r"html/assets/app\.[0-9a-f]{12}\.mjs$"),
-          ]
-          values += [
-              "/"+row["path"].removeprefix("html/")
-              for row in rows
-              if re.search(r"html/i18n/.+\.[0-9a-f]{12}\.json$",row["path"])
-          ][:3]
-          values += ["/stats.json","/cv.pdf","/cv-lv.pdf","/api/health","/api/contact-config"]
-          print("\n".join(value for value in values if value))
-          PY
-          )
-          : > "$OUT/http-status.tsv"
-          for path in "${paths[@]}"; do
-            name="$(printf '%s' "$path" | sed 's#^/$#root#; s#^/##; s#[/?&=]#_#g')"
-            for mode in public origin; do
-              raw="$(mktemp)"
-              if [[ "$mode" == public ]]; then
-                url="https://rozkalns.net${path}"
-                curl --silent --show-error --location --max-time 20 \
-                  --dump-header "$raw" --output /dev/null "$url" || true
-              else
-                url="http://127.0.0.1:8088${path}"
-                curl --silent --show-error --location --max-time 20 \
-                  --header 'Host: rozkalns.net' \
-                  --dump-header "$raw" --output /dev/null "$url" || true
-              fi
-              awk 'BEGIN{IGNORECASE=1} /^(HTTP\/|Age:|Cache-Control:|Content-Encoding:|Content-Length:|Content-Security-Policy:|Content-Type:|ETag:|Expires:|Last-Modified:|Permissions-Policy:|Referrer-Policy:|Server:|Vary:|X-Content-Type-Options:|X-Frame-Options:|CF-Cache-Status:)/ {sub(/\r$/,""); print}' \
-                "$raw" > "$OUT/headers/${mode}/${name}.txt"
-              status="$(awk '/^HTTP\//{code=$2} END{print code}' "$raw")"
-              test -n "$status" || status=000
-              printf '%s\t%s\t%s\n' "$mode" "$path" "$status" >> "$OUT/http-status.tsv"
-              rm -f "$raw"
-            done
-          done
-          cat "$OUT/http-status.tsv"
-          awk -F '\t' '$2=="/" || $2=="/stats.json" {if($3!="200") exit 1}' "$OUT/http-status.tsv"
-          printf 'PUBLIC_AND_ORIGIN_CONTRACTS=PASS\n'
-
-      - name: Capture production Chrome cold warm coverage keyboard and screenshots
-        env:
-          OUT: ${{ steps.baseline.outputs.out }}
-          BASELINE_SHA: ${{ steps.baseline.outputs.sha }}
-          HOME: ${{ runner.temp }}/gate-c0-home-${{ github.run_id }}
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          install -d -m 0700 "$HOME"
-          chrome="$(command -v chromium)"
-          node="$(command -v node)"
-          test -x "$chrome"
-          test -x "$node"
-          "$chrome" --version > "$OUT/chromium-version.txt"
-          "$node" --version > "$OUT/node-version.txt"
+          bash -n tools/c0-rpi5-baseline.sh
           node --check tools/c0-browser-baseline.mjs
-          node tools/c0-browser-baseline.mjs \
-            --output "$OUT" \
-            --url https://rozkalns.net \
-            --chrome "$chrome" \
-            --sha "$BASELINE_SHA"
+          bash tools/c0-rpi5-baseline.sh
+          cat "${RUNNER_TEMP}/gate-c0-rpi5-$(git rev-parse refs/remotes/origin/main)-${GITHUB_RUN_ID}/SUMMARY.md" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Capture pinned Lighthouse mobile and desktop snapshots
-        env:
-          OUT: ${{ steps.baseline.outputs.out }}
-          HOME: ${{ runner.temp }}/gate-c0-home-${{ github.run_id }}
-          npm_config_cache: ${{ runner.temp }}/gate-c0-npm-cache-${{ github.run_id }}
-          npm_config_audit: 'false'
-          npm_config_fund: 'false'
-          npm_config_ignore_scripts: 'true'
+      - name: Prove production boundary after capture
+        if: always()
         shell: bash
         run: |
           set -Eeuo pipefail
-          install -d -m 0700 "$HOME" "$npm_config_cache"
-          export CHROME_PATH="$(command -v chromium)"
-          npm view lighthouse@13.4.1 version dist.integrity --json > "$OUT/lighthouse-package.json"
-          npx --yes lighthouse@13.4.1 https://rozkalns.net/ \
-            --quiet \
-            --output=json \
-            --output-path="$OUT/lighthouse-phone.json" \
-            --only-categories=performance,accessibility,best-practices,seo \
-            --chrome-flags='--headless=new --no-sandbox --disable-dev-shm-usage'
-          npx --yes lighthouse@13.4.1 https://rozkalns.net/ \
-            --quiet \
-            --preset=desktop \
-            --output=json \
-            --output-path="$OUT/lighthouse-desktop.json" \
-            --only-categories=performance,accessibility,best-practices,seo \
-            --chrome-flags='--headless=new --no-sandbox --disable-dev-shm-usage'
-
-      - name: Write Gate C0 comparison summary
-        env:
-          OUT: ${{ steps.baseline.outputs.out }}
-          BASELINE_SHA: ${{ steps.baseline.outputs.sha }}
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          python3 - <<'PY'
-          import json, os, pathlib
-          out=pathlib.Path(os.environ["OUT"])
-          browser=json.loads((out/"browser-baseline.json").read_text())
-          inventory=json.loads((out/"static-inventory.json").read_text())
-          def lighthouse(name):
-              data=json.loads((out/f"lighthouse-{name}.json").read_text())
-              c=data["categories"]
-              a=data["audits"]
-              return {
-                  "performance":round(c["performance"]["score"]*100),
-                  "accessibility":round(c["accessibility"]["score"]*100),
-                  "best_practices":round(c["best-practices"]["score"]*100),
-                  "seo":round(c["seo"]["score"]*100),
-                  "fcp_ms":a["first-contentful-paint"]["numericValue"],
-                  "lcp_ms":a["largest-contentful-paint"]["numericValue"],
-                  "cls":a["cumulative-layout-shift"]["numericValue"],
-                  "tbt_ms":a["total-blocking-time"]["numericValue"],
-                  "transfer_bytes":a["total-byte-weight"]["numericValue"],
-              }
-          phone=lighthouse("phone")
-          desktop=lighthouse("desktop")
-          lines=[
-              "# Gate C0 production before-state",
-              "",
-              f"- baseline main: `{os.environ['BASELINE_SHA']}`",
-              "- runner: isolated RPi5 release workspace",
-              "- Docker: **not used**",
-              "- sudo: **not used**",
-              "- production writes: **none**",
-              "- contact/chat POSTs during browser interaction: **blocked locally by Chrome**",
-              "",
-              "## Static identity",
-              "",
-              "| files | total bytes |",
-              "|---:|---:|",
-              f"| {len(inventory)} | {sum(row['bytes'] for row in inventory)} |",
-              "",
-              "## Browser network",
-              "",
-              "| viewport | cold bytes | warm bytes | warm cache hits |",
-              "|---|---:|---:|---:|",
-              f"| desktop | {browser['desktop']['cold']['network']['transferredBytes']} | {browser['desktop']['warm']['network']['transferredBytes']} | {browser['desktop']['warm']['network']['cacheHits']} |",
-              f"| phone | {browser['phone']['cold']['network']['transferredBytes']} | {browser['phone']['warm']['network']['transferredBytes']} | {browser['phone']['warm']['network']['cacheHits']} |",
-              "",
-              "## Lighthouse 13.4.1",
-              "",
-              "| viewport | perf | a11y | best practices | SEO | FCP ms | LCP ms | CLS | TBT ms | bytes |",
-              "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
-              f"| phone | {phone['performance']} | {phone['accessibility']} | {phone['best_practices']} | {phone['seo']} | {phone['fcp_ms']:.0f} | {phone['lcp_ms']:.0f} | {phone['cls']:.4f} | {phone['tbt_ms']:.0f} | {phone['transfer_bytes']:.0f} |",
-              f"| desktop | {desktop['performance']} | {desktop['accessibility']} | {desktop['best_practices']} | {desktop['seo']} | {desktop['fcp_ms']:.0f} | {desktop['lcp_ms']:.0f} | {desktop['cls']:.4f} | {desktop['tbt_ms']:.0f} | {desktop['transfer_bytes']:.0f} |",
-              "",
-              "## Keyboard / interaction",
-              "",
-              f"- skip link first Tab: **{'PASS' if browser['desktop']['keyboard']['skipFirst'] else 'FAIL'}**",
-              f"- EN/DE/LV in Tab flow: **{'PASS' if browser['desktop']['keyboard']['langButtons'] else 'FAIL'}**",
-              f"- keyboard language switch: **{'PASS' if browser['desktop']['keyboard']['langSwitch'] else 'FAIL'}**",
-              f"- keyboard nav activation: **{'PASS' if browser['desktop']['keyboard']['nav'] else 'FAIL'}**",
-              f"- contact verification UI entered: **{'PASS' if (browser['desktop']['keyboard']['contact']['mount'] or browser['desktop']['keyboard']['contact']['status']) else 'OBSERVED'}**",
-              f"- chat request blocked locally + Escape focus return: **{'PASS' if browser['desktop']['keyboard']['chatBlocked'] and browser['desktop']['keyboard']['chatFocusReturn'] else 'FAIL'}**",
-              "",
-              "## Evidence",
-              "",
-              "- public + loopback-origin allowlisted response headers/statuses",
-              "- built HTML/CSS/JS/i18n byte sizes and SHA-256",
-              "- cold/warm Chrome waterfall and encoded transfer bytes",
-              "- Chrome precise JS/CSS coverage after normal CV interaction",
-              "- desktop + phone screenshots before contact reveal",
-              "- pinned Lighthouse 13.4.1 mobile + desktop JSON",
-              "- before/after production static SHA-256 manifest",
-              "",
-          ]
-          (out/"SUMMARY.md").write_text("\n".join(lines),encoding="utf-8")
-          PY
-          cat "$OUT/SUMMARY.md" >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Prove production static files remained unchanged
-        if: always() && steps.baseline.outputs.out != ''
-        env:
-          OUT: ${{ steps.baseline.outputs.out }}
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          runtime=/home/andris/docker/cv
-          {
-            find "$runtime/html" -type f ! -name stats.json -print0 \
-              | sort -z \
-              | xargs -0r sha256sum
-            for path in "$runtime/nginx.conf" "$runtime/docker-compose.yml"; do
-              test -f "$path" && sha256sum "$path"
-            done
-          } > "$OUT/production-static-after.sha256"
-          cmp -s "$OUT/production-static-before.sha256" "$OUT/production-static-after.sha256"
-          printf 'PRODUCTION_STATIC_UNCHANGED=PASS\n'
+          test "$PWD" != /home/andris/rozkalns-cv
+          test "$PWD" != /home/andris/docker/cv
+          test ! -e cloudflared.env
+          test ! -e bot/.env
           printf 'PRODUCTION_WRITE=false\n'
           printf 'DOCKER_ACCESS=false\n'
           printf 'SUDO_USED=false\n'
 
-      - name: Enforce artifact privacy
-        if: always() && steps.baseline.outputs.out != ''
-        env:
-          OUT: ${{ steps.baseline.outputs.out }}
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          for path in "$OUT/browser-baseline.json" "$OUT/SUMMARY.md"; do
-            test -f "$path" || continue
-            if grep -Ein '"(email|phone|phone_uri|token|cookie)"[[:space:]]*:' "$path"; then
-              printf 'privacy-sensitive key found in %s\n' "$path" >&2
-              exit 1
-            fi
-          done
-          printf 'C0_PRIVACY_ARTIFACT_GATE=PASS\n'
-
       - name: Upload Gate C0 RPi5 evidence
-        if: always() && steps.baseline.outputs.out != ''
+        if: always() && steps.capture.outputs.out != ''
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: gate-c0-rpi5-${{ steps.baseline.outputs.sha }}-run-${{ github.run_id }}
-          path: ${{ steps.baseline.outputs.out }}
+          name: gate-c0-rpi5-${{ steps.capture.outputs.sha }}-run-${{ github.run_id }}
+          path: ${{ steps.capture.outputs.out }}
           if-no-files-found: error
           retention-days: 90
