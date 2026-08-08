@@ -44,6 +44,11 @@ for required in \
     frontend/app.mjs \
     frontend/enhancements.mjs \
     frontend/smarthome.mjs \
+    frontend/core/i18n.mjs \
+    frontend/features/stats.mjs \
+    frontend/features/chat.mjs \
+    frontend/features/contact.mjs \
+    frontend/ui/icons.mjs \
     frontend/styles/main.css \
     frontend/styles/extra.css \
     frontend-dist-manifest.json \
@@ -69,8 +74,6 @@ done
     || fail 'legacy docker-compose.network.yml must be merged into the primary Compose file'
 [[ ! -e "$ROOT/.venv" ]] \
     || fail 'repository-local .venv is generated state and must not exist'
-[[ ! -e "$ROOT/node_modules" ]] \
-    || fail 'repository-local node_modules is generated state and must not exist'
 [[ ! -e "$ROOT/node_modules" ]] \
     || fail 'repository-local node_modules is generated state and must not exist'
 [[ ! -e "$ROOT/.github/workflows/canonical-content-artifact.yml" ]] \
