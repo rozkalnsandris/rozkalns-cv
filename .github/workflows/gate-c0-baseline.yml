@@ -50,18 +50,40 @@ jobs:
           git worktree add --detach "$src" "$baseline_sha"
           BASELINE_SHA="$baseline_sha" OUT="$out" python3 - <<'PY'
           import json, os, pathlib, time, urllib.parse, urllib.request
-          repo=os.environ['REPOSITORY']; sha=os.environ['BASELINE_SHA']; out=pathlib.Path(os.environ['OUT'])
-          headers={'Accept':'application/vnd.github+json','Authorization':f"Bearer {os.environ['GH_TOKEN']}",'X-GitHub-Api-Version':'2022-11-28','User-Agent':'rozkalns-cv-gate-c0'}
-          url=f"https://api.github.com/repos/{repo}/actions/workflows/ci.yml/runs?branch=main&head_sha={urllib.parse.quote(sha,safe='')}&status=completed&per_page=100"
+          repo=os.environ["REPOSITORY"]
+          sha=os.environ["BASELINE_SHA"]
+          out=pathlib.Path(os.environ["OUT"])
+          headers={
+              "Accept":"application/vnd.github+json",
+              "Authorization":f"Bearer {os.environ['GH_TOKEN']}",
+              "X-GitHub-Api-Version":"2022-11-28",
+              "User-Agent":"rozkalns-cv-gate-c0",
+          }
+          url=(
+              f"https://api.github.com/repos/{repo}/actions/workflows/ci.yml/runs"
+              f"?branch=main&head_sha={urllib.parse.quote(sha,safe='')}&status=completed&per_page=100"
+          )
           chosen=None
           for _ in range(20):
-              with urllib.request.urlopen(urllib.request.Request(url,headers=headers),timeout=20) as r: data=json.load(r)
-              good=[x for x in data.get('workflow_runs',[]) if x.get('event')=='push' and x.get('head_branch')=='main' and x.get('head_sha')==sha and x.get('conclusion')=='success']
-              if good: chosen=max(good,key=lambda x:int(x['id'])); break
+              with urllib.request.urlopen(urllib.request.Request(url,headers=headers),timeout=20) as response:
+                  data=json.load(response)
+              good=[
+                  row for row in data.get("workflow_runs",[])
+                  if row.get("event")=="push"
+                  and row.get("head_branch")=="main"
+                  and row.get("head_sha")==sha
+                  and row.get("conclusion")=="success"
+              ]
+              if good:
+                  chosen=max(good,key=lambda row:int(row["id"]))
+                  break
               time.sleep(6)
-          if not chosen: raise SystemExit(f'no successful main push CI for {sha}')
-          safe={k:chosen.get(k) for k in ('id','html_url','head_sha','event','head_branch','status','conclusion','created_at','updated_at')}
-          (out/'main-ci.json').write_text(json.dumps(safe,indent=2)+'\n',encoding='utf-8')
+          if not chosen:
+              raise SystemExit(f"no successful main push CI for {sha}")
+          safe={key:chosen.get(key) for key in (
+              "id","html_url","head_sha","event","head_branch","status","conclusion","created_at","updated_at"
+          )}
+          (out/"main-ci.json").write_text(json.dumps(safe,indent=2)+"\n",encoding="utf-8")
           PY
           echo "sha=$baseline_sha" >> "$GITHUB_OUTPUT"
           echo "out=$out" >> "$GITHUB_OUTPUT"
@@ -77,15 +99,28 @@ jobs:
           set -Eeuo pipefail
           python3 - <<'PY'
           import hashlib, json, os, pathlib
-          src=pathlib.Path(os.environ['SRC']); rows=[]
-          for p in sorted((src/'html').rglob('*')):
-              if not p.is_file(): continue
-              rel=p.relative_to(src).as_posix(); ext=p.suffix.lower()
-              if ext not in {'.html','.css','.mjs','.js'} and not (ext=='.json' and '/i18n/' in f'/{rel}'):
+          src=pathlib.Path(os.environ["SRC"])
+          rows=[]
+          for path in sorted((src/"html").rglob("*")):
+              if not path.is_file():
                   continue
-              body=p.read_bytes(); rows.append({'path':rel,'bytes':len(body),'sha256':hashlib.sha256(body).hexdigest()})
-          if not any(x['path']=='html/index.html' for x in rows): raise SystemExit('index.html missing')
-          pathlib.Path(os.environ['OUT'],'static-inventory.json').write_text(json.dumps(rows,indent=2)+'\n',encoding='utf-8')
+              rel=path.relative_to(src).as_posix()
+              ext=path.suffix.lower()
+              if ext not in {".html",".css",".mjs",".js"} and not (
+                  ext==".json" and "/i18n/" in f"/{rel}"
+              ):
+                  continue
+              body=path.read_bytes()
+              rows.append({
+                  "path":rel,
+                  "bytes":len(body),
+                  "sha256":hashlib.sha256(body).hexdigest(),
+              })
+          if not any(row["path"]=="html/index.html" for row in rows):
+              raise SystemExit("index.html missing")
+          pathlib.Path(os.environ["OUT"],"static-inventory.json").write_text(
+              json.dumps(rows,indent=2)+"\n",encoding="utf-8"
+          )
           PY
 
       - name: Capture allowlisted public headers and safe API behavior
@@ -97,38 +132,80 @@ jobs:
           install -d -m 0700 "$OUT/headers"
           mapfile -t paths < <(python3 - <<'PY'
           import json, os, pathlib, re
-          rows=json.loads(pathlib.Path(os.environ['OUT'],'static-inventory.json').read_text())
+          rows=json.loads(pathlib.Path(os.environ["OUT"],"static-inventory.json").read_text())
           def pick(pattern):
-              for x in rows:
-                  if re.search(pattern,x['path']): return '/'+x['path'].removeprefix('html/')
-          vals=['/','/smarthome.html',pick(r'html/assets/.+\.[0-9a-f]{12}\.css$'),pick(r'html/assets/app\.[0-9a-f]{12}\.mjs$')]
-          vals += ['/'+x['path'].removeprefix('html/') for x in rows if re.search(r'html/i18n/.+\.[0-9a-f]{12}\.json$',x['path'])][:3]
-          vals += ['/stats.json','/cv.pdf','/cv-lv.pdf']
-          print('\n'.join(x for x in vals if x))
+              for row in rows:
+                  if re.search(pattern,row["path"]):
+                      return "/"+row["path"].removeprefix("html/")
+              return None
+          values=[
+              "/",
+              "/smarthome.html",
+              pick(r"html/assets/.+\.[0-9a-f]{12}\.css$"),
+              pick(r"html/assets/app\.[0-9a-f]{12}\.mjs$"),
+          ]
+          values += [
+              "/"+row["path"].removeprefix("html/")
+              for row in rows
+              if re.search(r"html/i18n/.+\.[0-9a-f]{12}\.json$",row["path"])
+          ][:3]
+          values += ["/stats.json","/cv.pdf","/cv-lv.pdf"]
+          print("\n".join(value for value in values if value))
           PY
           )
           : > "$OUT/public-http.tsv"
           for path in "${paths[@]}"; do
             name="$(printf '%s' "$path" | sed 's#^/$#root#; s#^/##; s#[/?&=]#_#g')"
             raw="$(mktemp)"
-            curl --fail --silent --show-error --head --max-time 20 \
-              --user-agent 'rozkalns-cv-gate-c0-baseline/1' \
-              "https://rozkalns.net${path}" > "$raw"
-            awk 'BEGIN{IGNORECASE=1} /^(HTTP\/|Age:|Cache-Control:|Content-Encoding:|Content-Length:|Content-Security-Policy:|Content-Type:|ETag:|Expires:|Last-Modified:|Permissions-Policy:|Referrer-Policy:|Server:|Vary:|X-Content-Type-Options:|X-Frame-Options:|CF-Cache-Status:)/ {sub(/\r$/,""); print}' "$raw" > "$OUT/headers/${name}.txt"
-            status="$(awk 'NR==1{print $2}' "$raw")"
-            printf 'HEAD\t%s\t%s\n' "$path" "$status" >> "$OUT/public-http.tsv"
+            curl --silent --show-error --location --max-time 20 \
+              --dump-header "$raw" --output /dev/null \
+              "https://rozkalns.net${path}" || true
+            awk 'BEGIN{IGNORECASE=1} /^(HTTP\/|Age:|Cache-Control:|Content-Encoding:|Content-Length:|Content-Security-Policy:|Content-Type:|ETag:|Expires:|Last-Modified:|Permissions-Policy:|Referrer-Policy:|Server:|Vary:|X-Content-Type-Options:|X-Frame-Options:|CF-Cache-Status:)/ {sub(/\r$/,""); print}' \
+              "$raw" > "$OUT/headers/${name}.txt"
+            status="$(awk '/^HTTP\//{code=$2} END{print code}' "$raw")"
+            test -n "$status" || status=000
+            printf 'GET\t%s\t%s\n' "$path" "$status" >> "$OUT/public-http.tsv"
             rm -f "$raw"
           done
-          curl --fail --silent --show-error --max-time 20 https://rozkalns.net/api/health \
-            | python3 -c 'import json,sys; d=json.load(sys.stdin); print(json.dumps({"ok":d.get("ok"),"storage":d.get("storage")},indent=2))' \
-            > "$OUT/api-health.json"
-          curl --fail --silent --show-error --max-time 20 https://rozkalns.net/api/contact-config \
-            | python3 -c 'import json,sys; d=json.load(sys.stdin); print(json.dumps({"configured":d.get("configured"),"sitekey_present":bool(d.get("sitekey"))},indent=2))' \
-            > "$OUT/api-contact-config.json"
+
+          capture_safe_json() {
+            local path="$1" output="$2" mode="$3" body status
+            body="$(mktemp)"
+            status="$(curl --silent --show-error --max-time 20 \
+              --output "$body" --write-out '%{http_code}' \
+              "https://rozkalns.net${path}" || printf '000')"
+            printf 'GET\t%s\t%s\n' "$path" "$status" >> "$OUT/public-http.tsv"
+            STATUS="$status" BODY="$body" MODE="$mode" OUTPUT="$output" python3 - <<'PY'
+          import json, os, pathlib
+          status=os.environ["STATUS"]
+          target=pathlib.Path(os.environ["OUTPUT"])
+          if not status.startswith("2"):
+              target.write_text(json.dumps({"status":status,"body_saved":False},indent=2)+"\n",encoding="utf-8")
+              raise SystemExit(0)
+          try:
+              data=json.loads(pathlib.Path(os.environ["BODY"]).read_text(encoding="utf-8"))
+          except Exception:
+              target.write_text(json.dumps({"status":status,"valid_json":False},indent=2)+"\n",encoding="utf-8")
+              raise SystemExit(0)
+          if os.environ["MODE"]=="health":
+              safe={"status":status,"ok":data.get("ok"),"storage":data.get("storage")}
+          else:
+              safe={"status":status,"configured":data.get("configured"),"sitekey_present":bool(data.get("sitekey"))}
+          target.write_text(json.dumps(safe,indent=2)+"\n",encoding="utf-8")
+          PY
+            rm -f "$body"
+          }
+          capture_safe_json /api/health "$OUT/api-health.json" health
+          capture_safe_json /api/contact-config "$OUT/api-contact-config.json" contact
+
           for path in /api/chat /api/contact-reveal; do
-            status="$(curl --silent --show-error --max-time 20 --output /dev/null --write-out '%{http_code}' "https://rozkalns.net${path}")"
+            status="$(curl --silent --show-error --max-time 20 \
+              --output /dev/null --write-out '%{http_code}' \
+              "https://rozkalns.net${path}" || printf '000')"
             printf 'GET\t%s\t%s\n' "$path" "$status" >> "$OUT/public-http.tsv"
           done
+          printf 'C0_PUBLIC_EDGE_CAPTURE=PASS\n'
+          cat "$OUT/public-http.tsv"
 
       - name: Capture real Chrome cold warm coverage keyboard and screenshots
         env:
@@ -139,12 +216,18 @@ jobs:
           set -Eeuo pipefail
           chrome=''
           for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
-            if command -v "$candidate" >/dev/null 2>&1; then chrome="$(command -v "$candidate")"; break; fi
+            if command -v "$candidate" >/dev/null 2>&1; then
+              chrome="$(command -v "$candidate")"
+              break
+            fi
           done
           test -n "$chrome"
           node --check tools/c0-browser-baseline.mjs
           node tools/c0-browser-baseline.mjs \
-            --output "$OUT" --url https://rozkalns.net --chrome "$chrome" --sha "$BASELINE_SHA"
+            --output "$OUT" \
+            --url https://rozkalns.net \
+            --chrome "$chrome" \
+            --sha "$BASELINE_SHA"
 
       - name: Capture pinned Lighthouse mobile and desktop snapshots
         env:
@@ -157,17 +240,25 @@ jobs:
           set -Eeuo pipefail
           chrome=''
           for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
-            if command -v "$candidate" >/dev/null 2>&1; then chrome="$(command -v "$candidate")"; break; fi
+            if command -v "$candidate" >/dev/null 2>&1; then
+              chrome="$(command -v "$candidate")"
+              break
+            fi
           done
           test -n "$chrome"
           export CHROME_PATH="$chrome"
           npm view lighthouse@13.4.1 version dist.integrity --json > "$OUT/lighthouse-package.json"
           npx --yes lighthouse@13.4.1 https://rozkalns.net/ \
-            --quiet --output=json --output-path="$OUT/lighthouse-phone.json" \
+            --quiet \
+            --output=json \
+            --output-path="$OUT/lighthouse-phone.json" \
             --only-categories=performance,accessibility,best-practices,seo \
             --chrome-flags='--headless=new --no-sandbox --disable-dev-shm-usage'
           npx --yes lighthouse@13.4.1 https://rozkalns.net/ \
-            --quiet --preset=desktop --output=json --output-path="$OUT/lighthouse-desktop.json" \
+            --quiet \
+            --preset=desktop \
+            --output=json \
+            --output-path="$OUT/lighthouse-desktop.json" \
             --only-categories=performance,accessibility,best-practices,seo \
             --chrome-flags='--headless=new --no-sandbox --disable-dev-shm-usage'
 
@@ -180,14 +271,79 @@ jobs:
           set -Eeuo pipefail
           python3 - <<'PY'
           import json, os, pathlib
-          out=pathlib.Path(os.environ['OUT']); b=json.loads((out/'browser-baseline.json').read_text()); inv=json.loads((out/'static-inventory.json').read_text())
-          def lh(name):
-              d=json.loads((out/f'lighthouse-{name}.json').read_text()); c=d['categories']; a=d['audits']
-              return {'performance':round(c['performance']['score']*100),'accessibility':round(c['accessibility']['score']*100),'best_practices':round(c['best-practices']['score']*100),'seo':round(c['seo']['score']*100),'fcp_ms':a['first-contentful-paint']['numericValue'],'lcp_ms':a['largest-contentful-paint']['numericValue'],'cls':a['cumulative-layout-shift']['numericValue'],'tbt_ms':a['total-blocking-time']['numericValue'],'transfer_bytes':a['total-byte-weight']['numericValue']}
-          phone,desktop=lh('phone'),lh('desktop')
-          lines=['# Gate C0 before-state','',f"- baseline main: `{os.environ['BASELINE_SHA']}`",'- production writes: **none**','- origin-only headers: **gap recorded; access controls were not weakened**','- contact/chat production POSTs in interaction flow: **blocked locally by Chrome**','', '## Static identity','', '| files | total bytes |','|---:|---:|',f"| {len(inv)} | {sum(x['bytes'] for x in inv)} |",'', '## Browser network','', '| viewport | cold bytes | warm bytes | warm cache hits |','|---|---:|---:|---:|',f"| desktop | {b['desktop']['cold']['network']['transferredBytes']} | {b['desktop']['warm']['network']['transferredBytes']} | {b['desktop']['warm']['network']['cacheHits']} |",f"| phone | {b['phone']['cold']['network']['transferredBytes']} | {b['phone']['warm']['network']['transferredBytes']} | {b['phone']['warm']['network']['cacheHits']} |",'', '## Lighthouse 13.4.1','', '| viewport | perf | a11y | best practices | SEO | FCP ms | LCP ms | CLS | TBT ms | bytes |','|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|',f"| phone | {phone['performance']} | {phone['accessibility']} | {phone['best_practices']} | {phone['seo']} | {phone['fcp_ms']:.0f} | {phone['lcp_ms']:.0f} | {phone['cls']:.4f} | {phone['tbt_ms']:.0f} | {phone['transfer_bytes']:.0f} |",f"| desktop | {desktop['performance']} | {desktop['accessibility']} | {desktop['best_practices']} | {desktop['seo']} | {desktop['fcp_ms']:.0f} | {desktop['lcp_ms']:.0f} | {desktop['cls']:.4f} | {desktop['tbt_ms']:.0f} | {desktop['transfer_bytes']:.0f} |",'', '## Keyboard / interaction','',f"- skip link first Tab: **{'PASS' if b['desktop']['keyboard']['skipFirst'] else 'FAIL'}**",f"- EN/DE/LV in Tab flow: **{'PASS' if b['desktop']['keyboard']['langButtons'] else 'FAIL'}**",f"- keyboard language switch: **{'PASS' if b['desktop']['keyboard']['langSwitch'] else 'FAIL'}**",f"- keyboard nav activation: **{'PASS' if b['desktop']['keyboard']['nav'] else 'FAIL'}**",f"- contact verification UI entered: **{'PASS' if (b['desktop']['keyboard']['contact']['mount'] or b['desktop']['keyboard']['contact']['status']) else 'OBSERVED'}**",f"- chat send blocked locally + Escape focus return: **{'PASS' if b['desktop']['keyboard']['chatBlocked'] and b['desktop']['keyboard']['chatFocusReturn'] else 'FAIL'}**",'', '## Evidence files','', '- `static-inventory.json`: byte sizes + SHA-256 for built HTML/CSS/JS/i18n','- `headers/` + `public-http.tsv`: allowlisted public response contracts','- `browser-baseline.json`: cold/warm request waterfalls, transfer bytes, synthetic metrics, Chrome JS/CSS coverage, keyboard flow','- `screenshot-desktop.png`, `screenshot-phone.png`: visual baseline','- `lighthouse-phone.json`, `lighthouse-desktop.json`: reproducible Lighthouse snapshots','- `main-ci.json`: successful push CI identity for exact baseline SHA','- `ORIGIN_EVIDENCE_GAP.txt`: explicit least-privilege origin gap','']
-          (out/'SUMMARY.md').write_text('\n'.join(lines),encoding='utf-8')
-          (out/'ORIGIN_EVIDENCE_GAP.txt').write_text('Origin-only response headers were not collected because this GitHub-hosted evidence job has no approved read-only host path. Gate C0 requires recording this gap rather than weakening access controls.\n',encoding='utf-8')
+          out=pathlib.Path(os.environ["OUT"])
+          browser=json.loads((out/"browser-baseline.json").read_text())
+          inventory=json.loads((out/"static-inventory.json").read_text())
+          def lighthouse(name):
+              data=json.loads((out/f"lighthouse-{name}.json").read_text())
+              categories=data["categories"]
+              audits=data["audits"]
+              return {
+                  "performance":round(categories["performance"]["score"]*100),
+                  "accessibility":round(categories["accessibility"]["score"]*100),
+                  "best_practices":round(categories["best-practices"]["score"]*100),
+                  "seo":round(categories["seo"]["score"]*100),
+                  "fcp_ms":audits["first-contentful-paint"]["numericValue"],
+                  "lcp_ms":audits["largest-contentful-paint"]["numericValue"],
+                  "cls":audits["cumulative-layout-shift"]["numericValue"],
+                  "tbt_ms":audits["total-blocking-time"]["numericValue"],
+                  "transfer_bytes":audits["total-byte-weight"]["numericValue"],
+              }
+          phone=lighthouse("phone")
+          desktop=lighthouse("desktop")
+          lines=[
+              "# Gate C0 before-state",
+              "",
+              f"- baseline main: `{os.environ['BASELINE_SHA']}`",
+              "- production writes: **none**",
+              "- origin-only headers: **gap recorded; access controls were not weakened**",
+              "- contact/chat production POSTs in interaction flow: **blocked locally by Chrome**",
+              "",
+              "## Static identity",
+              "",
+              "| files | total bytes |",
+              "|---:|---:|",
+              f"| {len(inventory)} | {sum(row['bytes'] for row in inventory)} |",
+              "",
+              "## Browser network",
+              "",
+              "| viewport | cold bytes | warm bytes | warm cache hits |",
+              "|---|---:|---:|---:|",
+              f"| desktop | {browser['desktop']['cold']['network']['transferredBytes']} | {browser['desktop']['warm']['network']['transferredBytes']} | {browser['desktop']['warm']['network']['cacheHits']} |",
+              f"| phone | {browser['phone']['cold']['network']['transferredBytes']} | {browser['phone']['warm']['network']['transferredBytes']} | {browser['phone']['warm']['network']['cacheHits']} |",
+              "",
+              "## Lighthouse 13.4.1",
+              "",
+              "| viewport | perf | a11y | best practices | SEO | FCP ms | LCP ms | CLS | TBT ms | bytes |",
+              "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+              f"| phone | {phone['performance']} | {phone['accessibility']} | {phone['best_practices']} | {phone['seo']} | {phone['fcp_ms']:.0f} | {phone['lcp_ms']:.0f} | {phone['cls']:.4f} | {phone['tbt_ms']:.0f} | {phone['transfer_bytes']:.0f} |",
+              f"| desktop | {desktop['performance']} | {desktop['accessibility']} | {desktop['best_practices']} | {desktop['seo']} | {desktop['fcp_ms']:.0f} | {desktop['lcp_ms']:.0f} | {desktop['cls']:.4f} | {desktop['tbt_ms']:.0f} | {desktop['transfer_bytes']:.0f} |",
+              "",
+              "## Keyboard / interaction",
+              "",
+              f"- skip link first Tab: **{'PASS' if browser['desktop']['keyboard']['skipFirst'] else 'FAIL'}**",
+              f"- EN/DE/LV in Tab flow: **{'PASS' if browser['desktop']['keyboard']['langButtons'] else 'FAIL'}**",
+              f"- keyboard language switch: **{'PASS' if browser['desktop']['keyboard']['langSwitch'] else 'FAIL'}**",
+              f"- keyboard nav activation: **{'PASS' if browser['desktop']['keyboard']['nav'] else 'FAIL'}**",
+              f"- contact verification UI entered: **{'PASS' if (browser['desktop']['keyboard']['contact']['mount'] or browser['desktop']['keyboard']['contact']['status']) else 'OBSERVED'}**",
+              f"- chat send blocked locally + Escape focus return: **{'PASS' if browser['desktop']['keyboard']['chatBlocked'] and browser['desktop']['keyboard']['chatFocusReturn'] else 'FAIL'}**",
+              "",
+              "## Evidence files",
+              "",
+              "- `static-inventory.json`: byte sizes + SHA-256 for built HTML/CSS/JS/i18n",
+              "- `headers/` + `public-http.tsv`: allowlisted public response contracts",
+              "- `browser-baseline.json`: cold/warm request waterfalls, transfer bytes, synthetic metrics, Chrome JS/CSS coverage, keyboard flow",
+              "- `screenshot-desktop.png`, `screenshot-phone.png`: visual baseline",
+              "- `lighthouse-phone.json`, `lighthouse-desktop.json`: reproducible Lighthouse snapshots",
+              "- `main-ci.json`: successful push CI identity for exact baseline SHA",
+              "- `ORIGIN_EVIDENCE_GAP.txt`: explicit least-privilege origin gap",
+              "",
+          ]
+          (out/"SUMMARY.md").write_text("\n".join(lines),encoding="utf-8")
+          (out/"ORIGIN_EVIDENCE_GAP.txt").write_text(
+              "Origin-only response headers were not collected because this GitHub-hosted evidence job has no approved read-only host path. Gate C0 requires recording this gap rather than weakening access controls.\n",
+              encoding="utf-8",
+          )
           PY
           if grep -REn '"(email|phone|phone_uri|token|cookie)"[[:space:]]*:' \
             "$OUT/browser-baseline.json" "$OUT/api-contact-config.json"; then
