@@ -21,7 +21,7 @@ class CDP {
   async wait(x,ms=10000){const end=Date.now()+ms;while(Date.now()<end){if(await this.eval(x))return;await sleep(100)}throw new Error(`timeout: ${x}`)}
   async nav(url){const p=this.waitEvent('Page.loadEventFired');await this.send('Page.navigate',{url});await p}
   async key(key,code=key,keyCode=0){const p={key,code,...(keyCode?{windowsVirtualKeyCode:keyCode,nativeVirtualKeyCode:keyCode}:{})};await this.send('Input.dispatchKeyEvent',{type:'rawKeyDown',...p});await this.send('Input.dispatchKeyEvent',{type:'keyUp',...p})}
-  async activate(key='Enter',code='Enter',keyCode=13){const p={key,code,windowsVirtualKeyCode:keyCode,nativeVirtualKeyCode:keyCode};await this.send('Input.dispatchKeyEvent',{type:'keyDown',...p});await this.send('Input.dispatchKeyEvent',{type:'keyUp',...p})}
+  async activate(){const p={key:'Enter',code:'Enter',keyIdentifier:'Enter',windowsVirtualKeyCode:13,nativeVirtualKeyCode:13};await this.send('Input.dispatchKeyEvent',{type:'rawKeyDown',...p});await this.send('Input.dispatchKeyEvent',{type:'char',text:'\r',unmodifiedText:'\r',...p});await this.send('Input.dispatchKeyEvent',{type:'keyUp',...p})}
   close(){this.ws.close()}
 }
 
@@ -59,7 +59,7 @@ async function run(name,vp){
       kb.tab.push(active);
       if(!lvReached&&active?.lang==='lv'){
         try{
-          await c.activate('Enter','Enter',13);
+          await c.activate();
           await c.wait(`document.documentElement.lang==='lv'&&document.querySelector('#pdfLink')?.getAttribute('href')==='/cv-lv.pdf'`,10000);
           lvReached=true;
         }catch(e){
@@ -73,10 +73,10 @@ async function run(name,vp){
     kb.langSwitch=lvReached;
     assert.equal(kb.langSwitch,true,`language-state=${JSON.stringify(await languageDiagnostics(c))}`);
 
-    await c.eval(`document.querySelector('.site-nav a[href="#about"]')?.focus()`);await c.activate('Enter','Enter',13);await c.wait(`location.hash==='#about'`,5000);kb.nav=true;
+    await c.eval(`document.querySelector('.site-nav a[href="#about"]')?.focus()`);await c.activate();await c.wait(`location.hash==='#about'`,5000);kb.nav=true;
     await c.send('Network.setBlockedURLs',{urls:['*://rozkalns.net/api/contact-reveal*','*://rozkalns.net/api/chat*']});
-    await c.eval(`document.querySelector('#contactReveal')?.focus()`);await c.activate('Enter','Enter',13);await sleep(1000);kb.contact=await c.eval(`(()=>({mount:document.querySelector('#turnstileMount')?.hidden===false,iframe:!!document.querySelector('#turnstileMount iframe'),disabled:!!document.querySelector('#contactReveal')?.disabled,status:!!document.querySelector('#contactVerifyStatus')?.textContent?.trim()}))()`);
-    await c.eval(`document.querySelector('#chatLauncher')?.focus()`);await c.activate('Enter','Enter',13);await c.wait(`document.querySelector('#chatBackdrop')?.hidden===false&&document.activeElement?.id==='chatInput'`,5000);await c.send('Input.insertText',{text:'Baseline read-only interaction'});await c.eval(`document.querySelector('#chatSend')?.focus()`);await c.activate('Enter','Enter',13);await sleep(700);kb.chatBlocked=[...net.values()].some(x=>x.phase==='interaction'&&x.url.includes('/api/chat')&&x.failed);await c.key('Escape','Escape',27);await c.wait(`document.querySelector('#chatBackdrop')?.hidden===true&&document.activeElement?.id==='chatLauncher'`,5000);kb.chatFocusReturn=true;
+    await c.eval(`document.querySelector('#contactReveal')?.focus()`);await c.activate();await sleep(1000);kb.contact=await c.eval(`(()=>({mount:document.querySelector('#turnstileMount')?.hidden===false,iframe:!!document.querySelector('#turnstileMount iframe'),disabled:!!document.querySelector('#contactReveal')?.disabled,status:!!document.querySelector('#contactVerifyStatus')?.textContent?.trim()}))()`);
+    await c.eval(`document.querySelector('#chatLauncher')?.focus()`);await c.activate();await c.wait(`document.querySelector('#chatBackdrop')?.hidden===false&&document.activeElement?.id==='chatInput'`,5000);await c.send('Input.insertText',{text:'Baseline read-only interaction'});await c.eval(`document.querySelector('#chatSend')?.focus()`);await c.activate();await sleep(700);kb.chatBlocked=[...net.values()].some(x=>x.phase==='interaction'&&x.url.includes('/api/chat')&&x.failed);await c.key('Escape','Escape',27);await c.wait(`document.querySelector('#chatBackdrop')?.hidden===true&&document.activeElement?.id==='chatLauncher'`,5000);kb.chatFocusReturn=true;
 
     const js=await c.send('Profiler.takePreciseCoverage');await c.send('Profiler.stopPreciseCoverage');const css=await c.send('CSS.stopRuleUsageTracking'),jsRows=[];for(const s of js.result||[]){if(!s.url)continue;let u;try{u=new URL(s.url)}catch{continue}if(u.origin!==ORIGIN)continue;let src='';try{src=(await c.send('Debugger.getScriptSource',{scriptId:s.scriptId})).scriptSource||''}catch{continue}const used=v8Used(s.functions||[],src.length);jsRows.push({url:u.pathname+u.search,bytes:src.length,usedBytes:used,percent:src.length?+(100*used/src.length).toFixed(2):null})}
     const by=new Map();for(const x of css.ruleUsage||[]){if(!x.used)continue;const q=by.get(x.styleSheetId)||[];q.push([x.startOffset,x.endOffset]);by.set(x.styleSheetId,q)}const cssRows=[];for(const[id,h]of sheets){if(!h.sourceURL)continue;let u;try{u=new URL(h.sourceURL)}catch{continue}if(u.origin!==ORIGIN)continue;let text='';try{text=(await c.send('CSS.getStyleSheetText',{styleSheetId:id})).text||''}catch{continue}const used=intervalsBytes(by.get(id)||[]);cssRows.push({url:u.pathname+u.search,bytes:text.length,usedBytes:used,percent:text.length?+(100*used/text.length).toFixed(2):null})}
