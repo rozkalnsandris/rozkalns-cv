@@ -338,7 +338,7 @@ class CurrentContactPolicyTests(unittest.TestCase):
         app = (ROOT / "frontend/app.mjs").read_text(encoding="utf-8")
         contact = (ROOT / "frontend/features/contact.mjs").read_text(encoding="utf-8")
         self.assertIn("mailto:{PUBLIC_EMAIL}", index)
-        self.assertIn("?contact=whatsapp", app)
+        self.assertIn('searchParams.get("contact") === "whatsapp"', app)
         self.assertNotRegex(index + app + contact, r"https://wa\\.me/[0-9]")
         self.assertNotRegex(index + app + contact, r"tel:\\+[0-9]")
 
