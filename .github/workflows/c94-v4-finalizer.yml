@@ -232,7 +232,36 @@ jobs:
         run: |
           set -Eeuo pipefail
           rm -f .github/workflows/c94-v4-finalizer.yml scripts/c94-v4-apply.py
-          git status --short
+          python3 - <<'PY'
+          import subprocess
+
+          allowed = {
+              '.github/workflows/c94-v4-finalizer.yml',
+              'scripts/c94-v4-apply.py',
+              'bot/app.py', 'bot/contact.py', 'bot/system_prompt.txt',
+              'content/pdf-manifest.json', 'content/profile.json',
+              'content/profile.schema.json',
+              'docs/CONTENT_AUTHORING.md', 'docs/PUBLIC_READINESS.md',
+              'frontend/app.mjs', 'frontend/features/contact.mjs',
+              'frontend/index.html', 'frontend-dist-manifest.json',
+              'html/index.html', 'html/smarthome.html',
+              'html/cv.pdf', 'html/cv-de.pdf', 'html/cv-lv.pdf',
+              'tests/browser-smoke.mjs', 'tests/frontend.test.mjs',
+              'tests/test_contact.py', 'tests/test_contact_markup.py',
+              'tests/test_current_contact_privacy.py',
+          }
+          prefixes = ('content/translations/', 'html/assets/', 'html/i18n/')
+          bad = []
+          for row in subprocess.check_output(
+              ['git', 'status', '--porcelain=v1', '-uall'], text=True
+          ).splitlines():
+              path = row[3:].split(' -> ', 1)[-1]
+              if path not in allowed and not path.startswith(prefixes):
+                  bad.append(path)
+          if bad:
+              raise SystemExit('unexpected C94 v4 paths: ' + ', '.join(sorted(bad)))
+          print('C94_V4_DIFF_SCOPE=PASS')
+          PY
 
       - name: Commit and push bounded C94 v4 result
         env:
@@ -240,7 +269,19 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          git add -A
+          git add -- \
+            .github/workflows/c94-v4-finalizer.yml \
+            scripts/c94-v4-apply.py \
+            bot/app.py bot/contact.py bot/system_prompt.txt \
+            content/pdf-manifest.json content/profile.json content/profile.schema.json \
+            content/translations \
+            docs/CONTENT_AUTHORING.md docs/PUBLIC_READINESS.md \
+            frontend/app.mjs frontend/features/contact.mjs frontend/index.html \
+            frontend-dist-manifest.json \
+            html/index.html html/smarthome.html html/cv.pdf html/cv-de.pdf html/cv-lv.pdf \
+            html/assets html/i18n \
+            tests/browser-smoke.mjs tests/frontend.test.mjs tests/test_contact.py \
+            tests/test_contact_markup.py tests/test_current_contact_privacy.py
           git diff --cached --check
           test -n "$(git diff --cached --name-only)"
           git config user.name 'github-actions[bot]'
