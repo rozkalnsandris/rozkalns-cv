@@ -201,14 +201,14 @@ async function runViewport(width, height, label) {
     await cdp.evaluate(`document.querySelector('#chatLauncher').focus(); document.querySelector('#chatLauncher').click()`);
     await cdp.waitFor(`document.querySelector('#chatBackdrop')?.hidden === false && document.activeElement?.id === "chatInput"`, 10_000, `${label} chat open`);
     await cdp.evaluate(`(() => { const input = document.querySelector('#chatInput'); input.value = 'C9 automated production health check. Reply briefly with OK.'; document.querySelector('#chatForm').requestSubmit(); })()`);
-    await cdp.waitFor(`document.querySelector('#chatForm')?.getAttribute('aria-busy') === "false" && document.querySelector('#chatStatus')?.textContent?.length > 0`, 30_000, `${label} chat completion`);
+    await cdp.waitFor(`document.querySelector('#chatForm')?.getAttribute('aria-busy') === "false" && document.querySelector('#chatStatus')?.textContent === "Answer complete."`, 30_000, `${label} successful chat completion`);
     const chat = await cdp.evaluate(`(() => ({
       botCount: document.querySelectorAll('#chatLog .message.bot').length,
-      statusNonEmpty: Boolean(document.querySelector('#chatStatus')?.textContent?.trim()),
+      statusComplete: document.querySelector('#chatStatus')?.textContent === 'Answer complete.',
       streamLive: [...document.querySelectorAll('#chatLog .message.bot')].at(-1)?.getAttribute('aria-live')
     }))()`);
     assert.ok(chat.botCount >= 2);
-    assert.equal(chat.statusNonEmpty, true);
+    assert.equal(chat.statusComplete, true);
     assert.equal(chat.streamLive, "off");
     await cdp.key("Escape");
     await cdp.waitFor(`document.querySelector('#chatBackdrop')?.hidden === true && document.activeElement?.id === "chatLauncher"`, 10_000, `${label} chat focus return`);
