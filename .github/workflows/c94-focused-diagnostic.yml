@@ -1,0 +1,102 @@
+name: C94 focused regression diagnostic
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: c94-focused-diagnostic-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    if: >-
+      github.repository == 'rozkalnsandris/rozkalns-cv' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'fix/94-public-email-verified-whatsapp-v3'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out exact PR head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            fetch --no-tags origin "$EXPECTED_HEAD"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+
+      - name: Apply source policy patch
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 scripts/c94-apply-public-contact.py
+
+      - name: Install locked Python dependencies
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test_venv="${RUNNER_TEMP}/c94-test-venv"
+          python3 -m venv "$test_venv"
+          "$test_venv/bin/python" -m pip install \
+            --disable-pip-version-check \
+            --require-hashes \
+            --no-deps \
+            -r bot/requirements.lock
+          echo "TEST_VENV=$test_venv" >> "$GITHUB_ENV"
+          echo "PYTHONPYCACHEPREFIX=${RUNNER_TEMP}/pycache" >> "$GITHUB_ENV"
+
+      - name: Set up pinned Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.18.0'
+          package-manager-cache: false
+
+      - name: Build generated state for diagnostics
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build:frontend
+          python3 scripts/build-content.py --write --accept-pdfs
+          python3 scripts/sync-system-prompt.py --write
+          python3 scripts/build-content.py --check
+          python3 scripts/sync-system-prompt.py --check
+
+      - name: Python canonical content test
+        shell: bash
+        run: "$TEST_VENV/bin/python -m unittest tests.test_content_build"
+
+      - name: Python current privacy policy test
+        shell: bash
+        run: "$TEST_VENV/bin/python -m unittest tests.test_current_contact_privacy"
+
+      - name: Python contact markup test
+        shell: bash
+        run: "$TEST_VENV/bin/python -m unittest tests.test_contact_markup"
+
+      - name: Python contact endpoint test
+        shell: bash
+        run: "$TEST_VENV/bin/python -m unittest tests.test_contact"
+
+      - name: Node contact/frontend tests
+        shell: bash
+        run: "node --test tests/frontend.test.mjs"
+
+      - name: Frontend dist contract
+        shell: bash
+        run: "npm run check:frontend"
+
+      - name: Full source validation
+        shell: bash
+        run: "bash scripts/validate-source.sh \"$PWD\""
