@@ -1,6 +1,7 @@
 {
-  "schema_version": 1,
-  "source_sha256": "db51a75db8ea5489139a2cba41d6e5bbdd8f8267f8424cc7b322443abddeb426",
+  "schema_version": 2,
+  "source_sha256": null,
+  "contact_privacy_status": "legacy-public-contact-pending-owner-decision",
   "pdfs": {
     "en": {
       "path": "html/cv.pdf",
