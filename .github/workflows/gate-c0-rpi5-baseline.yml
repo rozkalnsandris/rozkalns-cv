@@ -54,10 +54,14 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
+          baseline_sha="$(git rev-parse refs/remotes/origin/main)"
+          out="${RUNNER_TEMP}/gate-c0-rpi5-${baseline_sha}-${GITHUB_RUN_ID}"
+          printf 'sha=%s\n' "$baseline_sha" >> "$GITHUB_OUTPUT"
+          printf 'out=%s\n' "$out" >> "$GITHUB_OUTPUT"
           bash -n tools/c0-rpi5-baseline.sh
           node --check tools/c0-browser-baseline.mjs
           bash tools/c0-rpi5-baseline.sh
-          cat "${RUNNER_TEMP}/gate-c0-rpi5-$(git rev-parse refs/remotes/origin/main)-${GITHUB_RUN_ID}/SUMMARY.md" >> "$GITHUB_STEP_SUMMARY"
+          cat "$out/SUMMARY.md" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Prove production boundary after capture
         if: always()
