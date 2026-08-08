@@ -1,0 +1,125 @@
+name: Privacy-clean PDF redaction prototype
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/94-pdf-redaction-prototype.yml
+
+permissions:
+  contents: read
+
+jobs:
+  prototype:
+    if: >-
+      github.repository == 'rozkalnsandris/rozkalns-cv' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'security/94-current-contact-literals-v01'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact audit SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "$GITHUB_SHA"
+          git checkout --detach FETCH_HEAD
+
+      - name: Install ephemeral PDF redaction tool
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 -m pip install --disable-pip-version-check --no-input 'PyMuPDF==1.26.4'
+
+      - name: Redact protected contact text and links into temporary candidates
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          import fitz
+
+          root = Path.cwd()
+          out = Path('/tmp/cv-redacted')
+          out.mkdir(mode=0o700, parents=True, exist_ok=True)
+          profile = json.loads((root/'content/profile.json').read_text(encoding='utf-8'))
+          protected = {
+              'email': profile['contact']['email']['value'],
+              'phone': profile['contact']['phone']['value'],
+              'phone_uri': profile['contact']['phone']['uri'],
+          }
+          pdfs = ('cv.pdf','cv-de.pdf','cv-lv.pdf')
+          for name in pdfs:
+              source = root/'html'/name
+              target = out/name
+              doc = fitz.open(source)
+              original_pages = len(doc)
+              text_hits = {'email': 0, 'phone': 0, 'phone_uri': 0}
+              removed_links = 0
+              for page in doc:
+                  for key, value in protected.items():
+                      for rect in page.search_for(value):
+                          text_hits[key] += 1
+                          page.add_redact_annot(rect, fill=(1,1,1))
+                  for link in list(page.get_links()):
+                      uri = str(link.get('uri') or '')
+                      if uri.startswith('mailto:') or uri.startswith('tel:'):
+                          page.delete_link(link)
+                          removed_links += 1
+                  page.apply_redactions()
+              if text_hits['email'] < 1 or text_hits['phone'] < 1:
+                  raise SystemExit(f'{name}: expected visible protected contact text was not found')
+              doc.save(target, garbage=4, deflate=True, clean=True)
+              doc.close()
+
+              clean = fitz.open(target)
+              if len(clean) != original_pages:
+                  raise SystemExit(f'{name}: page count changed')
+              all_text = ''.join(page.get_text() for page in clean)
+              if any(value in all_text for value in protected.values()):
+                  raise SystemExit(f'{name}: protected text remains after redaction')
+              unsafe_links = []
+              for page in clean:
+                  for link in page.get_links():
+                      uri = str(link.get('uri') or '')
+                      if uri.startswith('mailto:') or uri.startswith('tel:'):
+                          unsafe_links.append(uri[:7])
+              if unsafe_links:
+                  raise SystemExit(f'{name}: protected contact links remain')
+              clean.close()
+              print(f'PDF_REDACTION_CANDIDATE={name};pages:{original_pages};email_hits:{text_hits["email"]};phone_hits:{text_hits["phone"]};links_removed:{removed_links}')
+          print('PDF_REDACTION_PRIVACY_GATE=PASS')
+          PY
+
+      - name: Render privacy-clean candidates for layout validation
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends poppler-utils >/dev/null
+          install -d -m 0700 /tmp/cv-redacted/renders
+          for pdf in /tmp/cv-redacted/cv.pdf /tmp/cv-redacted/cv-de.pdf /tmp/cv-redacted/cv-lv.pdf; do
+            base="$(basename "$pdf" .pdf)"
+            pdftoppm -png -r 120 "$pdf" "/tmp/cv-redacted/renders/$base" >/dev/null 2>&1
+          done
+          test "$(find /tmp/cv-redacted/renders -type f -name '*.png' | wc -l)" -gt 0
+          printf 'PDF_REDACTION_RENDER_GATE=PASS\n'
+
+      - name: Upload privacy-clean candidates only
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: privacy-clean-pdf-candidates-${{ github.run_id }}
+          path: |
+            /tmp/cv-redacted/cv.pdf
+            /tmp/cv-redacted/cv-de.pdf
+            /tmp/cv-redacted/cv-lv.pdf
+            /tmp/cv-redacted/renders/*.png
+          if-no-files-found: error
+          retention-days: 1
