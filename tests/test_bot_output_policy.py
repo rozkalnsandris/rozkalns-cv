@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
 from pathlib import Path
 import sqlite3
@@ -13,6 +14,8 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 BOT = ROOT / "bot"
 sys.path.insert(0, str(BOT))
+
+from chat_policy import BLOCKED_CONTACT_REPLY  # noqa: E402
 
 
 class FakeUpstreamResponse:
@@ -29,14 +32,14 @@ class FakeUpstreamResponse:
         return None
 
     def iter_lines(self, decode_unicode: bool = False):
-        rows = [
-            'data: {"choices":[{"delta":{"content":%r},"finish_reason":null}]}'
-            % chunk
-            for chunk in self.chunks
-        ]
-        # %r uses Python quoting, not JSON quoting. Build the few fixtures below
-        # with a minimal safe replacement so the provider payload stays valid.
-        rows = [row.replace("'", '"') for row in rows]
+        rows = []
+        for chunk in self.chunks:
+            payload = {
+                "choices": [
+                    {"delta": {"content": chunk}, "finish_reason": None}
+                ]
+            }
+            rows.append(f"data: {json.dumps(payload)}")
         rows.append('data: {"choices":[{"delta":{},"finish_reason":"stop"}]}')
         rows.append("data: [DONE]")
         return iter(rows)
@@ -94,14 +97,14 @@ class BotOutputPolicyIntegrationTests(unittest.TestCase):
     def test_cross_chunk_runtime_phone_is_blocked_before_browser_and_storage(self) -> None:
         response = self._post_chunks(["Call +49 170 ", "123", "4567 now."])
         body = response.get_data(as_text=True)
-        self.assertEqual(body, self.module.BLOCKED_CONTACT_REPLY)
+        self.assertEqual(body, BLOCKED_CONTACT_REPLY)
         self.assertNotIn("491701234567", "".join(body.split()))
 
         with sqlite3.connect(self.db_path) as connection:
             answer = connection.execute(
                 "SELECT answer FROM chats ORDER BY id DESC LIMIT 1"
             ).fetchone()[0]
-        self.assertEqual(answer, self.module.BLOCKED_CONTACT_REPLY)
+        self.assertEqual(answer, BLOCKED_CONTACT_REPLY)
         self.assertNotIn("1234567", answer)
 
     def test_public_recruiting_email_remains_allowed(self) -> None:
@@ -115,7 +118,7 @@ class BotOutputPolicyIntegrationTests(unittest.TestCase):
         response = self._post_chunks(["Open https://wa.", "me/491701234567"])
         self.assertEqual(
             response.get_data(as_text=True),
-            self.module.BLOCKED_CONTACT_REPLY,
+            BLOCKED_CONTACT_REPLY,
         )
 
 
