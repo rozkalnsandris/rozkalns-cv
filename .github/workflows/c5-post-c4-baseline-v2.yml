@@ -1,4 +1,4 @@
-name: C5 post-C4 browser baseline v2
+name: C5 post-C4 browser baseline v3
 
 on:
   pull_request:
@@ -30,7 +30,7 @@ jobs:
           node-version: 24.18.0
           package-manager-cache: false
 
-      - name: Fetch frozen C0 tool and patch teardown only
+      - name: Fetch frozen C0 tool and patch runtime assumptions only
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -45,16 +45,26 @@ jobs:
               'Accept':'application/vnd.github+json',
               'Authorization':f"Bearer {os.environ['GH_TOKEN']}",
               'X-GitHub-Api-Version':'2022-11-28',
-              'User-Agent':'rozkalns-cv-c5-baseline-v2',
+              'User-Agent':'rozkalns-cv-c5-baseline-v3',
           })
           with urllib.request.urlopen(req,timeout=20) as r: payload=json.load(r)
           text=base64.b64decode(payload['content']).decode('utf-8')
-          old="await rm(profile,{recursive:true,force:true})"
-          new="try{await rm(profile,{recursive:true,force:true})}catch{await sleep(500);await rm(profile,{recursive:true,force:true}).catch(()=>{})}"
-          if text.count(old)!=1: raise SystemExit('unexpected C0 teardown anchor')
-          open('/tmp/c5-browser-baseline.mjs','w',encoding='utf-8').write(text.replace(old,new))
+          replacements=(
+              (
+                  "await rm(profile,{recursive:true,force:true})",
+                  "try{await rm(profile,{recursive:true,force:true})}catch{await sleep(500);await rm(profile,{recursive:true,force:true}).catch(()=>{})}",
+              ),
+              (
+                  "await c.wait(`document.readyState==='complete'&&document.documentElement.lang==='en'`,15000)",
+                  "await c.wait(`document.readyState==='complete'`,15000)",
+              ),
+          )
+          for old,new in replacements:
+              if text.count(old)!=1: raise SystemExit(f'unexpected C0 runtime anchor: {old}')
+              text=text.replace(old,new)
+          open('/tmp/c5-browser-baseline.mjs','w',encoding='utf-8').write(text)
           print(f'C5_TOOL_BLOB={payload["sha"]}')
-          print('C5_TOOL_MEASUREMENT_LOGIC_UNCHANGED=true')
+          print('C5_NETWORK_COVERAGE_LOGIC_UNCHANGED=true')
           PY
 
       - name: Capture three independent post-C4 runs
