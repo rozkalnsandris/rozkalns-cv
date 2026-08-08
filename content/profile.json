@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "content_version": "2026-08-08.1",
+  "content_version": "2026-08-08.2",
   "identity": {
     "name": "Andris Rožkalns",
     "role": "Junior DevOps & Linux Engineer",
@@ -10,7 +10,8 @@
   },
   "contact": {
     "email": {
-      "visibility": "verified-runtime"
+      "value": "andris@rozkalns.net",
+      "visibility": "public"
     },
     "phone": {
       "visibility": "verified-runtime"
