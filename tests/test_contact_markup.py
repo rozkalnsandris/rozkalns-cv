@@ -37,12 +37,18 @@ class ContactMarkupTests(unittest.TestCase):
                     rf'os\.getenv\("{variable}",\s*"[^\"]+"\)',
                 )
 
-    def test_enhancement_sources_are_in_authoritative_build_graph(self) -> None:
+    def test_compatibility_module_is_not_an_eager_runtime_entry(self) -> None:
         source = (ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
-        self.assertIn('src="./enhancements.mjs"', source)
+        self.assertNotIn('src="./enhancements.mjs"', source)
         self.assertIn('href="./styles/index.css"', source)
         self.assertNotIn("styles/main.css", source)
         self.assertNotIn("styles/extra.css", source)
+
+        compatibility = (ROOT / "frontend" / "enhancements.mjs").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("contactPayloadIsValid", compatibility)
+        self.assertIn("createContactController", compatibility)
 
         manifest = json.loads(
             (ROOT / "frontend-dist-manifest.json").read_text(encoding="utf-8")
