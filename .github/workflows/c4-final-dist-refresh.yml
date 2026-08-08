@@ -1,0 +1,116 @@
+name: C4 final dist refresh
+
+on:
+  push:
+    branches:
+      - refactor/80-consolidate-css-v01
+    paths:
+      - .github/workflows/c4-final-dist-refresh.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    if: github.repository == 'rozkalnsandris/rozkalns-cv' && github.ref == 'refs/heads/refactor/80-consolidate-css-v01'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONPYCACHEPREFIX: ${{ runner.temp }}/c4-pycache
+
+    steps:
+      - name: Check out exact owner branch SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "$GITHUB_SHA"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Verify final CSS source contract
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 -m unittest tests.test_css_source_contract -v
+
+      - name: Set up pinned Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.18.0
+          cache: npm
+
+      - name: Rebuild deterministic frontend twice and validate
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build:frontend
+          cp -a html "${RUNNER_TEMP}/c4-first-html"
+          cp frontend-dist-manifest.json "${RUNNER_TEMP}/c4-first-manifest.json"
+          npm run build:frontend
+          diff -ruN "${RUNNER_TEMP}/c4-first-html" html
+          cmp "${RUNNER_TEMP}/c4-first-manifest.json" frontend-dist-manifest.json
+          npm run check:frontend
+          node --test tests/frontend.test.mjs
+          python3 -m unittest tests.test_css_source_contract tests.test_contact_markup tests.test_frontend_contract tests.test_html_semantics -v
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          manifest = json.loads(Path('frontend-dist-manifest.json').read_text(encoding='utf-8'))
+          css = sorted({item for row in manifest.values() for item in row.get('css', [])})
+          if len(css) != 1:
+              raise SystemExit(f'expected exactly one production CSS asset, got {css}')
+          css_size = (Path('html') / css[0]).stat().st_size
+          doc = Path('docs/CSS_C4_AUDIT.md')
+          text = doc.read_text(encoding='utf-8')
+          start = text.index('## Generated output\n')
+          tail = text.index('No RPi5 pull-request execution', start)
+          replacement = (
+              '## Generated output\n\n'
+              'The final C4 Vite graph emits exactly one shared production CSS asset:\n\n'
+              f'- `{css[0]}` ({css_size} bytes)\n\n'
+              'The final refresh built the frontend twice with pinned Node 24.18.0 and Vite 8.1.5; '
+              'the generated trees and manifests were byte-identical. `npm run check:frontend` and '
+              'the focused Python/frontend contracts passed with 7 manifest assets and CSS within '
+              'the existing 22 KB budget.\n\n'
+          )
+          doc.write_text(text[:start] + replacement + text[tail:], encoding='utf-8')
+          print(f'C4_FINAL_CSS_ASSET={css[0]}')
+          print(f'C4_FINAL_CSS_BYTES={css_size}')
+          PY
+          rm -rf -- node_modules
+          bash scripts/validate-source.sh .
+
+      - name: Commit generated output and remove refresh workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          rm -f -- .github/workflows/c4-final-dist-refresh.yml
+          git add -- \
+            .github/workflows/c4-final-dist-refresh.yml \
+            docs/CSS_C4_AUDIT.md \
+            frontend-dist-manifest.json \
+            html/index.html \
+            html/smarthome.html \
+            html/assets \
+            html/i18n
+          staged="$(git diff --cached --name-only)"
+          test -n "$staged"
+          printf '%s\n' "$staged"
+          if grep -E '^html/.*\.pdf$' <<<"$staged"; then
+            echo 'PDF files changed unexpectedly' >&2
+            exit 1
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'build: refresh final C4 frontend dist'
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" push origin HEAD:refs/heads/refactor/80-consolidate-css-v01
