@@ -1,0 +1,78 @@
+name: Repair C94 v4 build-content staging
+
+on:
+  push:
+    branches:
+      - fix/94-public-email-whatsapp-qr-v4
+    paths:
+      - .github/workflows/c94-v4-allowlist-repair.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.repository == 'rozkalnsandris/rozkalns-cv' && github.ref == 'refs/heads/fix/94-public-email-whatsapp-qr-v4'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - name: Check out exact branch head
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "$GITHUB_SHA"
+          git checkout -b fix/94-public-email-whatsapp-qr-v4 FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Add build-content to bounded diff and staging lists
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('.github/workflows/c94-v4-finalizer.yml')
+          text = path.read_text(encoding='utf-8')
+          allow_anchor = "              'tests/test_current_contact_privacy.py',\n"
+          if text.count(allow_anchor) != 1:
+              raise SystemExit('C94 allowlist anchor drifted')
+          text = text.replace(
+              allow_anchor,
+              "              'tests/test_current_contact_privacy.py',\n              'scripts/build-content.py',\n",
+              1,
+          )
+          stage_anchor = "            scripts/c94-v4-apply.py \\\n            bot/app.py bot/contact.py bot/system_prompt.txt \\\n"
+          if text.count(stage_anchor) != 1:
+              raise SystemExit('C94 staging anchor drifted')
+          text = text.replace(
+              stage_anchor,
+              "            scripts/c94-v4-apply.py scripts/build-content.py \\\n            bot/app.py bot/contact.py bot/system_prompt.txt \\\n",
+              1,
+          )
+          path.write_text(text, encoding='utf-8')
+          print('C94_V4_ALLOWLIST_REPAIR=PASS')
+          PY
+          grep -Fq "'scripts/build-content.py'," .github/workflows/c94-v4-finalizer.yml
+          grep -Fq 'scripts/c94-v4-apply.py scripts/build-content.py' .github/workflows/c94-v4-finalizer.yml
+
+      - name: Self-clean and push repair
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          rm -f .github/workflows/c94-v4-allowlist-repair.yml
+          git add -A -- .github/workflows/c94-v4-finalizer.yml .github/workflows/c94-v4-allowlist-repair.yml
+          test "$(git diff --cached --name-only | wc -l)" -eq 2
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'ci: stage C94 build-content migration'
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          remote_head="$(git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" ls-remote origin refs/heads/fix/94-public-email-whatsapp-qr-v4 | awk '{print $1}')"
+          test "$remote_head" = "$GITHUB_SHA"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" push origin HEAD:refs/heads/fix/94-public-email-whatsapp-qr-v4
