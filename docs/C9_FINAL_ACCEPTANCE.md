@@ -95,6 +95,20 @@ Automated evidence proves that full contact values are absent before verificatio
 
 Manual production Turnstile acceptance: **PASS**.
 
+## C9 WhatsApp contact refinement
+
+The requested phone-link UX refinement is implemented without adding any tracked contact literal:
+
+- product commit `137cb38a99279a34041a31e20b7a688c0f62763b` changes only the verified reveal path from `tel:` to `https://wa.me/<international-number>`;
+- the backend continues to validate `phone_uri` as E.164-style `+` followed by 8–15 digits; the client removes only the leading `+` when constructing the WhatsApp URL;
+- the visible phone text is unchanged and the email link remains `mailto:`;
+- the content-addressed contact chunk changed to `assets/contact.b19572642193.mjs` and the dependent app entry to `assets/app.f5df657f2ef6.mjs`;
+- the bounded GitHub-hosted finalizer required deterministic Vite double-build equality, `npm run check:frontend`, frontend unit tests and real Chromium before it was allowed to publish the product commit;
+- the Chromium fixture asserts the revealed WhatsApp target exactly and no real contact value or production Turnstile token is present in test output;
+- the temporary finalizer workflow removed itself from the final PR diff.
+
+A normal owner-triggered full PR CI is required on the final evidence head before review readiness.
+
 ## Before/after evidence
 
 ### Public C0 baseline
