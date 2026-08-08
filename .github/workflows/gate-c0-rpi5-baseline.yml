@@ -35,12 +35,14 @@ jobs:
           esac
           auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
           git init .
+          git remote remove origin >/dev/null 2>&1 || true
           git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
           git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
             fetch --no-tags --prune origin '+refs/heads/*:refs/remotes/origin/*'
           git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
             fetch --no-tags origin "$GITHUB_SHA"
           git checkout --detach FETCH_HEAD
+          git clean -ffdx
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test "$PWD" != /home/andris/rozkalns-cv
           test "$PWD" != /home/andris/docker/cv
