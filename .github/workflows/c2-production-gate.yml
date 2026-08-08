@@ -18,7 +18,7 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - name: Diagnose trusted main deploy history
+      - name: Verify trusted C2 production evidence
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
@@ -27,10 +27,12 @@ jobs:
         run: |
           set -Eeuo pipefail
           python3 - <<'PY'
+          import io
           import json
           import os
           import re
           import urllib.request
+          import zipfile
 
           repo = os.environ['REPOSITORY']
           c2 = os.environ['C2_SHA']
@@ -46,11 +48,71 @@ jobs:
               with urllib.request.urlopen(request, timeout=20) as response:
                   return json.load(response)
 
+          def get_bytes(url):
+              request = urllib.request.Request(url, headers=headers)
+              with urllib.request.urlopen(request, timeout=30) as response:
+                  return response.read()
+
+          def parse_summary(payload):
+              values = {}
+              for raw in payload.decode('utf-8').splitlines():
+                  if not raw or '=' not in raw:
+                      continue
+                  key, value = raw.split('=', 1)
+                  values[key] = value
+              return values
+
+          def verify_public():
+              root_request = urllib.request.Request(
+                  'https://rozkalns.net/',
+                  headers={'User-Agent': 'rozkalns-cv-c2-release-gate'},
+              )
+              with urllib.request.urlopen(root_request, timeout=20) as response:
+                  html = response.read().decode('utf-8')
+                  csp = response.headers.get('Content-Security-Policy', '')
+              match = re.search(
+                  r'/assets/app\.[0-9a-f]{12}\.mjs\?cfg=[0-9a-f]{12}',
+                  html,
+              )
+              if not match:
+                  raise SystemExit('PUBLIC_MODULE_PATH=FAIL')
+              module_request = urllib.request.Request(
+                  f'https://rozkalns.net{match.group(0)}',
+                  headers={'User-Agent': 'rozkalns-cv-c2-release-gate'},
+                  method='HEAD',
+              )
+              with urllib.request.urlopen(module_request, timeout=20) as response:
+                  content_type = response.headers.get_content_type()
+                  cache_control = ','.join(
+                      response.headers.get_all('Cache-Control', [])
+                  )
+                  nosniff = response.headers.get('X-Content-Type-Options', '')
+              if content_type not in {'text/javascript', 'application/javascript'}:
+                  raise SystemExit(
+                      f'PUBLIC_MODULE_MIME=FAIL content_type={content_type}'
+                  )
+              if 'immutable' not in cache_control.lower():
+                  raise SystemExit('PUBLIC_MODULE_CACHE=FAIL')
+              if nosniff.lower() != 'nosniff':
+                  raise SystemExit('PUBLIC_NOSNIFF=FAIL')
+              if not re.search(r'nonce-[0-9a-f]{32}', csp):
+                  raise SystemExit('PUBLIC_CSP_NONCE=FAIL')
+              if "script-src-attr 'none'" not in csp:
+                  raise SystemExit('PUBLIC_CSP_SCRIPT_ATTR=FAIL')
+              if 'https://static.cloudflareinsights.com/beacon.min.js' not in csp:
+                  raise SystemExit('PUBLIC_CSP_CF_BEACON=FAIL')
+              if 'unsafe-inline' in csp:
+                  raise SystemExit('PUBLIC_CSP_UNSAFE_INLINE=FAIL')
+              print(f'PUBLIC_MODULE_MIME=PASS type={content_type}')
+              print('PUBLIC_FRONTEND_CONTRACT=PASS')
+
           api = f'https://api.github.com/repos/{repo}'
           main = get(f'{api}/branches/main')['commit']['sha']
           comparison = get(f'{api}/compare/{c2}...{main}')
           if main != c2 and comparison.get('status') != 'ahead':
-              raise SystemExit(f'C2_NOT_ANCESTOR_OF_MAIN c2={c2} main={main}')
+              raise SystemExit(
+                  f'C2_NOT_ANCESTOR_OF_MAIN c2={c2} main={main}'
+              )
           print(f'CURRENT_MAIN={main}')
           print(f'C2_ANCESTOR_OF_MAIN=PASS c2={c2}')
 
@@ -64,8 +126,12 @@ jobs:
               and run.get('head_branch') == 'main'
               and run.get('conclusion') == 'success'
           }
-          print(f'C2_MAIN_CI_SUCCESS={successful_ci.get(c2, 0)}')
-          print(f'CURRENT_MAIN_CI_SUCCESS={successful_ci.get(main, 0)}')
+          c2_ci = successful_ci.get(c2, 0)
+          main_ci = successful_ci.get(main, 0)
+          print(f'C2_MAIN_CI_SUCCESS={c2_ci}')
+          print(f'CURRENT_MAIN_CI_SUCCESS={main_ci}')
+          if not c2_ci or not main_ci:
+              raise SystemExit('MAIN_CI_PROOF=FAIL')
 
           deploy_runs = get(
               f'{api}/actions/workflows/deploy-main.yml/runs?status=completed&per_page=20'
@@ -73,41 +139,100 @@ jobs:
           candidates = []
           for run in deploy_runs[:12]:
               run_id = int(run['id'])
-              conclusion = str(run.get('conclusion'))
+              event = str(run.get('event') or '')
+              deployed_head = str(run.get('head_sha') or '')
               print(
-                  f'DEPLOY_RUN id={run_id} conclusion={conclusion} '
-                  f'event={run.get("event")} head_sha={run.get("head_sha")} '
+                  f'DEPLOY_RUN id={run_id} conclusion={run.get("conclusion")} '
+                  f'event={event} head_sha={deployed_head} '
                   f'created_at={run.get("created_at")}'
               )
-              jobs = get(f'{api}/actions/runs/{run_id}/jobs?per_page=100').get('jobs', [])
+              if event not in {'workflow_run', 'workflow_dispatch'}:
+                  continue
+              jobs = get(
+                  f'{api}/actions/runs/{run_id}/jobs?per_page=100'
+              ).get('jobs', [])
+              deploy_step_ok = False
               for job in jobs:
                   print(
-                      f'  JOB name={job.get("name")} conclusion={job.get("conclusion")} '
+                      f'  JOB name={job.get("name")} '
+                      f'conclusion={job.get("conclusion")} '
                       f'status={job.get("status")}'
                   )
                   for step in job.get('steps', []):
                       print(
-                          f'    STEP number={step.get("number")} name={step.get("name")} '
+                          f'    STEP number={step.get("number")} '
+                          f'name={step.get("name")} '
                           f'conclusion={step.get("conclusion")}'
                       )
-              artifacts = get(f'{api}/actions/runs/{run_id}/artifacts?per_page=100').get('artifacts', [])
+                      if (
+                          job.get('name') == 'Deploy on RPi5'
+                          and step.get('name') == 'Deploy queued merge SHA'
+                          and step.get('conclusion') == 'success'
+                      ):
+                          deploy_step_ok = True
+              if not deploy_step_ok:
+                  continue
+
+              artifacts = get(
+                  f'{api}/actions/runs/{run_id}/artifacts?per_page=100'
+              ).get('artifacts', [])
               for artifact in artifacts:
                   name = str(artifact.get('name') or '')
                   print(f'  ARTIFACT name={name}')
-                  match = re.fullmatch(r'rozkalns-cv-deploy-([0-9a-f]{40})-run-(\d+)', name)
-                  if conclusion != 'success' or not match or int(match.group(2)) != run_id:
+                  match = re.fullmatch(
+                      r'rozkalns-cv-deploy-([0-9a-f]{40})-run-(\d+)',
+                      name,
+                  )
+                  artifact_id = int(artifact.get('id') or 0)
+                  if (
+                      not match
+                      or int(match.group(2)) != run_id
+                      or artifact_id <= 0
+                      or artifact.get('expired')
+                  ):
                       continue
                   deployed = match.group(1)
+                  if deployed != deployed_head:
+                      continue
+                  archive = get_bytes(
+                      f'{api}/actions/artifacts/{artifact_id}/zip'
+                  )
+                  with zipfile.ZipFile(io.BytesIO(archive)) as bundle:
+                      try:
+                          summary = parse_summary(bundle.read('summary.env'))
+                      except KeyError:
+                          continue
+                  expected = {
+                      'DEPLOY_RESULT': 'PASS',
+                      'TARGET_SHA': deployed,
+                      'FINAL_STATE_SHA': deployed,
+                      'TRANSACTION_COMMITTED': 'true',
+                      'SHARED_INGRESS_CONTROLLED': 'false',
+                      'ROLLBACK_PERFORMED': 'false',
+                  }
+                  if any(
+                      summary.get(key) != value
+                      for key, value in expected.items()
+                  ):
+                      continue
                   ancestry = get(f'{api}/compare/{c2}...{deployed}')
                   if deployed == c2 or ancestry.get('status') == 'ahead':
-                      candidates.append((run_id, deployed, name))
+                      candidates.append(
+                          (run_id, deployed, name, artifact_id)
+                      )
 
-          if candidates:
-              run_id, deployed, artifact_name = max(candidates)
-              print(f'C2_PRODUCTION_DEPLOY=PASS run_id={run_id} deployed_sha={deployed}')
-              print(f'DEPLOY_ARTIFACT={artifact_name}')
-              print('PRODUCTION_GATE=PASS')
-          else:
-              print('C2_PRODUCTION_DEPLOY=FAIL no successful deploy artifact at C2 or descendant')
-              raise SystemExit(1)
+          if not candidates:
+              raise SystemExit(
+                  'C2_PRODUCTION_DEPLOY=FAIL no committed SHA-bound deploy evidence at C2 or descendant'
+              )
+
+          run_id, deployed, artifact_name, artifact_id = max(candidates)
+          print(
+              f'C2_PRODUCTION_DEPLOY=PASS run_id={run_id} '
+              f'deployed_sha={deployed}'
+          )
+          print(f'DEPLOY_ARTIFACT={artifact_name}')
+          print(f'DEPLOY_ARTIFACT_ID={artifact_id}')
+          verify_public()
+          print('PRODUCTION_GATE=PASS')
           PY
