@@ -111,7 +111,7 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          git rm -- \
+          git rm -f -- \
             .github/workflows/c6-finalize.yml \
             .github/workflows/c6-finalize-v2.yml \
             tools/c6_finalize.py \
