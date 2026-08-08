@@ -49,8 +49,8 @@ replace_once(
 )
 replace_once(
     "tests/test_html_semantics.py",
-    '        self.assertEqual(len(skip_links), 1)\n\n    def test_fingerprinted_assets_are_manifest_owned',
-    '''        self.assertEqual(len(skip_links), 1)\n\n    def test_profile_photo_uses_hashed_webp_with_explicit_dimensions(self) -> None:\n        parsed = parse(HTML_ROOT / "index.html")\n        photos = [\n            row for row in parsed.elements\n            if row.tag == "img" and row.attrs.get("class") == "profile-photo"\n        ]\n        self.assertEqual(len(photos), 1)\n        photo = photos[0]\n        self.assertRegex(\n            photo.attrs.get("src", ""),\n            r"^/assets/photo\\.[0-9a-f]{12}\\.webp$",\n        )\n        self.assertEqual(photo.attrs.get("width"), "118")\n        self.assertEqual(photo.attrs.get("height"), "118")\n        self.assertEqual(photo.attrs.get("alt"), "Andris Rožkalns")\n\n    def test_fingerprinted_assets_are_manifest_owned''',
+    '    def test_fingerprinted_assets_are_manifest_owned(self) -> None:',
+    '''    def test_profile_photo_uses_hashed_webp_with_explicit_dimensions(self) -> None:\n        parsed = parse(HTML_ROOT / "index.html")\n        photos = [\n            row for row in parsed.elements\n            if row.tag == "img" and row.attrs.get("class") == "profile-photo"\n        ]\n        self.assertEqual(len(photos), 1)\n        photo = photos[0]\n        self.assertRegex(\n            photo.attrs.get("src", ""),\n            r"^/assets/photo\\.[0-9a-f]{12}\\.webp$",\n        )\n        self.assertEqual(photo.attrs.get("width"), "118")\n        self.assertEqual(photo.attrs.get("height"), "118")\n        self.assertEqual(photo.attrs.get("alt"), "Andris Rožkalns")\n\n    def test_fingerprinted_assets_are_manifest_owned(self) -> None:''',
 )
 
 replace_once(
