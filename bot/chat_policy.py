@@ -58,10 +58,9 @@ class ProtectedContactPolicy:
             digits = _digits(candidate)
             if not 7 <= len(digits) <= 15:
                 continue
-            # A plausible phone-shaped sequence is blocked even when it is not
-            # the configured number; this also prevents model hallucinations.
-            if digits in self._runtime_phone_digits or digits:
-                return True
+            # Any plausible phone-shaped sequence is blocked, not only the
+            # configured value, so a model hallucination cannot bypass policy.
+            return True
         return False
 
 
