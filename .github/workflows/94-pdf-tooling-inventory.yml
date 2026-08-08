@@ -1,0 +1,60 @@
+name: PDF tooling inventory
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/94-pdf-tooling-inventory.yml
+
+permissions:
+  contents: read
+
+jobs:
+  inventory:
+    if: >-
+      github.repository == 'rozkalnsandris/rozkalns-cv' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'security/94-current-contact-literals-v01'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out exact audit SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "$GITHUB_SHA"
+          git checkout --detach FETCH_HEAD
+      - name: List only PDF-related tracked filenames and command references
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          printf '%s\n' 'PDF_RELATED_TRACKED_FILES_BEGIN'
+          git ls-files | grep -Ei '(^|/)([^/]*(pdf|print|render)[^/]*|cv[^/]*\.(py|js|mjs|sh|html|css|md))$' | sort || true
+          printf '%s\n' 'PDF_RELATED_TRACKED_FILES_END'
+          python3 - <<'PY'
+          from pathlib import Path
+          import re, subprocess
+          root=Path.cwd()
+          patterns={
+            'PRINT_TO_PDF': re.compile(rb'printToPDF|print-to-pdf|window\.print'),
+            'PDF_LIBRARY': re.compile(rb'reportlab|weasyprint|wkhtmltopdf|puppeteer|playwright|pdfkit|xelatex|pdflatex'),
+            'PDF_OUTPUT_NAMES': re.compile(rb'cv(?:-de|-lv)?\.pdf'),
+          }
+          tracked=[x.decode() for x in subprocess.check_output(['git','ls-files','-z']).split(b'\0') if x]
+          for label,pattern in patterns.items():
+            files=[]
+            for rel in tracked:
+              path=root/rel
+              if path.is_file() and path.suffix.lower() != '.pdf':
+                try: data=path.read_bytes()
+                except OSError: continue
+                if pattern.search(data): files.append(rel)
+            print(f'{label}_COUNT={len(files)}')
+            for i,rel in enumerate(sorted(set(files)),1): print(f'{label}_{i}={rel}')
+          PY
