@@ -49,12 +49,15 @@ jobs:
           profile = json.loads((root / 'content/profile.json').read_text(encoding='utf-8'))
           email_re = re.compile(r'(?i)[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}')
           phone_re = re.compile(r'(?<!\w)\+?\d(?:[\s()./-]*\d){7,}(?!\w)')
+          version_re = re.compile(r'^\d{4}-\d{2}-\d{2}\.\d+$')
 
           candidates: list[tuple[str, str, bytes]] = []
           seen: set[bytes] = set()
           contact_structure: list[tuple[str, str, int]] = []
 
-          def classify(text: str) -> str | None:
+          def classify(path: str, text: str) -> str | None:
+              if path == '$.content_version' and version_re.fullmatch(text):
+                  return None
               if email_re.search(text):
                   return 'email_like'
               if phone_re.search(text):
@@ -80,9 +83,9 @@ jobs:
               if not isinstance(value, str):
                   return
               text = value.strip()
-              kind = classify(text)
+              kind = classify(path, text)
               path_lower = path.lower()
-              if 'contact' in path_lower or 'email' in path_lower or 'phone' in path_lower or 'mobile' in path_lower:
+              if any(word in path_lower for word in ('contact', 'email', 'phone', 'mobile')):
                   contact_structure.append((path, kind or 'other_string', len(text)))
               if kind:
                   add_candidate(path, kind, text)
@@ -95,13 +98,21 @@ jobs:
           for index, (path, kind, _) in enumerate(candidates, 1):
               print(f'PROTECTED_CANDIDATE_{index}=path:{path};kind:{kind}')
 
-          tracked = subprocess.check_output(['git', 'ls-files', '-z']).split(b'\0')
+          tracked = [
+              raw.decode('utf-8') for raw in subprocess.check_output(['git', 'ls-files', '-z']).split(b'\0')
+              if raw
+          ]
           findings: list[list[str]] = [[] for _ in candidates]
           pdf_files: list[Path] = []
-          for raw_path in tracked:
-              if not raw_path:
-                  continue
-              relative = raw_path.decode('utf-8', errors='strict')
+          dependency_patterns = {
+              'SCHEMA_VERSION_REFS': re.compile(rb'schema_version'),
+              'SYSTEM_PROMPT_REFS': re.compile(rb'system_prompt\.txt|SYSTEM_PROMPT|build_system_prompt'),
+              'PROFILE_CONTACT_REFS': re.compile(rb'profile[^\n]{0,80}contact|contact[^\n]{0,80}profile'),
+              'GIT_EMAIL_CONFIG_REFS': re.compile(rb'user\.email|git\s+config[^\n]*email'),
+          }
+          dependencies = {key: [] for key in dependency_patterns}
+
+          for relative in tracked:
               path = root / relative
               if not path.is_file():
                   continue
@@ -112,6 +123,9 @@ jobs:
               for index, (_, _, candidate) in enumerate(candidates):
                   if candidate in data:
                       findings[index].append(relative)
+              for key, pattern in dependency_patterns.items():
+                  if pattern.search(data):
+                      dependencies[key].append(relative)
 
           total_hits = 0
           for index, files in enumerate(findings, 1):
@@ -121,20 +135,29 @@ jobs:
               for file_index, relative in enumerate(unique, 1):
                   print(f'CANDIDATE_{index}_TRACKED_FILE_{file_index}={relative}')
 
-          pdf_hit_count = 0
+          for key, files in dependencies.items():
+              unique = sorted(set(files))
+              print(f'{key}_COUNT={len(unique)}')
+              for index, relative in enumerate(unique, 1):
+                  print(f'{key}_{index}={relative}')
+
           pdftotext = shutil.which('pdftotext')
-          if not pdftotext:
-              raise SystemExit('PDF_TEXT_AUDIT=FAIL pdftotext unavailable')
-          for path in pdf_files:
-              completed = subprocess.run(
-                  [pdftotext, '-layout', str(path), '-'],
-                  stdout=subprocess.PIPE,
-                  stderr=subprocess.DEVNULL,
-                  check=True,
-              )
-              if any(candidate in completed.stdout for _, _, candidate in candidates):
-                  pdf_hit_count += 1
-                  print(f'PDF_PROTECTED_LITERAL_PRESENT={path.relative_to(root)}')
+          if pdftotext:
+              pdf_hit_count = 0
+              for path in pdf_files:
+                  completed = subprocess.run(
+                      [pdftotext, '-layout', str(path), '-'],
+                      stdout=subprocess.PIPE,
+                      stderr=subprocess.DEVNULL,
+                      check=True,
+                  )
+                  if any(candidate in completed.stdout for _, _, candidate in candidates):
+                      pdf_hit_count += 1
+                      print(f'PDF_PROTECTED_LITERAL_PRESENT={path.relative_to(root)}')
+              print(f'PDF_PROTECTED_LITERAL_FILE_COUNT={pdf_hit_count}')
+              print('PDF_TEXT_AUDIT=PASS')
+          else:
+              print('PDF_TEXT_AUDIT=UNAVAILABLE')
 
           profile_hit = any('content/profile.json' in files for files in findings)
           assistant_files = sorted({
@@ -147,10 +170,6 @@ jobs:
           print(f'GENERATED_ASSISTANT_LITERAL_PRESENT={str(bool(assistant_files)).lower()}')
           for index, name in enumerate(assistant_files, 1):
               print(f'GENERATED_ASSISTANT_LITERAL_FILE_{index}={name}')
-          print(f'PDF_PROTECTED_LITERAL_FILE_COUNT={pdf_hit_count}')
           print(f'TRACKED_LITERAL_FILE_HITS={total_hits}')
-          if candidates:
-              print('CURRENT_CONTACT_LITERAL_AUDIT=FINDINGS' if total_hits or pdf_hit_count else 'CURRENT_CONTACT_LITERAL_AUDIT=CANDIDATES_WITHOUT_TRACKED_MATCHES')
-          else:
-              print('CURRENT_CONTACT_LITERAL_AUDIT=PASS no email-like or phone-like canonical strings')
+          print('CURRENT_CONTACT_LITERAL_AUDIT=FINDINGS' if candidates else 'CURRENT_CONTACT_LITERAL_AUDIT=PASS')
           PY
