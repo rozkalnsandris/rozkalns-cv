@@ -1,0 +1,19 @@
+.chat-launcher { position: fixed; z-index: 40; right: 24px; bottom: 24px; min-height: 48px; padding: 13px 20px; border: 0; border-radius: 30px; background: linear-gradient(135deg,#eab578,#d8954f); color: #241606; cursor: pointer; font-weight: 700; box-shadow: 0 8px 28px rgba(224,169,109,.42),0 2px 6px rgba(0,0,0,.3); }
+.chat-launcher:hover { transform: translateY(-2px); }
+.dialog-backdrop { position: fixed; inset: 0; z-index: 50; display: grid; place-items: end; padding: 22px; background: rgba(0,0,0,.48); }
+.chat-dialog { width: min(380px,calc(100vw - 32px)); height: min(560px,calc(100vh - 44px)); display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border); border-radius: 14px; background: var(--bg); box-shadow: 0 18px 50px rgba(0,0,0,.5); }
+.chat-head { display: flex; justify-content: space-between; gap: 12px; padding: 15px 17px; border-bottom: 1px solid var(--border-soft); background: var(--surface); }
+.chat-head h2 { margin: 0; color: var(--text); font-size: 14px; }
+.chat-head p { margin: 2px 0 0; color: var(--text-faint); font: 10.5px/1.4 var(--mono); }
+.icon-button { min-width: 40px; min-height: 40px; border: 1px solid var(--border); border-radius: 9px; background: transparent; color: var(--text-faint); cursor: pointer; font-size: 22px; }
+.chat-log { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 16px; }
+.message { max-width: 84%; padding: 10px 13px; border-radius: 11px; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13.5px; line-height: 1.5; }
+.message.bot { align-self: flex-start; border: 1px solid var(--border-soft); background: var(--surface); color: var(--text-dim); }
+.message.user { align-self: flex-end; border: 1px solid var(--accent-line); background: var(--accent-soft); color: var(--text); }
+.chat-privacy { margin: 0; padding: 0 16px 9px; color: var(--text-faint); font: 10px/1.4 var(--mono); text-align: center; }
+.chat-status { min-height: 18px; padding: 0 16px 8px; color: var(--text-faint); font: 10.5px/1.4 var(--mono); }
+.chat-form { display: flex; gap: 8px; padding: 12px; border-top: 1px solid var(--border-soft); background: var(--surface); }
+.chat-form input { min-width: 0; flex: 1; min-height: 42px; padding: 10px 13px; border: 1px solid var(--border); border-radius: 9px; background: var(--bg); color: var(--text); outline: none; }
+.chat-form input:focus { border-color: var(--accent-line); }
+.chat-form .button { min-width: 70px; }
+body.dialog-open { overflow: hidden; }
