@@ -47,9 +47,9 @@ def load_contact_config() -> ContactConfig:
     return ContactConfig(
         site_key=os.getenv("TURNSTILE_SITE_KEY", "").strip(),
         secret_key=os.getenv("TURNSTILE_SECRET_KEY", "").strip(),
-        email=os.getenv("CONTACT_EMAIL", "andris@rozkalns.net").strip(),
-        phone_display=os.getenv("CONTACT_PHONE_DISPLAY", "+49 176 8513 4770").strip(),
-        phone_uri=os.getenv("CONTACT_PHONE_URI", "+4917685134770").strip(),
+        email=os.getenv("CONTACT_EMAIL", "").strip(),
+        phone_display=os.getenv("CONTACT_PHONE_DISPLAY", "").strip(),
+        phone_uri=os.getenv("CONTACT_PHONE_URI", "").strip(),
         hostnames=hostnames,
     )
 
