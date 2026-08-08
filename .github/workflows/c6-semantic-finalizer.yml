@@ -1,18 +1,22 @@
 name: C6 semantic finalizer
 
 on:
-  push:
+  pull_request:
     branches:
-      - a11y/84-semantic-interaction-v01
+      - main
     paths:
       - .github/workflows/c6-semantic-finalizer.yml
+      - tools/c6-semantic-refactor.py
 
 permissions:
   contents: write
 
 jobs:
   finalize:
-    if: github.repository == 'rozkalnsandris/rozkalns-cv' && github.ref == 'refs/heads/a11y/84-semantic-interaction-v01'
+    if: >-
+      github.repository == 'rozkalnsandris/rozkalns-cv' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'a11y/84-semantic-interaction-v01'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     env:
@@ -22,16 +26,17 @@ jobs:
       - name: Check out exact owner branch SHA
         env:
           GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         shell: bash
         run: |
           set -Eeuo pipefail
           auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
           git init .
           git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
-          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "$GITHUB_SHA"
-          git checkout --detach FETCH_HEAD
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          test "$(git merge-base "$GITHUB_SHA" a044e4c612f4952e0d59a8b2b76779137f92d06e)" = "a044e4c612f4952e0d59a8b2b76779137f92d06e"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "$HEAD_SHA" a044e4c612f4952e0d59a8b2b76779137f92d06e
+          git checkout --detach "$HEAD_SHA"
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          test "$(git merge-base "$HEAD_SHA" a044e4c612f4952e0d59a8b2b76779137f92d06e)" = "a044e4c612f4952e0d59a8b2b76779137f92d06e"
 
       - name: Apply fail-closed C6 source refactor
         shell: bash
