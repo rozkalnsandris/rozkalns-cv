@@ -1,4 +1,5 @@
 name: Finalize C6 semantic accessibility changes
+# Retriggered after removing the conflicting native-dialog finalizer.
 
 on:
   push:
