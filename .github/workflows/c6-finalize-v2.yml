@@ -1,0 +1,141 @@
+name: Finalize C6 semantic accessibility changes v2
+
+on:
+  push:
+    branches:
+      - a11y/84-semantic-interaction-v01
+    paths:
+      - .github/workflows/c6-finalize-v2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out exact branch SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$GITHUB_REF_NAME" = 'a11y/84-semantic-interaction-v01'
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "$GITHUB_SHA"
+          git checkout -B "$GITHUB_REF_NAME" FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Apply bounded C6 source transforms
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('tools/c6_finalize.py')
+          text = path.read_text(encoding='utf-8')
+          old_a = "'</h2><div class=\"demo-value\">'"
+          new_a = "'</h2><div class=\"demo-value\"'"
+          old_b = "'</h3><div class=\"demo-value\">'"
+          new_b = "'</h3><div class=\"demo-value\"'"
+          if text.count(old_a) != 1 or text.count(old_b) != 1:
+              raise SystemExit('C6 helper heading anchor drift')
+          path.write_text(text.replace(old_a, new_a).replace(old_b, new_b), encoding='utf-8')
+          PY
+          python3 tools/c6_finalize.py
+          python3 tools/c6_keyboard_fix.py
+          git diff --check
+
+      - name: Set up pinned Node.js frontend toolchain
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.18.0'
+          package-manager-cache: false
+
+      - name: Build deterministic frontend twice
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build:frontend
+          first="${RUNNER_TEMP}/c6-v2-first.sha256"
+          second="${RUNNER_TEMP}/c6-v2-second.sha256"
+          {
+            find html/assets html/i18n -type f -print0
+            printf '%s\0' html/index.html html/smarthome.html frontend-dist-manifest.json
+          } | sort -z | xargs -0 sha256sum > "$first"
+          npm run build:frontend
+          {
+            find html/assets html/i18n -type f -print0
+            printf '%s\0' html/index.html html/smarthome.html frontend-dist-manifest.json
+          } | sort -z | xargs -0 sha256sum > "$second"
+          cmp "$first" "$second"
+          npm run check:frontend
+          printf 'C6_FRONTEND_DOUBLE_BUILD=PASS\n'
+
+      - name: Validate C6 semantic and browser behavior
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          node --check frontend/features/contact.mjs
+          node --check tests/browser-smoke.mjs
+          node --test tests/frontend.test.mjs
+          PYTHONPYCACHEPREFIX="${RUNNER_TEMP}/c6-v2-pycache" python3 -m unittest tests.test_html_semantics
+
+          chrome_bin=''
+          for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
+            if command -v "$candidate" >/dev/null 2>&1; then
+              chrome_bin="$(command -v "$candidate")"
+              break
+            fi
+          done
+          test -n "$chrome_bin"
+          CHROME_BIN="$chrome_bin" node tests/browser-smoke.mjs
+          printf 'C6_BROWSER_SEMANTICS=PASS\n'
+
+      - name: Validate source hygiene
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          rm -rf node_modules
+          PYTHONPYCACHEPREFIX="${RUNNER_TEMP}/c6-v2-source-pycache" bash scripts/validate-source.sh "$PWD"
+          git diff --check
+
+      - name: Commit verified C6 product state and self-clean
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git rm -- \
+            .github/workflows/c6-finalize.yml \
+            .github/workflows/c6-finalize-v2.yml \
+            tools/c6_finalize.py \
+            tools/c6_keyboard_fix.py
+          git add -- \
+            frontend/index.html \
+            frontend/smarthome.html \
+            frontend/features/contact.mjs \
+            frontend/styles/features/smarthome.css \
+            tests/browser-smoke.mjs \
+            tests/test_html_semantics.py \
+            frontend-dist-manifest.json \
+            html/index.html \
+            html/smarthome.html \
+            html/assets
+
+          unexpected="$(git status --short | awk '{print $2}' | grep -Ev '^(.github/workflows/c6-finalize.yml|.github/workflows/c6-finalize-v2.yml|tools/c6_finalize.py|tools/c6_keyboard_fix.py|frontend/index.html|frontend/smarthome.html|frontend/features/contact.mjs|frontend/styles/features/smarthome.css|tests/browser-smoke.mjs|tests/test_html_semantics.py|frontend-dist-manifest.json|html/index.html|html/smarthome.html|html/assets/)' || true)"
+          test -z "$unexpected" || { printf 'UNEXPECTED_PATHS=%s\n' "$unexpected" >&2; exit 1; }
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'a11y: harden semantic interactions and accessibility'
+
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          remote_head="$(git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" ls-remote origin "refs/heads/${GITHUB_REF_NAME}" | awk '{print $1}')"
+          test "$remote_head" = "$GITHUB_SHA"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" push origin "HEAD:refs/heads/${GITHUB_REF_NAME}"
