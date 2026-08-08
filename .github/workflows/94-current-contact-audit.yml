@@ -1,0 +1,154 @@
+name: Sanitized current contact exposure audit
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/94-current-contact-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    if: >-
+      github.repository == 'rozkalnsandris/rozkalns-cv' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'security/94-current-contact-literals-v01'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact audit SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            fetch --no-tags origin "$GITHUB_SHA"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Audit current tracked contact exposure without printing values
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from __future__ import annotations
+          import json
+          from pathlib import Path
+          import re
+          import subprocess
+
+          root = Path.cwd()
+          profile_path = root / 'content/profile.json'
+          profile = json.loads(profile_path.read_text(encoding='utf-8'))
+
+          candidates: list[tuple[str, bytes]] = []
+          contact_nodes: list[tuple[str, str, bool]] = []
+          seen: set[bytes] = set()
+
+          def add_candidate(label: str, value) -> None:
+              if not isinstance(value, str):
+                  return
+              value = value.strip()
+              if len(value) < 6:
+                  return
+              encoded = value.encode('utf-8')
+              if encoded in seen:
+                  return
+              seen.add(encoded)
+              candidates.append((label, encoded))
+
+          def walk(value, path: str = '$') -> None:
+              if isinstance(value, dict):
+                  lowered = {str(key).lower(): item for key, item in value.items()}
+                  kind = str(lowered.get('type') or lowered.get('kind') or lowered.get('channel') or '').lower()
+                  visibility = str(lowered.get('visibility') or lowered.get('access') or '')
+                  if kind in {'email', 'phone', 'telephone', 'mobile'}:
+                      present = any(
+                          isinstance(item, str) and item.strip()
+                          for key, item in lowered.items()
+                          if key not in {'type', 'kind', 'channel', 'label', 'visibility', 'access'}
+                      )
+                      contact_nodes.append((path, visibility or '<unset>', present))
+                      for key, item in lowered.items():
+                          if key not in {'type', 'kind', 'channel', 'label', 'visibility', 'access'}:
+                              add_candidate(f'{path}.{key}', item)
+                  for key, item in value.items():
+                      key_lower = str(key).lower()
+                      child = f'{path}.{key}'
+                      if key_lower in {'email', 'phone', 'telephone', 'mobile', 'phone_uri', 'email_uri'}:
+                          add_candidate(child, item)
+                      walk(item, child)
+              elif isinstance(value, list):
+                  for index, item in enumerate(value):
+                      walk(item, f'{path}[{index}]')
+
+          walk(profile)
+          print(f'PROFILE_CONTACT_NODES={len(contact_nodes)}')
+          for index, (path, visibility, present) in enumerate(contact_nodes, 1):
+              safe_visibility = re.sub(r'[^A-Za-z0-9_.:-]', '_', visibility)[:40]
+              print(f'PROFILE_CONTACT_NODE_{index}=path:{path};visibility:{safe_visibility};has_value:{str(present).lower()}')
+          print(f'PROTECTED_CANDIDATE_COUNT={len(candidates)}')
+          if not candidates:
+              print('CURRENT_CONTACT_LITERAL_AUDIT=PASS no canonical protected candidates')
+              raise SystemExit(0)
+
+          tracked = subprocess.check_output(['git', 'ls-files', '-z']).split(b'\0')
+          findings: dict[str, list[str]] = {label: [] for label, _ in candidates}
+          pdf_files: list[Path] = []
+          for raw_path in tracked:
+              if not raw_path:
+                  continue
+              relative = raw_path.decode('utf-8', errors='strict')
+              path = root / relative
+              if not path.is_file():
+                  continue
+              if path.suffix.lower() == '.pdf':
+                  pdf_files.append(path)
+                  continue
+              data = path.read_bytes()
+              for label, candidate in candidates:
+                  if candidate in data:
+                      findings[label].append(relative)
+
+          total_hits = 0
+          for index, (label, _) in enumerate(candidates, 1):
+              files = sorted(set(findings[label]))
+              total_hits += len(files)
+              print(f'CANDIDATE_{index}_TRACKED_FILE_COUNT={len(files)}')
+              for file_index, relative in enumerate(files, 1):
+                  print(f'CANDIDATE_{index}_TRACKED_FILE_{file_index}={relative}')
+
+          if not shutil_which := __import__('shutil').which('pdftotext'):
+              raise SystemExit('PDF_TEXT_AUDIT=FAIL pdftotext unavailable')
+          pdf_hit_count = 0
+          for path in pdf_files:
+              completed = subprocess.run(
+                  [shutil_which, '-layout', str(path), '-'],
+                  stdout=subprocess.PIPE,
+                  stderr=subprocess.DEVNULL,
+                  check=True,
+              )
+              data = completed.stdout
+              hit = any(candidate in data for _, candidate in candidates)
+              if hit:
+                  pdf_hit_count += 1
+                  print(f'PDF_PROTECTED_LITERAL_PRESENT={path.relative_to(root)}')
+          print(f'PDF_PROTECTED_LITERAL_FILE_COUNT={pdf_hit_count}')
+
+          assistant_hit = any(
+              'bot/app.py' in files or any(name.startswith('bot/') for name in files)
+              for files in findings.values()
+          )
+          profile_hit = any('content/profile.json' in files for files in findings.values())
+          print(f'CANONICAL_PROFILE_LITERAL_PRESENT={str(profile_hit).lower()}')
+          print(f'GENERATED_ASSISTANT_LITERAL_PRESENT={str(assistant_hit).lower()}')
+          print(f'TRACKED_LITERAL_FILE_HITS={total_hits}')
+          print('CURRENT_CONTACT_LITERAL_AUDIT=FINDINGS' if total_hits or pdf_hit_count else 'CURRENT_CONTACT_LITERAL_AUDIT=PASS')
+          PY
