@@ -52,10 +52,12 @@ export function contactPayloadIsValid(payload) {
     payload.email.includes("@") &&
     typeof payload.phone === "string" &&
     typeof payload.phone_uri === "string" &&
-    /^\+[0-9]{8,15}$/.test(payload.phone_uri) &&
-    typeof payload.whatsapp_url === "string" &&
-    /^https:\/\/wa\.me\/[0-9]{8,15}$/.test(payload.whatsapp_url)
+    /^\+[0-9]{8,15}$/.test(payload.phone_uri)
   );
+}
+
+export function whatsappUrlIsValid(value) {
+  return typeof value === "string" && /^https:\/\/wa\.me\/[0-9]{8,15}$/.test(value);
 }
 
 export function createContactController(languageController, {
@@ -96,7 +98,9 @@ export function createContactController(languageController, {
     });
     let payload = null;
     try { payload = await response.json(); } catch {}
-    if (!response.ok || !contactPayloadIsValid(payload)) {
+    const payloadValid = contactPayloadIsValid(payload);
+    const whatsappValid = purpose !== "whatsapp" || whatsappUrlIsValid(payload?.whatsapp_url);
+    if (!response.ok || !payloadValid || !whatsappValid) {
       setStatus(root, message("contact_failed"), "error");
       turnstile.reset(widgetId);
       return false;
