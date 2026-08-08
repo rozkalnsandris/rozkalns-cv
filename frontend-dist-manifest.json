@@ -27,13 +27,23 @@
       "i18n/lv.adc94191d104.json"
     ]
   },
+  "features/chat.mjs": {
+    "file": "assets/chat.215646ab0dd8.mjs",
+    "name": "chat",
+    "src": "features/chat.mjs",
+    "isDynamicEntry": true
+  },
   "index.html": {
-    "file": "assets/app.b6f019c9f40a.mjs",
+    "file": "assets/app.b637725de49a.mjs",
     "name": "app",
     "src": "index.html",
     "isEntry": true,
     "imports": [
       "_i18n.c2abe279ebe1.mjs"
+    ],
+    "dynamicImports": [
+      "features/chat.mjs",
+      "index.html"
     ]
   },
   "smarthome.html": {
