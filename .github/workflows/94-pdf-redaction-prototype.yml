@@ -67,7 +67,8 @@ jobs:
                   for key, value in protected.items():
                       for rect in page.search_for(value):
                           text_hits[key] += 1
-                          page.add_redact_annot(rect, fill=(1,1,1))
+                          expanded = fitz.Rect(rect.x0 - 7, rect.y0 - 1, rect.x1 + 7, rect.y1 + 1)
+                          page.add_redact_annot(expanded, fill=(1,1,1))
                   for link in list(page.get_links()):
                       uri = str(link.get('uri') or '')
                       if uri.startswith('mailto:') or uri.startswith('tel:'):
