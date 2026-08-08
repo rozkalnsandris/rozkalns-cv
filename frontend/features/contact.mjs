@@ -54,31 +54,28 @@ export function createContactController(languageController, {
   const mount = root.querySelector("#turnstileMount");
   if (!button || !mount) return null;
 
-  const message = (key, fallback) => languageController.messages?.[key] || fallback;
+  const message = (key) => {
+    const value = languageController.messages?.[key];
+    return typeof value === "string" ? value : "";
+  };
 
   function refreshCopy() {
     const label = button.querySelector(".contact-reveal-label");
     const email = root.querySelector("#contactEmail");
     const phone = root.querySelector("#contactPhone");
     if (label && !button.dataset.locked) {
-      label.textContent = message("contact_reveal", "Verify to show contact details");
+      label.textContent = message("contact_reveal");
     }
     if (email && email.dataset.revealed !== "true") {
-      email.setAttribute(
-        "aria-label",
-        message("contact_email_hidden", "Email address hidden until verification")
-      );
+      email.setAttribute("aria-label", message("contact_email_hidden"));
     }
     if (phone && phone.dataset.revealed !== "true") {
-      phone.setAttribute(
-        "aria-label",
-        message("contact_phone_hidden", "Phone number hidden until verification")
-      );
+      phone.setAttribute("aria-label", message("contact_phone_hidden"));
     }
   }
 
   async function submitToken(token, turnstile, widgetId) {
-    setStatus(root, message("contact_verifying", "Verifying…"));
+    setStatus(root, message("contact_verifying"));
     const response = await fetchImpl("/api/contact-reveal", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -88,7 +85,7 @@ export function createContactController(languageController, {
     let payload = null;
     try { payload = await response.json(); } catch {}
     if (!response.ok || !contactPayloadIsValid(payload)) {
-      setStatus(root, message("contact_failed", "Verification failed. Please try again."), "error");
+      setStatus(root, message("contact_failed"), "error");
       turnstile.reset(widgetId);
       return false;
     }
@@ -98,14 +95,14 @@ export function createContactController(languageController, {
     if (phone) revealLink(root, phone, payload.phone, `tel:${payload.phone_uri}`);
     button.hidden = true;
     mount.hidden = true;
-    setStatus(root, message("contact_success", "Contact details unlocked."), "success");
+    setStatus(root, message("contact_success"), "success");
     return true;
   }
 
   async function start() {
     button.disabled = true;
     button.dataset.locked = "true";
-    setStatus(root, message("contact_loading", "Loading verification…"));
+    setStatus(root, message("contact_loading"));
     try {
       const configResponse = await fetchImpl("/api/contact-config", { cache: "no-store" });
       const config = await configResponse.json();
@@ -122,19 +119,11 @@ export function createContactController(languageController, {
         appearance: "interaction-only",
         action: "contact_reveal",
         callback: (token) => submitToken(token, turnstile, widgetId),
-        "error-callback": () => setStatus(
-          root,
-          message("contact_failed", "Verification failed. Please try again."),
-          "error"
-        ),
+        "error-callback": () => setStatus(root, message("contact_failed"), "error"),
         "expired-callback": () => turnstile.reset(widgetId)
       });
     } catch {
-      setStatus(
-        root,
-        message("contact_unavailable", "Contact verification is temporarily unavailable."),
-        "error"
-      );
+      setStatus(root, message("contact_unavailable"), "error");
       button.disabled = false;
       delete button.dataset.locked;
       refreshCopy();
