@@ -36,7 +36,7 @@
       "additionalProperties": false,
       "required": ["email", "phone", "github", "website"],
       "properties": {
-        "email": {"$ref": "#/$defs/verifiedRuntimeContact"},
+        "email": {"$ref": "#/$defs/publicValue"},
         "phone": {"$ref": "#/$defs/verifiedRuntimeContact"},
         "github": {"$ref": "#/$defs/publicValue"},
         "website": {"$ref": "#/$defs/publicValue"}
