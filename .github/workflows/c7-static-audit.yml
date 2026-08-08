@@ -95,11 +95,15 @@ jobs:
           python3 - <<'PY'
           import json
           import pathlib
-          import re
           manifest = json.loads(pathlib.Path('frontend-dist-manifest.json').read_text(encoding='utf-8'))
-          app = manifest['index.html']['file']
-          css = manifest['index.html']['css'][0]
-          i18n = next(row['file'] for key, row in manifest.items() if key.endswith('en.json'))
+          app_row = manifest['index.html']
+          app = app_row['file']
+          imported = [manifest[name] for name in app_row.get('imports', []) if name in manifest]
+          css_candidates = [path for row in imported for path in row.get('css', [])]
+          if len(css_candidates) != 1:
+              raise SystemExit(f'unexpected CSS candidates: {css_candidates!r}')
+          css = css_candidates[0]
+          i18n = manifest['../content/translations/en.json']['file']
           pathlib.Path('/tmp/c7-paths').write_text('\n'.join([
               '/', '/smarthome.html', '/photo.jpg', '/favicon.svg', '/cv.pdf', '/cv-de.pdf', '/cv-lv.pdf', '/stats.json',
               '/' + app, '/' + css, '/' + i18n,
@@ -107,8 +111,7 @@ jobs:
           PY
           while IFS= read -r path; do
             echo "--- ${path} ---"
-            curl --fail --silent --show-error --head --max-time 20 "https://rozkalns.net${path}" \
-              | awk 'BEGIN{IGNORECASE=1} /^(HTTP\/|content-type:|content-length:|cache-control:|etag:|last-modified:|content-encoding:|vary:|x-content-type-options:)/ {sub(/\r$/,""); print}'
+            curl --fail --silent --show-error --head --max-time 20 "https://rozkalns.net${path}"
             curl --fail --silent --show-error --compressed --max-time 20 -o /dev/null \
               -w 'transfer_download=%{size_download}\n' "https://rozkalns.net${path}"
           done < /tmp/c7-paths
