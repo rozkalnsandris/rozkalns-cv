@@ -37,7 +37,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends poppler-utils zbar-tools
+          sudo apt-get install -y --no-install-recommends poppler-utils python3-opencv
 
       - name: Set up pinned Node.js frontend toolchain
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -81,7 +81,7 @@ jobs:
               printf 'PDF_EMAIL language=%s FAIL\n' "$language" >&2
               exit 1
             fi
-            if grep -Fq "$marker" "$text"; then
+            if grep -Fiq "$marker" "$text"; then
               printf 'PDF_LANGUAGE language=%s PASS\n' "$language"
             else
               printf 'PDF_LANGUAGE language=%s FAIL\n' "$language" >&2
@@ -97,15 +97,27 @@ jobs:
               printf 'PDF_DIRECT_PHONE_LINK language=%s FAIL\n' "$language" >&2
               exit 1
             fi
+            if ! grep -Fq 'https://rozkalns.net/?contact=whatsapp' "$urls"; then
+              printf 'PDF_VERIFIED_WHATSAPP_LINK language=%s FAIL\n' "$language" >&2
+              exit 1
+            fi
             printf 'PDF_PROTECTED_PHONE language=%s PASS\n' "$language"
 
             pdftoppm -f 1 -singlefile -png -r 220 "$pdf" "$png" >/dev/null
-            set +e
-            decoded="$(zbarimg --quiet --raw "${png}.png" 2>/dev/null | tr -d '\r')"
-            qr_status=$?
-            set -e
+            decoded="$(python3 - "${png}.png" <<'PY'
+          import cv2
+          import sys
+          image = cv2.imread(sys.argv[1])
+          if image is None:
+              raise SystemExit(2)
+          data, points, _ = cv2.QRCodeDetector().detectAndDecode(image)
+          if points is None:
+              raise SystemExit(3)
+          print(data, end='')
+          PY
+            )"
             printf '%s\n' "$decoded" >"${preview_dir}/${language}.qr.txt"
-            if [[ "$qr_status" -eq 0 && "$decoded" == 'https://rozkalns.net/?contact=whatsapp' ]]; then
+            if [[ "$decoded" == 'https://rozkalns.net/?contact=whatsapp' ]]; then
               printf 'PDF_QR language=%s PASS\n' "$language"
             else
               printf 'PDF_QR language=%s FAIL decoded_length=%s\n' "$language" "${#decoded}" >&2
