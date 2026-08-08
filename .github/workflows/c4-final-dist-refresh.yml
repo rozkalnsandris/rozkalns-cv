@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
-      PYTHONPYCACHEPREFIX: ${{ runner.temp }}/c4-pycache
+      PYTHONDONTWRITEBYTECODE: "1"
 
     steps:
       - name: Check out exact owner branch SHA
@@ -58,32 +58,6 @@ jobs:
           npm run check:frontend
           node --test tests/frontend.test.mjs
           python3 -m unittest tests.test_css_source_contract tests.test_contact_markup tests.test_frontend_contract tests.test_html_semantics -v
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-
-          manifest = json.loads(Path('frontend-dist-manifest.json').read_text(encoding='utf-8'))
-          css = sorted({item for row in manifest.values() for item in row.get('css', [])})
-          if len(css) != 1:
-              raise SystemExit(f'expected exactly one production CSS asset, got {css}')
-          css_size = (Path('html') / css[0]).stat().st_size
-          doc = Path('docs/CSS_C4_AUDIT.md')
-          text = doc.read_text(encoding='utf-8')
-          start = text.index('## Generated output\n')
-          tail = text.index('No RPi5 pull-request execution', start)
-          replacement = (
-              '## Generated output\n\n'
-              'The final C4 Vite graph emits exactly one shared production CSS asset:\n\n'
-              f'- `{css[0]}` ({css_size} bytes)\n\n'
-              'The final refresh built the frontend twice with pinned Node 24.18.0 and Vite 8.1.5; '
-              'the generated trees and manifests were byte-identical. `npm run check:frontend` and '
-              'the focused Python/frontend contracts passed with 7 manifest assets and CSS within '
-              'the existing 22 KB budget.\n\n'
-          )
-          doc.write_text(text[:start] + replacement + text[tail:], encoding='utf-8')
-          print(f'C4_FINAL_CSS_ASSET={css[0]}')
-          print(f'C4_FINAL_CSS_BYTES={css_size}')
-          PY
           rm -rf -- node_modules
           bash scripts/validate-source.sh .
 
@@ -96,7 +70,6 @@ jobs:
           rm -f -- .github/workflows/c4-final-dist-refresh.yml
           git add -- \
             .github/workflows/c4-final-dist-refresh.yml \
-            docs/CSS_C4_AUDIT.md \
             frontend-dist-manifest.json \
             html/index.html \
             html/smarthome.html \
