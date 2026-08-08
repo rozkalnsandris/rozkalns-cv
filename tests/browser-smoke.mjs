@@ -479,9 +479,28 @@ async function runBrowserSmoke(baseUrl, state) {
       "invalid statistics rejection"
     );
 
-    const links = await cdp.evaluate(`(() => [...document.querySelectorAll('a[href]')].map((node) => node.getAttribute('href')))()`);
-    assert(links.includes("/cv-lv.pdf"));
-    assert(links.includes("/smarthome.html"));
+    const readLinkState = () => cdp.evaluate(`(() => ({
+      readyState: document.readyState,
+      language: document.documentElement.lang,
+      pdfHref: document.querySelector('#pdfLink')?.getAttribute('href') ?? null,
+      hrefs: [...document.querySelectorAll('a[href]')].map((node) => node.getAttribute('href'))
+    }))()`);
+    try {
+      await cdp.waitFor(
+        `document.readyState === "complete" && document.documentElement.lang === "lv" && document.querySelector('#pdfLink')?.getAttribute('href') === "/cv-lv.pdf"`,
+        10_000,
+        "restored Latvian link state after navigation"
+      );
+    } catch (error) {
+      const diagnostics = await readLinkState();
+      throw new Error(`${error instanceof Error ? error.message : error}; link-state=${JSON.stringify(diagnostics)}`);
+    }
+
+    const linkState = await readLinkState();
+    assert.equal(linkState.language, "lv", `link-state=${JSON.stringify(linkState)}`);
+    assert.equal(linkState.pdfHref, "/cv-lv.pdf", `link-state=${JSON.stringify(linkState)}`);
+    assert(linkState.hrefs.includes("/cv-lv.pdf"), `link-state=${JSON.stringify(linkState)}`);
+    assert(linkState.hrefs.includes("/smarthome.html"), `link-state=${JSON.stringify(linkState)}`);
   } catch (error) {
     throw new Error(`${error instanceof Error ? error.stack : error}\nChrome stderr:\n${stderr.slice(-4000)}`);
   } finally {
