@@ -1,0 +1,148 @@
+name: C5 contact split finalizer
+
+on:
+  push:
+    branches:
+      - perf/82-reduce-initial-background-work-v01
+    paths:
+      - .github/workflows/c5-contact-split-finalizer.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: github.repository == 'rozkalnsandris/rozkalns-cv' && github.ref == 'refs/heads/perf/82-reduce-initial-background-work-v01'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+
+    steps:
+      - name: Check out exact owner branch SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "$GITHUB_SHA"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Remove compatibility module from eager runtime graph
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          index = Path('frontend/index.html')
+          text = index.read_text(encoding='utf-8')
+          old = '  <script type="module" src="./enhancements.mjs"></script>\n'
+          if text.count(old) != 1:
+              raise SystemExit('unexpected enhancements script anchor')
+          index.write_text(text.replace(old, ''), encoding='utf-8')
+
+          test = Path('tests/test_contact_markup.py')
+          text = test.read_text(encoding='utf-8')
+          text = text.replace(
+              '    def test_enhancement_sources_are_in_authoritative_build_graph(self) -> None:\n',
+              '    def test_compatibility_module_is_not_an_eager_runtime_entry(self) -> None:\n',
+              1,
+          )
+          old = '        self.assertIn(\'src="./enhancements.mjs"\', source)\n'
+          new = (
+              '        self.assertNotIn(\'src="./enhancements.mjs"\', source)\n'
+              '        compatibility = (ROOT / "frontend" / "enhancements.mjs").read_text(encoding="utf-8")\n'
+              '        self.assertIn("contactPayloadIsValid", compatibility)\n'
+              '        self.assertIn("createContactController", compatibility)\n'
+          )
+          if text.count(old) != 1:
+              raise SystemExit('unexpected contact compatibility assertion')
+          test.write_text(text.replace(old, new), encoding='utf-8')
+
+          check = Path('scripts/check-frontend-dist.mjs')
+          text = check.read_text(encoding='utf-8')
+          anchor = 'assert.match(smartEntry.file, /^assets\\/smarthome\\.[0-9a-f]{12}\\.mjs$/);\n'
+          addition = '''
+for (const feature of ["features/chat.mjs", "features/contact.mjs"]) {
+  const row = manifest[feature];
+  assert.equal(row?.isDynamicEntry, true, `${feature} is not a dynamic entry`);
+  assert.ok(indexEntry.dynamicImports?.includes(feature), `${feature} is missing from index dynamic imports`);
+  assert.match(row.file, /^assets\\/(?:chat|contact)\\.[0-9a-f]{12}\\.mjs$/);
+}
+'''
+          if addition not in text:
+              if text.count(anchor) != 1:
+                  raise SystemExit('unexpected dist check insertion anchor')
+              text = text.replace(anchor, anchor + addition)
+          check.write_text(text, encoding='utf-8')
+          PY
+
+          python3 -m unittest tests.test_contact_markup -v
+          node --test tests/frontend.test.mjs
+
+      - name: Set up pinned Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.18.0
+          cache: npm
+
+      - name: Rebuild deterministic frontend twice
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build:frontend
+          cp -a html "${RUNNER_TEMP}/c5-first-html"
+          cp frontend-dist-manifest.json "${RUNNER_TEMP}/c5-first-manifest.json"
+          npm run build:frontend
+          diff -ruN "${RUNNER_TEMP}/c5-first-html" html
+          cmp "${RUNNER_TEMP}/c5-first-manifest.json" frontend-dist-manifest.json
+          npm run check:frontend
+          node --test tests/frontend.test.mjs
+          python3 -m unittest tests.test_contact_markup tests.test_frontend_contract tests.test_html_semantics -v
+
+      - name: Run real Chromium behavior smoke
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          chrome_bin=''
+          for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
+            if command -v "$candidate" >/dev/null 2>&1; then chrome_bin="$(command -v "$candidate")"; break; fi
+          done
+          test -n "$chrome_bin"
+          CHROME_BIN="$chrome_bin" node tests/browser-smoke.mjs
+
+      - name: Commit split boundary and generated output
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          rm -f -- .github/workflows/c5-contact-split-finalizer.yml
+          git add -- \
+            .github/workflows/c5-contact-split-finalizer.yml \
+            frontend/index.html \
+            tests/test_contact_markup.py \
+            scripts/check-frontend-dist.mjs \
+            frontend-dist-manifest.json \
+            html/index.html \
+            html/smarthome.html \
+            html/assets \
+            html/i18n
+          staged="$(git diff --cached --name-only)"
+          test -n "$staged"
+          printf '%s\n' "$staged"
+          if grep -E '^html/.*\.pdf$' <<<"$staged"; then
+            echo 'PDF files changed unexpectedly' >&2
+            exit 1
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'perf: make contact verification interaction-only code'
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" push origin HEAD:refs/heads/perf/82-reduce-initial-background-work-v01
