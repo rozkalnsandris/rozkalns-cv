@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFile, readdir, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 
@@ -54,13 +55,20 @@ const indexHtml = await readFile(resolve(htmlRoot, "index.html"), "utf8");
 const smartHtml = await readFile(resolve(htmlRoot, "smarthome.html"), "utf8");
 for (const [name, text] of [["index", indexHtml], ["smarthome", smartHtml]]) {
   assert.doesNotMatch(text, /(?:src|href)="\.\//, `${name} HTML still contains source-relative frontend references`);
-  assert.doesNotMatch(text, /\?cfg=[0-9a-f]{12}/, `${name} HTML still contains manual cache-bust query`);
   for (const path of text.matchAll(/(?:src|href)="\/(assets\/[^"?#]+)/g)) {
     assert.ok(referenced.has(path[1]), `${name} HTML references an asset outside the manifest: ${path[1]}`);
   }
 }
-assert.ok(indexHtml.includes(`/${indexEntry.file}`), "index HTML does not reference manifest entry");
+const nginxRepresentation = createHash("sha256")
+  .update(await readFile(resolve(root, "nginx.conf")))
+  .digest("hex")
+  .slice(0, 12);
+assert.ok(
+  indexHtml.includes(`src="/${indexEntry.file}?cfg=${nginxRepresentation}"`),
+  "index HTML app representation is not bound to nginx.conf"
+);
 assert.ok(smartHtml.includes(`/${smartEntry.file}`), "Smart Home HTML does not reference manifest entry");
+assert.doesNotMatch(smartHtml, /\?cfg=[0-9a-f]{12}/, "Smart Home HTML has an unexpected app representation key");
 
 for (const source of [
   "frontend/index.html",
@@ -70,6 +78,7 @@ for (const source of [
 ]) {
   const text = await readFile(resolve(root, source), "utf8");
   assert.doesNotMatch(text, /\/(?:assets|i18n)\/[^"'`\s]+\.[0-9a-f]{12}\./, `${source} contains a generated fingerprint`);
+  assert.doesNotMatch(text, /\?cfg=[0-9a-f]{12}/, `${source} contains a generated nginx representation key`);
 }
 
 async function totalBytes(paths) {
@@ -92,4 +101,5 @@ for (const [name, [bytes, limit]] of Object.entries(budgets)) {
 }
 
 console.log(`FRONTEND_MANIFEST_ASSETS=${referenced.size}`);
+console.log(`FRONTEND_NGINX_REPRESENTATION=${nginxRepresentation}`);
 console.log("FRONTEND_DIST_CONTRACT=PASS");
