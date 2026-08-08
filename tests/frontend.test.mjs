@@ -1,15 +1,21 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import test from "node:test";
 import {
-  buildChatPayload,
-  normalizeCompletedHistory,
-  validateStats
-} from "../frontend/app.mjs";
+  localeFor,
+  normalizeLanguage,
+  preferredLanguage
+} from "../frontend/core/i18n.mjs";
 import {
-  contactPayloadIsValid,
-  skillIconName
-} from "../frontend/enhancements.mjs";
+  buildChatPayload,
+  normalizeCompletedHistory
+} from "../frontend/features/chat.mjs";
+import { contactPayloadIsValid } from "../frontend/features/contact.mjs";
+import { validateStats } from "../frontend/features/stats.mjs";
+import { skillIconName } from "../frontend/ui/icons.mjs";
 
+const ROOT = resolve(import.meta.dirname, "..");
 const liveStats = {
   updated: "2026-08-06T12:00:00Z",
   uptime_30d: 99.9,
@@ -22,6 +28,40 @@ const liveStats = {
   cpu_temp: 52.3
 };
 
+test("shared locale core preserves cvlang preference and fallback semantics", () => {
+  const storage = { getItem: (key) => key === "cvlang" ? "lv" : null };
+  assert.equal(preferredLanguage({ storage, navigatorLike: { language: "de-DE" } }), "lv");
+  assert.equal(
+    preferredLanguage({ storage: { getItem: () => null }, navigatorLike: { language: "de-DE" } }),
+    "de"
+  );
+  assert.equal(normalizeLanguage("fr-FR"), "en");
+  assert.equal(localeFor("lv"), "lv-LV");
+  assert.equal(localeFor("de"), "de-DE");
+  assert.equal(localeFor("en"), "en-GB");
+});
+
+test("contact copy lives in canonical translation documents", async () => {
+  const keys = [
+    "contact_reveal",
+    "contact_loading",
+    "contact_verifying",
+    "contact_success",
+    "contact_failed",
+    "contact_unavailable",
+    "contact_email_hidden",
+    "contact_phone_hidden"
+  ];
+  for (const language of ["en", "de", "lv"]) {
+    const document = JSON.parse(
+      await readFile(resolve(ROOT, `content/translations/${language}.json`), "utf8")
+    );
+    for (const key of keys) assert.equal(typeof document[key], "string", `${language}:${key}`);
+  }
+  const compatibility = await readFile(resolve(ROOT, "frontend/enhancements.mjs"), "utf8");
+  assert.doesNotMatch(compatibility, /const\s+TEXT\s*=/);
+});
+
 test("chat payload contains the current question once", () => {
   const history = [
     { role: "user", content: "previous" },
@@ -30,10 +70,7 @@ test("chat payload contains the current question once", () => {
   const payload = buildChatPayload("current", history);
   assert.equal(payload.message, "current");
   assert.deepEqual(payload.history, history);
-  assert.equal(
-    JSON.stringify(payload).match(/current/g)?.length,
-    1
-  );
+  assert.equal(JSON.stringify(payload).match(/current/g)?.length, 1);
 });
 
 test("incomplete history is dropped", () => {
