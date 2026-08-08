@@ -238,6 +238,7 @@ jobs:
           allowed = {
               '.github/workflows/c94-v4-finalizer.yml',
               'scripts/c94-v4-apply.py',
+              'scripts/build-content.py',
               'bot/app.py', 'bot/contact.py', 'bot/system_prompt.txt',
               'content/pdf-manifest.json', 'content/profile.json',
               'content/profile.schema.json',
@@ -271,7 +272,7 @@ jobs:
           set -Eeuo pipefail
           git add -- \
             .github/workflows/c94-v4-finalizer.yml \
-            scripts/c94-v4-apply.py \
+            scripts/c94-v4-apply.py scripts/build-content.py \
             bot/app.py bot/contact.py bot/system_prompt.txt \
             content/pdf-manifest.json content/profile.json content/profile.schema.json \
             content/translations \
