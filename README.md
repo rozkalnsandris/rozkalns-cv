@@ -1,11 +1,40 @@
 <p align="center">
-  <img src="assets/branding/readme-banner.jpg" alt="rozkalns.net CV project banner" width="960">
+  <img src="assets/branding/project-logo.svg" alt="rozkalns.net CV project logo" width="128" height="128">
 </p>
 
-# rozkalns.net CV
+<h1 align="center">rozkalns.net CV</h1>
 
-Source of truth for Andris Rožkalns' public CV/portfolio at
-`https://rozkalns.net/`.
+<p align="center">
+  <strong>A source-controlled multilingual CV and portfolio, built deterministically and deployed to a self-hosted Raspberry Pi 5.</strong>
+</p>
+
+<p align="center">
+  <a href="https://rozkalns.net/">Live site</a>
+  ·
+  <a href="content/profile.json">Canonical CV data</a>
+  ·
+  <a href="frontend/">Frontend source</a>
+  ·
+  <a href="https://github.com/rozkalnsandris/rozkalns-cv/actions">Actions</a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/rozkalnsandris/rozkalns-cv/actions/workflows/ci.yml">
+    <img src="https://github.com/rozkalnsandris/rozkalns-cv/actions/workflows/ci.yml/badge.svg?branch=main" alt="rozkalns.net CV CI status">
+  </a>
+</p>
+
+This repository is the source of truth for Andris Rožkalns' public CV and
+portfolio at `https://rozkalns.net/`. Human-readable profile data, translations,
+frontend source, deterministic build output and the CV assistant are reviewed
+and versioned together before deployment.
+
+| | |
+|---|---|
+| **Frontend** | Vite-built static site · multilingual EN / DE / LV |
+| **CV data** | `content/profile.json` · versioned translations |
+| **Assistant** | Python CV assistant behind Nginx |
+| **Runtime** | Docker Compose · Raspberry Pi 5 · shared Cloudflare Tunnel |
 
 ## Architecture
 
