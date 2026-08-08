@@ -12,7 +12,7 @@ import {
   normalizeCompletedHistory
 } from "../frontend/features/chat.mjs";
 import { contactPayloadIsValid } from "../frontend/features/contact.mjs";
-import { validateStats } from "../frontend/features/stats.mjs";
+import { bindStatsVisibility, validateStats } from "../frontend/features/stats.mjs";
 import { skillIconName } from "../frontend/ui/icons.mjs";
 
 const ROOT = resolve(import.meta.dirname, "..");
@@ -104,6 +104,54 @@ test("future, malformed, and non-finite stats are offline", () => {
   const missing = { ...liveStats };
   delete missing.cpu_temp;
   assert.equal(validateStats(missing).valid, false);
+});
+
+test("stats polling follows initial and changing page visibility", () => {
+  const calls = [];
+  const documentListeners = new Map();
+  const windowListeners = new Map();
+  const documentLike = {
+    hidden: true,
+    addEventListener(type, listener) { documentListeners.set(type, listener); },
+    removeEventListener(type, listener) {
+      if (documentListeners.get(type) === listener) documentListeners.delete(type);
+    }
+  };
+  const windowLike = {
+    addEventListener(type, listener) { windowListeners.set(type, listener); },
+    removeEventListener(type, listener) {
+      if (windowListeners.get(type) === listener) windowListeners.delete(type);
+    }
+  };
+  const stats = {
+    start() { calls.push("start"); },
+    stop() { calls.push("stop"); }
+  };
+
+  const cleanup = bindStatsVisibility(stats, { documentLike, windowLike });
+  assert.deepEqual(calls, ["stop"]);
+
+  documentLike.hidden = false;
+  documentListeners.get("visibilitychange")();
+  documentLike.hidden = true;
+  documentListeners.get("visibilitychange")();
+  windowListeners.get("pagehide")();
+  assert.deepEqual(calls, ["stop", "start", "stop", "stop"]);
+
+  cleanup();
+  assert.equal(documentListeners.has("visibilitychange"), false);
+  assert.equal(windowListeners.has("pagehide"), false);
+  assert.deepEqual(calls, ["stop", "start", "stop", "stop", "stop"]);
+});
+
+test("chat and contact stay behind interaction-only dynamic imports", async () => {
+  const source = await readFile(resolve(ROOT, "frontend/app.mjs"), "utf8");
+  assert.doesNotMatch(source, /^import[\s\S]*?from "\.\/features\/chat\.mjs";/m);
+  assert.doesNotMatch(source, /^import[\s\S]*?from "\.\/features\/contact\.mjs";/m);
+  assert.match(source, /import\("\.\/features\/chat\.mjs"\)/);
+  assert.match(source, /import\("\.\/features\/contact\.mjs"\)/);
+  assert.match(source, /from "\.\/features\/stats\.mjs";/);
+  assert.match(source, /bindStatsVisibility\(stats\)/);
 });
 
 test("skill chips map to meaningful SVG icon families", () => {
