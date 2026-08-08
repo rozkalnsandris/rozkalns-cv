@@ -18,6 +18,7 @@ from typing import Any
 import requests
 from flask import Flask, Response, jsonify, request, stream_with_context
 
+from chat_policy import ProtectedContactPolicy, ProtectedContactStreamGuard
 from contact import (
     ContactVerificationError,
     load_contact_config,
@@ -65,6 +66,10 @@ TRUSTED_PROXY_CIDRS = tuple(
     if value.strip()
 )
 CONTACT_CONFIG = load_contact_config()
+CHAT_OUTPUT_POLICY = ProtectedContactPolicy(
+    CONTACT_CONFIG.phone_display,
+    CONTACT_CONFIG.phone_uri,
+)
 
 STORE = AssistantStore(
     DB_PATH,
@@ -147,10 +152,6 @@ RULES
 - For the start date, say Andris is available from 2027-01.
 - Keep answers concise, factual, and professional."""
 # END GENERATED SYSTEM PROMPT
-SYSTEM_PROMPT += (
-    "\n- Do not provide the full email address or phone number in chat. "
-    "Direct visitors to the verified contact section on the CV page."
-)
 
 
 class RequestValidationError(ValueError):
@@ -367,6 +368,7 @@ def chat() -> Response:
 
     def generate():
         full_reply: list[str] = []
+        guard = ProtectedContactStreamGuard(CHAT_OUTPUT_POLICY)
         try:
             with requests.post(
                 f"{LLM_BASE_URL}/chat/completions",
@@ -401,13 +403,31 @@ def chat() -> Response:
                     except (json.JSONDecodeError, KeyError, IndexError, TypeError):
                         continue
                     if isinstance(delta, str) and delta:
-                        full_reply.append(delta)
-                        yield delta
+                        for safe_chunk in guard.feed(delta):
+                            full_reply.append(safe_chunk)
+                            yield safe_chunk
+                        if guard.blocked:
+                            break
+
+                if not guard.blocked:
+                    for safe_chunk in guard.finish():
+                        full_reply.append(safe_chunk)
+                        yield safe_chunk
         except requests.exceptions.Timeout:
-            yield "\n\n[That took too long — please try again.]"
+            if not guard.blocked:
+                for safe_chunk in guard.finish():
+                    full_reply.append(safe_chunk)
+                    yield safe_chunk
+            if not guard.blocked:
+                yield "\n\n[That took too long — please try again.]"
         except Exception as error:
             app.logger.error("LLM stream failed: %s", type(error).__name__)
-            yield "\n\n[Sorry, something went wrong. Please email Andris directly.]"
+            if not guard.blocked:
+                for safe_chunk in guard.finish():
+                    full_reply.append(safe_chunk)
+                    yield safe_chunk
+            if not guard.blocked:
+                yield "\n\n[Sorry, something went wrong. Please email Andris directly.]"
         finally:
             answer_text = "".join(full_reply).strip()
             if answer_text:
