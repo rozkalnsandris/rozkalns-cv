@@ -56,6 +56,27 @@ export function createContactController(languageController, {
 
   const message = (key, fallback) => languageController.messages?.[key] || fallback;
 
+  function refreshCopy() {
+    const label = button.querySelector(".contact-reveal-label");
+    const email = root.querySelector("#contactEmail");
+    const phone = root.querySelector("#contactPhone");
+    if (label && !button.dataset.locked) {
+      label.textContent = message("contact_reveal", "Verify to show contact details");
+    }
+    if (email && email.dataset.revealed !== "true") {
+      email.setAttribute(
+        "aria-label",
+        message("contact_email_hidden", "Email address hidden until verification")
+      );
+    }
+    if (phone && phone.dataset.revealed !== "true") {
+      phone.setAttribute(
+        "aria-label",
+        message("contact_phone_hidden", "Phone number hidden until verification")
+      );
+    }
+  }
+
   async function submitToken(token, turnstile, widgetId) {
     setStatus(root, message("contact_verifying", "Verifying…"));
     const response = await fetchImpl("/api/contact-reveal", {
@@ -116,9 +137,13 @@ export function createContactController(languageController, {
       );
       button.disabled = false;
       delete button.dataset.locked;
+      refreshCopy();
     }
   }
 
+  refreshCopy();
   button.addEventListener("click", start);
-  return { start };
+  const observer = new MutationObserver(refreshCopy);
+  observer.observe(root.documentElement, { attributes: true, attributeFilter: ["lang"] });
+  return { start, refreshCopy };
 }
