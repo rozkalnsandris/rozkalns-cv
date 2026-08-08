@@ -97,7 +97,7 @@ const css = actualAssets.filter((file) => file.endsWith(".css"));
 const budgets = {
   javascript: [await totalBytes(js), 25_000],
   css: [await totalBytes(css), 22_000],
-  translations: [await totalBytes(actualI18n), 24_000],
+  translations: [await totalBytes(actualI18n), 22_000],
   indexHtml: [(await stat(resolve(htmlRoot, "index.html"))).size, 21_000],
   smartHomeHtml: [(await stat(resolve(htmlRoot, "smarthome.html"))).size, 5_000]
 };
