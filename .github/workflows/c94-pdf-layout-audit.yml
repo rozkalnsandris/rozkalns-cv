@@ -1,27 +1,28 @@
-name: C94 PDF layout preview
+name: C94 public email and WhatsApp PDF finalizer
 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
-  group: c94-pdf-layout-${{ github.event.pull_request.number }}
-  cancel-in-progress: true
+  group: c94-public-contact-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
 
 jobs:
-  preview:
+  finalize:
     if: >-
       github.repository == 'rozkalnsandris/rozkalns-cv' &&
+      github.actor == 'rozkalnsandris' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       github.event.pull_request.head.ref == 'fix/94-public-email-verified-whatsapp-v3'
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 35
 
     steps:
-      - name: Check out exact PR head
+      - name: Check out exact PR head and reviewed prototype helpers
         env:
           GH_TOKEN: ${{ github.token }}
           EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
@@ -33,27 +34,667 @@ jobs:
           git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
           git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
             fetch --no-tags origin "$EXPECTED_HEAD"
-          git checkout --detach FETCH_HEAD
+          git checkout -b fix/94-public-email-verified-whatsapp-v3 FETCH_HEAD
           test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            fetch --no-tags origin \
+            'refs/heads/fix/94-public-email-verified-whatsapp-v2:refs/remotes/origin/c94-v2'
 
-      - name: Render privacy-clean one-page PDFs
+      - name: Apply owner-approved current contact policy
         shell: bash
         run: |
           set -Eeuo pipefail
+          # Reuse only the already-reviewed backend/contact controller implementations.
+          git show origin/c94-v2:bot/contact.py > bot/contact.py
+          git show origin/c94-v2:frontend/features/contact.mjs > frontend/features/contact.mjs
+          git show origin/c94-v2:tests/test_contact.py > tests/test_contact.py
+
+          python3 - <<'PY'
+          from __future__ import annotations
+
+          import json
+          from pathlib import Path
+          import re
+
+          root = Path('.')
+          public_email = 'andris@rozkalns.net'
+          protected_url = 'https://rozkalns.net/?contact=whatsapp'
+
+          # Canonical profile: recruiting email public, phone metadata-only protected.
+          profile_path = root / 'content/profile.json'
+          profile = json.loads(profile_path.read_text(encoding='utf-8'))
+          profile['content_version'] = '2026-08-08.2'
+          profile['contact']['email'] = {
+              'value': public_email,
+              'visibility': 'public',
+          }
+          profile['contact']['phone'] = {'visibility': 'runtime-protected'}
+          profile_path.write_text(
+              json.dumps(profile, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
+          )
+
+          schema_path = root / 'content/profile.schema.json'
+          schema = json.loads(schema_path.read_text(encoding='utf-8'))
+          schema['properties']['contact']['properties']['email'] = {
+              '$ref': '#/$defs/publicValue'
+          }
+          schema['properties']['contact']['properties']['phone'] = {
+              '$ref': '#/$defs/protectedValue'
+          }
+          schema_path.write_text(
+              json.dumps(schema, ensure_ascii=False, indent=2) + '\n',
+              encoding='utf-8',
+          )
+
+          # Canonical builder: expose only the dedicated recruiting email.
+          builder_path = root / 'scripts/build-content.py'
+          builder = builder_path.read_text(encoding='utf-8')
+          old_validation = '''    for key in ("email", "phone"):
+              entry = require_object(
+                  contact[key], f"profile.contact.{key}", {"visibility"}
+              )
+              if entry["visibility"] != "runtime-protected":
+                  raise ContentError(f"profile.contact.{key} must be runtime-protected")
+          for key in ("github", "website"):
+          '''
+          new_validation = '''    email = require_object(
+              contact["email"], "profile.contact.email", {"value", "visibility"}
+          )
+          require_text(email["value"], "profile.contact.email.value", 3)
+          if email["visibility"] != "public":
+              raise ContentError("profile.contact.email must be public")
+          phone = require_object(
+              contact["phone"], "profile.contact.phone", {"visibility"}
+          )
+          if phone["visibility"] != "runtime-protected":
+              raise ContentError("profile.contact.phone must be runtime-protected")
+          for key in ("github", "website"):
+          '''
+          if old_validation not in builder:
+              raise SystemExit('builder contact validation anchor missing')
+          builder = builder.replace(old_validation, new_validation, 1)
+          old_prompt = '        "Email and phone: available only through the verified contact section on the public CV.",\n'
+          new_prompt = (
+              '        f"Email: {contact[\'email\'][\'value\']}",\n'
+              '        "Phone and WhatsApp: available only through the verified contact section on the public CV.",\n'
+          )
+          if builder.count(old_prompt) != 1:
+              raise SystemExit('builder prompt contact anchor count is not one')
+          builder = builder.replace(old_prompt, new_prompt, 1)
+          old_rule = '            "- Do not reveal, infer, or guess protected email or phone details; direct contact requests to the verified contact section on the public CV.",\n'
+          new_rule = (
+              '            "- The dedicated recruiting email is public and may be provided directly.",\n'
+              '            "- Do not reveal, infer, or guess the protected phone number; direct phone or WhatsApp requests to the verified contact section on the public CV.",\n'
+          )
+          if builder.count(old_rule) != 1:
+              raise SystemExit('builder protected-contact rule anchor count is not one')
+          builder = builder.replace(old_rule, new_rule, 1)
+          builder_path.write_text(builder, encoding='utf-8')
+
+          # Public site: show recruiting email immediately; phone stays masked.
+          index_path = root / 'frontend/index.html'
+          index = index_path.read_text(encoding='utf-8')
+          old_email = '<span id="contactEmail" class="contact-masked" aria-label="Email address hidden until verification">an••••@••••••••.net</span>'
+          new_email = f'<a id="contactEmail" href="mailto:{public_email}">{public_email}</a>'
+          if index.count(old_email) != 1:
+              raise SystemExit('frontend public email anchor count is not one')
+          index = index.replace(old_email, new_email, 1)
+          index = index.replace(
+              '<span class="contact-reveal-label">Verify to show contact details</span>',
+              '<span class="contact-reveal-label">Verify to show phone number</span>',
+              1,
+          )
+          index_path.write_text(index, encoding='utf-8')
+
+          # Auto-start the verified flow when entering from the PDF QR.
+          app_path = root / 'frontend/app.mjs'
+          app = app_path.read_text(encoding='utf-8')
+          if 'function requestedWhatsAppContact()' not in app:
+              if '  if (!button) return;\n' not in app:
+                  raise SystemExit('frontend lazy-contact null anchor missing')
+              app = app.replace('  if (!button) return;\n', '  if (!button) return null;\n', 1)
+              end_anchor = '  button.addEventListener("click", activate);\n}\n\nasync function init() {'
+              end_replacement = '''  button.addEventListener("click", activate);
+            return activate;
+          }
+
+          function requestedWhatsAppContact() {
+            try {
+              return new URL(window.location.href).searchParams.get("contact") === "whatsapp";
+            } catch {
+              return false;
+            }
+          }
+
+          async function init() {'''
+              if end_anchor not in app:
+                  raise SystemExit('frontend lazy-contact return anchor missing')
+              app = app.replace(end_anchor, end_replacement, 1)
+              init_anchor = '  enhanceSkillIcons();\n  installLazyContact(languageController);\n\n  const stats = createStatsController(languageController);'
+              init_replacement = '''  enhanceSkillIcons();
+            const activateContact = installLazyContact(languageController);
+            if (requestedWhatsAppContact()) await activateContact?.();
+
+            const stats = createStatsController(languageController);'''
+              if init_anchor not in app:
+                  raise SystemExit('frontend contact init anchor missing')
+              app = app.replace(init_anchor, init_replacement, 1)
+          app_path.write_text(app, encoding='utf-8')
+
+          # Backend: direct WhatsApp URL exists only after successful server-side verification.
+          app_backend_path = root / 'bot/app.py'
+          backend = app_backend_path.read_text(encoding='utf-8')
+          old_response = '''    response = jsonify(
+              email=CONTACT_CONFIG.email,
+              phone=CONTACT_CONFIG.phone_display,
+              phone_uri=CONTACT_CONFIG.phone_uri,
+          )
+          '''
+          new_response = '''    try:
+              whatsapp_url = CONTACT_CONFIG.whatsapp_url
+          except ContactVerificationError as error:
+              app.logger.error("verified contact target failed: %s", type(error).__name__)
+              return jsonify(error="Contact verification is temporarily unavailable."), 503
+
+          response = jsonify(
+              email=CONTACT_CONFIG.email,
+              phone=CONTACT_CONFIG.phone_display,
+              phone_uri=CONTACT_CONFIG.phone_uri,
+              whatsapp_url=whatsapp_url,
+          )
+          '''
+          if backend.count(old_response) != 1:
+              raise SystemExit('backend contact response anchor count is not one')
+          backend = backend.replace(old_response, new_response, 1)
+          app_backend_path.write_text(backend, encoding='utf-8')
+
+          # Localized contact copy; preserve identical key sets.
+          localized = {
+              'en': {
+                  'contact_reveal': 'Verify to show phone number',
+                  'contact_whatsapp_verify': 'Verify to open WhatsApp',
+                  'contact_success': 'Contact verified.',
+              },
+              'de': {
+                  'contact_reveal': 'Prüfen, um die Telefonnummer anzuzeigen',
+                  'contact_whatsapp_verify': 'Prüfen, um WhatsApp zu öffnen',
+                  'contact_success': 'Kontakt bestätigt.',
+              },
+              'lv': {
+                  'contact_reveal': 'Pārbaudīt, lai parādītu tālruni',
+                  'contact_whatsapp_verify': 'Pārbaudīt, lai atvērtu WhatsApp',
+                  'contact_success': 'Kontakts apstiprināts.',
+              },
+          }
+          for language, updates in localized.items():
+              path = root / f'content/translations/{language}.json'
+              data = json.loads(path.read_text(encoding='utf-8'))
+              data.update(updates)
+              path.write_text(
+                  json.dumps(data, ensure_ascii=False, indent=2) + '\n',
+                  encoding='utf-8',
+              )
+
+          # Node tests: query-purpose and runtime WhatsApp URL validation.
+          frontend_test_path = root / 'tests/frontend.test.mjs'
+          frontend_test = frontend_test_path.read_text(encoding='utf-8')
+          frontend_test = frontend_test.replace(
+              'import { contactPayloadIsValid } from "../frontend/features/contact.mjs";',
+              'import { contactPayloadIsValid, contactPurpose, whatsappUrlIsValid } from "../frontend/features/contact.mjs";',
+              1,
+          )
+          frontend_test = frontend_test.replace(
+              '    "contact_reveal",\n',
+              '    "contact_reveal",\n    "contact_whatsapp_verify",\n',
+              1,
+          )
+          test_anchor = '''  assert.equal(
+              contactPayloadIsValid({
+                email: "not-an-email",
+                phone: "123",
+                phone_uri: "javascript:alert(1)"
+              }),
+              false
+            );
+          });'''
+          test_replacement = '''  assert.equal(
+              contactPayloadIsValid({
+                email: "not-an-email",
+                phone: "123",
+                phone_uri: "javascript:alert(1)"
+              }),
+              false
+            );
+            assert.equal(whatsappUrlIsValid("https://wa.me/49123456789"), true);
+            assert.equal(whatsappUrlIsValid("javascript:alert(1)"), false);
+            assert.equal(
+              contactPurpose({ location: { href: "https://rozkalns.net/?contact=whatsapp" } }),
+              "whatsapp"
+            );
+          });'''
+          if test_anchor not in frontend_test:
+              raise SystemExit('frontend contact test anchor missing')
+          frontend_test = frontend_test.replace(test_anchor, test_replacement, 1)
+          frontend_test_path.write_text(frontend_test, encoding='utf-8')
+
+          # Real Chromium contract: email is already public, phone is newly revealed/focused.
+          browser_path = root / 'tests/browser-smoke.mjs'
+          browser = browser_path.read_text(encoding='utf-8')
+          fixture_anchor = '          phone_uri: "+491234567890"\n'
+          if browser.count(fixture_anchor) != 1:
+              raise SystemExit('browser phone fixture anchor count is not one')
+          browser = browser.replace(
+              fixture_anchor,
+              '          phone_uri: "+491234567890",\n'
+              '          whatsapp_url: "https://wa.me/491234567890"\n',
+              1,
+          )
+          turnstile_anchor = '''    await cdp.evaluate(`(() => {
+            window.turnstile = {'''
+          if browser.count(turnstile_anchor) != 1:
+              raise SystemExit('browser Turnstile anchor count is not one')
+          preconditions = f'''    assert.equal(
+            await cdp.evaluate(`document.querySelector('#contactEmail')?.getAttribute('href')`),
+            "mailto:{public_email}"
+          );
+          assert.equal(
+            await cdp.evaluate(`document.querySelector('#contactPhone')?.tagName`),
+            "SPAN"
+          );
+          '''
+          browser = browser.replace(turnstile_anchor, preconditions + turnstile_anchor, 1)
+          browser = browser.replace(
+              '      "keyboard contact verification focus transfer"\n',
+              '      "keyboard phone verification focus transfer"\n',
+              1,
+          )
+          if browser.count('      "mailto:test@example.invalid"\n') != 1:
+              raise SystemExit('browser old focus href anchor count is not one')
+          browser = browser.replace(
+              '      "mailto:test@example.invalid"\n',
+              '      "tel:+491234567890"\n',
+              1,
+          )
+          browser_path.write_text(browser, encoding='utf-8')
+
+          # Markup test: public mailto is allowed/required, phone stays masked.
+          markup_path = root / 'tests/test_contact_markup.py'
+          markup = markup_path.read_text(encoding='utf-8')
+          pattern = re.compile(
+              r'    def test_initial_html_does_not_embed_contact_channels\(self\) -> None:\n.*?\n    def test_contact_config_has_no_embedded_contact_fallbacks',
+              re.DOTALL,
+          )
+          replacement = f'''    def test_initial_html_exposes_public_email_but_not_phone(self) -> None:
+              index = (ROOT / "html" / "index.html").read_text(encoding="utf-8")
+              self.assertIn('href="mailto:{public_email}"', index)
+              self.assertIn('>{public_email}</a>', index)
+              self.assertNotRegex(index, r'(?i)href=["\\\']tel:')
+              self.assertIn('id="contactPhone"', index)
+              self.assertIn('class="contact-masked"', index)
+              self.assertIn('id="contactReveal"', index)
+              self.assertIn('id="turnstileMount"', index)
+
+          def test_contact_config_has_no_embedded_contact_fallbacks'''
+          markup, count = pattern.subn(replacement, markup, count=1)
+          if count != 1:
+              raise SystemExit('contact markup test replacement count is not one')
+          markup_path.write_text(markup, encoding='utf-8')
+
+          # #105 current-tree regression test, updated to the newer owner policy.
+          privacy_test = f'''from __future__ import annotations
+
+          import json
+          from pathlib import Path
+          import re
+          import unittest
+
+          ROOT = Path(__file__).resolve().parents[1]
+
+
+          class CurrentContactPolicyTests(unittest.TestCase):
+              def test_canonical_email_is_public_and_phone_is_runtime_protected(self) -> None:
+                  profile = json.loads((ROOT / "content/profile.json").read_text(encoding="utf-8"))
+                  self.assertEqual(profile["contact"]["email"]["visibility"], "public")
+                  self.assertEqual(profile["contact"]["email"]["value"], "{public_email}")
+                  self.assertEqual(profile["contact"]["phone"], {{"visibility": "runtime-protected"}})
+
+                  schema = json.loads((ROOT / "content/profile.schema.json").read_text(encoding="utf-8"))
+                  self.assertEqual(
+                      schema["properties"]["contact"]["properties"]["email"],
+                      {{"$ref": "#/$defs/publicValue"}},
+                  )
+                  self.assertEqual(
+                      schema["properties"]["contact"]["properties"]["phone"],
+                      {{"$ref": "#/$defs/protectedValue"}},
+                  )
+
+              def test_generated_assistant_knows_public_email_but_not_phone(self) -> None:
+                  prompt = (ROOT / "bot/system_prompt.txt").read_text(encoding="utf-8")
+                  app = (ROOT / "bot/app.py").read_text(encoding="utf-8")
+                  self.assertIn("Email: {public_email}", prompt)
+                  self.assertIn("Phone and WhatsApp: available only through", prompt)
+                  self.assertNotRegex(prompt, r"Phone:\\s*\\+[0-9]")
+                  self.assertIn("Email: {public_email}", app)
+                  self.assertNotRegex(app, r"Phone:\\s*\\+[0-9]")
+
+              def test_public_frontend_has_email_but_no_numbered_whatsapp_target(self) -> None:
+                  source = (ROOT / "frontend/index.html").read_text(encoding="utf-8")
+                  app = (ROOT / "frontend/app.mjs").read_text(encoding="utf-8")
+                  contact = (ROOT / "frontend/features/contact.mjs").read_text(encoding="utf-8")
+                  self.assertIn("mailto:{public_email}", source)
+                  self.assertIn("?contact=whatsapp", app)
+                  self.assertNotRegex(source + app, r"wa\\.me/[0-9]")
+                  self.assertNotRegex(source + app, r"tel:\\+[0-9]")
+                  self.assertNotRegex(contact, r"https://wa\\.me/[0-9]")
+
+              def test_bootstrap_git_author_has_no_personal_email_fallback(self) -> None:
+                  bootstrap = (ROOT / "scripts/bootstrap-github.sh").read_text(encoding="utf-8")
+                  self.assertIn("GIT_AUTHOR_EMAIL", bootstrap)
+                  self.assertIn("GIT_AUTHOR_NAME", bootstrap)
+                  self.assertNotRegex(bootstrap, r"GIT_AUTHOR_EMAIL=.*@")
+                  self.assertNotIn("git config user.email \"{public_email}\"", bootstrap)
+
+
+          if __name__ == "__main__":
+              unittest.main()
+          '''
+          privacy_lines = [line[10:] if line.startswith('          ') else line for line in privacy_test.splitlines()]
+          (root / 'tests/test_current_contact_privacy.py').write_text(
+              '\n'.join(privacy_lines).lstrip() + '\n', encoding='utf-8'
+          )
+
+          # Public-readiness documentation: latest owner decision is authoritative.
+          readiness_path = root / 'docs/PUBLIC_READINESS.md'
+          readiness = readiness_path.read_text(encoding='utf-8')
+          readiness = readiness.replace(
+              '- [x] Remove personal contact values from the current tracked source/tests; the Turnstile reveal flow now reads contact values only from runtime environment variables.',
+              '- [ ] #94 — keep the dedicated recruiting email public while protecting phone/WhatsApp behind server-side verification; final merge/deploy evidence is still pending.',
+              1,
+          )
+          readiness = readiness.replace(
+              '- Contact values are runtime configuration; missing `CONTACT_*` values fail closed instead of falling back to embedded personal data.',
+              '- `andris@rozkalns.net` is intentionally public for recruiting. Phone values remain runtime configuration; missing `CONTACT_*` values fail closed instead of falling back to embedded personal data. Public PDFs use a QR to the verified-site WhatsApp flow rather than printing the phone number.',
+              1,
+          )
+          readiness_path.write_text(readiness, encoding='utf-8')
+
+          authoring_path = root / 'docs/CONTENT_AUTHORING.md'
+          authoring = authoring_path.read_text(encoding='utf-8')
+          authoring = authoring.replace(
+              '`content/profile.json` — public professional facts, structured records, and runtime-protected contact-channel metadata;',
+              '`content/profile.json` — public professional facts, the intentionally public recruiting email, and runtime-protected phone-channel metadata;',
+              1,
+          )
+          authoring = authoring.replace(
+              '`bot/system_prompt.txt` from public canonical profile facts, excluding runtime-protected email and phone values;',
+              '`bot/system_prompt.txt` from public canonical profile facts, including the recruiting email while excluding the runtime-protected phone value;',
+              1,
+          )
+          authoring = authoring.replace(
+              'confirm runtime-protected email/phone values and contact links are absent from\n   every PDF, while public GitHub, website, role, availability, work history,\n   projects, skills, and education remain correct;',
+              'confirm the recruiting email is present, raw phone text and direct numbered WhatsApp/telephone links are absent, and the WhatsApp-marked QR decodes only to the verified `rozkalns.net` contact URL;',
+              1,
+          )
+          authoring = authoring.replace(
+              'the assistant prompt contains only public canonical facts and directs email/phone requests to the verified contact section;',
+              'the assistant prompt may provide the public recruiting email but directs phone/WhatsApp requests to the verified contact section;',
+              1,
+          )
+          authoring_path.write_text(authoring, encoding='utf-8')
+
+          print('C94_SOURCE_POLICY_PATCH=PASS')
+          PY
+
+      - name: Install locked app dependencies and PDF overlay tools
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test_venv="${RUNNER_TEMP}/c94-test-venv"
+          python3 -m venv "$test_venv"
+          "$test_venv/bin/python" -m pip install \
+            --disable-pip-version-check \
+            --require-hashes \
+            --no-deps \
+            -r bot/requirements.lock
+          echo "TEST_VENV=$test_venv" >> "$GITHUB_ENV"
           sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends poppler-utils
-          out="${RUNNER_TEMP}/c94-pdf-layout"
-          mkdir -p "$out"
-          for spec in en:html/cv.pdf de:html/cv-de.pdf lv:html/cv-lv.pdf; do
-            IFS=: read -r language pdf <<<"$spec"
+          sudo apt-get install -y --no-install-recommends \
+            poppler-utils qpdf python3-reportlab python3-qrcode python3-pil python3-opencv
+
+      - name: Set up pinned Node.js frontend toolchain
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.18.0'
+          package-manager-cache: false
+
+      - name: Build deterministic frontend
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build:frontend
+          npm run check:frontend
+
+      - name: Stamp public email and verified WhatsApp QR into one-page PDFs
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          work="${RUNNER_TEMP}/c94-pdf"
+          mkdir -p "$work"
+          python3 - "$work" <<'PY'
+          from pathlib import Path
+          import sys
+
+          import qrcode
+          from qrcode.constants import ERROR_CORRECT_H
+          from PIL import Image, ImageDraw
+          from reportlab.lib.colors import HexColor
+          from reportlab.lib.pagesizes import A4
+          from reportlab.lib.utils import ImageReader
+          from reportlab.pdfbase.pdfmetrics import stringWidth
+          from reportlab.pdfgen import canvas
+
+          work = Path(sys.argv[1])
+          target = 'https://rozkalns.net/?contact=whatsapp'
+          email = 'andris@rozkalns.net'
+
+          qr = qrcode.QRCode(
+              version=None,
+              error_correction=ERROR_CORRECT_H,
+              box_size=16,
+              border=4,
+          )
+          qr.add_data(target)
+          qr.make(fit=True)
+          image = qr.make_image(fill_color='black', back_color='white').convert('RGBA')
+
+          # WhatsApp-style center mark: green circle with a white handset/speech motif.
+          draw = ImageDraw.Draw(image)
+          width, height = image.size
+          logo = int(min(width, height) * 0.19)
+          cx, cy = width // 2, height // 2
+          box = (cx - logo // 2, cy - logo // 2, cx + logo // 2, cy + logo // 2)
+          draw.ellipse(box, fill=(37, 211, 102, 255))
+          inset = int(logo * 0.22)
+          white_box = (box[0] + inset, box[1] + inset, box[2] - inset, box[3] - inset)
+          stroke = max(3, int(logo * 0.09))
+          draw.arc(white_box, start=120, end=300, fill='white', width=stroke)
+          draw.line(
+              [
+                  (int(cx - logo * 0.19), int(cy + logo * 0.12)),
+                  (int(cx - logo * 0.29), int(cy + logo * 0.26)),
+              ],
+              fill='white',
+              width=stroke,
+          )
+          image.save(work / 'whatsapp-qr.png')
+
+          page_w, page_h = A4
+          overlay = work / 'contact-overlay.pdf'
+          c = canvas.Canvas(str(overlay), pagesize=A4)
+          c.setFillColor(HexColor('#737b86'))
+          c.setFont('Helvetica', 8.5)
+          prefix = ' · '
+          x = 160.0
+          y = 765.0
+          c.drawString(x, y, prefix + email)
+          c.linkURL(
+              'mailto:' + email,
+              (x, y - 2, x + stringWidth(prefix + email, 'Helvetica', 8.5), y + 9),
+              relative=0,
+          )
+          qr_x, qr_y, qr_size = 430.0, 775.0, 50.0
+          c.drawImage(
+              ImageReader(str(work / 'whatsapp-qr.png')),
+              qr_x,
+              qr_y,
+              width=qr_size,
+              height=qr_size,
+              preserveAspectRatio=True,
+              mask='auto',
+          )
+          c.save()
+          print('C94_PDF_OVERLAY_ASSET=PASS')
+          PY
+
+          for pdf in html/cv.pdf html/cv-de.pdf html/cv-lv.pdf; do
             test "$(pdfinfo "$pdf" | awk '/^Pages:/ {print $2}')" = '1'
-            pdftoppm -f 1 -singlefile -png -r 180 "$pdf" "$out/$language" >/dev/null
-            printf 'C94_LAYOUT language=%s pages=1 render=PASS\n' "$language"
+            pdfinfo "$pdf" | grep -Fq '(A4)'
+            tmp="${pdf%.pdf}.c94.pdf"
+            qpdf "$pdf" --overlay "$work/contact-overlay.pdf" -- "$tmp"
+            mv "$tmp" "$pdf"
+            test "$(pdfinfo "$pdf" | awk '/^Pages:/ {print $2}')" = '1'
           done
 
-      - name: Upload sanitized layout previews
+      - name: Bind PDFs and generated assistant prompt to canonical source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 scripts/build-content.py --write --accept-pdfs
+          python3 scripts/sync-system-prompt.py --write
+          python3 scripts/build-content.py --check
+          python3 scripts/sync-system-prompt.py --check
+
+      - name: Verify one-page PDF privacy, email and QR contract
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          preview="${RUNNER_TEMP}/c94-final-preview"
+          mkdir -p "$preview"
+          for spec in en:html/cv.pdf de:html/cv-de.pdf lv:html/cv-lv.pdf; do
+            IFS=: read -r language pdf <<<"$spec"
+            text="${preview}/${language}.txt"
+            png="${preview}/${language}"
+            urls="${preview}/${language}.urls.txt"
+            test "$(pdfinfo "$pdf" | awk '/^Pages:/ {print $2}')" = '1'
+            pdftotext "$pdf" "$text"
+            grep -Fq 'andris@rozkalns.net' "$text"
+            if grep -Eq '\+49[[:space:][:digit:]()/-]{8,}' "$text"; then
+              printf 'C94_PDF_PHONE language=%s FAIL\n' "$language" >&2
+              exit 1
+            fi
+            pdfinfo -url "$pdf" >"$urls"
+            if grep -Eq 'tel:|https://wa\.me/[0-9]' "$urls"; then
+              printf 'C94_PDF_DIRECT_PHONE_LINK language=%s FAIL\n' "$language" >&2
+              exit 1
+            fi
+            pdftoppm -f 1 -singlefile -png -r 180 "$pdf" "$png" >/dev/null
+            decoded="$(python3 - "${png}.png" <<'PY'
+          import cv2
+          import sys
+          image = cv2.imread(sys.argv[1])
+          if image is None:
+              raise SystemExit(2)
+          data, points, _ = cv2.QRCodeDetector().detectAndDecode(image)
+          if points is None:
+              raise SystemExit(3)
+          print(data, end='')
+          PY
+            )"
+            test "$decoded" = 'https://rozkalns.net/?contact=whatsapp'
+            printf 'C94_PDF language=%s pages=1 email=PASS phone=PROTECTED qr=PASS\n' "$language"
+          done
+
+      - name: Run focused current-contact regression suite
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          PYTHONPYCACHEPREFIX="${RUNNER_TEMP}/pycache" \
+            "$TEST_VENV/bin/python" -m unittest \
+            tests.test_content_build \
+            tests.test_current_contact_privacy \
+            tests.test_contact_markup \
+            tests.test_contact
+          node --check frontend/app.mjs
+          node --check frontend/features/contact.mjs
+          node --check tests/browser-smoke.mjs
+          node --test tests/frontend.test.mjs
+          npm run check:frontend
+          bash scripts/validate-source.sh "$PWD"
+          printf 'C94_FOCUSED_REGRESSION=PASS\n'
+
+      - name: Self-clean and guard final diff scope
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          rm -f .github/workflows/c94-pdf-layout-audit.yml
+          python3 - <<'PY'
+          import subprocess
+
+          allowed_exact = {
+              '.github/workflows/c94-pdf-layout-audit.yml',
+              'bot/app.py', 'bot/contact.py', 'bot/system_prompt.txt',
+              'content/pdf-manifest.json', 'content/profile.json',
+              'content/profile.schema.json',
+              'content/translations/en.json', 'content/translations/de.json',
+              'content/translations/lv.json',
+              'docs/CONTENT_AUTHORING.md', 'docs/PUBLIC_READINESS.md',
+              'frontend/app.mjs', 'frontend/features/contact.mjs',
+              'frontend/index.html', 'frontend-dist-manifest.json',
+              'html/index.html', 'html/smarthome.html',
+              'html/cv.pdf', 'html/cv-de.pdf', 'html/cv-lv.pdf',
+              'tests/browser-smoke.mjs', 'tests/frontend.test.mjs',
+              'tests/test_contact.py', 'tests/test_contact_markup.py',
+              'tests/test_current_contact_privacy.py',
+          }
+          allowed_prefixes = ('html/assets/', 'html/i18n/')
+          rows = subprocess.check_output(
+              ['git', 'status', '--porcelain=v1', '-uall'], text=True
+          ).splitlines()
+          unexpected = []
+          for row in rows:
+              path = row[3:]
+              if ' -> ' in path:
+                  path = path.split(' -> ', 1)[1]
+              if path not in allowed_exact and not path.startswith(allowed_prefixes):
+                  unexpected.append(path)
+          if unexpected:
+              raise SystemExit('unexpected C94 paths: ' + ', '.join(sorted(unexpected)))
+          print('C94_DIFF_SCOPE=PASS')
+          PY
+
+      - name: Commit and push bounded C94 v3 result
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git add -A
+          git diff --cached --check
+          test -n "$(git diff --cached --name-only)"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'security: publish CV email and verify WhatsApp contact (#94)'
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            push origin HEAD:refs/heads/fix/94-public-email-verified-whatsapp-v3
+          printf 'C94_V3_FINALIZER=PASS\n'
+
+      - name: Upload sanitized final PDF previews
+        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: c94-current-pdf-layout
-          path: ${{ runner.temp }}/c94-pdf-layout/*.png
+          name: c94-final-pdf-preview
+          path: ${{ runner.temp }}/c94-final-preview/*.png
           retention-days: 2
