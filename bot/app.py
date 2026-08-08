@@ -8,6 +8,7 @@ rate limits survive container restarts in SQLite.
 
 from __future__ import annotations
 
+import atexit
 import ipaddress
 import json
 import os
@@ -44,7 +45,7 @@ MAX_HISTORY_TURNS = int(os.getenv("MAX_HISTORY_TURNS", "6"))
 RATE_PER_IP_HOUR = int(os.getenv("RATE_PER_IP_HOUR", "8"))
 DAILY_GLOBAL_CAP = int(os.getenv("DAILY_GLOBAL_CAP", "200"))
 REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "60"))
-CHAT_RETENTION_DAYS = int(os.getenv("CHAT_RETENTION_DAYS", "7"))
+CHAT_RETENTION_DAYS = int(os.getenv("CHAT_RETENTION_DAYS", "0"))
 DB_PATH = os.getenv("ASSISTANT_DB_PATH", "/app/data/assistant.sqlite3")
 CLIENT_KEY_SECRET = os.getenv("CLIENT_KEY_SECRET", "") or LLM_API_KEY
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
@@ -65,6 +66,8 @@ STORE = AssistantStore(
     daily_global_cap=DAILY_GLOBAL_CAP,
     chat_retention_days=CHAT_RETENTION_DAYS,
 )
+STORE.start_retention_maintenance()
+atexit.register(STORE.close)
 
 
 # ---------------- GENERATED KNOWLEDGE (do not edit) ----------------
