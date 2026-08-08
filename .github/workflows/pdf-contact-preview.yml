@@ -1,16 +1,15 @@
 name: PDF contact privacy preview
 
 on:
-  push:
-    branches:
-      - fix/94-current-contact-privacy
+  pull_request:
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: pdf-contact-preview-${{ github.ref }}
+  group: pdf-contact-preview-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
