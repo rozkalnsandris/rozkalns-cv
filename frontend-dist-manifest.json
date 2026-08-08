@@ -34,13 +34,13 @@
     "isDynamicEntry": true
   },
   "features/contact.mjs": {
-    "file": "assets/contact.f239dce0823e.mjs",
+    "file": "assets/contact.b19572642193.mjs",
     "name": "contact",
     "src": "features/contact.mjs",
     "isDynamicEntry": true
   },
   "index.html": {
-    "file": "assets/app.4179e74375c8.mjs",
+    "file": "assets/app.f5df657f2ef6.mjs",
     "name": "app",
     "src": "index.html",
     "isEntry": true,
