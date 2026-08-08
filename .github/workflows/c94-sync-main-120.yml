@@ -1,0 +1,100 @@
+name: Sync C94 v4 with current main
+
+on:
+  push:
+    branches:
+      - fix/94-public-email-whatsapp-qr-v4
+    paths:
+      - .github/workflows/c94-sync-main-120.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    if: github.repository == 'rozkalnsandris/rozkalns-cv' && github.ref == 'refs/heads/fix/94-public-email-whatsapp-qr-v4'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      MAIN_SHA: 2cae3eafa5d0a6f52c9793ed0151fa2e339dc8c5
+    steps:
+      - name: Check out exact feature head and current main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            fetch --no-tags origin "$HEAD_SHA" "$MAIN_SHA"
+          git checkout -b fix/94-public-email-whatsapp-qr-v4 "$HEAD_SHA"
+          test "$(git rev-parse HEAD)" = "$HEAD_SHA"
+          test "$(git rev-parse "$MAIN_SHA")" = "$MAIN_SHA"
+          test "$(git merge-base "$HEAD_SHA" "$MAIN_SHA")" = '357ec66d66fc83e698f9a6e7ac4e5bde2d3783c2'
+
+      - name: Integrate exact DeepSeek V4 files and preserve C94 generated prompt
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git show "$MAIN_SHA":bot/.env.example > bot/.env.example
+          git show "$MAIN_SHA":tests/test_bot.py > tests/test_bot.py
+          git show "$MAIN_SHA":bot/app.py > bot/app.py
+          python3 scripts/sync-system-prompt.py --write
+          python3 scripts/sync-system-prompt.py --check
+          grep -Fq 'SUPPORTED_LLM_MODELS = frozenset({"deepseek-v4-flash", "deepseek-v4-pro"})' bot/app.py
+          grep -Fq 'LLM_THINKING = {"type": "disabled"}' bot/app.py
+          grep -Fq '"thinking": LLM_THINKING' bot/app.py
+          grep -Fq 'LLM_MODEL=deepseek-v4-flash' bot/.env.example
+          python3 scripts/build-content.py --check
+          printf 'C94_MAIN120_CONTENT_SYNC=PASS\n'
+
+      - name: Run focused cvbot and contact-policy regressions
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test_venv="${RUNNER_TEMP}/c94-main-sync-venv"
+          python3 -m venv "$test_venv"
+          "$test_venv/bin/python" -m pip install \
+            --disable-pip-version-check \
+            --require-hashes \
+            --no-deps \
+            -r bot/requirements.lock
+          PYTHONPYCACHEPREFIX="${RUNNER_TEMP}/c94-main-sync-pycache" \
+            "$test_venv/bin/python" -m unittest \
+              tests.test_bot \
+              tests.test_content_build \
+              tests.test_current_contact_privacy \
+              tests.test_contact -v
+          printf 'C94_MAIN120_FOCUSED_TESTS=PASS\n'
+
+      - name: Commit integrated files and record main ancestry
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          rm -f .github/workflows/c94-sync-main-120.yml
+          git add -A -- \
+            .github/workflows/c94-sync-main-120.yml \
+            bot/.env.example bot/app.py tests/test_bot.py
+          staged="$(git diff --cached --name-only)"
+          printf '%s\n' "$staged"
+          unexpected="$(printf '%s\n' "$staged" | grep -Ev '^(\.github/workflows/c94-sync-main-120\.yml|bot/\.env\.example|bot/app\.py|tests/test_bot\.py)$' || true)"
+          test -z "$unexpected" || { printf 'unexpected sync files:\n%s\n' "$unexpected" >&2; exit 1; }
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'sync: integrate DeepSeek V4 main changes into C94'
+          git merge -s ours --no-edit "$MAIN_SHA" -m 'sync: record current main ancestry for C94'
+          test "$(git merge-base HEAD "$MAIN_SHA")" = "$MAIN_SHA"
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          remote_head="$(git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            ls-remote origin refs/heads/fix/94-public-email-whatsapp-qr-v4 | awk '{print $1}')"
+          test "$remote_head" = "$HEAD_SHA"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            push origin HEAD:refs/heads/fix/94-public-email-whatsapp-qr-v4
+          printf 'C94_MAIN120_ANCESTRY_SYNC=PASS\n'
