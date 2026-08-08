@@ -27,7 +27,7 @@ C4 removes the pseudo-element rule completely and keeps `.skill-chip svg` in the
 
 ## Authoritative C4 ownership
 
-- `tokens.css`: colors, typography, layout/spacing/radius and breakpoint tokens.
+- `tokens.css`: the consumed shared visual tokens for colors, typography, maximum content width and section rhythm.
 - `base.css`: reset, document defaults, focus behavior and reduced motion.
 - `layout.css`: page, sidebar and section layout.
 - `components.css`: shared UI and CV content components.
@@ -35,18 +35,16 @@ C4 removes the pseudo-element rule completely and keeps `.skill-chip svg` in the
 - `features/chat.css`: assistant dialog.
 - `features/contact.css`: Turnstile/contact reveal.
 - `features/smarthome.css`: Smart Home demo.
-- `responsive.css`: the single owner of max-width media queries; tests bind its 760px, 560px and 620px values to the breakpoint tokens.
+- `responsive.css`: the single owner of the explicit 760px, 560px and 620px max-width breakpoints.
 - `print.css`: the single owner of print behavior.
 - `index.css`: the single ordered stylesheet source entry consumed by both HTML entry points.
 
-`main.css` and `extra.css` are retired and source validation rejects their return.
+Breakpoint values intentionally remain explicit in `responsive.css`: CSS custom properties are not a portable source for media-query conditions. Unused spacing/radius/breakpoint custom properties are therefore not kept merely as metadata. `main.css` and `extra.css` are retired and source validation rejects their return.
 
 ## Generated output
 
-The C4 Vite graph emits one shared production CSS asset:
+The C4 Vite graph emits one shared production CSS asset instead of the historical two-layer output. The cutover runner built the frontend twice with pinned Node 24.18.0 and Vite 8.1.5; the two generated trees and manifests were byte-identical. `npm run check:frontend` passed with the consolidated CSS within the existing 22 KB budget.
 
-- `assets/i18n.4aa9c21c0c85.css`
-
-The C4 cutover runner built the frontend twice with pinned Node 24.18.0 and Vite 8.1.5; the two generated trees and manifests were byte-identical. `npm run check:frontend` passed with 7 manifest assets and CSS size within the existing budget.
+The final generated asset hash is intentionally resolved from the clean final source by the pinned Vite pipeline rather than documented as a hand-maintained constant.
 
 No RPi5 pull-request execution and no Cloudflare Tunnel ownership/lifecycle change are part of C4.
