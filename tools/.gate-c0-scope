@@ -1,3 +1,0 @@
-Gate C0 evidence branch for issue #70.
-Do not merge this branch to main; main CI completion automatically queues the RPi5 production deploy.
-Production impact: none. Evidence collection is read-only and runs on GitHub-hosted infrastructure only.
