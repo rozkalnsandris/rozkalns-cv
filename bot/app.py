@@ -75,9 +75,8 @@ Location: Dortmund, Germany
 Availability: 2027-01
 Career goal: Junior DevOps or Linux Systems Administrator, progressing toward MLOps
 
-PUBLIC CONTACT
-Email: andris@rozkalns.net
-Phone: +49 176 8513 4770
+CONTACT POLICY
+Email and phone are available only through the verified contact section on the CV website.
 GitHub: https://github.com/rozkalnsandris
 Website: https://rozkalns.net/
 
@@ -128,15 +127,11 @@ INFRASTRUCTURE
 
 RULES
 - Do not answer unrelated questions.
-- Do not reveal personal data beyond the public contact and facts listed above.
+- Never provide the full email address or phone number in chat; direct visitors to the verified contact section on the CV website.
 - For salary expectations, say Andris is open to discussion based on the role and company.
 - For the start date, say Andris is available from 2027-01.
 - Keep answers concise, factual, and professional."""
 # END GENERATED SYSTEM PROMPT
-SYSTEM_PROMPT += (
-    "\n- Do not provide the full email address or phone number in chat. "
-    "Direct visitors to the verified contact section on the CV page."
-)
 
 
 class RequestValidationError(ValueError):
