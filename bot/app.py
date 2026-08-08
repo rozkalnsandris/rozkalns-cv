@@ -33,7 +33,11 @@ app.config["MAX_CONTENT_LENGTH"] = 32 * 1024
 # ---------------- CONFIG ----------------
 LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://api.deepseek.com").rstrip("/")
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")
-LLM_MODEL = os.getenv("LLM_MODEL", "deepseek-chat")
+SUPPORTED_LLM_MODELS = frozenset({"deepseek-v4-flash", "deepseek-v4-pro"})
+LLM_MODEL = os.getenv("LLM_MODEL", "deepseek-v4-flash").strip()
+if LLM_MODEL not in SUPPORTED_LLM_MODELS:
+    raise RuntimeError("LLM_MODEL must be a supported DeepSeek V4 model")
+LLM_THINKING = {"type": "disabled"}
 MAX_INPUT_CHARS = int(os.getenv("MAX_INPUT_CHARS", "500"))
 MAX_RESPONSE_TOKENS = int(os.getenv("MAX_RESPONSE_TOKENS", "350"))
 MAX_HISTORY_TURNS = int(os.getenv("MAX_HISTORY_TURNS", "6"))
@@ -366,6 +370,7 @@ def chat() -> Response:
                     "messages": messages,
                     "max_tokens": MAX_RESPONSE_TOKENS,
                     "temperature": 0.4,
+                    "thinking": LLM_THINKING,
                     "stream": True,
                 },
                 timeout=REQUEST_TIMEOUT,
@@ -379,12 +384,14 @@ def chat() -> Response:
                     if payload == "[DONE]":
                         break
                     try:
-                        delta = json.loads(payload)["choices"][0]["delta"].get(
-                            "content"
-                        )
+                        choice = json.loads(payload)["choices"][0]
+                        delta_payload = choice["delta"]
+                        if not isinstance(delta_payload, dict):
+                            continue
+                        delta = delta_payload.get("content")
                     except (json.JSONDecodeError, KeyError, IndexError, TypeError):
                         continue
-                    if delta:
+                    if isinstance(delta, str) and delta:
                         full_reply.append(delta)
                         yield delta
         except requests.exceptions.Timeout:
