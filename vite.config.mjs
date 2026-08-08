@@ -16,10 +16,11 @@ export default defineConfig({
     assetsInlineLimit: 0,
     rolldownOptions: {
       input: {
-        index: resolve(frontendRoot, "index.html"),
+        app: resolve(frontendRoot, "index.html"),
         smarthome: resolve(frontendRoot, "smarthome.html")
       },
       output: {
+        hashCharacters: "hex",
         entryFileNames: "assets/[name].[hash:12].mjs",
         chunkFileNames: "assets/[name].[hash:12].mjs",
         assetFileNames(assetInfo) {
