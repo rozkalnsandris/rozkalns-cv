@@ -37,6 +37,18 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('tools/c6_finalize.py')
+          text = path.read_text(encoding='utf-8')
+          old_a = "'</h2><div class=\"demo-value\">'"
+          new_a = "'</h2><div class=\"demo-value\"'"
+          old_b = "'</h3><div class=\"demo-value\">'"
+          new_b = "'</h3><div class=\"demo-value\"'"
+          if text.count(old_a) != 1 or text.count(old_b) != 1:
+              raise SystemExit('C6 helper heading anchor drift')
+          path.write_text(text.replace(old_a, new_a).replace(old_b, new_b), encoding='utf-8')
+          PY
           python3 tools/c6_finalize.py
           git diff --check
 
