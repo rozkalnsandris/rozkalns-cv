@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 const root = resolve(import.meta.dirname, "..");
 const htmlRoot = resolve(root, "html");
 const manifest = JSON.parse(await readFile(resolve(root, "frontend-dist-manifest.json"), "utf8"));
-const HASHED = /\.[0-9a-f]{12}\.(?:mjs|js|css|json|webp)$/;
+const HASHED = /\.[0-9a-f]{12}\.(?:mjs|js|css|json|webp|svg)$/;
 
 const indexEntry = manifest["index.html"];
 const smartEntry = manifest["smarthome.html"];
@@ -90,6 +90,7 @@ for (const source of [
   "frontend/features/stats.mjs",
   "frontend/features/chat.mjs",
   "frontend/features/contact.mjs",
+  "frontend/public-contact.mjs",
   "frontend/ui/icons.mjs",
   "frontend/styles/index.css",
   "frontend/styles/tokens.css",
@@ -116,14 +117,18 @@ async function totalBytes(paths) {
 const js = actualAssets.filter((file) => /\.m?js$/.test(file));
 const css = actualAssets.filter((file) => file.endsWith(".css"));
 const images = actualAssets.filter((file) => file.endsWith(".webp"));
+const vectors = actualAssets.filter((file) => file.endsWith(".svg"));
 assert.equal(images.length, 1, "exactly one hashed WebP profile asset is required");
 assert.match(images[0], /^assets\/photo\.[0-9a-f]{12}\.webp$/);
+assert.equal(vectors.length, 1, "exactly one hashed SVG contact asset is required");
+assert.match(vectors[0], /^assets\/whatsapp-contact-qr\.[0-9a-f]{12}\.svg$/);
 const nginxSource = await readFile(resolve(root, "nginx.conf"), "utf8");
-assert.match(nginxSource, /\(\?:css\|json\|webp\)\$\"/);
+assert.match(nginxSource, /\(\?:css\|json\|webp\|svg\)\$\"/);
 const budgets = {
   javascript: [await totalBytes(js), 25_000],
   css: [await totalBytes(css), 22_000],
   images: [await totalBytes(images), 13_000],
+  vectors: [await totalBytes(vectors), 7_000],
   translations: [await totalBytes(actualI18n), 22_000],
   indexHtml: [(await stat(resolve(htmlRoot, "index.html"))).size, 21_000],
   smartHomeHtml: [(await stat(resolve(htmlRoot, "smarthome.html"))).size, 5_000]
