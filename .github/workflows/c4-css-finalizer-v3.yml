@@ -1,0 +1,80 @@
+name: C4 CSS source finalizer v3
+
+on:
+  push:
+    branches:
+      - refactor/80-consolidate-css-v01
+    paths:
+      - .github/workflows/c4-css-finalizer-v3.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: github.repository == 'rozkalnsandris/rozkalns-cv' && github.ref == 'refs/heads/refactor/80-consolidate-css-v01'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out exact C4 branch SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "$GITHUB_SHA"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Finalize source and run source-only CSS gate
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 tools/c4_finalize.py
+          python3 -m unittest tests.test_css_source_contract -v
+
+      - name: Set up pinned Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.18.0
+          cache: npm
+
+      - name: Rebuild deterministic frontend twice and run full gates
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build:frontend
+          cp -a html "${RUNNER_TEMP}/c4-first-html"
+          cp frontend-dist-manifest.json "${RUNNER_TEMP}/c4-first-manifest.json"
+          npm run build:frontend
+          diff -ruN "${RUNNER_TEMP}/c4-first-html" html
+          cmp "${RUNNER_TEMP}/c4-first-manifest.json" frontend-dist-manifest.json
+          npm run check:frontend
+          node --test tests/frontend.test.mjs
+          python3 -m unittest tests.test_css_source_contract tests.test_frontend_contract -v
+          bash scripts/validate-source.sh .
+
+      - name: Commit C4 source and generated dist
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git add -- frontend/index.html frontend/smarthome.html frontend/styles scripts/validate-source.sh tests/test_frontend_contract.py tests/test_css_source_contract.py docs/CSS_C4_AUDIT.md frontend-dist-manifest.json html/index.html html/smarthome.html html/assets html/i18n
+          staged="$(git diff --cached --name-only)"
+          test -n "$staged"
+          printf '%s\n' "$staged"
+          if grep -E '^html/.*\.pdf$' <<<"$staged"; then
+            echo 'PDF files changed unexpectedly' >&2
+            exit 1
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'refactor: consolidate authoritative CSS source'
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" push origin HEAD:refs/heads/refactor/80-consolidate-css-v01
