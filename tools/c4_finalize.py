@@ -33,17 +33,72 @@ def main() -> None:
         "Smart Home stylesheet source contract",
     )
 
+    validator = ROOT / "scripts" / "validate-source.sh"
     replace_once(
-        ROOT / "scripts" / "validate-source.sh",
+        validator,
         "    frontend/styles/main.css \\\n    frontend/styles/extra.css \\\n",
         "    frontend/styles/index.css \\\n    frontend/styles/tokens.css \\\n    frontend/styles/base.css \\\n    frontend/styles/layout.css \\\n    frontend/styles/components.css \\\n    frontend/styles/features/stats.css \\\n    frontend/styles/features/chat.css \\\n    frontend/styles/features/contact.css \\\n    frontend/styles/features/smarthome.css \\\n    frontend/styles/responsive.css \\\n    frontend/styles/print.css \\\n",
         "validator stylesheet block",
     )
     replace_once(
-        ROOT / "scripts" / "validate-source.sh",
+        validator,
         "for retired in update.sh update_cv-1.sh cloudflared.env.example; do",
         "for retired in update.sh update_cv-1.sh cloudflared.env.example frontend/styles/main.css frontend/styles/extra.css; do",
         "validator retired loop",
+    )
+
+    check_dist = ROOT / "scripts" / "check-frontend-dist.mjs"
+    replace_once(
+        check_dist,
+        '  "frontend/ui/icons.mjs"\n]) {',
+        '  "frontend/ui/icons.mjs",\n'
+        '  "frontend/styles/index.css",\n'
+        '  "frontend/styles/tokens.css",\n'
+        '  "frontend/styles/base.css",\n'
+        '  "frontend/styles/layout.css",\n'
+        '  "frontend/styles/components.css",\n'
+        '  "frontend/styles/features/stats.css",\n'
+        '  "frontend/styles/features/chat.css",\n'
+        '  "frontend/styles/features/contact.css",\n'
+        '  "frontend/styles/features/smarthome.css",\n'
+        '  "frontend/styles/responsive.css",\n'
+        '  "frontend/styles/print.css"\n]) {',
+        "frontend dist source graph",
+    )
+
+    contact = ROOT / "tests" / "test_contact_markup.py"
+    replace_once(
+        contact,
+        '        self.assertIn(\'src="./enhancements.mjs"\', source)\n        self.assertIn(\'href="./styles/extra.css"\', source)\n',
+        '        self.assertIn(\'src="./enhancements.mjs"\', source)\n'
+        '        self.assertIn(\'href="./styles/index.css"\', source)\n'
+        '        self.assertNotIn("styles/main.css", source)\n'
+        '        self.assertNotIn("styles/extra.css", source)\n',
+        "contact stylesheet source contract",
+    )
+    replace_once(
+        contact,
+        '        self.assertGreaterEqual(len(entry.get("css", [])), 1)\n        for relative in [entry["file"], *entry.get("css", [])]:\n            self.assertRegex(relative, r"\\.[0-9a-f]{12}\\.(?:mjs|css)$")\n            self.assertTrue((ROOT / "html" / relative).is_file(), relative)\n',
+        '        css_assets = sorted({\n'
+        '            item\n'
+        '            for row in manifest.values()\n'
+        '            for item in row.get("css", [])\n'
+        '        })\n'
+        '        self.assertGreaterEqual(len(css_assets), 1)\n'
+        '        for relative in [entry["file"], *css_assets]:\n'
+        '            self.assertRegex(relative, r"\\.[0-9a-f]{12}\\.(?:mjs|css)$")\n'
+        '            self.assertTrue((ROOT / "html" / relative).is_file(), relative)\n',
+        "contact generated CSS contract",
+    )
+    replace_once(
+        contact,
+        '        css = (ROOT / "frontend" / "styles" / "extra.css").read_text(\n            encoding="utf-8"\n        )\n        self.assertIn(".skill-chip::before { content: none; }", css)\n        self.assertIn(".skill-chip svg", css)\n',
+        '        css = (ROOT / "frontend" / "styles" / "components.css").read_text(\n'
+        '            encoding="utf-8"\n'
+        '        )\n'
+        '        self.assertNotIn(".skill-chip::before", css)\n'
+        '        self.assertIn(".skill-chip svg", css)\n',
+        "skill icon CSS contract",
     )
 
     contract = ROOT / "tests" / "test_frontend_contract.py"
