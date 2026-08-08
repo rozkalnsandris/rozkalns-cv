@@ -11,7 +11,11 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "bot"))
 
-from storage import AssistantStore
+from storage import (
+    AssistantStore,
+    ClientKeySecretError,
+    validate_client_key_secret,
+)
 
 
 class MutableClock:
@@ -133,6 +137,21 @@ class AssistantStoreTests(unittest.TestCase):
             self.assertTrue(store.reserve("client-a").allowed)
             clock.value += 3601
             self.assertTrue(store.reserve("client-a").allowed)
+
+    def test_dedicated_client_key_secret_contract(self) -> None:
+        dedicated = "A" * 43
+        self.assertEqual(
+            validate_client_key_secret(dedicated, "provider-key"), dedicated
+        )
+        for invalid in ("", "short", "!" + dedicated):
+            with self.subTest(invalid=bool(invalid)):
+                with self.assertRaises(ClientKeySecretError):
+                    validate_client_key_secret(invalid, "provider-key")
+
+    def test_provider_key_cannot_be_reused_for_pseudonymization(self) -> None:
+        shared = "B" * 43
+        with self.assertRaises(ClientKeySecretError):
+            validate_client_key_secret(shared, shared)
 
     def test_pseudonym_is_stable_and_does_not_contain_address(self) -> None:
         first = AssistantStore.pseudonymize("203.0.113.10", "secret")

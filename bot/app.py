@@ -24,7 +24,11 @@ from contact import (
     normalize_token,
     verify_turnstile,
 )
-from storage import AssistantStore, RateDecision
+from storage import (
+    AssistantStore,
+    RateDecision,
+    validate_client_key_secret,
+)
 
 
 app = Flask(__name__)
@@ -47,7 +51,9 @@ DAILY_GLOBAL_CAP = int(os.getenv("DAILY_GLOBAL_CAP", "200"))
 REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "60"))
 CHAT_RETENTION_DAYS = int(os.getenv("CHAT_RETENTION_DAYS", "0"))
 DB_PATH = os.getenv("ASSISTANT_DB_PATH", "/app/data/assistant.sqlite3")
-CLIENT_KEY_SECRET = os.getenv("CLIENT_KEY_SECRET", "") or LLM_API_KEY
+CLIENT_KEY_SECRET = validate_client_key_secret(
+    os.getenv("CLIENT_KEY_SECRET", ""), LLM_API_KEY
+)
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("CHAT_ID", "")
 TELEGRAM_INCLUDE_CONTENT = os.getenv(
