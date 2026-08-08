@@ -11,7 +11,7 @@ import {
   buildChatPayload,
   normalizeCompletedHistory
 } from "../frontend/features/chat.mjs";
-import { contactPayloadIsValid } from "../frontend/features/contact.mjs";
+import { contactPayloadIsValid, contactPurpose } from "../frontend/features/contact.mjs";
 import {
   bindStatsVisibility,
   createStatsController,
@@ -48,6 +48,7 @@ test("shared locale core preserves cvlang preference and fallback semantics", ()
 test("contact copy lives in canonical translation documents", async () => {
   const keys = [
     "contact_reveal",
+    "contact_whatsapp_verify",
     "contact_loading",
     "contact_verifying",
     "contact_success",
@@ -235,5 +236,9 @@ test("contact reveal payload must contain bounded contact shapes", () => {
       phone_uri: "javascript:alert(1)"
     }),
     false
+  );
+  assert.equal(
+    contactPurpose({ location: { href: "https://rozkalns.net/?contact=whatsapp" } }),
+    "whatsapp"
   );
 });

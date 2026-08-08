@@ -1,18 +1,18 @@
 {
   "schema_version": 1,
-  "source_sha256": "0ba74661c825eb4d7275c24ff24f6e185a946d66af05fd882c6edcc38534f17e",
+  "source_sha256": "55e94ecabe9d26c0ddb80e5e286f925fe0abd4104bcf111511364bc0033040a0",
   "pdfs": {
     "en": {
       "path": "html/cv.pdf",
-      "sha256": "263a6372a97ed21ceffc176305c50e78df6b2e0a27789b235f21cf5924a48b42"
+      "sha256": "aa27d19b370c1601170ba046c74fcb35a7727b206b5b37d177b47bd1ba7bc377"
     },
     "de": {
       "path": "html/cv-de.pdf",
-      "sha256": "13801a0d84dc507f196f50f1ad2cf03f19b3cc5230731273daff477389e0ea53"
+      "sha256": "b1e567975c9646a99dc5ce08cea53596e68013b9fb678a99f16dbf298575a23d"
     },
     "lv": {
       "path": "html/cv-lv.pdf",
-      "sha256": "1e3402cf0b60d8ba7aeeb550be0b09f72223ac0267e954e9ff5682d790034fc8"
+      "sha256": "a3a14ec614787620c5eeed657575b272c01e1b0ab328838a06ead500416f0c1f"
     }
   }
 }

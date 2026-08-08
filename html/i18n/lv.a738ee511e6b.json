@@ -96,10 +96,10 @@
   "chat_typing": "Gatavo atbildi…",
   "chat_complete": "Atbilde pabeigta.",
   "chat_error": "Savienojuma kļūda — lūdzu, rakstiet Andrim e-pastā.",
-  "contact_reveal": "Pārbaudīt, lai parādītu kontaktus",
+  "contact_reveal": "Pārbaudīt, lai parādītu tālruni / WhatsApp",
   "contact_loading": "Ielādē pārbaudi…",
   "contact_verifying": "Pārbauda…",
-  "contact_success": "Kontakti ir atbloķēti.",
+  "contact_success": "Kontakts apstiprināts.",
   "contact_failed": "Pārbaude neizdevās. Mēģini vēlreiz.",
   "contact_unavailable": "Kontaktu pārbaude pašlaik nav pieejama.",
   "contact_email_hidden": "E-pasts paslēpts līdz pārbaudei",
@@ -118,5 +118,6 @@
   "smart_heating": "Silda",
   "smart_on": "Ieslēgts",
   "smart_off": "Izslēgts",
-  "smart_footer": "Tikai statiska demonstrācija — nav piekļuves īstajai mājai vai ierīcēm."
+  "smart_footer": "Tikai statiska demonstrācija — nav piekļuves īstajai mājai vai ierīcēm.",
+  "contact_whatsapp_verify": "Pārbaudīt, lai atvērtu WhatsApp"
 }

@@ -6,7 +6,7 @@ The repository is now public. Keep the remaining cleanup items below visible unt
 
 ## Public-readiness gates
 
-- [x] Remove personal contact values from the current tracked source/tests; the Turnstile reveal flow now reads contact values only from runtime environment variables.
+- [ ] #94 — dedicated recruiting email is intentionally public; phone remains runtime-protected; one-page public PDFs use a protected-site WhatsApp QR. Draft candidate build, focused regressions, source validation, and PDF/QR verification are complete; final merge/deploy evidence is pending.
 - [ ] Decide how to handle historical commits that contain those contact values. Public visibility exposes reachable Git history; sanitizing only the current tree does not remove historical values.
 - [x] Keep normal pull-request CI on GitHub-hosted runners. Current `main` does not contain a pull-request workflow targeting the `rozkalns-cv-release` self-hosted runner.
 - [x] Keep production deploy restricted to successful trusted `main` CI / explicit owner-controlled dispatch.
@@ -18,7 +18,7 @@ The repository is now public. Keep the remaining cleanup items below visible unt
 
 - Main CI performs a full Git-history Gitleaks scan with project-specific credential rules and detector canaries.
 - The production deploy workflow is not PR-triggered; it resolves successful trusted `main` CI and deploys on the dedicated RPi5 runner.
-- Contact values are runtime configuration; missing `CONTACT_*` values fail closed instead of falling back to embedded personal data.
+- `andris@rozkalns.net` is intentionally public for recruiting. Phone values remain runtime configuration. Public PDFs use a QR to the verified-site WhatsApp flow instead of printing the phone number.
 - The closed Gate C0 audit branch may remain reachable in public Git history even though its pull request is closed; it should not be treated as an active production workflow.
 
 Historical contact cleanup, artifact review and post-visibility ruleset verification remain separate follow-up tasks.

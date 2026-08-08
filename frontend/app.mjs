@@ -60,7 +60,7 @@ function installLazyChat(languageController) {
 
 function installLazyContact(languageController) {
   const button = document.querySelector("#contactReveal");
-  if (!button) return;
+  if (!button) return null;
   let loading = null;
 
   async function activate() {
@@ -85,6 +85,15 @@ function installLazyContact(languageController) {
   }
 
   button.addEventListener("click", activate);
+  return activate;
+}
+
+function requestedWhatsAppContact() {
+  try {
+    return new URL(window.location.href).searchParams.get("contact") === "whatsapp";
+  } catch {
+    return false;
+  }
 }
 
 async function init() {
@@ -99,7 +108,8 @@ async function init() {
   });
 
   enhanceSkillIcons();
-  installLazyContact(languageController);
+  const activateContact = installLazyContact(languageController);
+  if (requestedWhatsAppContact()) await activateContact?.();
 
   const stats = createStatsController(languageController);
   bindStatsVisibility(stats);
