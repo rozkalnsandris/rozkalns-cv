@@ -116,9 +116,8 @@ export function createContactController(languageController, {
     }
 
     const phone = root.querySelector("#contactPhone");
-    const phoneLink = phone
-      ? revealLink(root, phone, payload.phone, `tel:${payload.phone_uri}`)
-      : null;
+    const whatsappNumber = payload.phone_uri.slice(1);
+    const phoneLink = phone ? revealLink(root, phone, payload.phone, `https://wa.me/${whatsappNumber}`) : null;
     windowLike.setTimeout(() => phoneLink?.focus(), 0);
     return true;
   }
