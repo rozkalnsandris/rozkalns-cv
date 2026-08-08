@@ -18,7 +18,7 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - name: Verify successful trusted deploy includes C2
+      - name: Diagnose trusted main deploy history
         env:
           GH_TOKEN: ${{ github.token }}
           REPOSITORY: ${{ github.repository }}
@@ -30,7 +30,6 @@ jobs:
           import json
           import os
           import re
-          import urllib.parse
           import urllib.request
 
           repo = os.environ['REPOSITORY']
@@ -69,31 +68,46 @@ jobs:
           print(f'CURRENT_MAIN_CI_SUCCESS={successful_ci.get(main, 0)}')
 
           deploy_runs = get(
-              f'{api}/actions/workflows/deploy-main.yml/runs?status=completed&per_page=100'
+              f'{api}/actions/workflows/deploy-main.yml/runs?status=completed&per_page=20'
           ).get('workflow_runs', [])
           candidates = []
-          for run in deploy_runs:
-              if run.get('conclusion') != 'success':
-                  continue
+          for run in deploy_runs[:12]:
               run_id = int(run['id'])
+              conclusion = str(run.get('conclusion'))
+              print(
+                  f'DEPLOY_RUN id={run_id} conclusion={conclusion} '
+                  f'event={run.get("event")} head_sha={run.get("head_sha")} '
+                  f'created_at={run.get("created_at")}'
+              )
+              jobs = get(f'{api}/actions/runs/{run_id}/jobs?per_page=100').get('jobs', [])
+              for job in jobs:
+                  print(
+                      f'  JOB name={job.get("name")} conclusion={job.get("conclusion")} '
+                      f'status={job.get("status")}'
+                  )
+                  for step in job.get('steps', []):
+                      print(
+                          f'    STEP number={step.get("number")} name={step.get("name")} '
+                          f'conclusion={step.get("conclusion")}'
+                      )
               artifacts = get(f'{api}/actions/runs/{run_id}/artifacts?per_page=100').get('artifacts', [])
               for artifact in artifacts:
                   name = str(artifact.get('name') or '')
+                  print(f'  ARTIFACT name={name}')
                   match = re.fullmatch(r'rozkalns-cv-deploy-([0-9a-f]{40})-run-(\d+)', name)
-                  if not match:
+                  if conclusion != 'success' or not match or int(match.group(2)) != run_id:
                       continue
                   deployed = match.group(1)
-                  if int(match.group(2)) != run_id:
-                      continue
                   ancestry = get(f'{api}/compare/{c2}...{deployed}')
                   if deployed == c2 or ancestry.get('status') == 'ahead':
                       candidates.append((run_id, deployed, name))
 
-          if not candidates:
-              raise SystemExit('C2_PRODUCTION_DEPLOY=FAIL no successful deploy artifact at C2 or descendant')
-
-          run_id, deployed, artifact_name = max(candidates)
-          print(f'C2_PRODUCTION_DEPLOY=PASS run_id={run_id} deployed_sha={deployed}')
-          print(f'DEPLOY_ARTIFACT={artifact_name}')
-          print('PRODUCTION_GATE=PASS')
+          if candidates:
+              run_id, deployed, artifact_name = max(candidates)
+              print(f'C2_PRODUCTION_DEPLOY=PASS run_id={run_id} deployed_sha={deployed}')
+              print(f'DEPLOY_ARTIFACT={artifact_name}')
+              print('PRODUCTION_GATE=PASS')
+          else:
+              print('C2_PRODUCTION_DEPLOY=FAIL no successful deploy artifact at C2 or descendant')
+              raise SystemExit(1)
           PY
