@@ -225,12 +225,47 @@ class HtmlSemanticTests(unittest.TestCase):
         self.assertEqual(by_id["chatStatus"].attrs.get("role"), "status")
         self.assertEqual(by_id["chatLog"].attrs.get("role"), "log")
         self.assertEqual(by_id["chatLog"].attrs.get("aria-live"), "polite")
+        self.assertEqual(by_id["chatLog"].attrs.get("aria-relevant"), "additions")
+        self.assertEqual(by_id["chatLog"].attrs.get("aria-atomic"), "false")
+        self.assertEqual(by_id["chatStatus"].attrs.get("aria-live"), "polite")
         skip_links = [
             row
             for row in parsed.elements
             if row.tag == "a" and row.attrs.get("href") == "#main"
         ]
         self.assertEqual(len(skip_links), 1)
+
+    def test_language_switchers_are_named_toggle_groups(self) -> None:
+        expected_labels = {"en": "English", "de": "Deutsch", "lv": "Latviešu"}
+        for path in self.pages:
+            parsed = parse(path)
+            switchers = [
+                row
+                for row in parsed.elements
+                if "language-switcher" in row.attrs.get("class", "").split()
+            ]
+            self.assertEqual(len(switchers), 1, path.name)
+            switcher = switchers[0]
+            self.assertEqual(switcher.attrs.get("role"), "group")
+            self.assertEqual(switcher.attrs.get("aria-label"), "Language")
+            buttons = [row for row in parsed.elements if row.attrs.get("data-lang")]
+            self.assertEqual({row.attrs.get("data-lang") for row in buttons}, set(expected_labels))
+            self.assertEqual(
+                {row.attrs.get("data-lang"): row.attrs.get("aria-label") for row in buttons},
+                expected_labels,
+            )
+            pressed = [row for row in buttons if row.attrs.get("aria-pressed") == "true"]
+            self.assertEqual(len(pressed), 1)
+            self.assertTrue(all(row.attrs.get("aria-pressed") in {"true", "false"} for row in buttons))
+
+    def test_smarthome_heading_hierarchy(self) -> None:
+        parsed = parse(HTML_ROOT / "smarthome.html")
+        h1 = [row for row in parsed.elements if row.tag == "h1"]
+        h2 = [row for row in parsed.elements if row.tag == "h2"]
+        h3 = [row for row in parsed.elements if row.tag == "h3"]
+        self.assertEqual(len(h1), 1)
+        self.assertEqual([row.accessible_text for row in h2], ["Climate", "Devices"])
+        self.assertEqual(len(h3), 8)
 
     def test_fingerprinted_assets_are_manifest_owned(self) -> None:
         manifest = json.loads(

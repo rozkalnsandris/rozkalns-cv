@@ -106,6 +106,30 @@ function createFixtureServer(state) {
         return;
       }
 
+      if (url.pathname === "/api/contact-config" && request.method === "GET") {
+        response.writeHead(200, {
+          "Content-Type": "application/json; charset=utf-8",
+          "Cache-Control": "no-store"
+        });
+        response.end(JSON.stringify({ configured: true, sitekey: "fixture-site-key" }));
+        return;
+      }
+
+      if (url.pathname === "/api/contact-reveal" && request.method === "POST") {
+        const body = JSON.parse(await readRequestBody(request));
+        state.contactRequests.push(body);
+        response.writeHead(200, {
+          "Content-Type": "application/json; charset=utf-8",
+          "Cache-Control": "no-store"
+        });
+        response.end(JSON.stringify({
+          email: "test@example.invalid",
+          phone: "+49 123 4567890",
+          phone_uri: "+491234567890"
+        }));
+        return;
+      }
+
       if (url.pathname === "/api/chat" && request.method === "POST") {
         const body = JSON.parse(await readRequestBody(request));
         state.chatRequests.push(body);
@@ -294,7 +318,7 @@ class CdpClient {
   }
 
   async key(key, modifiers = 0) {
-    const virtualKeyCode = key === "Escape" ? 27 : key === "Tab" ? 9 : 0;
+    const virtualKeyCode = key === "Escape" ? 27 : key === "Tab" ? 9 : key === "Enter" ? 13 : 0;
     const keyParams = {
       key,
       code: key,
@@ -305,7 +329,8 @@ class CdpClient {
       } : {})
     };
     await this.send("Input.dispatchKeyEvent", {
-      type: "rawKeyDown",
+      type: key === "Enter" ? "keyDown" : "rawKeyDown",
+      ...(key === "Enter" ? { text: "\r", unmodifiedText: "\r" } : {}),
       ...keyParams
     });
     await this.send("Input.dispatchKeyEvent", {
@@ -379,6 +404,26 @@ async function runBrowserSmoke(baseUrl, state) {
     assert.equal(initialContract.pdf, "/cv.pdf");
     assert.equal(initialContract.dialogModal, "true");
     assert.match(initialContract.privacy, /raw IP addresses are not stored/i);
+    const initialLanguageState = await cdp.evaluate(`(() => ({
+      groupRole: document.querySelector('.language-switcher')?.getAttribute('role'),
+      groupLabel: document.querySelector('.language-switcher')?.getAttribute('aria-label'),
+      buttons: [...document.querySelectorAll('.language-switcher [data-lang]')].map((button) => ({
+        language: button.dataset.lang,
+        label: button.getAttribute('aria-label'),
+        pressed: button.getAttribute('aria-pressed')
+      })),
+      logLive: document.querySelector('#chatLog')?.getAttribute('aria-live'),
+      statusRole: document.querySelector('#chatStatus')?.getAttribute('role')
+    }))()`);
+    assert.equal(initialLanguageState.groupRole, "group");
+    assert.equal(initialLanguageState.groupLabel, "Language");
+    assert.deepEqual(initialLanguageState.buttons, [
+      { language: "en", label: "English", pressed: "true" },
+      { language: "de", label: "Deutsch", pressed: "false" },
+      { language: "lv", label: "Latviešu", pressed: "false" }
+    ]);
+    assert.equal(initialLanguageState.logLive, "polite");
+    assert.equal(initialLanguageState.statusRole, "status");
 
     await cdp.evaluate(`document.querySelector('[data-lang="lv"]').click()`);
     await cdp.waitFor(
@@ -389,6 +434,10 @@ async function runBrowserSmoke(baseUrl, state) {
     assert.equal(
       await cdp.evaluate(`document.querySelector('[data-i18n="role"]').textContent`),
       "Junior DevOps un Linux inženieris"
+    );
+    assert.deepEqual(
+      await cdp.evaluate(`[...document.querySelectorAll('.language-switcher [data-lang]')].map((button) => [button.dataset.lang, button.getAttribute('aria-pressed')])`),
+      [["en", "false"], ["de", "false"], ["lv", "true"]]
     );
 
     await cdp.evaluate(`(() => {
@@ -404,6 +453,8 @@ async function runBrowserSmoke(baseUrl, state) {
     await cdp.evaluate(`document.querySelector('#chatClose').focus()`);
     await cdp.key("Tab", 8);
     assert.equal(await cdp.evaluate(`document.activeElement?.id`), "chatSend");
+    await cdp.key("Tab");
+    assert.equal(await cdp.evaluate(`document.activeElement?.id`), "chatClose");
     await cdp.key("Escape");
     await cdp.waitFor(
       `document.querySelector('#chatBackdrop').hidden === true && document.activeElement?.id === "chatLauncher" && document.querySelector('#pageShell').inert === false`,
@@ -432,6 +483,16 @@ async function runBrowserSmoke(baseUrl, state) {
     }
 
     await submit("First question", "Atbilde pabeigta.");
+    const announcementContract = await cdp.evaluate(`(() => ({
+      answerLive: document.querySelector('#chatLog .message.bot:last-child')?.getAttribute('aria-live'),
+      logLive: document.querySelector('#chatLog')?.getAttribute('aria-live'),
+      statusRole: document.querySelector('#chatStatus')?.getAttribute('role'),
+      statusLive: document.querySelector('#chatStatus')?.getAttribute('aria-live')
+    }))()`);
+    assert.equal(announcementContract.answerLive, "off");
+    assert.equal(announcementContract.logLive, "polite");
+    assert.equal(announcementContract.statusRole, "status");
+    assert.equal(announcementContract.statusLive, "polite");
     assert.deepEqual(state.chatRequests[0], {
       message: "First question",
       history: []
@@ -461,6 +522,38 @@ async function runBrowserSmoke(baseUrl, state) {
     assert.equal(
       state.chatRequests[3].history.some((row) => row.content === "Trigger failure"),
       false
+    );
+
+    await cdp.key("Escape");
+    await cdp.waitFor(
+      `document.querySelector('#chatBackdrop').hidden === true && document.activeElement?.id === "chatLauncher"`,
+      5_000,
+      "chat focus return before contact verification"
+    );
+    await cdp.evaluate(`(() => {
+      window.turnstile = {
+        render(mount, options) {
+          const frame = document.createElement('iframe');
+          frame.title = 'Synthetic Turnstile';
+          frame.tabIndex = 0;
+          mount.append(frame);
+          setTimeout(() => options.callback('synthetic-turnstile-token'), 0);
+          return 'fixture-widget';
+        },
+        reset() {}
+      };
+      document.querySelector('#contactReveal').focus();
+    })()`);
+    await cdp.key("Enter");
+    await cdp.waitFor(
+      `document.querySelector('#contactReveal')?.hidden === true && document.querySelector('#turnstileMount')?.hidden === true && document.querySelector('#contactVerifyStatus')?.dataset.state === "success" && document.activeElement?.dataset.revealed === "true"`,
+      10_000,
+      "keyboard contact verification focus transfer"
+    );
+    assert.deepEqual(state.contactRequests, [{ token: "synthetic-turnstile-token" }]);
+    assert.equal(
+      await cdp.evaluate(`document.activeElement?.getAttribute('href')`),
+      "mailto:test@example.invalid"
     );
 
     state.statsMode = "stale";
@@ -501,6 +594,33 @@ async function runBrowserSmoke(baseUrl, state) {
     assert.equal(linkState.pdfHref, "/cv-lv.pdf", `link-state=${JSON.stringify(linkState)}`);
     assert(linkState.hrefs.includes("/cv-lv.pdf"), `link-state=${JSON.stringify(linkState)}`);
     assert(linkState.hrefs.includes("/smarthome.html"), `link-state=${JSON.stringify(linkState)}`);
+
+    await cdp.send("Emulation.setDeviceMetricsOverride", {
+      width: 390,
+      height: 844,
+      deviceScaleFactor: 1,
+      mobile: true
+    });
+    await cdp.navigate(`${baseUrl}/smarthome.html`);
+    await cdp.waitFor(
+      `document.readyState === "complete" && document.querySelector('#demoMain h1')`,
+      10_000,
+      "Smart Home mobile semantics"
+    );
+    const smartSemantics = await cdp.evaluate(`(() => ({
+      mainCount: document.querySelectorAll('main').length,
+      h1Count: document.querySelectorAll('#demoMain h1').length,
+      sectionH2Count: document.querySelectorAll('#demoMain > section > .section-heading > h2').length,
+      deviceH3Count: document.querySelectorAll('.demo-device h3').length,
+      languageRole: document.querySelector('.language-switcher')?.getAttribute('role'),
+      languageLabels: [...document.querySelectorAll('.language-switcher [data-lang]')].map((button) => button.getAttribute('aria-label'))
+    }))()`);
+    assert.equal(smartSemantics.mainCount, 1);
+    assert.equal(smartSemantics.h1Count, 1);
+    assert.equal(smartSemantics.sectionH2Count, 2);
+    assert.equal(smartSemantics.deviceH3Count, 8);
+    assert.equal(smartSemantics.languageRole, "group");
+    assert.deepEqual(smartSemantics.languageLabels, ["English", "Deutsch", "Latviešu"]);
   } catch (error) {
     throw new Error(`${error instanceof Error ? error.stack : error}\nChrome stderr:\n${stderr.slice(-4000)}`);
   } finally {
@@ -515,7 +635,7 @@ async function runBrowserSmoke(baseUrl, state) {
   }
 }
 
-const state = { statsMode: "live", chatRequests: [] };
+const state = { statsMode: "live", chatRequests: [], contactRequests: [] };
 const server = createFixtureServer(state);
 try {
   const address = await listen(server);
