@@ -56,6 +56,7 @@ jobs:
           python3 -m unittest tests.test_content_build tests.test_current_contact_privacy -v
           python3 scripts/build-content.py --check
           python3 scripts/sync-system-prompt.py --check
+          rm -rf -- tools/__pycache__ tests/__pycache__ scripts/__pycache__
           bash scripts/validate-source.sh "$PWD"
           python3 - <<'PY'
           import json
