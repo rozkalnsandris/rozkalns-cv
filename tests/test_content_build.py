@@ -90,13 +90,17 @@ class CanonicalContentTests(unittest.TestCase):
         self.assertNotIn("wa.me/", module)
         self.assertNotIn("phone_uri", module)
 
-    def test_pending_pdf_privacy_state_is_explicit_and_unbound(self) -> None:
+    def test_pdf_privacy_state_is_accepted_and_source_bound(self) -> None:
+        profile = builder.validate_profile(copy.deepcopy(self.profile))
+        translations, _ = builder.load_translations()
         manifest = builder.load_json(ROOT / "content" / "pdf-manifest.json")
         self.assertEqual(manifest["schema_version"], 2)
         self.assertEqual(
-            manifest["contact_privacy_status"], builder.PDF_PRIVACY_PENDING
+            manifest["contact_privacy_status"], builder.PDF_PRIVACY_SAFE
         )
-        self.assertIsNone(manifest["source_sha256"])
+        self.assertEqual(
+            manifest["source_sha256"], builder.source_digest(profile, translations)
+        )
 
     def test_prompt_sync_migrates_once_and_is_idempotent(self) -> None:
         old = (
