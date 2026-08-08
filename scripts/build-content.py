@@ -17,13 +17,8 @@ MONTH_RE = re.compile(r"^[0-9]{4}-[0-9]{2}$")
 PARTIAL_DATE_RE = re.compile(r"^[0-9]{4}(?:-[0-9]{2})?$")
 VERSION_RE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}\.[1-9][0-9]*$")
 PDF_PRIVACY_PENDING = "legacy-public-contact-pending-owner-decision"
-PDF_PRIVACY_SAFE = "verified-no-protected-contact"
-PDF_PRIVACY_PUBLIC = "owner-approved-public-contact"
-PDF_PRIVACY_POLICIES = {
-    PDF_PRIVACY_PENDING,
-    PDF_PRIVACY_SAFE,
-    PDF_PRIVACY_PUBLIC,
-}
+PDF_PRIVACY_SAFE = "verified-public-email-protected-phone"
+PDF_PRIVACY_POLICIES = {PDF_PRIVACY_PENDING, PDF_PRIVACY_SAFE}
 
 
 class ContentError(RuntimeError):
@@ -111,9 +106,7 @@ def validate_profile(profile: Any) -> dict[str, Any]:
     for key in ("name", "role", "location"):
         require_text(identity[key], f"profile.identity.{key}", 2)
     require_text(identity["career_goal"], "profile.identity.career_goal", 10)
-    availability = require_text(
-        identity["availability"], "profile.identity.availability"
-    )
+    availability = require_text(identity["availability"], "profile.identity.availability")
     if not MONTH_RE.fullmatch(availability):
         raise ContentError("profile.identity.availability is invalid")
 
@@ -122,33 +115,26 @@ def validate_profile(profile: Any) -> dict[str, Any]:
         "profile.contact",
         {"email", "phone", "github", "website"},
     )
-    for key in ("email", "phone"):
-        entry = require_object(
-            contact[key], f"profile.contact.{key}", {"visibility"}
-        )
-        if entry["visibility"] != "verified-runtime":
-            raise ContentError(
-                f"profile.contact.{key} must be verified-runtime"
-            )
-    for key in ("github", "website"):
+    for key in ("email", "github", "website"):
         entry = require_object(
             contact[key], f"profile.contact.{key}", {"value", "visibility"}
         )
         require_text(entry["value"], f"profile.contact.{key}.value", 2)
         if entry["visibility"] != "public":
             raise ContentError(f"profile.contact.{key} must be public")
+    phone = require_object(
+        contact["phone"], "profile.contact.phone", {"visibility"}
+    )
+    if phone["visibility"] != "verified-runtime":
+        raise ContentError("profile.contact.phone must be verified-runtime")
 
     languages = profile["languages"]
     if not isinstance(languages, list) or not languages:
         raise ContentError("profile.languages must be a non-empty list")
     language_names: list[str] = []
     for index, item in enumerate(languages):
-        item = require_object(
-            item, f"profile.languages[{index}]", {"name", "level"}
-        )
-        language_names.append(
-            require_text(item["name"], f"profile.languages[{index}].name", 2)
-        )
+        item = require_object(item, f"profile.languages[{index}]", {"name", "level"})
+        language_names.append(require_text(item["name"], f"profile.languages[{index}].name", 2))
         require_text(item["level"], f"profile.languages[{index}].level")
     if len(set(language_names)) != len(language_names):
         raise ContentError("profile.languages contains duplicate names")
@@ -169,56 +155,33 @@ def validate_profile(profile: Any) -> dict[str, Any]:
             "end_planned",
         }
         required = allowed - {"end_planned"}
-        if (
-            not isinstance(item, dict)
-            or not required.issubset(item)
-            or not set(item).issubset(allowed)
-        ):
+        if not isinstance(item, dict) or not required.issubset(item) or not set(item).issubset(allowed):
             raise ContentError(f"profile.experience[{index}] fields are invalid")
         for key in ("role", "organization", "location"):
             require_text(item[key], f"profile.experience[{index}].{key}", 2)
         for key in ("start", "end"):
-            if not PARTIAL_DATE_RE.fullmatch(
-                require_text(item[key], f"profile.experience[{index}].{key}")
-            ):
+            if not PARTIAL_DATE_RE.fullmatch(require_text(item[key], f"profile.experience[{index}].{key}")):
                 raise ContentError(f"profile.experience[{index}].{key} is invalid")
-        require_string_list(
-            item["highlights"], f"profile.experience[{index}].highlights"
-        )
+        require_string_list(item["highlights"], f"profile.experience[{index}].highlights")
         if "end_planned" in item and not isinstance(item["end_planned"], bool):
-            raise ContentError(
-                f"profile.experience[{index}].end_planned must be boolean"
-            )
+            raise ContentError(f"profile.experience[{index}].end_planned must be boolean")
 
     education = profile["education"]
     if not isinstance(education, list) or not education:
         raise ContentError("profile.education must be a non-empty list")
     require_unique_ids(education, "profile.education")
     education_allowed = {
-        "id",
-        "title",
-        "organization",
-        "start",
-        "end",
-        "status",
-        "detail",
+        "id", "title", "organization", "start", "end", "status", "detail"
     }
     for index, item in enumerate(education):
-        if (
-            not isinstance(item, dict)
-            or "title" not in item
-            or not set(item).issubset(education_allowed)
-        ):
+        if not isinstance(item, dict) or "title" not in item or not set(item).issubset(education_allowed):
             raise ContentError(f"profile.education[{index}] fields are invalid")
         require_text(item["title"], f"profile.education[{index}].title", 2)
         for key in ("organization", "status", "detail"):
             if key in item:
                 require_text(item[key], f"profile.education[{index}].{key}", 2)
         for key in ("start", "end"):
-            if key in item and not re.fullmatch(
-                r"[0-9]{4}",
-                require_text(item[key], f"profile.education[{index}].{key}"),
-            ):
+            if key in item and not re.fullmatch(r"[0-9]{4}", require_text(item[key], f"profile.education[{index}].{key}")):
                 raise ContentError(f"profile.education[{index}].{key} is invalid")
 
     skills = require_object(
@@ -234,11 +197,7 @@ def validate_profile(profile: Any) -> dict[str, Any]:
         raise ContentError("profile.projects must be a non-empty list")
     require_unique_ids(projects, "profile.projects")
     for index, item in enumerate(projects):
-        item = require_object(
-            item,
-            f"profile.projects[{index}]",
-            {"id", "title", "facts"},
-        )
+        item = require_object(item, f"profile.projects[{index}]", {"id", "title", "facts"})
         require_text(item["title"], f"profile.projects[{index}].title", 2)
         require_string_list(item["facts"], f"profile.projects[{index}].facts")
 
@@ -263,9 +222,7 @@ def load_translations() -> tuple[dict[str, dict[str, str]], dict[str, bytes]]:
             content = path.read_bytes()
             value = json.loads(content)
         except (OSError, json.JSONDecodeError) as error:
-            raise ContentError(
-                f"invalid translation: {path.relative_to(ROOT)}"
-            ) from error
+            raise ContentError(f"invalid translation: {path.relative_to(ROOT)}") from error
         if not isinstance(value, dict) or not value:
             raise ContentError(f"translation {language} must be an object")
         if any(
@@ -285,9 +242,7 @@ def load_translations() -> tuple[dict[str, dict[str, str]], dict[str, bytes]]:
     return parsed, raw
 
 
-def source_digest(
-    profile: dict[str, Any], translations: dict[str, dict[str, str]]
-) -> str:
+def source_digest(profile: dict[str, Any], translations: dict[str, dict[str, str]]) -> str:
     digest = hashlib.sha256()
     digest.update(b"profile\0")
     digest.update(canonical_json_bytes(profile))
@@ -311,16 +266,15 @@ def build_system_prompt(profile: dict[str, Any]) -> str:
         f"Availability: {identity['availability']}",
         f"Career goal: {identity['career_goal']}",
         "",
-        "CONTACT POLICY",
-        "Email and phone are available only through the verified contact section on the CV website.",
+        "PUBLIC CONTACT",
+        f"Email: {contact['email']['value']}",
+        "Phone and WhatsApp are available only through the verified contact flow on the CV website.",
         f"GitHub: {contact['github']['value']}",
         f"Website: {contact['website']['value']}",
         "",
         "LANGUAGES",
     ]
-    lines.extend(
-        f"- {item['name']}: {item['level']}" for item in profile["languages"]
-    )
+    lines.extend(f"- {item['name']}: {item['level']}" for item in profile["languages"])
     lines.extend(["", "WORK EXPERIENCE"])
     for item in profile["experience"]:
         planned = " planned" if item.get("end_planned") else ""
@@ -350,9 +304,7 @@ def build_system_prompt(profile: dict[str, Any]) -> str:
         "foundations": "Foundations",
     }
     for key in ("core", "working", "learning", "foundations"):
-        lines.append(
-            f"- {skill_labels[key]}: {', '.join(profile['skills'][key])}"
-        )
+        lines.append(f"- {skill_labels[key]}: {', '.join(profile['skills'][key])}")
     lines.extend(["", "PROJECTS"])
     for item in profile["projects"]:
         lines.append(f"- {item['title']}: {'; '.join(item['facts'])}")
@@ -364,7 +316,8 @@ def build_system_prompt(profile: dict[str, Any]) -> str:
             "",
             "RULES",
             "- Do not answer unrelated questions.",
-            "- Never provide the full email address or phone number in chat; direct visitors to the verified contact section on the CV website.",
+            "- The public recruiting email may be provided directly.",
+            "- Never provide the phone number in chat; direct visitors to the verified phone/WhatsApp contact flow on the CV website.",
             "- For salary expectations, say Andris is open to discussion based on the role and company.",
             f"- For the start date, say Andris is available from {identity['availability']}.",
             "- Keep answers concise, factual, and professional.",
@@ -372,6 +325,17 @@ def build_system_prompt(profile: dict[str, Any]) -> str:
         ]
     )
     return "\n".join(lines)
+
+
+def build_public_contact_module(profile: dict[str, Any]) -> str:
+    email = profile["contact"]["email"]["value"]
+    website = profile["contact"]["website"]["value"].rstrip("/")
+    whatsapp_entry = f"{website}/?contact=whatsapp"
+    return (
+        "// Generated by scripts/build-content.py; do not edit.\n"
+        f"export const PUBLIC_EMAIL = {json.dumps(email)};\n"
+        f"export const WHATSAPP_CONTACT_URL = {json.dumps(whatsapp_entry)};\n"
+    )
 
 
 def file_sha256(path: Path) -> str:
@@ -415,9 +379,7 @@ def pdf_hashes() -> dict[str, dict[str, str]]:
     return result
 
 
-def expected_pdf_manifest(
-    content_sha256: str, contact_privacy_status: str
-) -> dict[str, Any]:
+def expected_pdf_manifest(content_sha256: str, contact_privacy_status: str) -> dict[str, Any]:
     if contact_privacy_status not in PDF_PRIVACY_POLICIES:
         raise ContentError("PDF contact privacy status is invalid")
     source_sha256: str | None = content_sha256
@@ -432,18 +394,14 @@ def expected_pdf_manifest(
 
 
 def render_json(value: Any) -> bytes:
-    return (
-        json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
-    ).encode("utf-8")
+    return (json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False) + "\n").encode("utf-8")
 
 
 def assert_bytes(path: Path, expected: bytes) -> None:
     try:
         actual = path.read_bytes()
     except OSError as error:
-        raise ContentError(
-            f"generated file is missing: {path.relative_to(ROOT)}"
-        ) from error
+        raise ContentError(f"generated file is missing: {path.relative_to(ROOT)}") from error
     if actual != expected:
         raise ContentError(f"generated file is stale: {path.relative_to(ROOT)}")
 
@@ -453,9 +411,11 @@ def check_or_write(args: argparse.Namespace) -> None:
     translations, _raw_translations = load_translations()
     content_sha256 = source_digest(profile, translations)
     prompt_bytes = build_system_prompt(profile).encode("utf-8")
+    public_contact_bytes = build_public_contact_module(profile).encode("utf-8")
 
     expected_files: dict[Path, bytes] = {
         ROOT / "bot" / "system_prompt.txt": prompt_bytes,
+        ROOT / "frontend" / "public-contact.mjs": public_contact_bytes,
     }
 
     pdf_manifest_path = ROOT / "content" / "pdf-manifest.json"
@@ -463,25 +423,17 @@ def check_or_write(args: argparse.Namespace) -> None:
         if not args.write:
             raise ContentError("--accept-pdfs requires --write")
         if not args.pdf_contact_policy:
-            raise ContentError(
-                "--accept-pdfs requires an explicit --pdf-contact-policy"
-            )
-        expected_manifest = expected_pdf_manifest(
-            content_sha256, args.pdf_contact_policy
-        )
+            raise ContentError("--accept-pdfs requires an explicit --pdf-contact-policy")
+        expected_manifest = expected_pdf_manifest(content_sha256, args.pdf_contact_policy)
         expected_files[pdf_manifest_path] = render_json(expected_manifest)
     else:
         if args.pdf_contact_policy:
-            raise ContentError(
-                "--pdf-contact-policy is only valid with --accept-pdfs"
-            )
+            raise ContentError("--pdf-contact-policy is only valid with --accept-pdfs")
         manifest = load_json(pdf_manifest_path)
         if not isinstance(manifest, dict):
             raise ContentError("PDF manifest must be an object")
         privacy_status = manifest.get("contact_privacy_status")
-        expected_manifest = expected_pdf_manifest(
-            content_sha256, privacy_status
-        )
+        expected_manifest = expected_pdf_manifest(content_sha256, privacy_status)
         if manifest != expected_manifest:
             raise ContentError(
                 "PDF manifest is stale; regenerate and visually review PDFs before accepting them"
@@ -511,7 +463,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--pdf-contact-policy",
-        choices=(PDF_PRIVACY_SAFE, PDF_PRIVACY_PUBLIC),
+        choices=(PDF_PRIVACY_SAFE,),
         help=(
             "explicit owner-reviewed PDF contact policy; required with "
             "--accept-pdfs"
