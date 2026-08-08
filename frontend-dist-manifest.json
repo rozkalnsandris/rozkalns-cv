@@ -50,7 +50,14 @@
     "dynamicImports": [
       "features/chat.mjs",
       "features/contact.mjs"
+    ],
+    "assets": [
+      "assets/photo.18997b6089ce.webp"
     ]
+  },
+  "photo.webp": {
+    "file": "assets/photo.18997b6089ce.webp",
+    "src": "photo.webp"
   },
   "smarthome.html": {
     "file": "assets/smarthome.9d9b6248aa0b.mjs",

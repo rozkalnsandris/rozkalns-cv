@@ -6,7 +6,7 @@ import { resolve } from "node:path";
 const root = resolve(import.meta.dirname, "..");
 const htmlRoot = resolve(root, "html");
 const manifest = JSON.parse(await readFile(resolve(root, "frontend-dist-manifest.json"), "utf8"));
-const HASHED = /\.[0-9a-f]{12}\.(?:mjs|js|css|json)$/;
+const HASHED = /\.[0-9a-f]{12}\.(?:mjs|js|css|json|webp)$/;
 
 const indexEntry = manifest["index.html"];
 const smartEntry = manifest["smarthome.html"];
@@ -115,9 +115,15 @@ async function totalBytes(paths) {
 }
 const js = actualAssets.filter((file) => /\.m?js$/.test(file));
 const css = actualAssets.filter((file) => file.endsWith(".css"));
+const images = actualAssets.filter((file) => file.endsWith(".webp"));
+assert.equal(images.length, 1, "exactly one hashed WebP profile asset is required");
+assert.match(images[0], /^assets\/photo\.[0-9a-f]{12}\.webp$/);
+const nginxSource = await readFile(resolve(root, "nginx.conf"), "utf8");
+assert.match(nginxSource, /\(\?:css\|json\|webp\)\$\"/);
 const budgets = {
   javascript: [await totalBytes(js), 25_000],
   css: [await totalBytes(css), 22_000],
+  images: [await totalBytes(images), 13_000],
   translations: [await totalBytes(actualI18n), 22_000],
   indexHtml: [(await stat(resolve(htmlRoot, "index.html"))).size, 21_000],
   smartHomeHtml: [(await stat(resolve(htmlRoot, "smarthome.html"))).size, 5_000]
