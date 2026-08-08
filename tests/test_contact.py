@@ -157,6 +157,7 @@ class ContactEndpointTests(unittest.TestCase):
                 "email": "person@example.com",
                 "phone": "+49 123 456789",
                 "phone_uri": "+49123456789",
+                "whatsapp_url": "https://wa.me/49123456789",
             },
         )
         self.assertEqual(response.headers["Cache-Control"], "no-store")
@@ -175,6 +176,7 @@ class ContactEndpointTests(unittest.TestCase):
         body = response.get_data(as_text=True)
         self.assertNotIn("person@example.com", body)
         self.assertNotIn("+49123456789", body)
+        self.assertNotIn("wa.me", body)
 
     def test_invalid_token_is_rejected_before_siteverify(self) -> None:
         with patch.object(self.module, "verify_turnstile") as verify:
