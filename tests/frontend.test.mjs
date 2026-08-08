@@ -4,11 +4,11 @@ import {
   buildChatPayload,
   normalizeCompletedHistory,
   validateStats
-} from "../html/assets/app.d878d409f278.mjs";
+} from "../frontend/app.mjs";
 import {
   contactPayloadIsValid,
   skillIconName
-} from "../html/assets/enhancements.0027f066ac26.mjs";
+} from "../frontend/enhancements.mjs";
 
 const liveStats = {
   updated: "2026-08-06T12:00:00Z",
