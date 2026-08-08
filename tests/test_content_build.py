@@ -34,17 +34,31 @@ class CanonicalContentTests(unittest.TestCase):
         self.assertEqual(set(raw), {"en", "de", "lv"})
         self.assertEqual(set(translations["en"]), set(translations["de"]))
         self.assertEqual(set(translations["en"]), set(translations["lv"]))
+        self.assertEqual(profile["schema_version"], 2)
         self.assertEqual(profile["identity"]["name"], "Andris Rožkalns")
+
+    def test_protected_contact_channels_are_runtime_only(self) -> None:
+        profile = builder.validate_profile(copy.deepcopy(self.profile))
+        self.assertEqual(
+            profile["contact"]["email"], {"visibility": "verified-runtime"}
+        )
+        self.assertEqual(
+            profile["contact"]["phone"], {"visibility": "verified-runtime"}
+        )
+
+        invalid_visibility = copy.deepcopy(self.profile)
+        invalid_visibility["contact"]["email"]["visibility"] = "public"
+        with self.assertRaises(builder.ContentError):
+            builder.validate_profile(invalid_visibility)
+
+        embedded_value = copy.deepcopy(self.profile)
+        embedded_value["contact"]["email"]["value"] = "user@example.com"
+        with self.assertRaises(builder.ContentError):
+            builder.validate_profile(embedded_value)
 
     def test_duplicate_ids_are_rejected(self) -> None:
         profile = copy.deepcopy(self.profile)
         profile["projects"][1]["id"] = profile["projects"][0]["id"]
-        with self.assertRaises(builder.ContentError):
-            builder.validate_profile(profile)
-
-    def test_non_public_contact_is_rejected(self) -> None:
-        profile = copy.deepcopy(self.profile)
-        profile["contact"]["email"]["visibility"] = "private"
         with self.assertRaises(builder.ContentError):
             builder.validate_profile(profile)
 
@@ -57,7 +71,7 @@ class CanonicalContentTests(unittest.TestCase):
             builder.source_digest(reordered, translations),
         )
 
-    def test_generated_prompt_uses_canonical_facts(self) -> None:
+    def test_generated_prompt_uses_canonical_facts_without_contact_values(self) -> None:
         prompt = builder.build_system_prompt(
             builder.validate_profile(copy.deepcopy(self.profile))
         )
@@ -65,6 +79,18 @@ class CanonicalContentTests(unittest.TestCase):
         self.assertIn("2027-01", prompt)
         self.assertIn("Raspberry Pi 5", prompt)
         self.assertIn("Do not answer unrelated questions.", prompt)
+        self.assertIn("verified contact section", prompt)
+        self.assertNotIn("Email:", prompt)
+        self.assertNotIn("Phone:", prompt)
+        self.assertNotIn("PUBLIC CONTACT", prompt)
+
+    def test_pending_pdf_privacy_state_is_explicit_and_unbound(self) -> None:
+        manifest = builder.load_json(ROOT / "content" / "pdf-manifest.json")
+        self.assertEqual(manifest["schema_version"], 2)
+        self.assertEqual(
+            manifest["contact_privacy_status"], builder.PDF_PRIVACY_PENDING
+        )
+        self.assertIsNone(manifest["source_sha256"])
 
     def test_prompt_sync_migrates_once_and_is_idempotent(self) -> None:
         old = (
