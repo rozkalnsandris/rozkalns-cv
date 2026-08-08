@@ -1,0 +1,73 @@
+name: Sanitized PDF contact audit
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/94-pdf-contact-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    if: >-
+      github.repository == 'rozkalnsandris/rozkalns-cv' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'security/94-current-contact-literals-v01'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact audit SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "$GITHUB_SHA"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Install ephemeral PDF text inspector
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends poppler-utils >/dev/null
+          command -v pdftotext >/dev/null
+
+      - name: Report only PDF filenames containing protected canonical contacts
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          import subprocess
+
+          root = Path.cwd()
+          profile = json.loads((root / 'content/profile.json').read_text(encoding='utf-8'))
+          candidates = [
+              profile['contact']['email']['value'].encode('utf-8'),
+              profile['contact']['phone']['value'].encode('utf-8'),
+              profile['contact']['phone']['uri'].encode('utf-8'),
+          ]
+          pdfs = [root / 'html/cv.pdf', root / 'html/cv-de.pdf', root / 'html/cv-lv.pdf']
+          hits = 0
+          for pdf in pdfs:
+              completed = subprocess.run(
+                  ['pdftotext', '-layout', str(pdf), '-'],
+                  stdout=subprocess.PIPE,
+                  stderr=subprocess.DEVNULL,
+                  check=True,
+              )
+              present = any(candidate in completed.stdout for candidate in candidates)
+              print(f'PDF_PROTECTED_CONTACT_PRESENT={pdf.relative_to(root)}:{str(present).lower()}')
+              hits += int(present)
+          print(f'PDF_PROTECTED_CONTACT_FILE_COUNT={hits}')
+          print('PDF_CONTACT_AUDIT=PASS')
+          PY
