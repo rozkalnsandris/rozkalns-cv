@@ -33,8 +33,14 @@
     "src": "features/chat.mjs",
     "isDynamicEntry": true
   },
+  "features/contact.mjs": {
+    "file": "assets/contact.f9c2dad66168.mjs",
+    "name": "contact",
+    "src": "features/contact.mjs",
+    "isDynamicEntry": true
+  },
   "index.html": {
-    "file": "assets/app.b637725de49a.mjs",
+    "file": "assets/app.5416a1d9155b.mjs",
     "name": "app",
     "src": "index.html",
     "isEntry": true,
@@ -43,7 +49,7 @@
     ],
     "dynamicImports": [
       "features/chat.mjs",
-      "index.html"
+      "features/contact.mjs"
     ]
   },
   "smarthome.html": {
