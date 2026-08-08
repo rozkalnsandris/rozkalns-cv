@@ -9,7 +9,7 @@ permissions:
 
 concurrency:
   group: c94-public-contact-${{ github.event.pull_request.number }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   finalize:
@@ -42,7 +42,9 @@ jobs:
         run: |
           set -Eeuo pipefail
           python3 scripts/c94-apply-public-contact.py
-          python3 -m py_compile scripts/c94-apply-public-contact.py bot/contact.py bot/app.py
+          PYTHONPYCACHEPREFIX="${RUNNER_TEMP}/syntax-pycache" \
+            python3 -m py_compile \
+            scripts/c94-apply-public-contact.py bot/contact.py bot/app.py
           node --check frontend/app.mjs
           node --check frontend/features/contact.mjs
           node --check tests/browser-smoke.mjs
@@ -77,7 +79,7 @@ jobs:
           npm run build:frontend
           npm run check:frontend
 
-      - name: Create WhatsApp-marked protected-site QR overlay
+      - name: Create protected-site WhatsApp QR overlay
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -86,7 +88,6 @@ jobs:
           python3 - "$work" <<'PY'
           from pathlib import Path
           import sys
-
           import qrcode
           from qrcode.constants import ERROR_CORRECT_H
           from PIL import ImageDraw
@@ -99,7 +100,6 @@ jobs:
           work = Path(sys.argv[1])
           target = 'https://rozkalns.net/?contact=whatsapp'
           email = 'andris@rozkalns.net'
-
           qr = qrcode.QRCode(error_correction=ERROR_CORRECT_H, box_size=16, border=4)
           qr.add_data(target)
           qr.make(fit=True)
@@ -200,11 +200,11 @@ jobs:
             printf 'C94_PDF language=%s pages=1 email=PASS phone=PROTECTED qr=PASS\n' "$language"
           done
 
-      - name: Run focused current-contact regressions
+      - name: Run focused contact regressions
         shell: bash
         run: |
           set -Eeuo pipefail
-          PYTHONPYCACHEPREFIX="${RUNNER_TEMP}/pycache" \
+          PYTHONPYCACHEPREFIX="${RUNNER_TEMP}/test-pycache" \
             "$TEST_VENV/bin/python" -m unittest \
             tests.test_content_build \
             tests.test_current_contact_privacy \
@@ -212,8 +212,20 @@ jobs:
             tests.test_contact
           node --test tests/frontend.test.mjs
           npm run check:frontend
+          printf 'C94_CONTACT_REGRESSION=PASS\n'
+
+      - name: Revalidate clean source tree
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          rm -rf -- node_modules
+          test ! -e node_modules
+          if find . -path ./.git -prune -o -type d -name __pycache__ -print -quit | grep -q .; then
+            printf 'C94_PREVALIDATE_PYCACHE=FAIL\n' >&2
+            exit 1
+          fi
           bash scripts/validate-source.sh "$PWD"
-          printf 'C94_FOCUSED_REGRESSION=PASS\n'
+          printf 'C94_CLEAN_SOURCE=PASS\n'
 
       - name: Self-clean and guard final diff
         shell: bash
@@ -221,11 +233,13 @@ jobs:
           set -Eeuo pipefail
           rm -f \
             .github/workflows/c94-pdf-layout-audit.yml \
+            .github/workflows/c94-focused-diagnostic.yml \
             scripts/c94-apply-public-contact.py
           python3 - <<'PY'
           import subprocess
           allowed = {
               '.github/workflows/c94-pdf-layout-audit.yml',
+              '.github/workflows/c94-focused-diagnostic.yml',
               'scripts/c94-apply-public-contact.py',
               'bot/app.py', 'bot/contact.py', 'bot/system_prompt.txt',
               'content/pdf-manifest.json', 'content/profile.json',
