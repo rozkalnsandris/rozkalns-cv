@@ -14,7 +14,8 @@ FAVICON = ROOT / "html" / "favicon.svg"
 NGINX = ROOT / "nginx.conf"
 COMPOSE = ROOT / "docker-compose.yml"
 MANIFEST = ROOT / "frontend-dist-manifest.json"
-SOURCE_CSS = ROOT / "frontend" / "styles" / "main.css"
+SOURCE_LAYOUT = ROOT / "frontend" / "styles" / "layout.css"
+SOURCE_RESPONSIVE = ROOT / "frontend" / "styles" / "responsive.css"
 SOURCE_APP = ROOT / "frontend" / "app.mjs"
 SOURCE_CHAT = ROOT / "frontend" / "features" / "chat.mjs"
 SOURCE_I18N = ROOT / "frontend" / "core" / "i18n.mjs"
@@ -95,7 +96,9 @@ class FrontendContractTests(unittest.TestCase):
         self.assertNotIn("(?:css|mjs|json)", nginx)
 
         assets = generated_assets()
-        self.assertGreaterEqual(len(assets), 8)
+        self.assertGreaterEqual(len(assets), 7)
+        self.assertGreaterEqual(sum(path.endswith(".css") for path in assets), 1)
+        self.assertGreaterEqual(sum(path.endswith((".mjs", ".js")) for path in assets), 3)
         for relative in assets:
             self.assertRegex(relative, HASHED_ASSET)
             self.assertTrue((ROOT / "html" / relative).is_file(), relative)
@@ -120,7 +123,8 @@ class FrontendContractTests(unittest.TestCase):
 
     def test_rich_layout_and_sections_are_not_simplified_away(self) -> None:
         html = INDEX.read_text(encoding="utf-8")
-        css = SOURCE_CSS.read_text(encoding="utf-8")
+        layout = SOURCE_LAYOUT.read_text(encoding="utf-8")
+        responsive = SOURCE_RESPONSIVE.read_text(encoding="utf-8")
         for section_id in (
             "about", "stats", "experience", "projects", "skills", "education"
         ):
@@ -130,9 +134,9 @@ class FrontendContractTests(unittest.TestCase):
         self.assertGreaterEqual(html.count('class="tech-tag"'), 25)
         self.assertGreaterEqual(html.count('class="skill-chip"'), 20)
         self.assertIn('class="profile-languages"', html)
-        self.assertIn('@media (max-width: 760px)', css)
-        self.assertNotIn('@media (max-width: 850px)', css)
-        self.assertIn('grid-template-columns: 340px minmax(0,1fr)', css)
+        self.assertIn('@media (max-width: 760px)', responsive)
+        self.assertNotIn('@media (max-width: 850px)', responsive)
+        self.assertIn('grid-template-columns: 340px minmax(0,1fr)', layout)
 
     def test_cloudflare_analytics_is_not_manually_embedded(self) -> None:
         text = INDEX.read_text(encoding="utf-8")

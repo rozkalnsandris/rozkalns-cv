@@ -40,15 +40,22 @@ class ContactMarkupTests(unittest.TestCase):
     def test_enhancement_sources_are_in_authoritative_build_graph(self) -> None:
         source = (ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
         self.assertIn('src="./enhancements.mjs"', source)
-        self.assertIn('href="./styles/extra.css"', source)
+        self.assertIn('href="./styles/index.css"', source)
+        self.assertNotIn("styles/main.css", source)
+        self.assertNotIn("styles/extra.css", source)
 
         manifest = json.loads(
             (ROOT / "frontend-dist-manifest.json").read_text(encoding="utf-8")
         )
         entry = manifest["index.html"]
         self.assertRegex(entry["file"], r"^assets/app\.[0-9a-f]{12}\.mjs$")
-        self.assertGreaterEqual(len(entry.get("css", [])), 1)
-        for relative in [entry["file"], *entry.get("css", [])]:
+        css_assets = sorted({
+            item
+            for row in manifest.values()
+            for item in row.get("css", [])
+        })
+        self.assertGreaterEqual(len(css_assets), 1)
+        for relative in [entry["file"], *css_assets]:
             self.assertRegex(relative, r"\.[0-9a-f]{12}\.(?:mjs|css)$")
             self.assertTrue((ROOT / "html" / relative).is_file(), relative)
 
@@ -66,10 +73,10 @@ class ContactMarkupTests(unittest.TestCase):
         self.assertNotIn("unsafe-eval", nginx)
 
     def test_skill_diamond_marker_is_disabled_by_icon_layer(self) -> None:
-        css = (ROOT / "frontend" / "styles" / "extra.css").read_text(
+        css = (ROOT / "frontend" / "styles" / "components.css").read_text(
             encoding="utf-8"
         )
-        self.assertIn(".skill-chip::before { content: none; }", css)
+        self.assertNotIn(".skill-chip::before", css)
         self.assertIn(".skill-chip svg", css)
 
 

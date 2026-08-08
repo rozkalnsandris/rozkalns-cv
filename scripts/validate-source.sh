@@ -49,8 +49,17 @@ for required in \
     frontend/features/chat.mjs \
     frontend/features/contact.mjs \
     frontend/ui/icons.mjs \
-    frontend/styles/main.css \
-    frontend/styles/extra.css \
+    frontend/styles/index.css \
+    frontend/styles/tokens.css \
+    frontend/styles/base.css \
+    frontend/styles/layout.css \
+    frontend/styles/components.css \
+    frontend/styles/features/stats.css \
+    frontend/styles/features/chat.css \
+    frontend/styles/features/contact.css \
+    frontend/styles/features/smarthome.css \
+    frontend/styles/responsive.css \
+    frontend/styles/print.css \
     frontend-dist-manifest.json \
     package.json \
     package-lock.json \
@@ -66,7 +75,7 @@ do
     [[ -s "$ROOT/$required" ]] || fail "required file is missing or empty: $required"
 done
 
-for retired in update.sh update_cv-1.sh cloudflared.env.example; do
+for retired in update.sh update_cv-1.sh cloudflared.env.example frontend/styles/main.css frontend/styles/extra.css; do
     [[ ! -e "$ROOT/$retired" ]] \
         || fail "retired source file must not exist: $retired"
 done
