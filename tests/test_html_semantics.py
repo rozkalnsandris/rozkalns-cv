@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
+import json
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 import re
@@ -231,27 +232,32 @@ class HtmlSemanticTests(unittest.TestCase):
         ]
         self.assertEqual(len(skip_links), 1)
 
-    def test_fingerprinted_assets_are_named_by_content(self) -> None:
-        parsed = parse(HTML_ROOT / "index.html")
-        values = []
-        for row in parsed.elements:
-            values.extend(
-                value
-                for value in (row.attrs.get("href"), row.attrs.get("src"))
-                if value and HASHED_ASSET.search(urlsplit(value).path)
-            )
-        self.assertGreaterEqual(len(values), 2)
-        for value in values:
-            path = local_target(HTML_ROOT / "index.html", value)
-            assert path is not None
-            match = re.search(r"\.([0-9a-f]{12})\.", path.name)
-            assert match is not None
-            import hashlib
+    def test_fingerprinted_assets_are_manifest_owned(self) -> None:
+        manifest = json.loads(
+            (ROOT / "frontend-dist-manifest.json").read_text(encoding="utf-8")
+        )
+        manifest_assets: set[str] = set()
+        for row in manifest.values():
+            if isinstance(row.get("file"), str):
+                manifest_assets.add(row["file"])
+            for key in ("css", "assets"):
+                manifest_assets.update(row.get(key, []))
 
-            self.assertEqual(
-                hashlib.sha256(path.read_bytes()).hexdigest()[:12],
-                match.group(1),
-            )
+        values: list[str] = []
+        for page in self.pages:
+            parsed = parse(page)
+            for row in parsed.elements:
+                values.extend(
+                    value
+                    for value in (row.attrs.get("href"), row.attrs.get("src"))
+                    if value and HASHED_ASSET.search(urlsplit(value).path)
+                )
+        self.assertGreaterEqual(len(values), 4)
+        for value in values:
+            relative = urlsplit(value).path.lstrip("/")
+            self.assertRegex(relative, HASHED_ASSET)
+            self.assertIn(relative, manifest_assets)
+            self.assertTrue((HTML_ROOT / relative).is_file(), relative)
 
 
 if __name__ == "__main__":
