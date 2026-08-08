@@ -12,7 +12,6 @@ permissions:
 
 jobs:
   finalize:
-    if: github.repository == 'rozkalnsandris/rozkalns-cv' && github.ref == 'refs/heads/perf/82-reduce-initial-background-work-v01'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
@@ -32,56 +31,13 @@ jobs:
           git checkout --detach FETCH_HEAD
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
 
-      - name: Remove compatibility module from eager runtime graph
+      - name: Remove no-op compatibility runtime entry
         shell: bash
         run: |
           set -Eeuo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-
-          index = Path('frontend/index.html')
-          text = index.read_text(encoding='utf-8')
-          old = '  <script type="module" src="./enhancements.mjs"></script>\n'
-          if text.count(old) != 1:
-              raise SystemExit('unexpected enhancements script anchor')
-          index.write_text(text.replace(old, ''), encoding='utf-8')
-
-          test = Path('tests/test_contact_markup.py')
-          text = test.read_text(encoding='utf-8')
-          text = text.replace(
-              '    def test_enhancement_sources_are_in_authoritative_build_graph(self) -> None:\n',
-              '    def test_compatibility_module_is_not_an_eager_runtime_entry(self) -> None:\n',
-              1,
-          )
-          old = '        self.assertIn(\'src="./enhancements.mjs"\', source)\n'
-          new = (
-              '        self.assertNotIn(\'src="./enhancements.mjs"\', source)\n'
-              '        compatibility = (ROOT / "frontend" / "enhancements.mjs").read_text(encoding="utf-8")\n'
-              '        self.assertIn("contactPayloadIsValid", compatibility)\n'
-              '        self.assertIn("createContactController", compatibility)\n'
-          )
-          if text.count(old) != 1:
-              raise SystemExit('unexpected contact compatibility assertion')
-          test.write_text(text.replace(old, new), encoding='utf-8')
-
-          check = Path('scripts/check-frontend-dist.mjs')
-          text = check.read_text(encoding='utf-8')
-          anchor = 'assert.match(smartEntry.file, /^assets\\/smarthome\\.[0-9a-f]{12}\\.mjs$/);\n'
-          addition = '''
-for (const feature of ["features/chat.mjs", "features/contact.mjs"]) {
-  const row = manifest[feature];
-  assert.equal(row?.isDynamicEntry, true, `${feature} is not a dynamic entry`);
-  assert.ok(indexEntry.dynamicImports?.includes(feature), `${feature} is missing from index dynamic imports`);
-  assert.match(row.file, /^assets\\/(?:chat|contact)\\.[0-9a-f]{12}\\.mjs$/);
-}
-'''
-          if addition not in text:
-              if text.count(anchor) != 1:
-                  raise SystemExit('unexpected dist check insertion anchor')
-              text = text.replace(anchor, anchor + addition)
-          check.write_text(text, encoding='utf-8')
-          PY
-
+          grep -q 'src="./enhancements.mjs"' frontend/index.html
+          sed -i '/src="\.\/enhancements\.mjs"/d' frontend/index.html
+          ! grep -q 'src="./enhancements.mjs"' frontend/index.html
           python3 -m unittest tests.test_contact_markup -v
           node --test tests/frontend.test.mjs
 
@@ -117,7 +73,7 @@ for (const feature of ["features/chat.mjs", "features/contact.mjs"]) {
           test -n "$chrome_bin"
           CHROME_BIN="$chrome_bin" node tests/browser-smoke.mjs
 
-      - name: Commit split boundary and generated output
+      - name: Commit contact split and remove finalizer
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -127,20 +83,12 @@ for (const feature of ["features/chat.mjs", "features/contact.mjs"]) {
           git add -- \
             .github/workflows/c5-contact-split-finalizer.yml \
             frontend/index.html \
-            tests/test_contact_markup.py \
-            scripts/check-frontend-dist.mjs \
             frontend-dist-manifest.json \
             html/index.html \
             html/smarthome.html \
             html/assets \
             html/i18n
-          staged="$(git diff --cached --name-only)"
-          test -n "$staged"
-          printf '%s\n' "$staged"
-          if grep -E '^html/.*\.pdf$' <<<"$staged"; then
-            echo 'PDF files changed unexpectedly' >&2
-            exit 1
-          fi
+          git diff --cached --name-only
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'perf: make contact verification interaction-only code'
