@@ -1,4 +1,5 @@
 name: C4 final source transaction
+# transaction-revision: idempotent-helper-v2
 
 on:
   push:
