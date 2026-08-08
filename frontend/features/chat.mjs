@@ -91,8 +91,8 @@ export function createDialogController({ root = globalThis.document, windowLike 
   return { open, dismiss };
 }
 
-function appendMessage(log, text, role) {
-  const message = document.createElement("div");
+function appendMessage(root, log, text, role) {
+  const message = root.createElement("div");
   message.className = `message ${role}`;
   message.textContent = text;
   message.setAttribute("role", "listitem");
@@ -120,7 +120,7 @@ export function createChatController(languageController, {
     input.value = "";
     send.disabled = true;
     form.setAttribute("aria-busy", "true");
-    appendMessage(log, message, "user");
+    appendMessage(root, log, message, "user");
     status.textContent = languageController.messages?.chat_typing || "Preparing answer…";
 
     try {
@@ -138,7 +138,7 @@ export function createChatController(languageController, {
         throw new Error(errorMessage);
       }
       if (!response.body) throw new Error("stream unavailable");
-      const answer = appendMessage(log, "", "bot");
+      const answer = appendMessage(root, log, "", "bot");
       answer.setAttribute("aria-live", "off");
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -161,7 +161,7 @@ export function createChatController(languageController, {
       const text = error instanceof Error && error.message
         ? error.message
         : (languageController.messages?.chat_error || "Connection issue.");
-      appendMessage(log, text, "bot");
+      appendMessage(root, log, text, "bot");
       status.textContent = text;
     } finally {
       send.disabled = false;
