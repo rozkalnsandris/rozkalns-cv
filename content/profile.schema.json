@@ -17,68 +17,29 @@
     "infrastructure"
   ],
   "properties": {
-    "schema_version": {
-      "const": 2
-    },
-    "content_version": {
-      "type": "string",
-      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}\\.[1-9][0-9]*$"
-    },
+    "schema_version": {"const": 2},
+    "content_version": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}\\.[1-9][0-9]*$"},
     "identity": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "name",
-        "role",
-        "location",
-        "availability",
-        "career_goal"
-      ],
+      "required": ["name", "role", "location", "availability", "career_goal"],
       "properties": {
-        "name": {
-          "type": "string",
-          "minLength": 2
-        },
-        "role": {
-          "type": "string",
-          "minLength": 2
-        },
-        "location": {
-          "type": "string",
-          "minLength": 2
-        },
-        "availability": {
-          "type": "string",
-          "pattern": "^[0-9]{4}-[0-9]{2}$"
-        },
-        "career_goal": {
-          "type": "string",
-          "minLength": 10
-        }
+        "name": {"type": "string", "minLength": 2},
+        "role": {"type": "string", "minLength": 2},
+        "location": {"type": "string", "minLength": 2},
+        "availability": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}$"},
+        "career_goal": {"type": "string", "minLength": 10}
       }
     },
     "contact": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "email",
-        "phone",
-        "github",
-        "website"
-      ],
+      "required": ["email", "phone", "github", "website"],
       "properties": {
-        "email": {
-          "$ref": "#/$defs/protectedValue"
-        },
-        "phone": {
-          "$ref": "#/$defs/protectedValue"
-        },
-        "github": {
-          "$ref": "#/$defs/publicValue"
-        },
-        "website": {
-          "$ref": "#/$defs/publicValue"
-        }
+        "email": {"$ref": "#/$defs/publicValue"},
+        "phone": {"$ref": "#/$defs/protectedValue"},
+        "github": {"$ref": "#/$defs/publicValue"},
+        "website": {"$ref": "#/$defs/publicValue"}
       }
     },
     "languages": {
@@ -87,98 +48,37 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "name",
-          "level"
-        ],
+        "required": ["name", "level"],
         "properties": {
-          "name": {
-            "type": "string",
-            "minLength": 2
-          },
-          "level": {
-            "type": "string",
-            "minLength": 1
-          }
+          "name": {"type": "string", "minLength": 2},
+          "level": {"type": "string", "minLength": 1}
         }
       }
     },
-    "experience": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "$ref": "#/$defs/experience"
-      }
-    },
-    "education": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "$ref": "#/$defs/education"
-      }
-    },
+    "experience": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/experience"}},
+    "education": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/education"}},
     "skills": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "core",
-        "working",
-        "learning",
-        "foundations"
-      ],
+      "required": ["core", "working", "learning", "foundations"],
       "properties": {
-        "core": {
-          "$ref": "#/$defs/nonEmptyStrings"
-        },
-        "working": {
-          "$ref": "#/$defs/nonEmptyStrings"
-        },
-        "learning": {
-          "$ref": "#/$defs/nonEmptyStrings"
-        },
-        "foundations": {
-          "$ref": "#/$defs/nonEmptyStrings"
-        }
+        "core": {"$ref": "#/$defs/nonEmptyStrings"},
+        "working": {"$ref": "#/$defs/nonEmptyStrings"},
+        "learning": {"$ref": "#/$defs/nonEmptyStrings"},
+        "foundations": {"$ref": "#/$defs/nonEmptyStrings"}
       }
     },
-    "projects": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "$ref": "#/$defs/project"
-      }
-    },
+    "projects": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/project"}},
     "infrastructure": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "host",
-        "storage",
-        "runtime",
-        "availability",
-        "public_site"
-      ],
+      "required": ["host", "storage", "runtime", "availability", "public_site"],
       "properties": {
-        "host": {
-          "type": "string",
-          "minLength": 2
-        },
-        "storage": {
-          "type": "string",
-          "minLength": 2
-        },
-        "runtime": {
-          "type": "string",
-          "minLength": 2
-        },
-        "availability": {
-          "type": "string",
-          "minLength": 2
-        },
-        "public_site": {
-          "type": "string",
-          "format": "uri"
-        }
+        "host": {"type": "string", "minLength": 2},
+        "storage": {"type": "string", "minLength": 2},
+        "runtime": {"type": "string", "minLength": 2},
+        "availability": {"type": "string", "minLength": 2},
+        "public_site": {"type": "string", "format": "uri"}
       }
     }
   },
@@ -186,144 +86,63 @@
     "publicValue": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "value",
-        "visibility"
-      ],
+      "required": ["value", "visibility"],
       "properties": {
-        "value": {
-          "type": "string",
-          "minLength": 2
-        },
-        "visibility": {
-          "const": "public"
-        }
+        "value": {"type": "string", "minLength": 2},
+        "visibility": {"const": "public"}
+      }
+    },
+    "protectedValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["visibility"],
+      "properties": {
+        "visibility": {"const": "runtime-protected"}
       }
     },
     "nonEmptyStrings": {
       "type": "array",
       "minItems": 1,
       "uniqueItems": true,
-      "items": {
-        "type": "string",
-        "minLength": 1
-      }
+      "items": {"type": "string", "minLength": 1}
     },
     "experience": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "id",
-        "role",
-        "organization",
-        "location",
-        "start",
-        "end",
-        "highlights"
-      ],
+      "required": ["id", "role", "organization", "location", "start", "end", "highlights"],
       "properties": {
-        "id": {
-          "type": "string",
-          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
-        },
-        "role": {
-          "type": "string",
-          "minLength": 2
-        },
-        "organization": {
-          "type": "string",
-          "minLength": 2
-        },
-        "location": {
-          "type": "string",
-          "minLength": 2
-        },
-        "start": {
-          "type": "string",
-          "pattern": "^[0-9]{4}(?:-[0-9]{2})?$"
-        },
-        "end": {
-          "type": "string",
-          "pattern": "^[0-9]{4}(?:-[0-9]{2})?$"
-        },
-        "end_planned": {
-          "type": "boolean"
-        },
-        "highlights": {
-          "$ref": "#/$defs/nonEmptyStrings"
-        }
+        "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "role": {"type": "string", "minLength": 2},
+        "organization": {"type": "string", "minLength": 2},
+        "location": {"type": "string", "minLength": 2},
+        "start": {"type": "string", "pattern": "^[0-9]{4}(?:-[0-9]{2})?$"},
+        "end": {"type": "string", "pattern": "^[0-9]{4}(?:-[0-9]{2})?$"},
+        "end_planned": {"type": "boolean"},
+        "highlights": {"$ref": "#/$defs/nonEmptyStrings"}
       }
     },
     "education": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "id",
-        "title"
-      ],
+      "required": ["id", "title"],
       "properties": {
-        "id": {
-          "type": "string",
-          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
-        },
-        "title": {
-          "type": "string",
-          "minLength": 2
-        },
-        "organization": {
-          "type": "string",
-          "minLength": 2
-        },
-        "start": {
-          "type": "string",
-          "pattern": "^[0-9]{4}$"
-        },
-        "end": {
-          "type": "string",
-          "pattern": "^[0-9]{4}$"
-        },
-        "status": {
-          "type": "string",
-          "minLength": 2
-        },
-        "detail": {
-          "type": "string",
-          "minLength": 2
-        }
+        "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "title": {"type": "string", "minLength": 2},
+        "organization": {"type": "string", "minLength": 2},
+        "start": {"type": "string", "pattern": "^[0-9]{4}$"},
+        "end": {"type": "string", "pattern": "^[0-9]{4}$"},
+        "status": {"type": "string", "minLength": 2},
+        "detail": {"type": "string", "minLength": 2}
       }
     },
     "project": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "id",
-        "title",
-        "facts"
-      ],
+      "required": ["id", "title", "facts"],
       "properties": {
-        "id": {
-          "type": "string",
-          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
-        },
-        "title": {
-          "type": "string",
-          "minLength": 2
-        },
-        "facts": {
-          "$ref": "#/$defs/nonEmptyStrings"
-        }
-      }
-    },
-    "protectedValue": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "visibility"
-      ],
-      "properties": {
-        "visibility": {
-          "const": "runtime-protected"
-        }
+        "id": {"type": "string", "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"},
+        "title": {"type": "string", "minLength": 2},
+        "facts": {"$ref": "#/$defs/nonEmptyStrings"}
       }
     }
   }
