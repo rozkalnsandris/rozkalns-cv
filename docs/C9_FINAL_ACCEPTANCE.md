@@ -6,9 +6,9 @@ Child: #102
 
 ## Decision
 
-C9 is an evidence-only final acceptance gate. No served frontend file, Nginx configuration, cvbot/API implementation, deployment workflow, RPi5 host infrastructure, dependency, or shared Cloudflare Tunnel lifecycle change is justified by this gate.
+C9 is the final acceptance gate. Owner production validation found one intentional served UX refinement: after successful Turnstile reveal, the phone link opens WhatsApp through `https://wa.me/<international-number>` while the email link remains `mailto:`. No backend, Nginx, cvbot/API, RPi5 host-infrastructure, dependency, or shared Cloudflare Tunnel lifecycle change is required.
 
-`PRODUCTION_IMPACT=no` for repository/runtime behavior.
+`PRODUCTION_IMPACT=yes` because the frontend contact module and generated content-addressed assets change.
 
 The accepted production application revision is:
 
@@ -91,9 +91,9 @@ This separation is intentional: production RPi5 evidence proves the exact deploy
 
 One C9 item cannot be honestly automated against the real production Turnstile widget: a successful human challenge followed by the protected contact reveal. Cloudflare documents that automated browser suites are detected as bots and recommends dedicated dummy sitekeys/secrets for automated tests; production secrets reject dummy tokens. This repository therefore does **not** introduce a test-key path, Siteverify bypass, or automation backdoor in production.
 
-Automated evidence already proves that full contact values are absent before verification, the Turnstile flow is interaction-only, server-side validation fails closed, and the successful reveal/focus behavior works with controlled test fixtures. Final human acceptance still requires one real production interaction on `https://rozkalns.net/`: activate **Verify to show contact details**, complete the real Turnstile challenge, and confirm that the protected contact links appear. No contact values or Turnstile token should be copied into GitHub evidence; a simple owner confirmation is sufficient.
+Automated evidence proves that full contact values are absent before verification, the Turnstile flow is interaction-only, server-side validation fails closed, and successful reveal/focus behavior works with controlled test fixtures. The owner then completed the real production Turnstile flow on `https://rozkalns.net/` on 2026-08-08 and confirmed that the protected contact links appeared. The first attempt exposed missing `CONTACT_*` values in the production runtime environment after #74 removed source fallbacks; those runtime values were restored out-of-repository and the repeated real challenge succeeded. No contact value or Turnstile token is recorded in GitHub evidence.
 
-Until that human production interaction is confirmed, C9 automated proof is PASS but the overall C9 gate remains **pending manual Turnstile acceptance**.
+Manual production Turnstile acceptance: **PASS**.
 
 ## Before/after evidence
 
@@ -175,8 +175,8 @@ Rollback remains available and tested rather than exercised unnecessarily on a h
 
 ## C9 pre-merge verdict
 
-**Automated acceptance: PASS. Overall gate: PENDING MANUAL TURNSTILE ACCEPTANCE.**
+**Automated acceptance: PASS. Manual production Turnstile acceptance: PASS. Overall pre-merge gate: PASS.**
 
-The real production revision is healthy and exact-SHA proven; the same product source passes deterministic build, browser, API-contract, security and supply-chain gates; controlled performance evidence shows less startup work; and no final production code/config correction is justified.
+The real production revision is healthy and exact-SHA proven; the product source passes deterministic build, browser, API-contract, security and supply-chain gates; controlled performance evidence shows less startup work; and the only C9 product refinement is the verified phone-link destination changing from `tel:` to WhatsApp `wa.me`.
 
-After the real production Turnstile reveal is manually confirmed, this evidence-only PR can be marked ready and merged. Then close #102 and parent #68 only after the new documentation-only merge SHA completes the repository's normal `main` CI → serial RPi5 deployment proof. Because the PR changes documentation only, no served behavior change is expected.
+After the updated product head passes the complete PR CI gate, this PR can be marked ready. Squash-merge only with explicit authorization. Because C9 now contains a served frontend change, the merged SHA must complete the normal `main` CI → serial RPi5 deployment and public verification before #102 and parent #68 are closed.

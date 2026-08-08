@@ -93,7 +93,8 @@ export function createContactController(languageController, {
     const email = root.querySelector("#contactEmail");
     const phone = root.querySelector("#contactPhone");
     const emailLink = email ? revealLink(root, email, payload.email, `mailto:${payload.email}`) : null;
-    const phoneLink = phone ? revealLink(root, phone, payload.phone, `tel:${payload.phone_uri}`) : null;
+    const whatsappNumber = payload.phone_uri.slice(1);
+    const phoneLink = phone ? revealLink(root, phone, payload.phone, `https://wa.me/${whatsappNumber}`) : null;
     button.hidden = true;
     mount.hidden = true;
     setStatus(root, message("contact_success"), "success");

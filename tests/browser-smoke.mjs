@@ -562,6 +562,10 @@ async function runBrowserSmoke(baseUrl, state) {
       await cdp.evaluate(`document.activeElement?.getAttribute('href')`),
       "mailto:test@example.invalid"
     );
+    assert.equal(
+      await cdp.evaluate(`document.querySelector('.contacts a[href^="https://wa.me/"]')?.getAttribute('href')`),
+      "https://wa.me/491234567890"
+    );
 
     state.statsMode = "stale";
     await cdp.navigate(`${baseUrl}/`);
