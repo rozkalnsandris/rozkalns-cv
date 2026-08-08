@@ -16,6 +16,9 @@ COMPOSE = ROOT / "docker-compose.yml"
 MANIFEST = ROOT / "frontend-dist-manifest.json"
 SOURCE_CSS = ROOT / "frontend" / "styles" / "main.css"
 SOURCE_APP = ROOT / "frontend" / "app.mjs"
+SOURCE_CHAT = ROOT / "frontend" / "features" / "chat.mjs"
+SOURCE_I18N = ROOT / "frontend" / "core" / "i18n.mjs"
+SOURCE_SMART = ROOT / "frontend" / "smarthome.mjs"
 TRANSLATIONS = [
     ROOT / "content" / "translations" / "en.json",
     ROOT / "content" / "translations" / "de.json",
@@ -157,14 +160,25 @@ class FrontendContractTests(unittest.TestCase):
             'aria-pressed="true"',
         ):
             self.assertIn(marker, text)
-        app = SOURCE_APP.read_text(encoding="utf-8")
+        chat = SOURCE_CHAT.read_text(encoding="utf-8")
         for marker in (
             'event.key === "Escape"',
             'event.key !== "Tab"',
             "shell.inert = true",
             "returnFocus?.focus()",
         ):
-            self.assertIn(marker, app)
+            self.assertIn(marker, chat)
+
+    def test_shared_i18n_is_used_by_both_entry_points(self) -> None:
+        core = SOURCE_I18N.read_text(encoding="utf-8")
+        app = SOURCE_APP.read_text(encoding="utf-8")
+        smart = SOURCE_SMART.read_text(encoding="utf-8")
+        self.assertIn('localStorage', core)
+        self.assertIn('"cvlang"', core)
+        self.assertIn('./core/i18n.mjs', app)
+        self.assertIn('./core/i18n.mjs', smart)
+        self.assertNotIn('const TRANSLATIONS', app)
+        self.assertNotIn('const TRANSLATIONS', smart)
 
     def test_privacy_notice_is_complete_in_every_language(self) -> None:
         for path in TRANSLATIONS:
