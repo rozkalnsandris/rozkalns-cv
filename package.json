@@ -1,0 +1,15 @@
+{
+  "name": "rozkalns-cv-frontend",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "build:frontend": "node scripts/build-frontend.mjs",
+    "check:frontend": "node scripts/check-frontend-dist.mjs"
+  },
+  "devDependencies": {
+    "vite": "8.1.5"
+  }
+}
