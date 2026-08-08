@@ -42,6 +42,7 @@ jobs:
           import json
           from pathlib import Path
           import re
+          import shutil
           import subprocess
 
           root = Path.cwd()
@@ -125,7 +126,8 @@ jobs:
               for file_index, relative in enumerate(files, 1):
                   print(f'CANDIDATE_{index}_TRACKED_FILE_{file_index}={relative}')
 
-          if not shutil_which := __import__('shutil').which('pdftotext'):
+          shutil_which = shutil.which('pdftotext')
+          if not shutil_which:
               raise SystemExit('PDF_TEXT_AUDIT=FAIL pdftotext unavailable')
           pdf_hit_count = 0
           for path in pdf_files:
