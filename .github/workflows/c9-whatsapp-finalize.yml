@@ -1,0 +1,139 @@
+name: C9 WhatsApp finalizer
+
+on:
+  push:
+    branches:
+      - audit/102-production-final-proof-v01
+    paths:
+      - .github/workflows/c9-whatsapp-finalize.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact finalizer SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$GITHUB_REF_NAME" = 'audit/102-production-final-proof-v01'
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "$GITHUB_SHA"
+          git checkout -B "$GITHUB_REF_NAME" FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Set up pinned Node.js frontend toolchain
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.18.0'
+          package-manager-cache: false
+
+      - name: Apply bounded WhatsApp contact change
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          contact = Path('frontend/features/contact.mjs')
+          source = contact.read_text(encoding='utf-8')
+          old = '    const phoneLink = phone ? revealLink(root, phone, payload.phone, `tel:${payload.phone_uri}`) : null;\n'
+          new = '    const whatsappNumber = payload.phone_uri.slice(1);\n    const phoneLink = phone ? revealLink(root, phone, payload.phone, `https://wa.me/${whatsappNumber}`) : null;\n'
+          if source.count(old) != 1:
+              raise SystemExit('unexpected contact phone-link anchor')
+          contact.write_text(source.replace(old, new), encoding='utf-8')
+
+          smoke = Path('tests/browser-smoke.mjs')
+          source = smoke.read_text(encoding='utf-8')
+          old = '''    assert.equal(\n      await cdp.evaluate(`document.activeElement?.getAttribute('href')`),\n      "mailto:test@example.invalid"\n    );\n'''
+          new = old + '''    assert.equal(\n      await cdp.evaluate(`document.querySelector('.contacts a[href^="https://wa.me/"]')?.getAttribute('href')`),\n      "https://wa.me/491234567890"\n    );\n'''
+          if source.count(old) != 1:
+              raise SystemExit('unexpected browser contact assertion anchor')
+          smoke.write_text(source.replace(old, new), encoding='utf-8')
+
+          doc = Path('docs/C9_FINAL_ACCEPTANCE.md')
+          source = doc.read_text(encoding='utf-8')
+          replacements = {
+              '''C9 is an evidence-only final acceptance gate. No served frontend file, Nginx configuration, cvbot/API implementation, deployment workflow, RPi5 host infrastructure, dependency, or shared Cloudflare Tunnel lifecycle change is justified by this gate.\n\n`PRODUCTION_IMPACT=no` for repository/runtime behavior.''':
+              '''C9 is the final acceptance gate. Owner production validation found one intentional served UX refinement: after successful Turnstile reveal, the phone link opens WhatsApp through `https://wa.me/<international-number>` while the email link remains `mailto:`. No backend, Nginx, cvbot/API, RPi5 host-infrastructure, dependency, or shared Cloudflare Tunnel lifecycle change is required.\n\n`PRODUCTION_IMPACT=yes` because the frontend contact module and generated content-addressed assets change.''',
+              '''Automated evidence already proves that full contact values are absent before verification, the Turnstile flow is interaction-only, server-side validation fails closed, and the successful reveal/focus behavior works with controlled test fixtures. Final human acceptance still requires one real production interaction on `https://rozkalns.net/`: activate **Verify to show contact details**, complete the real Turnstile challenge, and confirm that the protected contact links appear. No contact values or Turnstile token should be copied into GitHub evidence; a simple owner confirmation is sufficient.\n\nUntil that human production interaction is confirmed, C9 automated proof is PASS but the overall C9 gate remains **pending manual Turnstile acceptance**.''':
+              '''Automated evidence proves that full contact values are absent before verification, the Turnstile flow is interaction-only, server-side validation fails closed, and successful reveal/focus behavior works with controlled test fixtures. The owner then completed the real production Turnstile flow on `https://rozkalns.net/` on 2026-08-08 and confirmed that the protected contact links appeared. The first attempt exposed missing `CONTACT_*` values in the production runtime environment after #74 removed source fallbacks; those runtime values were restored out-of-repository and the repeated real challenge succeeded. No contact value or Turnstile token is recorded in GitHub evidence.\n\nManual production Turnstile acceptance: **PASS**.''',
+              '''**Automated acceptance: PASS. Overall gate: PENDING MANUAL TURNSTILE ACCEPTANCE.**''':
+              '''**Automated acceptance: PASS. Manual production Turnstile acceptance: PASS. Overall pre-merge gate: PASS.**''',
+              '''The real production revision is healthy and exact-SHA proven; the same product source passes deterministic build, browser, API-contract, security and supply-chain gates; controlled performance evidence shows less startup work; and no final production code/config correction is justified.''':
+              '''The real production revision is healthy and exact-SHA proven; the product source passes deterministic build, browser, API-contract, security and supply-chain gates; controlled performance evidence shows less startup work; and the only C9 product refinement is the verified phone-link destination changing from `tel:` to WhatsApp `wa.me`.''',
+              '''After the real production Turnstile reveal is manually confirmed, this evidence-only PR can be marked ready and merged. Then close #102 and parent #68 only after the new documentation-only merge SHA completes the repository's normal `main` CI → serial RPi5 deployment proof. Because the PR changes documentation only, no served behavior change is expected.''':
+              '''After the updated product head passes the complete PR CI gate, this PR can be marked ready. Squash-merge only with explicit authorization. Because C9 now contains a served frontend change, the merged SHA must complete the normal `main` CI → serial RPi5 deployment and public verification before #102 and parent #68 are closed.'''
+          }
+          for old, new in replacements.items():
+              if source.count(old) != 1:
+                  raise SystemExit(f'unexpected C9 document anchor: {old[:70]!r}')
+              source = source.replace(old, new)
+          doc.write_text(source.rstrip() + '\n', encoding='utf-8')
+          PY
+          git diff --check
+
+      - name: Rebuild deterministic frontend and validate behavior
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build:frontend
+          first="${RUNNER_TEMP}/frontend-first.sha256"
+          second="${RUNNER_TEMP}/frontend-second.sha256"
+          {
+            find html/assets html/i18n -type f -print0
+            printf '%s\0' html/index.html html/smarthome.html frontend-dist-manifest.json
+          } | sort -z | xargs -0 sha256sum > "$first"
+          npm run build:frontend
+          {
+            find html/assets html/i18n -type f -print0
+            printf '%s\0' html/index.html html/smarthome.html frontend-dist-manifest.json
+          } | sort -z | xargs -0 sha256sum > "$second"
+          cmp "$first" "$second"
+          npm run check:frontend
+          node --check frontend/features/contact.mjs
+          node --check tests/browser-smoke.mjs
+          node --test tests/frontend.test.mjs
+          chrome_bin=''
+          for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
+            if command -v "$candidate" >/dev/null 2>&1; then
+              chrome_bin="$(command -v "$candidate")"
+              break
+            fi
+          done
+          test -n "$chrome_bin"
+          CHROME_BIN="$chrome_bin" node tests/browser-smoke.mjs
+          printf 'C9_WHATSAPP_BROWSER=PASS\n'
+
+      - name: Publish bounded verified product commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          rm -f .github/workflows/c9-whatsapp-finalize.yml
+          rm -rf node_modules
+          git diff --check
+          changed="$(git status --short | awk '{print $2}')"
+          printf '%s\n' "$changed"
+          test -n "$changed"
+          if printf '%s\n' "$changed" | grep -Ev '^(docs/C9_FINAL_ACCEPTANCE\.md|frontend/features/contact\.mjs|tests/browser-smoke\.mjs|frontend-dist-manifest\.json|html/index\.html|html/smarthome\.html|html/assets/[^/]+|html/i18n/[^/]+|\.github/workflows/c9-whatsapp-finalize\.yml)$' >/dev/null; then
+            echo 'unexpected changed path' >&2
+            exit 1
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- docs/C9_FINAL_ACCEPTANCE.md frontend/features/contact.mjs tests/browser-smoke.mjs frontend-dist-manifest.json html/index.html html/smarthome.html html/assets html/i18n .github/workflows/c9-whatsapp-finalize.yml
+          git status --short
+          git commit -m 'feat: open verified phone contact in WhatsApp'
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" push origin "HEAD:${GITHUB_REF_NAME}"
