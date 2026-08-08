@@ -1,0 +1,88 @@
+name: Sanitized historical address shape audit
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/88-address-shape-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    if: >-
+      github.repository == 'rozkalnsandris/rozkalns-cv' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'audit/88-history-scope-v01'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      PRE_CLEANUP_SHA: 4f14c8aa9a371f18e782afc2d23c662bce94a990
+    steps:
+      - name: Fetch main history
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin '+refs/heads/main:refs/remotes/origin/main'
+          git cat-file -e "$PRE_CLEANUP_SHA^{commit}"
+      - name: Print only historical prompt field shapes
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import json, os, re, subprocess
+
+          pre=os.environ['PRE_CLEANUP_SHA']
+          def git_text(*args):
+              return subprocess.check_output(['git',*args],stderr=subprocess.DEVNULL).decode('utf-8',errors='ignore')
+          profile=json.loads(git_text('show',f'{pre}:content/profile.json'))
+          protected={
+              profile['contact']['email']['value'],
+              profile['contact']['phone']['value'],
+              profile['contact']['phone']['uri'],
+          }
+          commits=git_text('rev-list','--reverse','refs/remotes/origin/main','--','bot/app.py').splitlines()
+          if not commits:
+              raise SystemExit('no historical bot/app.py commits')
+          first=commits[0]
+          text=git_text('show',f'{first}:bot/app.py')
+          lines=text.splitlines()
+          sensitive_indexes=[]
+          for index,line in enumerate(lines):
+              if any(value in line for value in protected): sensitive_indexes.append(index)
+          if not sensitive_indexes:
+              raise SystemExit('legacy protected contact lines not found in earliest bot/app.py')
+          start=max(0,min(sensitive_indexes)-8)
+          end=min(len(lines),max(sensitive_indexes)+9)
+          print(f'EARLIEST_PROMPT_CONTACT_WINDOW_LINES={end-start}')
+          for index in range(start,end):
+              line=lines[index].strip()
+              if not line: continue
+              # Never print RHS. Only emit a sanitized left-side label or structural marker.
+              label='non_field'
+              rhs=''
+              if ':' in line:
+                  left,right=line.split(':',1)
+                  safe=re.sub(r'[^A-Za-z0-9 _.-]','',left).strip()
+                  if safe and len(safe)<=60:
+                      label=safe
+                      rhs=right.strip().strip('"\' ,')
+              if any(value in line for value in protected):
+                  kind='known_protected'
+              elif rhs:
+                  kind='candidate' if any(ch.isdigit() for ch in rhs) else 'non_numeric'
+              else:
+                  kind='structural'
+              print(
+                  f'PROMPT_WINDOW_FIELD=line_offset:{index-start};label:{label};kind:{kind};'
+                  f'rhs_length:{len(rhs)};digits:{sum(ch.isdigit() for ch in rhs)};commas:{rhs.count(",")}'
+              )
+          print('ADDRESS_SHAPE_AUDIT=PASS')
+          PY
