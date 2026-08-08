@@ -1,0 +1,109 @@
+name: C5 startup measurement
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/c5-startup-measure.yml
+      - tools/c5-startup-baseline.mjs
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    if: >-
+      github.repository == 'rozkalnsandris/rozkalns-cv' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'perf/82-reduce-initial-background-work-v01'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      C4_SHA: c01a2beea0df8050a6e192504428c17574a852af
+      PYTHONDONTWRITEBYTECODE: "1"
+
+    steps:
+      - name: Check out exact measurement revision
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Set up pinned Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.18.0
+          package-manager-cache: false
+
+      - name: Capture three independent startup runs
+        id: capture
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          chrome=''
+          for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
+            if command -v "$candidate" >/dev/null 2>&1; then chrome="$(command -v "$candidate")"; break; fi
+          done
+          test -n "$chrome"
+          root="${RUNNER_TEMP}/c5-startup"
+          mkdir -p "$root"
+          for n in 1 2 3; do
+            node tools/c5-startup-baseline.mjs \
+              --output "$root/run-$n" \
+              --url https://rozkalns.net/ \
+              --chrome "$chrome" \
+              --sha "$C4_SHA" | tee "$root/run-$n.log"
+          done
+          printf 'evidence=%s\n' "$root" >> "$GITHUB_OUTPUT"
+
+      - name: Summarize medians and C0 comparison
+        env:
+          EVIDENCE: ${{ steps.capture.outputs.evidence }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import json, os, statistics
+          from pathlib import Path
+          root=Path(os.environ['EVIDENCE'])
+          runs=[json.loads((root/f'run-{n}'/'startup-baseline.json').read_text()) for n in (1,2,3)]
+          c0={'desktop':{'cold':72028,'warm':1968},'phone':{'cold':71516,'warm':1963}}
+          summary={'sha':os.environ['C4_SHA'],'runs':3,'network':{},'metrics':{},'coverage':{}}
+          for vp in ('desktop','phone'):
+              summary['network'][vp]={}; summary['metrics'][vp]={}
+              for phase in ('cold','warm'):
+                  bs=[r[vp][phase]['network']['transferredBytes'] for r in runs]
+                  qs=[r[vp][phase]['network']['requests'] for r in runs]
+                  b=int(statistics.median(bs)); q=int(statistics.median(qs))
+                  summary['network'][vp][phase]={'medianBytes':b,'runsBytes':bs,'medianRequests':q,'runsRequests':qs}
+                  print(f'C5_{vp.upper()}_{phase.upper()}_BYTES_MEDIAN={b} runs={bs}')
+                  print(f'C5_{vp.upper()}_{phase.upper()}_REQUESTS_MEDIAN={q} runs={qs}')
+                  print(f'C5_{vp.upper()}_{phase.upper()}_VS_C0={b-c0[vp][phase]:+d}B ({(b/c0[vp][phase]-1)*100:+.2f}%)')
+              for metric in ('ttfbMs','dclMs','loadMs','fcpMs','lcpMs','cls'):
+                  vals=[r[vp]['cold']['metrics'][metric] for r in runs if r[vp]['cold']['metrics'][metric] is not None]
+                  if vals:
+                      summary['metrics'][vp][metric]=statistics.median(vals)
+                      print(f'C5_{vp.upper()}_{metric.upper()}_MEDIAN={summary["metrics"][vp][metric]} runs={vals}')
+              by={}
+              for r in runs:
+                  for row in r[vp]['coverage']['javascript']:
+                      by.setdefault(row['url'],[]).append(row)
+              summary['coverage'][vp]={}
+              for url,rows in sorted(by.items()):
+                  if len(rows)!=3: continue
+                  pct=statistics.median([row['percent'] for row in rows])
+                  size=int(statistics.median([row['bytes'] for row in rows]))
+                  used=int(statistics.median([row['usedBytes'] for row in rows]))
+                  summary['coverage'][vp][url]={'percent':pct,'bytes':size,'usedBytes':used}
+                  print(f'C5_{vp.upper()}_JS_COVERAGE={pct:.2f}% used={used}/{size} url={url}')
+          (root/'summary.json').write_text(json.dumps(summary,indent=2)+'\n')
+          PY
+
+      - name: Upload startup evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: c5-startup-baseline-${{ github.event.pull_request.head.sha }}
+          path: ${{ steps.capture.outputs.evidence }}
+          if-no-files-found: error
+          retention-days: 30
