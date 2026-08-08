@@ -12,7 +12,11 @@ import {
   normalizeCompletedHistory
 } from "../frontend/features/chat.mjs";
 import { contactPayloadIsValid } from "../frontend/features/contact.mjs";
-import { bindStatsVisibility, validateStats } from "../frontend/features/stats.mjs";
+import {
+  bindStatsVisibility,
+  createStatsController,
+  validateStats
+} from "../frontend/features/stats.mjs";
 import { skillIconName } from "../frontend/ui/icons.mjs";
 
 const ROOT = resolve(import.meta.dirname, "..");
@@ -142,6 +146,58 @@ test("stats polling follows initial and changing page visibility", () => {
   assert.equal(documentListeners.has("visibilitychange"), false);
   assert.equal(windowListeners.has("pagehide"), false);
   assert.deepEqual(calls, ["stop", "start", "stop", "stop", "stop"]);
+});
+
+test("hidden stats polling has no recurring fetch and visible restore refreshes immediately", () => {
+  let fetches = 0;
+  let interval = null;
+  const documentListeners = new Map();
+  const windowListeners = new Map();
+  const documentLike = {
+    hidden: false,
+    addEventListener(type, listener) { documentListeners.set(type, listener); },
+    removeEventListener(type, listener) {
+      if (documentListeners.get(type) === listener) documentListeners.delete(type);
+    }
+  };
+  const windowLike = {
+    clearInterval() { interval = null; },
+    setInterval(callback) { interval = callback; return 1; },
+    addEventListener(type, listener) { windowListeners.set(type, listener); },
+    removeEventListener(type, listener) {
+      if (windowListeners.get(type) === listener) windowListeners.delete(type);
+    }
+  };
+  const root = {
+    querySelector() { return null; },
+    querySelectorAll() { return []; }
+  };
+  const fetchImpl = async () => {
+    fetches += 1;
+    return {
+      ok: true,
+      async json() { return { ...liveStats, updated: new Date().toISOString() }; }
+    };
+  };
+  const languageController = { language: "en", messages: {} };
+  const stats = createStatsController(languageController, { root, fetchImpl, windowLike });
+  const cleanup = bindStatsVisibility(stats, { documentLike, windowLike });
+
+  assert.equal(fetches, 1);
+  assert.equal(typeof interval, "function");
+
+  documentLike.hidden = true;
+  documentListeners.get("visibilitychange")();
+  assert.equal(fetches, 1);
+  assert.equal(interval, null);
+
+  documentLike.hidden = false;
+  documentListeners.get("visibilitychange")();
+  assert.equal(fetches, 2);
+  assert.equal(typeof interval, "function");
+
+  cleanup();
+  assert.equal(interval, null);
 });
 
 test("chat and contact stay behind interaction-only dynamic imports", async () => {
