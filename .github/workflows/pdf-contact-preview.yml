@@ -72,33 +72,70 @@ jobs:
             IFS=: read -r language pdf marker <<<"$spec"
             text="${preview_dir}/${language}.txt"
             png="${preview_dir}/${language}"
+            urls="${preview_dir}/${language}.urls.txt"
+
             pdftotext "$pdf" "$text"
-            grep -Fq 'andris@rozkalns.net' "$text"
-            grep -Fq "$marker" "$text"
-            pdfinfo -url "$pdf" >"${preview_dir}/${language}.urls.txt"
-            ! grep -Fq 'wa.me/' "${preview_dir}/${language}.urls.txt"
-            ! grep -Fq 'tel:' "${preview_dir}/${language}.urls.txt"
-            pdftoppm -f 1 -singlefile -png -r 180 "$pdf" "$png" >/dev/null
+            if grep -Fq 'andris@rozkalns.net' "$text"; then
+              printf 'PDF_EMAIL language=%s PASS\n' "$language"
+            else
+              printf 'PDF_EMAIL language=%s FAIL\n' "$language" >&2
+              exit 1
+            fi
+            if grep -Fq "$marker" "$text"; then
+              printf 'PDF_LANGUAGE language=%s PASS\n' "$language"
+            else
+              printf 'PDF_LANGUAGE language=%s FAIL\n' "$language" >&2
+              exit 1
+            fi
+
+            pdfinfo -url "$pdf" >"$urls"
+            if grep -Fq 'wa.me/' "$urls"; then
+              printf 'PDF_DIRECT_WHATSAPP language=%s FAIL\n' "$language" >&2
+              exit 1
+            fi
+            if grep -Fq 'tel:' "$urls"; then
+              printf 'PDF_DIRECT_PHONE_LINK language=%s FAIL\n' "$language" >&2
+              exit 1
+            fi
+            printf 'PDF_PROTECTED_PHONE language=%s PASS\n' "$language"
+
+            pdftoppm -f 1 -singlefile -png -r 220 "$pdf" "$png" >/dev/null
+            set +e
             decoded="$(zbarimg --quiet --raw "${png}.png" 2>/dev/null | tr -d '\r')"
-            test "$decoded" = 'https://rozkalns.net/?contact=whatsapp'
-            printf 'PDF_CONTACT_VERIFY language=%s qr=PASS email=PASS protected_phone=PASS\n' "$language"
+            qr_status=$?
+            set -e
+            printf '%s\n' "$decoded" >"${preview_dir}/${language}.qr.txt"
+            if [[ "$qr_status" -eq 0 && "$decoded" == 'https://rozkalns.net/?contact=whatsapp' ]]; then
+              printf 'PDF_QR language=%s PASS\n' "$language"
+            else
+              printf 'PDF_QR language=%s FAIL decoded_length=%s\n' "$language" "${#decoded}" >&2
+              exit 1
+            fi
           done
+          printf 'PDF_CONTACT_VERIFY=PASS\n'
 
       - name: Collect reviewed candidate outputs
+        if: always()
         shell: bash
         run: |
           set -Eeuo pipefail
           out="${RUNNER_TEMP}/candidate"
-          mkdir -p "$out/html" "$out/content" "$out/frontend"
-          cp -a html/index.html html/smarthome.html html/assets html/i18n \
-            html/cv.pdf html/cv-de.pdf html/cv-lv.pdf "$out/html/"
-          cp frontend-dist-manifest.json "$out/"
-          cp content/pdf-manifest.json "$out/content/"
-          cp frontend/public-contact.mjs "$out/frontend/"
-          cp "${RUNNER_TEMP}/pdf-contact-preview"/*.png "$out/"
+          mkdir -p "$out/html" "$out/content" "$out/frontend" "$out/evidence"
+          if [[ -d html/assets ]]; then cp -a html/assets "$out/html/"; fi
+          if [[ -d html/i18n ]]; then cp -a html/i18n "$out/html/"; fi
+          for path in html/index.html html/smarthome.html html/cv.pdf html/cv-de.pdf html/cv-lv.pdf; do
+            [[ -f "$path" ]] && cp "$path" "$out/html/"
+          done
+          [[ -f frontend-dist-manifest.json ]] && cp frontend-dist-manifest.json "$out/"
+          [[ -f content/pdf-manifest.json ]] && cp content/pdf-manifest.json "$out/content/"
+          [[ -f frontend/public-contact.mjs ]] && cp frontend/public-contact.mjs "$out/frontend/"
+          if [[ -d "${RUNNER_TEMP}/pdf-contact-preview" ]]; then
+            cp -a "${RUNNER_TEMP}/pdf-contact-preview"/. "$out/evidence/"
+          fi
           tar -C "$out" -czf "${RUNNER_TEMP}/cv-public-contact-candidate.tgz" .
 
       - name: Upload candidate and visual previews
+        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: cv-public-contact-candidate
