@@ -1,12 +1,10 @@
 import { createLanguageController } from "./core/i18n.mjs";
 import {
-  buildChatPayload,
-  createChatController,
-  createDialogController,
-  normalizeCompletedHistory
-} from "./features/chat.mjs";
-import { createContactController } from "./features/contact.mjs";
-import { createStatsController, REQUIRED_STATS, validateStats } from "./features/stats.mjs";
+  bindStatsVisibility,
+  createStatsController,
+  REQUIRED_STATS,
+  validateStats
+} from "./features/stats.mjs";
 import { enhanceSkillIcons } from "./ui/icons.mjs";
 
 const PDFS = Object.freeze({
@@ -15,7 +13,7 @@ const PDFS = Object.freeze({
   lv: "/cv-lv.pdf"
 });
 
-export { buildChatPayload, normalizeCompletedHistory, REQUIRED_STATS, validateStats };
+export { REQUIRED_STATS, validateStats };
 
 function createNavigationObserver() {
   if (!("IntersectionObserver" in window)) return;
@@ -34,6 +32,61 @@ function createNavigationObserver() {
   document.querySelectorAll("main section[id]").forEach((section) => observer.observe(section));
 }
 
+function installLazyChat(languageController) {
+  const launcher = document.querySelector("#chatLauncher");
+  if (!launcher) return;
+  let loading = null;
+
+  async function activate() {
+    if (loading) return loading;
+    loading = import("./features/chat.mjs")
+      .then(({ createChatController, createDialogController }) => {
+        const dialog = createDialogController();
+        const chat = createChatController(languageController);
+        if (!dialog || !chat) throw new Error("chat controls unavailable");
+        launcher.removeEventListener("click", activate);
+        dialog.open();
+        return { dialog, chat };
+      })
+      .catch(() => {
+        loading = null;
+        return null;
+      });
+    return loading;
+  }
+
+  launcher.addEventListener("click", activate);
+}
+
+function installLazyContact(languageController) {
+  const button = document.querySelector("#contactReveal");
+  if (!button) return;
+  let loading = null;
+
+  async function activate() {
+    if (loading) return loading;
+    loading = import("./features/contact.mjs")
+      .then(({ createContactController }) => {
+        const controller = createContactController(languageController);
+        if (!controller) throw new Error("contact controls unavailable");
+        button.removeEventListener("click", activate);
+        return controller.start();
+      })
+      .catch(() => {
+        loading = null;
+        const status = document.querySelector("#contactVerifyStatus");
+        if (status) {
+          status.textContent = languageController.messages?.contact_unavailable || "";
+          status.dataset.state = "error";
+        }
+        return null;
+      });
+    return loading;
+  }
+
+  button.addEventListener("click", activate);
+}
+
 async function init() {
   const languageController = createLanguageController({ pdfs: PDFS });
   try { await languageController.apply(languageController.language); }
@@ -46,17 +99,12 @@ async function init() {
   });
 
   enhanceSkillIcons();
-  createContactController(languageController);
+  installLazyContact(languageController);
 
   const stats = createStatsController(languageController);
-  stats.start();
-  document.addEventListener(
-    "visibilitychange",
-    () => document.hidden ? stats.stop() : stats.start()
-  );
+  bindStatsVisibility(stats);
 
-  createDialogController();
-  createChatController(languageController);
+  installLazyChat(languageController);
   createNavigationObserver();
 }
 
