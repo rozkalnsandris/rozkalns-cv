@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 import re
 import unittest
@@ -18,16 +19,20 @@ class ContactMarkupTests(unittest.TestCase):
         self.assertIn('id="contactReveal"', index)
         self.assertIn('id="turnstileMount"', index)
 
-    def test_enhancement_assets_are_content_fingerprinted(self) -> None:
-        index = (ROOT / "html" / "index.html").read_text(encoding="utf-8")
-        for pattern in (
-            r'/assets/enhancements\.[0-9a-f]{12}\.mjs',
-            r'/assets/extra\.[0-9a-f]{12}\.css',
-        ):
-            match = re.search(pattern, index)
-            self.assertIsNotNone(match)
-            path = ROOT / "html" / match.group(0).lstrip("/")
-            self.assertTrue(path.is_file(), path)
+    def test_enhancement_sources_are_in_authoritative_build_graph(self) -> None:
+        source = (ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
+        self.assertIn('src="./enhancements.mjs"', source)
+        self.assertIn('href="./styles/extra.css"', source)
+
+        manifest = json.loads(
+            (ROOT / "frontend-dist-manifest.json").read_text(encoding="utf-8")
+        )
+        entry = manifest["index.html"]
+        self.assertRegex(entry["file"], r"^assets/app\.[0-9a-f]{12}\.mjs$")
+        self.assertGreaterEqual(len(entry.get("css", [])), 1)
+        for relative in [entry["file"], *entry.get("css", [])]:
+            self.assertRegex(relative, r"\.[0-9a-f]{12}\.(?:mjs|css)$")
+            self.assertTrue((ROOT / "html" / relative).is_file(), relative)
 
     def test_turnstile_csp_is_minimal_and_strict(self) -> None:
         nginx = (ROOT / "nginx.conf").read_text(encoding="utf-8")
@@ -43,7 +48,7 @@ class ContactMarkupTests(unittest.TestCase):
         self.assertNotIn("unsafe-eval", nginx)
 
     def test_skill_diamond_marker_is_disabled_by_icon_layer(self) -> None:
-        css = (ROOT / "html" / "assets" / "extra.d1b655894a50.css").read_text(
+        css = (ROOT / "frontend" / "styles" / "extra.css").read_text(
             encoding="utf-8"
         )
         self.assertIn(".skill-chip::before { content: none; }", css)
