@@ -1,0 +1,198 @@
+name: C8 origin and edge contract audit
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/c8-origin-edge-audit.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  origin:
+    name: Pinned Nginx origin matrix
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact PR SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "$GITHUB_SHA"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Resolve representative generated paths
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY' >> "$GITHUB_ENV"
+          import json
+          import re
+          from pathlib import Path
+
+          manifest = json.loads(Path('frontend-dist-manifest.json').read_text(encoding='utf-8'))
+          index = manifest['index.html']
+          app = '/' + index['file']
+          css = '/' + manifest[index['imports'][0]]['css'][0]
+          en = '/' + manifest['../content/translations/en.json']['file']
+          webp = '/' + manifest['photo.webp']['file']
+          html = Path('html/index.html').read_text(encoding='utf-8')
+          match = re.search(r'src="(/assets/app\.[0-9a-f]{12}\.mjs\?cfg=[0-9a-f]{12})"', html)
+          if not match:
+              raise SystemExit('generated app URL with config key not found')
+          print(f'APP_PATH={app}')
+          print(f'APP_PUBLIC_PATH={match.group(1)}')
+          print(f'CSS_PATH={css}')
+          print(f'I18N_PATH={en}')
+          print(f'WEBP_PATH={webp}')
+          PY
+
+      - name: Capture pinned origin headers
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          image='nginx:1.31.3-alpine@sha256:4a73073bd557c65b759505da037898b61f1be6cbcc3c2c3aeac22d2a470c1752'
+          container="cv-c8-origin-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          out="${RUNNER_TEMP}/c8-origin"
+          mkdir -p "$out"
+          cleanup() { docker rm -f "$container" >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+          docker run -d \
+            --name "$container" \
+            --add-host=cvbot:127.0.0.1 \
+            --publish 127.0.0.1:18091:80 \
+            --mount "type=bind,src=$PWD/nginx.conf,dst=/etc/nginx/conf.d/default.conf,readonly" \
+            --mount "type=bind,src=$PWD/html,dst=/usr/share/nginx/html,readonly" \
+            "$image" >/dev/null
+          for attempt in 1 2 3 4 5; do
+            curl --fail --silent --max-time 3 -o /dev/null http://127.0.0.1:18091/ && break
+            sleep 1
+          done
+
+          capture() {
+            name="$1"; path="$2"
+            curl --fail --silent --show-error --head --max-time 10 \
+              "http://127.0.0.1:18091${path}" | tr -d '\r' | tee "$out/${name}.headers"
+          }
+          capture root '/'
+          capture app "$APP_PATH"
+          capture css "$CSS_PATH"
+          capture i18n "$I18N_PATH"
+          capture webp "$WEBP_PATH"
+          capture photo '/photo.jpg'
+          capture pdf '/cv.pdf'
+
+          grep -Fqx 'Cache-Control: no-cache' "$out/root.headers"
+          for name in app css i18n webp; do
+            grep -Fqx 'Cache-Control: max-age=31536000' "$out/${name}.headers"
+            grep -Fqx 'Cache-Control: public, max-age=31536000, immutable' "$out/${name}.headers"
+            grep -Fqx 'X-Content-Type-Options: nosniff' "$out/${name}.headers"
+          done
+          grep -Fqx 'Content-Type: text/javascript' "$out/app.headers"
+          grep -Fqx 'Content-Type: image/webp' "$out/webp.headers"
+          grep -Fqx 'Cache-Control: max-age=3600' "$out/photo.headers"
+          grep -Fqx 'Cache-Control: max-age=3600' "$out/pdf.headers"
+          echo 'C8_ORIGIN_MATRIX=PASS'
+
+      - name: Upload origin evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0 # v7.0.1
+        with:
+          name: c8-origin-${{ github.sha }}
+          path: ${{ runner.temp }}/c8-origin
+          if-no-files-found: error
+          retention-days: 7
+
+  edge:
+    name: Cloudflare edge matrix
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact PR SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "$GITHUB_SHA"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Resolve production resource paths
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY' >> "$GITHUB_ENV"
+          import json
+          import re
+          from pathlib import Path
+
+          manifest = json.loads(Path('frontend-dist-manifest.json').read_text(encoding='utf-8'))
+          index = manifest['index.html']
+          html = Path('html/index.html').read_text(encoding='utf-8')
+          app_match = re.search(r'src="(/assets/app\.[0-9a-f]{12}\.mjs\?cfg=[0-9a-f]{12})"', html)
+          if not app_match:
+              raise SystemExit('generated app URL not found')
+          print(f'APP_PUBLIC_PATH={app_match.group(1)}')
+          print(f'CSS_PATH=/{manifest[index["imports"][0]]["css"][0]}')
+          print(f'I18N_PATH=/{manifest["../content/translations/en.json"]["file"]}')
+          print(f'WEBP_PATH=/{manifest["photo.webp"]["file"]}')
+          PY
+
+      - name: Capture edge headers without trusting challenged responses
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          out="${RUNNER_TEMP}/c8-edge"
+          mkdir -p "$out"
+          challenged=0
+          capture() {
+            name="$1"; path="$2"
+            file="$out/${name}.headers"
+            curl --silent --show-error --head --max-time 20 \
+              -H 'Accept: */*' \
+              -H 'Cache-Control: no-cache' \
+              "https://rozkalns.net${path}" | tr -d '\r' | tee "$file"
+            if grep -Eiq '^cf-mitigated:[[:space:]]*challenge$' "$file"; then
+              challenged=1
+            fi
+          }
+          capture root '/'
+          capture app "$APP_PUBLIC_PATH"
+          capture css "$CSS_PATH"
+          capture i18n "$I18N_PATH"
+          capture webp "$WEBP_PATH"
+          capture photo '/photo.jpg'
+          capture pdf '/cv.pdf'
+          capture stats '/stats.json'
+
+          if [ "$challenged" -eq 1 ]; then
+            echo 'C8_EDGE_ENVIRONMENT=CHALLENGED'
+            printf '%s\n' 'GitHub-hosted edge responses are challenge-contaminated; do not use them as cache evidence.' > "$out/result.txt"
+          else
+            echo 'C8_EDGE_ENVIRONMENT=USABLE'
+            printf '%s\n' 'GitHub-hosted edge responses were not challenge-contaminated.' > "$out/result.txt"
+            for name in root app css i18n webp photo pdf stats; do
+              printf '%s=' "$name" >> "$out/cache-status.txt"
+              awk 'tolower($1) == "cf-cache-status:" {print $2; exit}' "$out/${name}.headers" >> "$out/cache-status.txt"
+            done
+          fi
+
+      - name: Upload edge evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0 # v7.0.1
+        with:
+          name: c8-edge-${{ github.sha }}
+          path: ${{ runner.temp }}/c8-edge
+          if-no-files-found: error
+          retention-days: 7
