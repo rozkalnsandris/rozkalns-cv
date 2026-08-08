@@ -1,0 +1,253 @@
+name: Sanitized historical personal-data scope audit
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/88-history-scope-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    if: >-
+      github.repository == 'rozkalnsandris/rozkalns-cv' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'audit/88-history-scope-v01'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      PRE_CLEANUP_SHA: 4f14c8aa9a371f18e782afc2d23c662bce94a990
+      CLEAN_MAIN_SHA: 6f81ad71f04463bd3b79cf021e31cc1c2ad97336
+    steps:
+      - name: Fetch all public repository refs without checking out sensitive history
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            fetch --no-tags --prune origin \
+            '+refs/heads/*:refs/remotes/origin/*' \
+            '+refs/tags/*:refs/tags/*' \
+            '+refs/pull/*/head:refs/remotes/pull/*/head' \
+            '+refs/pull/*/merge:refs/remotes/pull/*/merge'
+          test "$(git rev-parse refs/remotes/origin/main)" = "$CLEAN_MAIN_SHA"
+          git cat-file -e "$PRE_CLEANUP_SHA^{commit}"
+          printf 'HISTORY_REF_FETCH=PASS\n'
+
+      - name: Install ephemeral PDF text inspector
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends poppler-utils >/dev/null
+          command -v pdftotext >/dev/null
+
+      - name: Classify historical reachability without printing protected values
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from __future__ import annotations
+
+          import json
+          import os
+          from pathlib import Path
+          import re
+          import subprocess
+          import tempfile
+
+          root = Path.cwd()
+          pre = os.environ['PRE_CLEANUP_SHA']
+          clean_main = os.environ['CLEAN_MAIN_SHA']
+
+          def git_bytes(*args: str) -> bytes:
+              return subprocess.check_output(['git', *args], cwd=root, stderr=subprocess.DEVNULL)
+
+          def git_text(*args: str) -> str:
+              return git_bytes(*args).decode('utf-8', errors='strict')
+
+          legacy_profile = json.loads(git_text('show', f'{pre}:content/profile.json'))
+          raw_candidates: list[tuple[str, bytes]] = [
+              ('email', legacy_profile['contact']['email']['value'].encode('utf-8')),
+              ('phone_display', legacy_profile['contact']['phone']['value'].encode('utf-8')),
+              ('phone_uri', legacy_profile['contact']['phone']['uri'].encode('utf-8')),
+          ]
+          if len({value for _, value in raw_candidates}) != 3:
+              raise SystemExit('legacy protected contact candidates are not distinct')
+
+          objects: dict[str, set[str]] = {}
+          for line in git_text('rev-list', '--objects', '--all').splitlines():
+              sha, _, path = line.partition(' ')
+              if path:
+                  objects.setdefault(sha, set()).add(path)
+
+          address_values: set[bytes] = set()
+          address_pattern = re.compile(
+              r'(?im)^\s*(?:street\s+address|home\s+address|address)\s*:\s*(.+?)\s*$'
+          )
+          for sha, paths in objects.items():
+              if not any(path.endswith(('bot/app.py', 'bot/system_prompt.txt')) for path in paths):
+                  continue
+              try:
+                  if git_text('cat-file', '-t', sha).strip() != 'blob':
+                      continue
+                  text = git_bytes('cat-file', '-p', sha).decode('utf-8', errors='ignore')
+              except subprocess.CalledProcessError:
+                  continue
+              for match in address_pattern.finditer(text):
+                  value = match.group(1).strip().strip('"\'')
+                  if len(value) >= 8:
+                      address_values.add(value.encode('utf-8'))
+          if not address_values:
+              raise SystemExit('ADDRESS_CANDIDATE_DISCOVERY=FAIL known historical address label not found')
+          for index, value in enumerate(sorted(address_values), 1):
+              raw_candidates.append((f'street_address_{index}', value))
+
+          candidates: list[tuple[str, bytes]] = []
+          seen_values: set[bytes] = set()
+          for label, value in raw_candidates:
+              if value in seen_values:
+                  continue
+              seen_values.add(value)
+              candidates.append((label, value))
+
+          print(f'PROTECTED_CANDIDATE_CLASS_COUNT={len(candidates)}')
+          print('PROTECTED_CANDIDATE_CLASSES=' + ','.join(label for label, _ in candidates))
+
+          matched: dict[str, set[str]] = {label: set() for label, _ in candidates}
+          paths_by_candidate: dict[str, set[str]] = {label: set() for label, _ in candidates}
+          pdf_blob_failures = 0
+          inspected_pdf_blobs = 0
+
+          with tempfile.TemporaryDirectory(prefix='history-pdf-audit-') as temporary:
+              temp = Path(temporary)
+              for sha, paths in objects.items():
+                  try:
+                      if git_text('cat-file', '-t', sha).strip() != 'blob':
+                          continue
+                  except subprocess.CalledProcessError:
+                      continue
+                  data = git_bytes('cat-file', '-p', sha)
+                  is_pdf = any(path.lower().endswith('.pdf') for path in paths)
+                  searchable = data
+                  if is_pdf:
+                      inspected_pdf_blobs += 1
+                      source = temp / f'{sha}.pdf'
+                      source.write_bytes(data)
+                      completed = subprocess.run(
+                          ['pdftotext', '-layout', str(source), '-'],
+                          stdout=subprocess.PIPE,
+                          stderr=subprocess.DEVNULL,
+                          check=False,
+                      )
+                      if completed.returncode != 0:
+                          pdf_blob_failures += 1
+                          continue
+                      searchable = completed.stdout
+                  for label, value in candidates:
+                      if value in searchable:
+                          matched[label].add(sha)
+                          paths_by_candidate[label].update(paths)
+
+          print(f'HISTORICAL_PDF_BLOBS_INSPECTED={inspected_pdf_blobs}')
+          print(f'HISTORICAL_PDF_PARSE_FAILURES={pdf_blob_failures}')
+          if pdf_blob_failures:
+              raise SystemExit('historical PDF audit incomplete')
+
+          union_matched = set().union(*matched.values()) if matched else set()
+          if not union_matched:
+              raise SystemExit('known protected candidates were not found in reachable history')
+
+          for label, _ in candidates:
+              print(f'CANDIDATE_{label}_UNIQUE_BLOB_COUNT={len(matched[label])}')
+              for index, path in enumerate(sorted(paths_by_candidate[label]), 1):
+                  print(f'CANDIDATE_{label}_PATH_{index}={path}')
+
+          refs = git_text(
+              'for-each-ref',
+              '--format=%(refname)',
+              'refs/remotes/origin',
+              'refs/tags',
+              'refs/remotes/pull',
+          ).splitlines()
+          refs = [ref for ref in refs if ref != 'refs/remotes/origin/HEAD']
+
+          def category(ref: str) -> str:
+              if ref == 'refs/remotes/origin/main':
+                  return 'main_history'
+              if ref.startswith('refs/remotes/origin/'):
+                  return 'branch'
+              if ref.startswith('refs/tags/'):
+                  return 'tag'
+              if ref.startswith('refs/remotes/pull/') and ref.endswith('/head'):
+                  return 'pr_head'
+              if ref.startswith('refs/remotes/pull/') and ref.endswith('/merge'):
+                  return 'pr_merge'
+              return 'other'
+
+          totals: dict[str, int] = {}
+          affected: dict[str, int] = {}
+          candidate_ref_counts: dict[str, dict[str, int]] = {
+              label: {} for label, _ in candidates
+          }
+
+          for ref in refs:
+              cat = category(ref)
+              totals[cat] = totals.get(cat, 0) + 1
+              reachable = {
+                  line.partition(' ')[0]
+                  for line in git_text('rev-list', '--objects', ref).splitlines()
+                  if line
+              }
+              any_match = bool(reachable & union_matched)
+              if any_match:
+                  affected[cat] = affected.get(cat, 0) + 1
+              for label, _ in candidates:
+                  if reachable & matched[label]:
+                      bucket = candidate_ref_counts[label]
+                      bucket[cat] = bucket.get(cat, 0) + 1
+
+          for cat in ('main_history', 'branch', 'tag', 'pr_head', 'pr_merge', 'other'):
+              if cat in totals or cat in affected:
+                  print(f'REF_CATEGORY_{cat}_TOTAL={totals.get(cat, 0)}')
+                  print(f'REF_CATEGORY_{cat}_AFFECTED={affected.get(cat, 0)}')
+          for label, _ in candidates:
+              for cat in ('main_history', 'branch', 'tag', 'pr_head', 'pr_merge', 'other'):
+                  if candidate_ref_counts[label].get(cat):
+                      print(
+                          f'CANDIDATE_{label}_REFS_{cat}='
+                          f'{candidate_ref_counts[label][cat]}'
+                      )
+
+          tip_blob_shas = set()
+          raw_tree = git_bytes('ls-tree', '-r', '-z', clean_main)
+          for row in raw_tree.split(b'\0'):
+              if not row:
+                  continue
+              metadata, _, _path = row.partition(b'\t')
+              fields = metadata.split()
+              if len(fields) >= 3 and fields[1] == b'blob':
+                  tip_blob_shas.add(fields[2].decode('ascii'))
+          tip_matches = tip_blob_shas & union_matched
+          print(f'CLEAN_MAIN_TIP_MATCHING_HISTORICAL_BLOB_COUNT={len(tip_matches)}')
+          if tip_matches:
+              raise SystemExit('clean main tip still references a protected historical blob')
+
+          main_objects = {
+              line.partition(' ')[0]
+              for line in git_text('rev-list', '--objects', 'refs/remotes/origin/main').splitlines()
+              if line
+          }
+          main_history_matches = main_objects & union_matched
+          print(f'MAIN_HISTORY_MATCHING_PROTECTED_BLOB_COUNT={len(main_history_matches)}')
+          print(f'MAIN_HISTORY_PROTECTED_REACHABLE={str(bool(main_history_matches)).lower()}')
+          print('UNREFERENCED_REMOTE_OBJECTS=NOT_ENUMERABLE_FROM_PUBLISHED_REFS')
+          print('HISTORICAL_PERSONAL_DATA_SCOPE_AUDIT=PASS')
+          PY
