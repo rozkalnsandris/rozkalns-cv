@@ -1,0 +1,127 @@
+name: C113 v2 current-main transplant
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: c113-v2-main-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  finalize:
+    if: >-
+      github.repository == 'rozkalnsandris/rozkalns-cv' &&
+      github.actor == 'rozkalnsandris' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'fix/113-dedicated-client-secret-v2'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+
+    steps:
+      - name: Check out current-main branch and validated C113 source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+          VALIDATED_C113: 449d9f5f21bad356e653ee8ea65d7c3b84aeaedf
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "$EXPECTED_HEAD" "$VALIDATED_C113"
+          git checkout -b fix/113-dedicated-client-secret-v2 "$EXPECTED_HEAD"
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          git cat-file -e "$VALIDATED_C113^{commit}"
+
+      - name: Transplant only validated C113 product files
+        env:
+          VALIDATED_C113: 449d9f5f21bad356e653ee8ea65d7c3b84aeaedf
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          for path in \
+            bot/.env.example \
+            bot/app.py \
+            bot/storage.py \
+            docs/CVBOT_CLIENT_SECRET.md \
+            runner/release/rozkalns-cv-deploy-main \
+            tests/test_bot.py \
+            tests/test_bot_failures.py \
+            tests/test_client_key_secret.py \
+            tests/test_contact.py \
+            tests/test_deploy_contract.py \
+            tests/test_storage.py
+          do
+            mkdir -p "$(dirname "$path")"
+            git show "$VALIDATED_C113:$path" > "$path"
+          done
+          grep -Fq 'CHAT_RETENTION_DAYS = int(os.getenv("CHAT_RETENTION_DAYS", "0"))' bot/app.py
+          grep -Fq 'Email: andris@rozkalns.net' bot/app.py
+          grep -Fq 'validate_client_key_secret' bot/app.py
+          printf 'C113_V2_TRANSPLANT=PASS\n'
+
+      - name: Run focused integrated regressions
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test_venv="${RUNNER_TEMP}/c113-v2-test-venv"
+          python3 -m venv "$test_venv"
+          "$test_venv/bin/python" -m pip install --disable-pip-version-check --require-hashes --no-deps -r bot/requirements.lock
+          export PYTHONPYCACHEPREFIX="${RUNNER_TEMP}/c113-v2-pycache"
+          "$test_venv/bin/python" -m unittest \
+            tests.test_client_key_secret \
+            tests.test_storage \
+            tests.test_retention_policy \
+            tests.test_bot \
+            tests.test_bot_failures \
+            tests.test_contact \
+            tests.test_current_contact_privacy \
+            tests.test_proxy_contract \
+            tests.test_deploy_contract \
+            tests.test_content_build
+          bash -n runner/release/rozkalns-cv-deploy-main
+          bash scripts/validate-source.sh "$PWD"
+          printf 'C113_V2_FOCUSED=PASS\n'
+
+      - name: Self-clean and guard exact diff scope
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          rm -f .github/workflows/c113-v2-transplant.yml
+          while IFS= read -r row; do
+            path="${row:3}"
+            path="${path##* -> }"
+            case "$path" in
+              .github/workflows/c113-v2-transplant.yml|bot/.env.example|bot/app.py|bot/storage.py|docs/CVBOT_CLIENT_SECRET.md|runner/release/rozkalns-cv-deploy-main|tests/test_bot.py|tests/test_bot_failures.py|tests/test_client_key_secret.py|tests/test_contact.py|tests/test_deploy_contract.py|tests/test_storage.py) ;;
+              *) printf 'C113_V2_SCOPE=FAIL path=%s\n' "$path" >&2; exit 1 ;;
+            esac
+          done < <(git status --porcelain=v1 -uall)
+          printf 'C113_V2_SCOPE=PASS\n'
+
+      - name: Commit and push bounded C113 result
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git add -- \
+            .github/workflows/c113-v2-transplant.yml \
+            bot/.env.example bot/app.py bot/storage.py \
+            docs/CVBOT_CLIENT_SECRET.md \
+            runner/release/rozkalns-cv-deploy-main \
+            tests/test_bot.py tests/test_bot_failures.py \
+            tests/test_client_key_secret.py tests/test_contact.py \
+            tests/test_deploy_contract.py tests/test_storage.py
+          git diff --cached --check
+          test -n "$(git diff --cached --name-only)"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'security(cvbot): require dedicated client pseudonym key (#113)'
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" push origin HEAD:refs/heads/fix/113-dedicated-client-secret-v2
+          printf 'C113_V2_FINALIZER=PASS\n'
