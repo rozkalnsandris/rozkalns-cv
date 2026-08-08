@@ -12,7 +12,6 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 LANGUAGES = ("en", "de", "lv")
-HASH_RE = r"[0-9a-f]{12}"
 ID_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 MONTH_RE = re.compile(r"^[0-9]{4}-[0-9]{2}$")
 PARTIAL_DATE_RE = re.compile(r"^[0-9]{4}(?:-[0-9]{2})?$")
@@ -378,69 +377,6 @@ def atomic_write(path: Path, content: bytes) -> None:
         temporary.unlink(missing_ok=True)
 
 
-def replace_exactly_once(text: str, pattern: str, replacement: str, label: str) -> str:
-    updated, count = re.subn(pattern, replacement, text, count=1)
-    if count != 1:
-        raise ContentError(f"could not update {label}")
-    return updated
-
-
-def expected_frontend(raw_translations: dict[str, bytes]) -> tuple[dict[str, bytes], Path, bytes, dict[Path, bytes]]:
-    i18n: dict[str, bytes] = {}
-    urls: dict[str, str] = {}
-    for language in LANGUAGES:
-        content = raw_translations[language]
-        digest = hashlib.sha256(content).hexdigest()[:12]
-        filename = f"{language}.{digest}.json"
-        i18n[filename] = content
-        urls[language] = f"/i18n/{filename}"
-
-    index_path = ROOT / "html" / "index.html"
-    index_text = index_path.read_text(encoding="utf-8")
-    match = re.search(r'/assets/(app\.' + HASH_RE + r'\.mjs)', index_text)
-    if not match:
-        raise ContentError("index.html does not reference a hashed app module")
-    current_app_path = ROOT / "html" / "assets" / match.group(1)
-    app_text = current_app_path.read_text(encoding="utf-8")
-    for language in LANGUAGES:
-        app_text = replace_exactly_once(
-            app_text,
-            rf'{language}: "/i18n/{language}\.{HASH_RE}\.json"',
-            f'{language}: "{urls[language]}"',
-            f"app translation path for {language}",
-        )
-    app_bytes = app_text.encode("utf-8")
-    app_digest = hashlib.sha256(app_bytes).hexdigest()[:12]
-    expected_app_path = ROOT / "html" / "assets" / f"app.{app_digest}.mjs"
-
-    references: dict[Path, bytes] = {}
-    expected_app_url = f"/assets/{expected_app_path.name}"
-    references[index_path] = replace_exactly_once(
-        index_text,
-        rf"/assets/app\.{HASH_RE}\.mjs",
-        expected_app_url,
-        "index app reference",
-    ).encode("utf-8")
-
-    ci_path = ROOT / ".github" / "workflows" / "ci.yml"
-    ci_text = ci_path.read_text(encoding="utf-8")
-    references[ci_path] = replace_exactly_once(
-        ci_text,
-        rf"html/assets/app\.{HASH_RE}\.mjs",
-        f"html/assets/{expected_app_path.name}",
-        "CI app reference",
-    ).encode("utf-8")
-
-    test_path = ROOT / "tests" / "frontend.test.mjs"
-    test_text = test_path.read_text(encoding="utf-8")
-    references[test_path] = replace_exactly_once(
-        test_text,
-        rf"\.\./html/assets/app\.{HASH_RE}\.mjs",
-        f"../html/assets/{expected_app_path.name}",
-        "frontend test app reference",
-    ).encode("utf-8")
-    return i18n, expected_app_path, app_bytes, references
-
 
 def expected_pdf_manifest(content_sha256: str) -> dict[str, Any]:
     pdf_paths = {
@@ -480,18 +416,13 @@ def assert_bytes(path: Path, expected: bytes) -> None:
 
 def check_or_write(args: argparse.Namespace) -> None:
     profile = validate_profile(load_json(ROOT / "content" / "profile.json"))
-    translations, raw_translations = load_translations()
+    translations, _raw_translations = load_translations()
     content_sha256 = source_digest(profile, translations)
     prompt_bytes = build_system_prompt(profile).encode("utf-8")
-    i18n, app_path, app_bytes, references = expected_frontend(raw_translations)
 
     expected_files: dict[Path, bytes] = {
         ROOT / "bot" / "system_prompt.txt": prompt_bytes,
-        app_path: app_bytes,
-        **references,
     }
-    for filename, content in i18n.items():
-        expected_files[ROOT / "html" / "i18n" / filename] = content
 
     pdf_manifest_path = ROOT / "content" / "pdf-manifest.json"
     if args.accept_pdfs:
@@ -512,31 +443,9 @@ def check_or_write(args: argparse.Namespace) -> None:
     if args.write:
         for path, content in expected_files.items():
             atomic_write(path, content)
-        expected_i18n_paths = {
-            ROOT / "html" / "i18n" / filename for filename in i18n
-        }
-        for stale in (ROOT / "html" / "i18n").glob("*.????????????.json"):
-            if stale not in expected_i18n_paths:
-                stale.unlink()
-        for stale in (ROOT / "html" / "assets").glob("app.????????????.mjs"):
-            if stale != app_path:
-                stale.unlink()
     else:
         for path, content in expected_files.items():
             assert_bytes(path, content)
-        expected_i18n_paths = {
-            ROOT / "html" / "i18n" / filename for filename in i18n
-        }
-        actual_i18n_paths = set(
-            (ROOT / "html" / "i18n").glob("*.????????????.json")
-        )
-        if actual_i18n_paths != expected_i18n_paths:
-            raise ContentError("hashed translation set contains stale files")
-        actual_app_paths = set(
-            (ROOT / "html" / "assets").glob("app.????????????.mjs")
-        )
-        if actual_app_paths != {app_path}:
-            raise ContentError("hashed application module set contains stale files")
 
     print(f"CONTENT_SOURCE_SHA256={content_sha256}")
     print("CONTENT_BUILD=PASS")

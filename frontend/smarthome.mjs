@@ -1,7 +1,7 @@
 const TRANSLATIONS = Object.freeze({
-  en: "/i18n/en.f5b04cdd45df.json",
-  de: "/i18n/de.3313b3cef4b0.json",
-  lv: "/i18n/lv.788ab6598ca4.json"
+  en: new URL("../content/translations/en.json", import.meta.url).href,
+  de: new URL("../content/translations/de.json", import.meta.url).href,
+  lv: new URL("../content/translations/lv.json", import.meta.url).href
 });
 
 function preferredLanguage() {

@@ -69,15 +69,48 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Validate frontend modules and behavior
+      - name: Set up pinned Node.js frontend toolchain
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.18.0'
+          package-manager-cache: false
+
+      - name: Rebuild deterministic frontend dist from authoritative source
         shell: bash
         run: |
           set -Eeuo pipefail
-          node --check html/assets/app.d878d409f278.mjs
-          node --check html/assets/smarthome.70da56476fdb.mjs
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build:frontend
+          first="${RUNNER_TEMP}/frontend-first.sha256"
+          second="${RUNNER_TEMP}/frontend-second.sha256"
+          {
+            find html/assets html/i18n -type f -print0
+            printf '%s\0' html/index.html html/smarthome.html frontend-dist-manifest.json
+          } | sort -z | xargs -0 sha256sum > "$first"
+          npm run build:frontend
+          {
+            find html/assets html/i18n -type f -print0
+            printf '%s\0' html/index.html html/smarthome.html frontend-dist-manifest.json
+          } | sort -z | xargs -0 sha256sum > "$second"
+          cmp "$first" "$second"
+          npm run check:frontend
+          git diff --exit-code -- \
+            package-lock.json frontend-dist-manifest.json \
+            html/assets html/i18n html/index.html html/smarthome.html
+          printf 'FRONTEND_DOUBLE_BUILD_DETERMINISTIC=PASS\n'
+
+      - name: Validate frontend source modules and behavior
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          node --check frontend/app.mjs
+          node --check frontend/enhancements.mjs
+          node --check frontend/smarthome.mjs
+          node --check scripts/build-frontend.mjs
+          node --check scripts/check-frontend-dist.mjs
           node --check tests/browser-smoke.mjs
           node --test tests/frontend.test.mjs
-          bash scripts/validate-source.sh "$PWD"
+          npm run check:frontend
 
       - name: Run real Chromium frontend smoke
         shell: bash
@@ -142,8 +175,17 @@ jobs:
             --mount "type=bind,src=$PWD/html,dst=/usr/share/nginx/html,readonly" \
             "$image" >/dev/null
 
-          module_path="$(grep -oE '/assets/app\.[0-9a-f]{12}\.mjs\?cfg=[0-9a-f]{12}' \
-            html/index.html | head -n 1)"
+          module_path="$(python3 - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+          manifest = json.loads(Path('frontend-dist-manifest.json').read_text(encoding='utf-8'))
+          path = manifest.get('index.html', {}).get('file', '')
+          if not re.fullmatch(r'assets/app\.[0-9a-f]{12}\.mjs', path):
+              raise SystemExit(f'unexpected app entry: {path!r}')
+          print('/' + path)
+          PY
+          )"
           test -n "$module_path"
 
           headers=''
@@ -245,6 +287,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           rm -f cloudflared.env bot/.env
+          rm -rf node_modules
           bash scripts/validate-source.sh "$PWD"
 
       - name: Publish test categories
@@ -258,7 +301,7 @@ jobs:
           - SQLite persistence, retention, UTC reset and pseudonymous identities
           - transactional deploy fault injection, rollback, data ownership and image identity behavior
           - Prometheus parsing, retries, schema validation and atomic stats publication
-          - frontend module behavior, translation parity, content hashes and size budgets
+          - frontend source behavior, Vite manifest integrity, deterministic rebuilds and size budgets
           - real Chromium language, statistics, streaming chat, failure-history and keyboard-flow smoke
           - full Git-history Gitleaks scan with mandatory detector canary
           - pinned nginx configuration plus live module MIME/cache, nonce CSP, inherited security-header and favicon assertions

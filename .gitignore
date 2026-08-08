@@ -12,6 +12,7 @@ logs/
 tmp/
 .cache/
 .venv/
+node_modules/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/

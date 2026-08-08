@@ -39,6 +39,19 @@ for required in \
     content/translations/de.json \
     content/translations/lv.json \
     bot/system_prompt.txt \
+    frontend/index.html \
+    frontend/smarthome.html \
+    frontend/app.mjs \
+    frontend/enhancements.mjs \
+    frontend/smarthome.mjs \
+    frontend/styles/main.css \
+    frontend/styles/extra.css \
+    frontend-dist-manifest.json \
+    package.json \
+    package-lock.json \
+    vite.config.mjs \
+    scripts/build-frontend.mjs \
+    scripts/check-frontend-dist.mjs \
     scripts/build-content.py \
     scripts/sync-system-prompt.py \
     scripts/validate-source.sh \
@@ -56,6 +69,10 @@ done
     || fail 'legacy docker-compose.network.yml must be merged into the primary Compose file'
 [[ ! -e "$ROOT/.venv" ]] \
     || fail 'repository-local .venv is generated state and must not exist'
+[[ ! -e "$ROOT/node_modules" ]] \
+    || fail 'repository-local node_modules is generated state and must not exist'
+[[ ! -e "$ROOT/node_modules" ]] \
+    || fail 'repository-local node_modules is generated state and must not exist'
 [[ ! -e "$ROOT/.github/workflows/canonical-content-artifact.yml" ]] \
     || fail 'temporary canonical content finalizer must not remain in the repository'
 
