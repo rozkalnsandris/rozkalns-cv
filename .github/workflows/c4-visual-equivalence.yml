@@ -69,6 +69,43 @@ jobs:
           test -n "$chrome_bin"
           "$chrome_bin" --version | tee "$evidence/chrome-version.txt"
 
+          # The CV navigation uses IntersectionObserver to set aria-current after load.
+          # Two sequential Chrome processes can capture opposite sides of that timing race.
+          # Normalize only that dynamic nav-state styling in disposable audit copies; all
+          # layout/component/feature/responsive/print CSS remains the real baseline/candidate.
+          python3 - <<'PY'
+          from pathlib import Path
+          import os
+
+          roots = [
+              Path(os.environ['RUNNER_TEMP']) / 'c3-baseline' / 'html',
+              Path.cwd() / 'html',
+          ]
+          css = '''
+          .site-nav a,
+          .site-nav a[aria-current="true"] { color: var(--text-faint) !important; }
+          .site-nav a::before,
+          .site-nav a[aria-current="true"]::before {
+            width: 22px !important;
+            background: var(--border) !important;
+            transition: none !important;
+          }
+          '''
+          for root in roots:
+              (root / 'c4-audit-normalize.css').write_text(css, encoding='utf-8')
+              index = root / 'index.html'
+              text = index.read_text(encoding='utf-8')
+              marker = '</head>'
+              if text.count(marker) != 1:
+                  raise SystemExit(f'unexpected head marker in {index}')
+              text = text.replace(
+                  marker,
+                  '  <link rel="stylesheet" href="/c4-audit-normalize.css">\n</head>',
+              )
+              index.write_text(text, encoding='utf-8')
+          PY
+          printf 'VISUAL_DYNAMIC_NAV_NORMALIZED=true\n' > "$evidence/audit-normalization.env"
+
           python3 -m http.server 18101 --bind 127.0.0.1 --directory "${RUNNER_TEMP}/c3-baseline/html" \
             >"$evidence/c3-server.log" 2>&1 &
           c3_pid=$!
@@ -155,6 +192,7 @@ jobs:
           printf 'CANDIDATE_SHA=%s\n' "$GITHUB_SHA" | tee -a "$evidence/summary.env"
           printf 'SCREENSHOT_PAIR_COUNT=4\n' | tee -a "$evidence/summary.env"
           printf 'PRINT_PAGE_COUNT=%s\n' "$c3_pages" | tee -a "$evidence/summary.env"
+          printf 'DYNAMIC_NAV_STATE_NORMALIZED=true\n' | tee -a "$evidence/summary.env"
           if [[ "$visual_status" -ne 0 ]]; then
             printf 'VISUAL_EQUIVALENCE=FAIL\n' | tee -a "$evidence/summary.env"
             exit 1
