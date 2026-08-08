@@ -1,0 +1,182 @@
+name: Finalize measured C7 static asset change
+
+on:
+  push:
+    branches:
+      - perf/86-static-payload-cache-v01
+    paths:
+      - .github/workflows/c7-finalize.yml
+      - tools/c7_finalize.py
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out exact branch SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$GITHUB_REF_NAME" = 'perf/86-static-payload-cache-v01'
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "$GITHUB_SHA"
+          git checkout -B "$GITHUB_REF_NAME" FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Reproduce selected WebP source asset
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends 'webp=1.3.2-0.4build3'
+          cwebp -version
+          cwebp -quiet -preset photo -q 85 -m 6 -mt html/photo.jpg -o frontend/photo.webp
+          test "$(stat -c '%s' frontend/photo.webp)" = '12240'
+          test "$(sha256sum frontend/photo.webp | awk '{print $1}')" = '1070aa250e2eaa0be5da0245f7815d7a93923f81f9780bac00b9d79aae79cf51'
+          file frontend/photo.webp | grep -Fq '480x480'
+          echo 'C7_WEBP_SOURCE=PASS'
+
+      - name: Apply bounded C7 source and contract changes
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 -m py_compile tools/c7_finalize.py
+          python3 tools/c7_finalize.py
+          git diff --check
+
+      - name: Set up pinned Node.js frontend toolchain
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.18.0'
+          package-manager-cache: false
+
+      - name: Build deterministic frontend twice and validate contracts
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build:frontend
+          first="${RUNNER_TEMP}/c7-first.sha256"
+          second="${RUNNER_TEMP}/c7-second.sha256"
+          {
+            find html/assets html/i18n -type f -print0
+            printf '%s\0' html/index.html html/smarthome.html frontend-dist-manifest.json
+          } | sort -z | xargs -0 sha256sum > "$first"
+          npm run build:frontend
+          {
+            find html/assets html/i18n -type f -print0
+            printf '%s\0' html/index.html html/smarthome.html frontend-dist-manifest.json
+          } | sort -z | xargs -0 sha256sum > "$second"
+          cmp "$first" "$second"
+          npm run check:frontend
+          node --check tests/browser-smoke.mjs
+          node --test tests/frontend.test.mjs
+          PYTHONPYCACHEPREFIX="${RUNNER_TEMP}/c7-pycache" python3 -m unittest tests.test_html_semantics
+          echo 'C7_DETERMINISTIC_BUILD=PASS'
+
+      - name: Run real Chromium behavior smoke
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          chrome_bin=''
+          for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
+            if command -v "$candidate" >/dev/null 2>&1; then
+              chrome_bin="$(command -v "$candidate")"
+              break
+            fi
+          done
+          test -n "$chrome_bin"
+          CHROME_BIN="$chrome_bin" node tests/browser-smoke.mjs
+          echo 'C7_BROWSER=PASS'
+
+      - name: Verify pinned Nginx WebP and cache contracts
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          image='nginx:1.31.3-alpine@sha256:4a73073bd557c65b759505da037898b61f1be6cbcc3c2c3aeac22d2a470c1752'
+          container="cv-c7-final-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          cleanup() { docker rm -f "$container" >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+          docker run -d \
+            --name "$container" \
+            --add-host=cvbot:127.0.0.1 \
+            --publish 127.0.0.1:18090:80 \
+            --mount "type=bind,src=$PWD/nginx.conf,dst=/etc/nginx/conf.d/default.conf,readonly" \
+            --mount "type=bind,src=$PWD/html,dst=/usr/share/nginx/html,readonly" \
+            "$image" >/dev/null
+          for attempt in 1 2 3 4 5; do
+            if curl --fail --silent --max-time 3 -o /dev/null http://127.0.0.1:18090/; then break; fi
+            sleep 1
+          done
+          webp_path="$(python3 - <<'PY'
+          import json
+          from pathlib import Path
+          manifest = json.loads(Path('frontend-dist-manifest.json').read_text(encoding='utf-8'))
+          rows = [row.get('file') for row in manifest.values() if isinstance(row, dict)]
+          matches = [path for path in rows if isinstance(path, str) and path.startswith('assets/photo.') and path.endswith('.webp')]
+          if len(matches) != 1:
+              raise SystemExit(f'unexpected WebP manifest rows: {matches!r}')
+          print('/' + matches[0])
+          PY
+          )"
+          headers="$(curl --fail --silent --show-error --head "http://127.0.0.1:18090${webp_path}")"
+          printf '%s\n' "$headers"
+          grep -Eiq '^Content-Type: image/webp\r?$' <<<"$headers"
+          grep -Eiq '^Cache-Control: public, max-age=31536000, immutable\r?$' <<<"$headers"
+          jpeg_headers="$(curl --fail --silent --show-error --head http://127.0.0.1:18090/photo.jpg)"
+          grep -Eiq '^Cache-Control: max-age=3600\r?$' <<<"$jpeg_headers"
+          grep -Fq 'https://rozkalns.net/photo.jpg' frontend/index.html
+          test "$(sha256sum html/cv.pdf | awk '{print $1}')" = '1234942691c7bd90502f43fabdf312267567cad0e5d0a09f9ab427e024364776'
+          test "$(sha256sum html/cv-de.pdf | awk '{print $1}')" = '3e03d46adc75b95c9359802f5e6b5d541a6a8bbcd663300dbc5f2657b1ff7b64'
+          test "$(sha256sum html/cv-lv.pdf | awk '{print $1}')" = 'a1677d8160f96516aa73595ca9959ad5d52f63f4363259fd29eb64091a6736b0'
+          echo 'C7_NGINX_CACHE=PASS'
+
+      - name: Validate source hygiene
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          rm -rf node_modules tools/__pycache__
+          PYTHONPYCACHEPREFIX="${RUNNER_TEMP}/c7-source-pycache" bash scripts/validate-source.sh "$PWD"
+          git diff --check
+
+      - name: Commit verified C7 product state and self-clean
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git rm -f -- \
+            .github/workflows/c7-finalize.yml \
+            .github/workflows/c7-static-audit.yml \
+            .github/workflows/c7-photo-candidates.yml \
+            tools/c7_finalize.py
+          git add -- \
+            docs/C7_STATIC_AUDIT.md \
+            frontend/index.html frontend/photo.webp \
+            nginx.conf scripts/check-frontend-dist.mjs \
+            tests/browser-smoke.mjs tests/test_html_semantics.py \
+            frontend-dist-manifest.json html/index.html html/smarthome.html html/assets html/i18n
+
+          unexpected="$(git status --short | awk '{print $2}' | grep -Ev '^(\.github/workflows/c7-finalize.yml|\.github/workflows/c7-static-audit.yml|\.github/workflows/c7-photo-candidates.yml|tools/c7_finalize.py|docs/C7_STATIC_AUDIT.md|frontend/index.html|frontend/photo.webp|nginx.conf|scripts/check-frontend-dist.mjs|tests/browser-smoke.mjs|tests/test_html_semantics.py|frontend-dist-manifest.json|html/index.html|html/smarthome.html|html/assets/|html/i18n/)' || true)"
+          test -z "$unexpected" || { printf 'UNEXPECTED_PATHS=%s\n' "$unexpected" >&2; exit 1; }
+          if git diff --cached --name-only | grep -E '^html/.*\.pdf$'; then
+            echo 'PDF files changed unexpectedly' >&2
+            exit 1
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'perf: hash optimized profile image and cache it immutably'
+
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          remote_head="$(git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" ls-remote origin "refs/heads/${GITHUB_REF_NAME}" | awk '{print $1}')"
+          test "$remote_head" = "$GITHUB_SHA"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" push origin "HEAD:refs/heads/${GITHUB_REF_NAME}"
