@@ -1,0 +1,59 @@
+name: C2 bootstrap evidence
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/c2-bootstrap.yml
+      - package.json
+      - vite.config.mjs
+      - frontend/**
+      - scripts/build-frontend.mjs
+      - content/translations/**
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    if: github.event.pull_request.head.ref == 'refactor/72-frontend-source-dist-v01'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24.18.0'
+
+      - name: Generate exact npm lock and build twice
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build:frontend
+          first="${RUNNER_TEMP}/frontend-first"
+          mkdir -p "$first"
+          cp -a html/assets html/i18n html/index.html html/smarthome.html frontend-dist-manifest.json "$first/"
+          npm run build:frontend
+          diff -ruN "$first/assets" html/assets
+          diff -ruN "$first/i18n" html/i18n
+          cmp "$first/index.html" html/index.html
+          cmp "$first/smarthome.html" html/smarthome.html
+          cmp "$first/frontend-dist-manifest.json" frontend-dist-manifest.json
+          printf 'C2_DOUBLE_BUILD_DETERMINISTIC=PASS\n'
+
+      - name: Upload lock and generated dist
+        uses: actions/upload-artifact@v7
+        with:
+          name: c2-bootstrap-${{ github.sha }}
+          path: |
+            package-lock.json
+            frontend-dist-manifest.json
+            html/assets/
+            html/i18n/
+            html/index.html
+            html/smarthome.html
+          if-no-files-found: error
+          retention-days: 7
