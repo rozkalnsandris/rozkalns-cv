@@ -1,56 +1,51 @@
 {
   "../content/translations/de.json": {
-    "file": "i18n/de.6b49c589041f.json",
+    "file": "i18n/de.e5b19aec28a6.json",
     "src": "../content/translations/de.json"
   },
   "../content/translations/en.json": {
-    "file": "i18n/en.69148ae50188.json",
+    "file": "i18n/en.7a22942a1ff8.json",
     "src": "../content/translations/en.json"
   },
   "../content/translations/lv.json": {
-    "file": "i18n/lv.fa42c55f16b9.json",
+    "file": "i18n/lv.adc94191d104.json",
     "src": "../content/translations/lv.json"
   },
-  "_main.222474672f5a.css": {
-    "file": "assets/main.222474672f5a.css",
-    "src": "_main.222474672f5a.css"
+  "_i18n.222474672f5a.css": {
+    "file": "assets/i18n.222474672f5a.css",
+    "src": "_i18n.222474672f5a.css"
   },
-  "_main.d0387e87ebbf.mjs": {
-    "file": "assets/main.d0387e87ebbf.mjs",
-    "name": "main",
+  "_i18n.f493ff7ef233.mjs": {
+    "file": "assets/i18n.f493ff7ef233.mjs",
+    "name": "i18n",
     "css": [
-      "assets/main.222474672f5a.css"
+      "assets/i18n.222474672f5a.css"
+    ],
+    "assets": [
+      "i18n/en.7a22942a1ff8.json",
+      "i18n/de.e5b19aec28a6.json",
+      "i18n/lv.adc94191d104.json"
     ]
   },
   "index.html": {
-    "file": "assets/app.dcc12a13cb6b.mjs",
+    "file": "assets/app.7f6b2ff77c51.mjs",
     "name": "app",
     "src": "index.html",
     "isEntry": true,
     "imports": [
-      "_main.d0387e87ebbf.mjs"
+      "_i18n.f493ff7ef233.mjs"
     ],
     "css": [
       "assets/app.c34d399843db.css"
-    ],
-    "assets": [
-      "i18n/en.69148ae50188.json",
-      "i18n/de.6b49c589041f.json",
-      "i18n/lv.fa42c55f16b9.json"
     ]
   },
   "smarthome.html": {
-    "file": "assets/smarthome.ba758ee467ce.mjs",
+    "file": "assets/smarthome.b7584d7acbfb.mjs",
     "name": "smarthome",
     "src": "smarthome.html",
     "isEntry": true,
     "imports": [
-      "_main.d0387e87ebbf.mjs"
-    ],
-    "assets": [
-      "i18n/en.69148ae50188.json",
-      "i18n/de.6b49c589041f.json",
-      "i18n/lv.fa42c55f16b9.json"
+      "_i18n.f493ff7ef233.mjs"
     ]
   }
 }
