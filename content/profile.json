@@ -1,6 +1,6 @@
 {
-  "schema_version": 1,
-  "content_version": "2026-08-06.1",
+  "schema_version": 2,
+  "content_version": "2026-08-08.1",
   "identity": {
     "name": "Andris Rožkalns",
     "role": "Junior DevOps & Linux Engineer",
@@ -10,13 +10,10 @@
   },
   "contact": {
     "email": {
-      "value": "andris@rozkalns.net",
-      "visibility": "public"
+      "visibility": "runtime-protected"
     },
     "phone": {
-      "value": "+49 176 8513 4770",
-      "uri": "+4917685134770",
-      "visibility": "public"
+      "visibility": "runtime-protected"
     },
     "github": {
       "value": "https://github.com/rozkalnsandris",
@@ -28,9 +25,18 @@
     }
   },
   "languages": [
-    {"name": "Latvian", "level": "native"},
-    {"name": "English", "level": "fluent working language"},
-    {"name": "German", "level": "B1"}
+    {
+      "name": "Latvian",
+      "level": "native"
+    },
+    {
+      "name": "English",
+      "level": "fluent working language"
+    },
+    {
+      "name": "German",
+      "level": "B1"
+    }
   ],
   "experience": [
     {
@@ -127,8 +133,16 @@
       "ESP32/IoT",
       "YAML"
     ],
-    "learning": ["Ansible", "Terraform", "AWS Cloud"],
-    "foundations": ["SSH/FTP", "PHP/IPB forums", "HTML"]
+    "learning": [
+      "Ansible",
+      "Terraform",
+      "AWS Cloud"
+    ],
+    "foundations": [
+      "SSH/FTP",
+      "PHP/IPB forums",
+      "HTML"
+    ]
   },
   "projects": [
     {
@@ -152,22 +166,41 @@
     {
       "id": "observability",
       "title": "Monitoring and observability",
-      "facts": ["Prometheus", "Grafana", "Node Exporter", "live CV metrics"]
+      "facts": [
+        "Prometheus",
+        "Grafana",
+        "Node Exporter",
+        "live CV metrics"
+      ]
     },
     {
       "id": "home-automation",
       "title": "Home automation",
-      "facts": ["Matter devices", "Home Assistant dashboards", "energy-cost tracking"]
+      "facts": [
+        "Matter devices",
+        "Home Assistant dashboards",
+        "energy-cost tracking"
+      ]
     },
     {
       "id": "maintenance",
       "title": "Automated maintenance",
-      "facts": ["controlled APT and container updates", "Telegram evidence", "availability checks"]
+      "facts": [
+        "controlled APT and container updates",
+        "Telegram evidence",
+        "availability checks"
+      ]
     },
     {
       "id": "irrigation",
       "title": "Balcony irrigation",
-      "facts": ["ESP32", "15 moisture sensors", "relay pump", "multiplexer", "safety limits"]
+      "facts": [
+        "ESP32",
+        "15 moisture sensors",
+        "relay pump",
+        "multiplexer",
+        "safety limits"
+      ]
     }
   ],
   "infrastructure": {

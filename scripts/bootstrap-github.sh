@@ -26,7 +26,7 @@ if [[ ! -d .git ]]; then
 fi
 
 git config user.name >/dev/null 2>&1 || git config user.name 'Andris Rožkalns'
-git config user.email >/dev/null 2>&1 || git config user.email 'andris@rozkalns.net'
+git config user.email >/dev/null 2>&1 || git config user.email "${GIT_AUTHOR_EMAIL:?Set GIT_AUTHOR_EMAIL before running bootstrap-github.sh}"
 
 if [[ -n "$(git status --porcelain=v1 --untracked-files=all)" ]]; then
     git add --all

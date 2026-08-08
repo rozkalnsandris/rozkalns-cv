@@ -16,7 +16,6 @@ ID_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 MONTH_RE = re.compile(r"^[0-9]{4}-[0-9]{2}$")
 PARTIAL_DATE_RE = re.compile(r"^[0-9]{4}(?:-[0-9]{2})?$")
 VERSION_RE = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}\.[1-9][0-9]*$")
-PHONE_RE = re.compile(r"^\+[0-9]{8,15}$")
 
 
 class ContentError(RuntimeError):
@@ -90,8 +89,8 @@ def validate_profile(profile: Any) -> dict[str, Any]:
         "infrastructure",
     }
     profile = require_object(profile, "profile", root_keys)
-    if profile["schema_version"] != 1:
-        raise ContentError("profile.schema_version must be 1")
+    if profile["schema_version"] != 2:
+        raise ContentError("profile.schema_version must be 2")
     version = require_text(profile["content_version"], "profile.content_version")
     if not VERSION_RE.fullmatch(version):
         raise ContentError("profile.content_version is invalid")
@@ -115,23 +114,19 @@ def validate_profile(profile: Any) -> dict[str, Any]:
         "profile.contact",
         {"email", "phone", "github", "website"},
     )
-    for key in ("email", "github", "website"):
+    for key in ("email", "phone"):
+        entry = require_object(
+            contact[key], f"profile.contact.{key}", {"visibility"}
+        )
+        if entry["visibility"] != "runtime-protected":
+            raise ContentError(f"profile.contact.{key} must be runtime-protected")
+    for key in ("github", "website"):
         entry = require_object(
             contact[key], f"profile.contact.{key}", {"value", "visibility"}
         )
         require_text(entry["value"], f"profile.contact.{key}.value", 2)
         if entry["visibility"] != "public":
             raise ContentError(f"profile.contact.{key} must be public")
-    phone = require_object(
-        contact["phone"],
-        "profile.contact.phone",
-        {"value", "uri", "visibility"},
-    )
-    require_text(phone["value"], "profile.contact.phone.value", 2)
-    if phone["visibility"] != "public" or not PHONE_RE.fullmatch(
-        require_text(phone["uri"], "profile.contact.phone.uri")
-    ):
-        raise ContentError("profile.contact.phone is invalid")
 
     languages = profile["languages"]
     if not isinstance(languages, list) or not languages:
@@ -292,8 +287,7 @@ def build_system_prompt(profile: dict[str, Any]) -> str:
         f"Career goal: {identity['career_goal']}",
         "",
         "PUBLIC CONTACT",
-        f"Email: {contact['email']['value']}",
-        f"Phone: {contact['phone']['value']}",
+        "Email and phone: available only through the verified contact section on the public CV.",
         f"GitHub: {contact['github']['value']}",
         f"Website: {contact['website']['value']}",
         "",
@@ -343,7 +337,7 @@ def build_system_prompt(profile: dict[str, Any]) -> str:
             "",
             "RULES",
             "- Do not answer unrelated questions.",
-            "- Do not reveal personal data beyond the public contact and facts listed above.",
+            "- Do not reveal, infer, or guess protected email or phone details; direct contact requests to the verified contact section on the public CV.",
             "- For salary expectations, say Andris is open to discussion based on the role and company.",
             f"- For the start date, say Andris is available from {identity['availability']}.",
             "- Keep answers concise, factual, and professional.",

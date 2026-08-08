@@ -4,7 +4,7 @@ The public CV, assistant knowledge, translations, and PDF freshness state must
 not be edited as independent copies. The authoritative human-maintained sources
 are:
 
-- `content/profile.json` — public professional facts and structured records;
+- `content/profile.json` — public professional facts, structured records, and runtime-protected contact-channel metadata;
 - `content/profile.schema.json` — documented shape and field intent;
 - `content/translations/en.json`, `de.json`, and `lv.json` — localized page copy.
 
@@ -35,7 +35,7 @@ The builder deterministically produces and checks:
 - SHA-256-fingerprinted files in `html/i18n/`;
 - the fingerprinted CV application module and its references in HTML, CI, and
   Node tests;
-- `bot/system_prompt.txt` from public canonical profile facts;
+- `bot/system_prompt.txt` from public canonical profile facts, excluding runtime-protected email and phone values;
 - the marked generated `SYSTEM_PROMPT` block inside `bot/app.py`;
 - `content/pdf-manifest.json`, which binds each committed PDF and the complete
   canonical source set to exact SHA-256 values.
@@ -52,9 +52,9 @@ content changes:
 1. regenerate English, German, and Latvian PDFs from the approved content;
 2. open every PDF and verify text, line wrapping, dates, links, page breaks,
    language, and accessibility metadata;
-3. confirm the public phone, email, GitHub, website, role, availability, work
-   history, projects, skills, and education match `content/profile.json` and the
-   corresponding translation;
+3. confirm runtime-protected email/phone values and contact links are absent from
+   every PDF, while public GitHub, website, role, availability, work history,
+   projects, skills, and education remain correct;
 4. only after that review run:
 
    ```bash
@@ -78,7 +78,7 @@ A content pull request is ready only when:
 - profile validation and unique-ID checks pass;
 - EN/DE/LV keys match;
 - generated files are committed with no stale fingerprints;
-- the assistant prompt contains only public canonical facts;
+- the assistant prompt contains only public canonical facts and directs email/phone requests to the verified contact section;
 - the three PDFs have a current manifest and documented review/snapshot basis;
 - Python, Node, browser, nginx, image build, and deploy contract CI are green;
 - no production deploy is performed until the final merged SHA is selected.
