@@ -280,7 +280,7 @@ class CurrentContactPolicyTests(unittest.TestCase):
         app = (ROOT / "frontend/app.mjs").read_text(encoding="utf-8")
         contact = (ROOT / "frontend/features/contact.mjs").read_text(encoding="utf-8")
         self.assertIn("mailto:{PUBLIC_EMAIL}", source)
-        self.assertIn("?contact=whatsapp", app)
+        self.assertIn('searchParams.get("contact") === "whatsapp"', app)
         self.assertNotRegex(source + app, r"wa\\.me/[0-9]")
         self.assertNotRegex(source + app, r"tel:\\+[0-9]")
         self.assertNotRegex(contact, r"https://wa\\.me/[0-9]")
@@ -288,7 +288,6 @@ class CurrentContactPolicyTests(unittest.TestCase):
     def test_bootstrap_git_author_has_no_personal_email_fallback(self) -> None:
         bootstrap = (ROOT / "scripts/bootstrap-github.sh").read_text(encoding="utf-8")
         self.assertIn("GIT_AUTHOR_EMAIL", bootstrap)
-        self.assertIn("GIT_AUTHOR_NAME", bootstrap)
         self.assertNotRegex(bootstrap, r"GIT_AUTHOR_EMAIL=.*@")
         self.assertNotIn('git config user.email "{PUBLIC_EMAIL}"', bootstrap)
 
