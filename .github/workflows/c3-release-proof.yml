@@ -1,9 +1,9 @@
 name: C3 production release proof
 
 on:
-  push:
+  pull_request:
     branches:
-      - refactor/80-consolidate-css-v01
+      - main
     paths:
       - .github/workflows/c3-release-proof.yml
 
