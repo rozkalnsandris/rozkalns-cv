@@ -1,0 +1,56 @@
+{
+  "../content/translations/de.json": {
+    "file": "i18n/de.6b49c589041f.json",
+    "src": "../content/translations/de.json"
+  },
+  "../content/translations/en.json": {
+    "file": "i18n/en.69148ae50188.json",
+    "src": "../content/translations/en.json"
+  },
+  "../content/translations/lv.json": {
+    "file": "i18n/lv.fa42c55f16b9.json",
+    "src": "../content/translations/lv.json"
+  },
+  "_main.222474672f5a.css": {
+    "file": "assets/main.222474672f5a.css",
+    "src": "_main.222474672f5a.css"
+  },
+  "_main.d0387e87ebbf.mjs": {
+    "file": "assets/main.d0387e87ebbf.mjs",
+    "name": "main",
+    "css": [
+      "assets/main.222474672f5a.css"
+    ]
+  },
+  "index.html": {
+    "file": "assets/app.dcc12a13cb6b.mjs",
+    "name": "app",
+    "src": "index.html",
+    "isEntry": true,
+    "imports": [
+      "_main.d0387e87ebbf.mjs"
+    ],
+    "css": [
+      "assets/app.c34d399843db.css"
+    ],
+    "assets": [
+      "i18n/en.69148ae50188.json",
+      "i18n/de.6b49c589041f.json",
+      "i18n/lv.fa42c55f16b9.json"
+    ]
+  },
+  "smarthome.html": {
+    "file": "assets/smarthome.ba758ee467ce.mjs",
+    "name": "smarthome",
+    "src": "smarthome.html",
+    "isEntry": true,
+    "imports": [
+      "_main.d0387e87ebbf.mjs"
+    ],
+    "assets": [
+      "i18n/en.69148ae50188.json",
+      "i18n/de.6b49c589041f.json",
+      "i18n/lv.fa42c55f16b9.json"
+    ]
+  }
+}
