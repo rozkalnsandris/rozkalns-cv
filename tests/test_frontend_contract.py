@@ -25,7 +25,7 @@ TRANSLATIONS = [
     ROOT / "content" / "translations" / "de.json",
     ROOT / "content" / "translations" / "lv.json",
 ]
-HASHED_ASSET = re.compile(r"\.[0-9a-f]{12}\.(?:css|mjs|js|json|webp)$")
+HASHED_ASSET = re.compile(r"\.[0-9a-f]{12}\.(?:css|mjs|js|json|webp|svg)$")
 
 
 def load_manifest() -> dict[str, dict]:
@@ -94,11 +94,13 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("default_type text/javascript;", nginx)
         self.assertIn("text/javascript application/javascript", nginx)
         self.assertNotIn("(?:css|mjs|json)", nginx)
+        self.assertIn("(?:css|json|webp|svg)", nginx)
 
         assets = generated_assets()
         self.assertGreaterEqual(len(assets), 7)
         self.assertGreaterEqual(sum(path.endswith(".css") for path in assets), 1)
         self.assertGreaterEqual(sum(path.endswith((".mjs", ".js")) for path in assets), 3)
+        self.assertEqual(sum(path.endswith(".svg") for path in assets), 1)
         for relative in assets:
             self.assertRegex(relative, HASHED_ASSET)
             self.assertTrue((ROOT / "html" / relative).is_file(), relative)
@@ -212,6 +214,11 @@ class FrontendContractTests(unittest.TestCase):
             for path in assets
             if path.endswith(".css")
         )
+        svg_bytes = sum(
+            (ROOT / "html" / path).stat().st_size
+            for path in assets
+            if path.endswith(".svg")
+        )
         limits = {
             INDEX: 21_000,
             SMART: 5_000,
@@ -220,6 +227,7 @@ class FrontendContractTests(unittest.TestCase):
             self.assertLess(path.stat().st_size, limit, path)
         self.assertLess(js_bytes, 25_000)
         self.assertLess(css_bytes, 22_000)
+        self.assertLess(svg_bytes, 7_000)
 
 
 if __name__ == "__main__":
