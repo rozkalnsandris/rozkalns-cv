@@ -31,6 +31,7 @@ function revealLink(root, element, value, href) {
   link.textContent = value;
   element.replaceWith(link);
   link.dataset.revealed = "true";
+  return link;
 }
 
 export function contactPayloadIsValid(payload) {
@@ -91,11 +92,12 @@ export function createContactController(languageController, {
     }
     const email = root.querySelector("#contactEmail");
     const phone = root.querySelector("#contactPhone");
-    if (email) revealLink(root, email, payload.email, `mailto:${payload.email}`);
-    if (phone) revealLink(root, phone, payload.phone, `tel:${payload.phone_uri}`);
+    const emailLink = email ? revealLink(root, email, payload.email, `mailto:${payload.email}`) : null;
+    const phoneLink = phone ? revealLink(root, phone, payload.phone, `tel:${payload.phone_uri}`) : null;
     button.hidden = true;
     mount.hidden = true;
     setStatus(root, message("contact_success"), "success");
+    windowLike.setTimeout(() => (emailLink || phoneLink)?.focus(), 0);
     return true;
   }
 
