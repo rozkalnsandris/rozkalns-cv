@@ -1,0 +1,59 @@
+name: C94 PDF layout preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: c94-pdf-layout-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    if: >-
+      github.repository == 'rozkalnsandris/rozkalns-cv' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'fix/94-public-email-verified-whatsapp-v3'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out exact PR head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            fetch --no-tags origin "$EXPECTED_HEAD"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+
+      - name: Render privacy-clean one-page PDFs
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends poppler-utils
+          out="${RUNNER_TEMP}/c94-pdf-layout"
+          mkdir -p "$out"
+          for spec in en:html/cv.pdf de:html/cv-de.pdf lv:html/cv-lv.pdf; do
+            IFS=: read -r language pdf <<<"$spec"
+            test "$(pdfinfo "$pdf" | awk '/^Pages:/ {print $2}')" = '1'
+            pdftoppm -f 1 -singlefile -png -r 180 "$pdf" "$out/$language" >/dev/null
+            printf 'C94_LAYOUT language=%s pages=1 render=PASS\n' "$language"
+          done
+
+      - name: Upload sanitized layout previews
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: c94-current-pdf-layout
+          path: ${{ runner.temp }}/c94-pdf-layout/*.png
+          retention-days: 2
