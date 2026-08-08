@@ -56,7 +56,8 @@ jobs:
           cmp "${RUNNER_TEMP}/c4-first-manifest.json" frontend-dist-manifest.json
           npm run check:frontend
           node --test tests/frontend.test.mjs
-          python3 -m unittest tests.test_css_source_contract tests.test_frontend_contract -v
+          python3 -m unittest tests.test_css_source_contract tests.test_contact_markup tests.test_frontend_contract tests.test_html_semantics -v
+          rm -rf -- node_modules
           bash scripts/validate-source.sh .
 
       - name: Commit C4 source and generated dist
@@ -65,7 +66,7 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          git add -- frontend/index.html frontend/smarthome.html frontend/styles scripts/validate-source.sh tests/test_frontend_contract.py tests/test_css_source_contract.py docs/CSS_C4_AUDIT.md frontend-dist-manifest.json html/index.html html/smarthome.html html/assets html/i18n
+          git add -- frontend/index.html frontend/smarthome.html frontend/styles scripts/check-frontend-dist.mjs scripts/validate-source.sh tests/test_contact_markup.py tests/test_frontend_contract.py tests/test_css_source_contract.py docs/CSS_C4_AUDIT.md frontend-dist-manifest.json html/index.html html/smarthome.html html/assets html/i18n
           staged="$(git diff --cached --name-only)"
           test -n "$staged"
           printf '%s\n' "$staged"
