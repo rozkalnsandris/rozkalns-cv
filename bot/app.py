@@ -25,6 +25,7 @@ from contact import (
     normalize_token,
     verify_turnstile,
 )
+from readiness import check_local_readiness
 from storage import (
     AssistantStore,
     RateDecision,
@@ -201,8 +202,6 @@ def _normalize_history(raw_history: Any, current_message: str) -> list[dict[str,
             raise RequestValidationError("History contains invalid content.")
         normalized.append({"role": role, "content": content})
 
-    # Compatibility with the old browser client, which included the current
-    # message both in `history` and in `message`.
     if (
         normalized
         and normalized[-1]["role"] == "user"
@@ -210,9 +209,6 @@ def _normalize_history(raw_history: Any, current_message: str) -> list[dict[str,
     ):
         normalized.pop()
 
-    # A failed previous browser request may leave one unpaired user turn.
-    # It is not completed conversation context, so omit it rather than sending
-    # malformed history to the model.
     if normalized and normalized[-1]["role"] == "user":
         normalized.pop()
 
@@ -279,13 +275,30 @@ def _notify_telegram(client_key: str, question: str, answer: str) -> None:
             timeout=10,
         )
         response.raise_for_status()
-    except Exception as error:  # notification failure must not affect visitor
+    except Exception as error:
         app.logger.error("telegram notification failed: %s", type(error).__name__)
 
 
 @app.get("/health")
+@app.get("/health/live")
 def health() -> Response:
-    return jsonify(ok=True, storage="sqlite")
+    response = jsonify(ok=True)
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
+@app.get("/health/ready")
+def readiness() -> Response:
+    result = check_local_readiness(
+        DB_PATH,
+        llm_api_key=LLM_API_KEY,
+        client_key_secret=CLIENT_KEY_SECRET,
+        llm_model=LLM_MODEL,
+        supported_models=SUPPORTED_LLM_MODELS,
+    )
+    response = jsonify(ready=result.ready)
+    response.headers["Cache-Control"] = "no-store"
+    return response if result.ready else (response, 503)
 
 
 @app.get("/contact-config")
