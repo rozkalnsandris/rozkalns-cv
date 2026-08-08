@@ -27,7 +27,8 @@ const MIME_TYPES = new Map([
   [".pdf", "application/pdf"],
   [".png", "image/png"],
   [".jpg", "image/jpeg"],
-  [".jpeg", "image/jpeg"]
+  [".jpeg", "image/jpeg"],
+  [".webp", "image/webp"]
 ]);
 
 function listen(server) {
@@ -398,9 +399,15 @@ async function runBrowserSmoke(baseUrl, state) {
       role: document.querySelector('[data-i18n="role"]')?.textContent,
       pdf: document.querySelector('#pdfLink')?.getAttribute('href'),
       dialogModal: document.querySelector('#chatDialog')?.getAttribute('aria-modal'),
-      privacy: document.querySelector('[data-i18n="chat_privacy"]')?.textContent
+      privacy: document.querySelector('[data-i18n="chat_privacy"]')?.textContent,
+      photoSrc: document.querySelector('.profile-photo')?.currentSrc,
+      photoNaturalWidth: document.querySelector('.profile-photo')?.naturalWidth,
+      photoNaturalHeight: document.querySelector('.profile-photo')?.naturalHeight
     }))()`);
     assert.equal(initialContract.role, "Junior DevOps & Linux Engineer");
+    assert.match(initialContract.photoSrc, /\/assets\/photo\.[0-9a-f]{12}\.webp$/);
+    assert.equal(initialContract.photoNaturalWidth, 480);
+    assert.equal(initialContract.photoNaturalHeight, 480);
     assert.equal(initialContract.pdf, "/cv.pdf");
     assert.equal(initialContract.dialogModal, "true");
     assert.match(initialContract.privacy, /raw IP addresses are not stored/i);

@@ -10,7 +10,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 HTML_ROOT = ROOT / "html"
-HASHED_ASSET = re.compile(r"\.[0-9a-f]{12}\.(?:css|mjs|json)$")
+HASHED_ASSET = re.compile(r"\.[0-9a-f]{12}\.(?:css|mjs|json|webp)$")
 
 
 @dataclass
@@ -266,6 +266,22 @@ class HtmlSemanticTests(unittest.TestCase):
         self.assertEqual(len(h1), 1)
         self.assertEqual([row.accessible_text for row in h2], ["Climate", "Devices"])
         self.assertEqual(len(h3), 8)
+
+    def test_profile_photo_uses_hashed_webp_with_explicit_dimensions(self) -> None:
+        parsed = parse(HTML_ROOT / "index.html")
+        photos = [
+            row for row in parsed.elements
+            if row.tag == "img" and row.attrs.get("class") == "profile-photo"
+        ]
+        self.assertEqual(len(photos), 1)
+        photo = photos[0]
+        self.assertRegex(
+            photo.attrs.get("src", ""),
+            r"^/assets/photo\.[0-9a-f]{12}\.webp$",
+        )
+        self.assertEqual(photo.attrs.get("width"), "118")
+        self.assertEqual(photo.attrs.get("height"), "118")
+        self.assertEqual(photo.attrs.get("alt"), "Andris Rožkalns")
 
     def test_fingerprinted_assets_are_manifest_owned(self) -> None:
         manifest = json.loads(

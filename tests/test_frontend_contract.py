@@ -25,7 +25,7 @@ TRANSLATIONS = [
     ROOT / "content" / "translations" / "de.json",
     ROOT / "content" / "translations" / "lv.json",
 ]
-HASHED_ASSET = re.compile(r"\.[0-9a-f]{12}\.(?:css|mjs|js|json)$")
+HASHED_ASSET = re.compile(r"\.[0-9a-f]{12}\.(?:css|mjs|js|json|webp)$")
 
 
 def load_manifest() -> dict[str, dict]:
