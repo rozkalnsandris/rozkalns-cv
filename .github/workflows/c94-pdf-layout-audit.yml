@@ -232,12 +232,14 @@ jobs:
         run: |
           set -Eeuo pipefail
           rm -f \
+            .github/workflows/c94-finalizer-repair.yml \
             .github/workflows/c94-pdf-layout-audit.yml \
             .github/workflows/c94-focused-diagnostic.yml \
             scripts/c94-apply-public-contact.py
           python3 - <<'PY'
           import subprocess
           allowed = {
+              '.github/workflows/c94-finalizer-repair.yml',
               '.github/workflows/c94-pdf-layout-audit.yml',
               '.github/workflows/c94-focused-diagnostic.yml',
               'scripts/c94-apply-public-contact.py',
@@ -273,7 +275,21 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          git add -A
+          git add -- \
+            .github/workflows/c94-finalizer-repair.yml \
+            .github/workflows/c94-pdf-layout-audit.yml \
+            .github/workflows/c94-focused-diagnostic.yml \
+            scripts/c94-apply-public-contact.py \
+            bot/app.py bot/contact.py bot/system_prompt.txt \
+            content/pdf-manifest.json content/profile.json content/profile.schema.json \
+            content/translations/en.json content/translations/de.json content/translations/lv.json \
+            docs/CONTENT_AUTHORING.md docs/PUBLIC_READINESS.md \
+            frontend/app.mjs frontend/features/contact.mjs frontend/index.html \
+            frontend-dist-manifest.json \
+            html/index.html html/smarthome.html html/cv.pdf html/cv-de.pdf html/cv-lv.pdf \
+            html/assets html/i18n \
+            tests/browser-smoke.mjs tests/frontend.test.mjs tests/test_contact.py \
+            tests/test_contact_markup.py tests/test_current_contact_privacy.py
           git diff --cached --check
           test -n "$(git diff --cached --name-only)"
           git config user.name 'github-actions[bot]'
