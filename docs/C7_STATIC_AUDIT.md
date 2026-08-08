@@ -33,4 +33,10 @@ q85 was selected after visual comparison against the committed JPEG: it preserve
 - Do not change PDFs, favicon, runtime endpoints, Cloudflare ownership, or the deploy model.
 - Preserve explicit 118×118 image dimensions and all C6 accessibility behavior.
 
+## Final implementation evidence
+
+The verified product commit is `906f6001f81a85e6cfa4d2b4a467c39e62b473f5` (`perf: hash optimized profile image and cache it immutably`). The reproducible q85 source asset is 12,240 bytes with SHA-256 `1070aa250e2eaa0be5da0245f7815d7a93923f81f9780bac00b9d79aae79cf51`. Vite emits it as `assets/photo.18997b6089ce.webp` and records it under the `index.html` asset graph.
+
+The finalizer passed the deterministic double build, frontend contract, semantic tests, real Chromium behavior smoke, pinned-Nginx WebP MIME/cache checks, stable Open Graph JPEG check, unchanged PDF hashes, and source hygiene before publishing the product commit. All temporary C7 audit/finalizer workflows and helper scripts were removed from the final PR diff.
+
 `PRODUCTION_IMPACT=yes` because the served profile asset and Nginx cache matching change.
