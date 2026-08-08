@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import sqlite3
 import tempfile
+import time
 import unittest
 import sys
 
@@ -30,6 +31,7 @@ class AssistantStoreTests(unittest.TestCase):
         per_client: int = 2,
         global_cap: int = 5,
         retention: int = 7,
+        maintenance_sleep: float = 60.0,
     ) -> AssistantStore:
         return AssistantStore(
             Path(directory) / "assistant.sqlite3",
@@ -37,6 +39,7 @@ class AssistantStoreTests(unittest.TestCase):
             daily_global_cap=global_cap,
             chat_retention_days=retention,
             clock=clock,
+            maintenance_max_sleep_seconds=maintenance_sleep,
         )
 
     def test_client_limit_persists_across_store_instances(self) -> None:
@@ -139,29 +142,101 @@ class AssistantStoreTests(unittest.TestCase):
         self.assertNotEqual(first, other)
         self.assertNotIn("203", first)
 
-    def test_chat_retention_deletes_old_rows(self) -> None:
+    def test_expired_chat_is_removed_without_new_chat_insert(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             clock = MutableClock(1_700_000_000)
             store = self.make_store(tmp, clock, retention=2)
             store.record_chat("a", "old", "old-answer")
-            clock.value += (3 * 86400)
-            store.record_chat("b", "new", "new-answer")
-            with sqlite3.connect(store.path) as connection:
-                rows = connection.execute(
-                    "SELECT client_key, question FROM chats ORDER BY id"
-                ).fetchall()
-            self.assertEqual(rows, [("b", "new")])
-
-    def test_zero_retention_stores_no_chat_content(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            clock = MutableClock(1_700_000_000)
-            store = self.make_store(tmp, clock, retention=0)
-            store.record_chat("a", "question", "answer")
+            clock.value += 2 * 86400
+            self.assertEqual(store.purge_expired_chats(), 1)
             with sqlite3.connect(store.path) as connection:
                 count = connection.execute(
                     "SELECT COUNT(*) FROM chats"
                 ).fetchone()[0]
             self.assertEqual(count, 0)
+
+    def test_startup_purge_applies_current_retention_policy(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            clock = MutableClock(1_700_000_000)
+            original = self.make_store(tmp, clock, retention=30)
+            original.record_chat("a", "old", "answer")
+            clock.value += 10 * 86400
+
+            self.make_store(tmp, clock, retention=5)
+            with sqlite3.connect(original.path) as connection:
+                count = connection.execute(
+                    "SELECT COUNT(*) FROM chats"
+                ).fetchone()[0]
+            self.assertEqual(count, 0)
+
+    def test_background_maintenance_expires_idle_chat(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            clock = MutableClock(1_700_000_000)
+            store = self.make_store(
+                tmp,
+                clock,
+                retention=1,
+                maintenance_sleep=0.01,
+            )
+            self.addCleanup(store.close)
+            store.start_retention_maintenance()
+            store.record_chat("a", "question", "answer")
+            clock.value += 86400
+
+            deadline = time.monotonic() + 1.0
+            count = 1
+            while time.monotonic() < deadline:
+                with sqlite3.connect(store.path) as connection:
+                    count = connection.execute(
+                        "SELECT COUNT(*) FROM chats"
+                    ).fetchone()[0]
+                if count == 0:
+                    break
+                time.sleep(0.01)
+            self.assertEqual(count, 0)
+
+    def test_zero_retention_stores_no_chat_content(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            clock = MutableClock(1_700_000_000)
+            store = self.make_store(tmp, clock, retention=0)
+            decision = store.reserve("client-a")
+            self.assertTrue(decision.allowed)
+            store.record_chat("a", "question", "answer")
+            with sqlite3.connect(store.path) as connection:
+                chat_count = connection.execute(
+                    "SELECT COUNT(*) FROM chats"
+                ).fetchone()[0]
+                rate_count = connection.execute(
+                    "SELECT COUNT(*) FROM rate_events"
+                ).fetchone()[0]
+                daily_count = connection.execute(
+                    "SELECT request_count FROM daily_usage"
+                ).fetchone()[0]
+            self.assertEqual(chat_count, 0)
+            self.assertEqual(rate_count, 1)
+            self.assertEqual(daily_count, 1)
+
+    def test_zero_retention_startup_clears_existing_chat_only(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            clock = MutableClock(1_700_000_000)
+            original = self.make_store(tmp, clock, retention=7)
+            self.assertTrue(original.reserve("client-a").allowed)
+            original.record_chat("a", "question", "answer")
+
+            self.make_store(tmp, clock, retention=0)
+            with sqlite3.connect(original.path) as connection:
+                chat_count = connection.execute(
+                    "SELECT COUNT(*) FROM chats"
+                ).fetchone()[0]
+                rate_count = connection.execute(
+                    "SELECT COUNT(*) FROM rate_events"
+                ).fetchone()[0]
+                daily_count = connection.execute(
+                    "SELECT request_count FROM daily_usage"
+                ).fetchone()[0]
+            self.assertEqual(chat_count, 0)
+            self.assertEqual(rate_count, 1)
+            self.assertEqual(daily_count, 1)
 
     def test_manual_purge_supports_all_or_age(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
