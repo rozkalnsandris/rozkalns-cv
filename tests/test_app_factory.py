@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 BOT = ROOT / "bot"
 sys.path.insert(0, str(BOT))
 
-from app import close_app_services, create_app  # noqa: E402
+import app as app_module  # noqa: E402
 from config import Settings  # noqa: E402
 from contact import ContactConfig  # noqa: E402
 
@@ -55,20 +55,20 @@ class AppFactoryTests(unittest.TestCase):
 
     def test_factory_creates_isolated_service_graphs(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
-            first = create_app(
+            first = app_module.create_app(
                 make_settings(str(Path(directory) / "first.sqlite3")),
                 contact_config=EMPTY_CONTACT,
                 system_prompt="test prompt",
                 start_maintenance=False,
             )
-            second = create_app(
+            second = app_module.create_app(
                 make_settings(str(Path(directory) / "second.sqlite3")),
                 contact_config=EMPTY_CONTACT,
                 system_prompt="test prompt",
                 start_maintenance=False,
             )
-            self.addCleanup(close_app_services, first)
-            self.addCleanup(close_app_services, second)
+            self.addCleanup(app_module.close_app_services, first)
+            self.addCleanup(app_module.close_app_services, second)
 
             self.assertIsNot(first, second)
             first_services = first.extensions["cvbot"]
