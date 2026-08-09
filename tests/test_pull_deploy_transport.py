@@ -62,6 +62,19 @@ class PullDeployTransportContractTests(unittest.TestCase):
         ):
             self.assertNotIn(forbidden, self.pull)
 
+    def test_pull_entrypoint_requires_exact_argument_shape(self) -> None:
+        for marker in (
+            '[[ "$#" -eq 2 ]]',
+            "pull-deploy helper requires exactly target SHA and evidence directory",
+            '[[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]',
+            '[[ -n "$EVIDENCE_DIR" ]]',
+        ):
+            self.assertIn(marker, self.pull)
+
+        argument_gate = self.pull.index('[[ "$#" -eq 2 ]]')
+        source_library = self.pull.index('source "$DEPLOY_LIBRARY"')
+        self.assertLess(argument_gate, source_library)
+
     def test_pull_evidence_is_caller_owned_and_path_bounded(self) -> None:
         for marker in (
             "PULL_EVIDENCE_ROOT='/home/andris/.local/state/"
@@ -74,11 +87,24 @@ class PullDeployTransportContractTests(unittest.TestCase):
         ):
             self.assertIn(marker, self.pull)
 
+    def test_pull_entrypoint_requires_exact_current_main(self) -> None:
+        for marker in (
+            'owner_git -C "$PRIMARY" fetch --prune origin main',
+            'REMOTE_MAIN="$(owner_git -C "$PRIMARY" rev-parse refs/remotes/origin/main)"',
+            '[[ "$TARGET_SHA" == "$REMOTE_MAIN" ]]',
+            "target SHA is not current origin/main",
+        ):
+            self.assertIn(marker, self.pull)
+
+        self.assertNotIn(
+            'merge-base --is-ancestor "$TARGET_SHA" "$REMOTE_MAIN"',
+            self.pull,
+        )
+
     def test_pull_entrypoint_preserves_transaction_and_rollback_gates(self) -> None:
         for marker in (
             'flock 9',
             'prune_backups || fail \'backup retention preflight failed\'',
-            'merge-base --is-ancestor "$TARGET_SHA" "$REMOTE_MAIN"',
             'runuser -u "$OWNER" -- bash -c',
             'managed_rsync "$CANDIDATE" "$RUNTIME"',
             'if ! deploy_runtime >>"$EVIDENCE_DIR/deploy.log" 2>&1; then',
