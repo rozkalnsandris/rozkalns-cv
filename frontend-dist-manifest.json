@@ -28,7 +28,7 @@
     ]
   },
   "features/chat.mjs": {
-    "file": "assets/chat.215646ab0dd8.mjs",
+    "file": "assets/chat.27b178e1f1ac.mjs",
     "name": "chat",
     "src": "features/chat.mjs",
     "isDynamicEntry": true
@@ -40,7 +40,7 @@
     "isDynamicEntry": true
   },
   "index.html": {
-    "file": "assets/app.646a3d8fb095.mjs",
+    "file": "assets/app.f028ac1b3210.mjs",
     "name": "app",
     "src": "index.html",
     "isEntry": true,

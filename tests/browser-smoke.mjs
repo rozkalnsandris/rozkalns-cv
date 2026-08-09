@@ -131,7 +131,37 @@ function createFixtureServer(state) {
         return;
       }
 
+      if (url.pathname === "/api/chat-config" && request.method === "GET") {
+        response.writeHead(200, {
+          "Content-Type": "application/json; charset=utf-8",
+          "Cache-Control": "no-store"
+        });
+        response.end(JSON.stringify({ configured: true, sitekey: "fixture-chat-site-key" }));
+        return;
+      }
+
+      if (url.pathname === "/api/chat-admission" && request.method === "POST") {
+        const body = JSON.parse(await readRequestBody(request));
+        state.chatAdmissionRequests.push(body);
+        response.writeHead(200, {
+          "Content-Type": "application/json; charset=utf-8",
+          "Cache-Control": "no-store"
+        });
+        response.end(JSON.stringify({ session: "fixture-chat-session" }));
+        return;
+      }
+
       if (url.pathname === "/api/chat" && request.method === "POST") {
+        const admission = request.headers["x-chat-admission"];
+        state.chatAdmissionHeaders.push(admission);
+        if (admission !== "fixture-chat-session") {
+          response.writeHead(401, {
+            "Content-Type": "application/json; charset=utf-8",
+            "Cache-Control": "no-store"
+          });
+          response.end(JSON.stringify({ reply: "Missing chat admission" }));
+          return;
+        }
         const body = JSON.parse(await readRequestBody(request));
         state.chatRequests.push(body);
         if (body.message === "Trigger failure") {
@@ -475,6 +505,19 @@ async function runBrowserSmoke(baseUrl, state) {
       launcher.click();
     })()`);
     await cdp.waitFor(`document.activeElement?.id === "chatInput"`, 5_000, "chat input focus");
+    await cdp.evaluate(`(() => {
+      window.turnstile = {
+        render(mount, options) {
+          const frame = document.createElement('iframe');
+          frame.title = 'Synthetic Chat Turnstile';
+          frame.tabIndex = 0;
+          mount.append(frame);
+          setTimeout(() => options.callback('synthetic-chat-turnstile-token'), 0);
+          return 'fixture-chat-widget';
+        },
+        reset() {}
+      };
+    })()`);
 
     async function submit(message, expectedStatus) {
       await cdp.evaluate(`(() => {
@@ -500,6 +543,8 @@ async function runBrowserSmoke(baseUrl, state) {
     assert.equal(announcementContract.logLive, "polite");
     assert.equal(announcementContract.statusRole, "status");
     assert.equal(announcementContract.statusLive, "polite");
+    assert.deepEqual(state.chatAdmissionRequests, [{ token: "synthetic-chat-turnstile-token" }]);
+    assert.deepEqual(state.chatAdmissionHeaders, ["fixture-chat-session"]);
     assert.deepEqual(state.chatRequests[0], {
       message: "First question",
       history: []
@@ -517,6 +562,13 @@ async function runBrowserSmoke(baseUrl, state) {
     await submit("Trigger failure", "Synthetic chat failure");
     await submit("After failure", "Atbilde pabeigta.");
     assert.equal(state.chatRequests.length, 4);
+    assert.deepEqual(state.chatAdmissionRequests, [{ token: "synthetic-chat-turnstile-token" }]);
+    assert.deepEqual(state.chatAdmissionHeaders, [
+      "fixture-chat-session",
+      "fixture-chat-session",
+      "fixture-chat-session",
+      "fixture-chat-session"
+    ]);
     assert.deepEqual(state.chatRequests[3], {
       message: "After failure",
       history: [
@@ -654,7 +706,13 @@ async function runBrowserSmoke(baseUrl, state) {
   }
 }
 
-const state = { statsMode: "live", chatRequests: [], contactRequests: [] };
+const state = {
+  statsMode: "live",
+  chatRequests: [],
+  chatAdmissionRequests: [],
+  chatAdmissionHeaders: [],
+  contactRequests: []
+};
 const server = createFixtureServer(state);
 try {
   const address = await listen(server);
