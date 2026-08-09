@@ -1,0 +1,139 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+IFS=$'\n\t'
+umask 077
+PATH='/home/andris/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+export PATH
+
+fail() {
+    printf 'ERROR: %s\n' "$*" >&2
+    exit 1
+}
+
+[[ ${EUID:-$(id -u)} -ne 0 ]] || fail 'pull-deploy preflight must run as an unprivileged user'
+[[ "$(id -un)" == 'andris' ]] || fail 'pull-deploy preflight must run as andris'
+
+REPO='rozkalnsandris/rozkalns-cv'
+PRIMARY='/home/andris/rozkalns-cv'
+SOURCE='/home/andris/rozkalns-cv-worktrees/release-control'
+STATE_FILE='/var/lib/rozkalns-cv-deploy/current-sha'
+LOCK_ROOT='/home/andris/.local/state/rozkalns-cv-pull-deploy'
+LOCK_FILE="$LOCK_ROOT/preflight.lock"
+HELPER='/usr/local/sbin/rozkalns-cv-deploy-main'
+HELPER_SOURCE='runner/release/rozkalns-cv-deploy-main'
+
+for command_name in flock gh git id install python3 stat; do
+    command -v "$command_name" >/dev/null 2>&1 \
+        || fail "required command is missing: $command_name"
+done
+
+[[ -d "$PRIMARY" && ! -L "$PRIMARY" ]] || fail 'primary CV checkout is missing or unsafe'
+[[ -d "$SOURCE" && ! -L "$SOURCE" ]] || fail 'release-control worktree is missing or unsafe'
+[[ -f "$STATE_FILE" && ! -L "$STATE_FILE" ]] || fail 'production state file is missing or unsafe'
+[[ -x "$HELPER" && ! -L "$HELPER" ]] || fail 'installed deploy helper is missing or unsafe'
+[[ "$(stat -c '%U:%G:%a' "$HELPER")" == 'root:root:755' ]] \
+    || fail 'installed deploy helper ownership/mode is unexpected'
+
+gh auth status --hostname github.com >/dev/null 2>&1 \
+    || fail 'GitHub authentication is unavailable'
+
+install -d -m 0700 "$LOCK_ROOT"
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+    printf 'PULL_DEPLOY_PREFLIGHT_RESULT=NO_OP_BUSY\n'
+    exit 0
+fi
+
+git -C "$SOURCE" fetch --prune origin main
+[[ -z "$(git -C "$SOURCE" branch --show-current)" ]] \
+    || fail 'release-control worktree must remain detached'
+[[ -z "$(git -C "$SOURCE" status --porcelain=v1 --untracked-files=all)" ]] \
+    || fail 'release-control worktree is not clean'
+[[ "$(git -C "$PRIMARY" branch --show-current)" == 'main' ]] \
+    || fail 'production checkout must remain on main'
+
+TARGET_SHA="$(git -C "$SOURCE" rev-parse refs/remotes/origin/main)"
+PRODUCTION_SHA="$(tr -d '[:space:]' < "$STATE_FILE")"
+[[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]] || fail 'origin/main SHA is invalid'
+[[ "$PRODUCTION_SHA" =~ ^[0-9a-f]{40}$ ]] || fail 'production state SHA is invalid'
+
+git -C "$SOURCE" cat-file -e "${TARGET_SHA}^{commit}" \
+    || fail 'target SHA is not locally available'
+git -C "$SOURCE" cat-file -e "${PRODUCTION_SHA}^{commit}" \
+    || fail 'production SHA is not locally available'
+
+if [[ "$TARGET_SHA" == "$PRODUCTION_SHA" ]]; then
+    printf 'PULL_DEPLOY_PREFLIGHT_RESULT=NO_OP_ALREADY_CURRENT\n'
+    printf 'TARGET_SHA=%s\n' "$TARGET_SHA"
+    printf 'PRODUCTION_SHA=%s\n' "$PRODUCTION_SHA"
+    exit 0
+fi
+
+git -C "$SOURCE" merge-base --is-ancestor "$PRODUCTION_SHA" "$TARGET_SHA" \
+    || fail 'production SHA is not an ancestor of current origin/main'
+
+RUNS_JSON="$(gh api \
+    -H 'Accept: application/vnd.github+json' \
+    "repos/$REPO/actions/workflows/ci.yml/runs?branch=main&head_sha=$TARGET_SHA&status=completed&per_page=100")"
+CI_RUN_ID="$(python3 -c '
+import json, sys
+sha = sys.argv[1]
+data = json.load(sys.stdin)
+runs = [
+    row for row in data.get("workflow_runs", [])
+    if row.get("event") == "push"
+    and row.get("head_branch") == "main"
+    and row.get("head_sha") == sha
+    and row.get("status") == "completed"
+    and row.get("conclusion") == "success"
+]
+print(max((int(row["id"]) for row in runs), default=""))
+' "$TARGET_SHA" <<<"$RUNS_JSON")"
+
+if [[ -z "$CI_RUN_ID" ]]; then
+    printf 'PULL_DEPLOY_PREFLIGHT_RESULT=WAIT_CI\n'
+    printf 'TARGET_SHA=%s\n' "$TARGET_SHA"
+    printf 'PRODUCTION_SHA=%s\n' "$PRODUCTION_SHA"
+    exit 0
+fi
+
+JOBS_JSON="$(gh api \
+    -H 'Accept: application/vnd.github+json' \
+    "repos/$REPO/actions/runs/$CI_RUN_ID/jobs?filter=latest&per_page=100")"
+python3 -c '
+import json, sys
+jobs = json.load(sys.stdin).get("jobs", [])
+validate = [row for row in jobs if row.get("name") == "validate"]
+if len(validate) != 1:
+    raise SystemExit(f"expected exactly one validate job, observed={len(validate)}")
+job = validate[0]
+if job.get("status") != "completed" or job.get("conclusion") != "success":
+    raise SystemExit("validate job is not completed/success")
+' <<<"$JOBS_JSON" || fail 'exact-SHA CI validate job is not trustworthy'
+
+EXPECTED_HELPER_BLOB="$(gh api \
+    -H 'Accept: application/vnd.github+json' \
+    "repos/$REPO/contents/$HELPER_SOURCE?ref=$TARGET_SHA" \
+    --jq '.sha')"
+[[ "$EXPECTED_HELPER_BLOB" =~ ^[0-9a-f]{40}$ ]] \
+    || fail 'target deploy-helper blob SHA is invalid'
+ACTUAL_HELPER_BLOB="$(git hash-object "$HELPER")"
+[[ "$ACTUAL_HELPER_BLOB" =~ ^[0-9a-f]{40}$ ]] \
+    || fail 'installed deploy-helper blob SHA is invalid'
+
+if [[ "$ACTUAL_HELPER_BLOB" != "$EXPECTED_HELPER_BLOB" ]]; then
+    printf 'PULL_DEPLOY_PREFLIGHT_RESULT=WAIT_HELPER_ACTIVATION\n'
+    printf 'TARGET_SHA=%s\n' "$TARGET_SHA"
+    printf 'PRODUCTION_SHA=%s\n' "$PRODUCTION_SHA"
+    printf 'CI_RUN_ID=%s\n' "$CI_RUN_ID"
+    exit 0
+fi
+
+# Deliberately no sudo/deploy call here. This first migration stage proves the
+# trusted pull path while the legacy self-hosted runner remains available.
+printf 'PULL_DEPLOY_PREFLIGHT_RESULT=READY\n'
+printf 'TARGET_SHA=%s\n' "$TARGET_SHA"
+printf 'PRODUCTION_SHA=%s\n' "$PRODUCTION_SHA"
+printf 'CI_RUN_ID=%s\n' "$CI_RUN_ID"
+printf 'HELPER_BLOB_SHA=%s\n' "$ACTUAL_HELPER_BLOB"
+printf 'PRODUCTION_MUTATION_AUTHORIZED=false\n'
