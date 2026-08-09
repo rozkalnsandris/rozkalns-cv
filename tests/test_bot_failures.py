@@ -96,7 +96,7 @@ class BotFailureBehaviorTests(unittest.TestCase):
             response = self.post({"message": "Will this fail?", "history": []})
         self.assertEqual(response.status_code, 200)
         body = response.get_data(as_text=True)
-        self.assertIn("something went wrong", body)
+        self.assertIn("provider is temporarily unavailable", body.lower())
         self.assertNotIn("synthetic upstream", body)
         self.assertEqual(self.table_count("rate_events"), 1)
         self.assertEqual(self.table_count("chats"), 0)
