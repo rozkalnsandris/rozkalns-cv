@@ -42,7 +42,33 @@ class PullDeployPreflightContractTests(unittest.TestCase):
         self.assertIn('row.get("conclusion") == "success"', self.text)
         self.assertIn('row.get("name") == "validate"', self.text)
 
-    def test_preserves_installed_helper_identity_gate(self) -> None:
+    def test_uses_root_owned_deploy_impact_classifier(self) -> None:
+        self.assertIn(
+            "/usr/local/libexec/rozkalns-cv/classify-deploy-impact",
+            self.text,
+        )
+        self.assertIn('--base "$PRODUCTION_SHA"', self.text)
+        self.assertIn('--target "$TARGET_SHA"', self.text)
+        self.assertIn('DEPLOY_IMPACT="${impact[0]}"', self.text)
+        self.assertIn('CONTROL_PLANE_CHANGED="${impact[1]}"', self.text)
+        self.assertIn("DB_HOST_APPLY_REQUIRED", self.text)
+        self.assertIn("MANUAL_ROLLOUT_REQUIRED", self.text)
+        self.assertIn("AUTO_DEPLOY_SAFE", self.text)
+        self.assertIn("NO_DEPLOY", self.text)
+
+    def test_sensitive_and_no_deploy_outcomes_precede_helper_identity_gate(self) -> None:
+        sensitive_case = self.text.index(
+            "DB_HOST_APPLY_REQUIRED|MANUAL_ROLLOUT_REQUIRED|NO_DEPLOY"
+        )
+        helper_gate = self.text.index("EXPECTED_HELPER_BLOB=")
+        self.assertLess(sensitive_case, helper_gate)
+        self.assertIn('PULL_DEPLOY_PREFLIGHT_RESULT=%s', self.text)
+        self.assertIn("PRODUCTION_MUTATION_AUTHORIZED=false", self.text)
+
+    def test_preserves_installed_helper_identity_gate_for_auto_safe_targets(self) -> None:
+        auto_case = self.text.index("AUTO_DEPLOY_SAFE)")
+        helper_gate = self.text.index("EXPECTED_HELPER_BLOB=")
+        self.assertLess(auto_case, helper_gate)
         self.assertIn("runner/release/rozkalns-cv-deploy-main", self.text)
         self.assertIn("git hash-object \"$HELPER\"", self.text)
         self.assertIn("WAIT_HELPER_ACTIVATION", self.text)
