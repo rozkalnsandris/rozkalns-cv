@@ -56,31 +56,67 @@ class PullDeployPreflightContractTests(unittest.TestCase):
         self.assertIn("AUTO_DEPLOY_SAFE", self.text)
         self.assertIn("NO_DEPLOY", self.text)
 
-    def test_sensitive_and_no_deploy_outcomes_precede_helper_identity_gate(self) -> None:
+    def test_sensitive_and_no_deploy_outcomes_precede_pull_identity_gate(self) -> None:
         sensitive_case = self.text.index(
             "DB_HOST_APPLY_REQUIRED|MANUAL_ROLLOUT_REQUIRED|NO_DEPLOY"
         )
-        helper_gate = self.text.index("EXPECTED_HELPER_BLOB=")
-        self.assertLess(sensitive_case, helper_gate)
-        self.assertIn('PULL_DEPLOY_PREFLIGHT_RESULT=%s', self.text)
+        pull_gate = self.text.index("EXPECTED_PULL_LIBRARY_BLOB=")
+        self.assertLess(sensitive_case, pull_gate)
+        self.assertIn("PULL_DEPLOY_PREFLIGHT_RESULT=%s", self.text)
         self.assertIn("PRODUCTION_MUTATION_AUTHORIZED=false", self.text)
 
-    def test_preserves_installed_helper_identity_gate_for_auto_safe_targets(self) -> None:
+    def test_auto_safe_targets_require_exact_pull_artifact_identity(self) -> None:
         auto_case = self.text.index("AUTO_DEPLOY_SAFE)")
-        helper_gate = self.text.index("EXPECTED_HELPER_BLOB=")
-        self.assertLess(auto_case, helper_gate)
-        self.assertIn("runner/release/rozkalns-cv-deploy-main", self.text)
-        self.assertIn("git hash-object \"$HELPER\"", self.text)
-        self.assertIn("WAIT_HELPER_ACTIVATION", self.text)
-        self.assertIn("root:root:755", self.text)
+        pull_gate = self.text.index("EXPECTED_PULL_LIBRARY_BLOB=")
+        self.assertLess(auto_case, pull_gate)
+        for marker in (
+            "PULL_LIBRARY='/usr/local/libexec/rozkalns-cv/"
+            "rozkalns-cv-deploy-library'",
+            "PULL_LIBRARY_SOURCE='runner/release/rozkalns-cv-deploy-main'",
+            "PULL_WRAPPER='/usr/local/sbin/rozkalns-cv-pull-deploy-main'",
+            "PULL_WRAPPER_SOURCE='runner/release/rozkalns-cv-pull-deploy-main'",
+            'git hash-object "$PULL_LIBRARY"',
+            'git hash-object "$PULL_WRAPPER"',
+            "WAIT_PULL_TRANSPORT_ACTIVATION",
+        ):
+            self.assertIn(marker, self.text)
+        self.assertNotIn("WAIT_HELPER_ACTIVATION", self.text)
+        self.assertNotIn(
+            "HELPER='/usr/local/sbin/rozkalns-cv-deploy-main'",
+            self.text,
+        )
+
+    def test_missing_or_unsafe_pull_transport_is_a_wait_state(self) -> None:
+        transport_check = self.text.index('[[ ! -x "$PULL_LIBRARY"')
+        wait_state = self.text.index(
+            "PULL_DEPLOY_PREFLIGHT_RESULT=WAIT_PULL_TRANSPORT_ACTIVATION",
+            transport_check,
+        )
+        self.assertLess(transport_check, wait_state)
+        self.assertIn('-L "$PULL_LIBRARY"', self.text)
+        self.assertIn('-L "$PULL_WRAPPER"', self.text)
+        self.assertIn(
+            '"$(stat -c \'%U:%G:%a\' "$PULL_LIBRARY")" != \'root:root:755\'',
+            self.text,
+        )
+        self.assertIn(
+            '"$(stat -c \'%U:%G:%a\' "$PULL_WRAPPER")" != \'root:root:755\'',
+            self.text,
+        )
 
     def test_first_stage_cannot_mutate_production(self) -> None:
         self.assertNotIn("docker ", self.text)
         self.assertNotIn("systemctl ", self.text)
-        self.assertNotIn('sudo -n "$HELPER"', self.text)
-        self.assertNotIn("rozkalns-cv-deploy-main \"$TARGET_SHA\"", self.text)
+        self.assertNotIn('sudo -n "$PULL_WRAPPER"', self.text)
+        self.assertNotIn('"$PULL_WRAPPER" "$TARGET_SHA"', self.text)
         self.assertIn("PRODUCTION_MUTATION_AUTHORIZED=false", self.text)
         self.assertIn("PULL_DEPLOY_PREFLIGHT_RESULT=READY", self.text)
+
+    def test_ready_reports_both_exact_pull_artifact_blobs(self) -> None:
+        self.assertIn("PULL_LIBRARY_BLOB_SHA=%s", self.text)
+        self.assertIn("PULL_WRAPPER_BLOB_SHA=%s", self.text)
+        self.assertIn('"$ACTUAL_PULL_LIBRARY_BLOB"', self.text)
+        self.assertIn('"$ACTUAL_PULL_WRAPPER_BLOB"', self.text)
 
     def test_serializes_preflight_and_fails_closed(self) -> None:
         self.assertIn("flock -n 9", self.text)

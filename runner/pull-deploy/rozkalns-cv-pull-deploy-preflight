@@ -19,8 +19,10 @@ SOURCE='/home/andris/rozkalns-cv-worktrees/release-control'
 STATE_FILE='/var/lib/rozkalns-cv-deploy/current-sha'
 LOCK_ROOT='/home/andris/.local/state/rozkalns-cv-pull-deploy'
 LOCK_FILE="$LOCK_ROOT/preflight.lock"
-HELPER='/usr/local/sbin/rozkalns-cv-deploy-main'
-HELPER_SOURCE='runner/release/rozkalns-cv-deploy-main'
+PULL_LIBRARY='/usr/local/libexec/rozkalns-cv/rozkalns-cv-deploy-library'
+PULL_LIBRARY_SOURCE='runner/release/rozkalns-cv-deploy-main'
+PULL_WRAPPER='/usr/local/sbin/rozkalns-cv-pull-deploy-main'
+PULL_WRAPPER_SOURCE='runner/release/rozkalns-cv-pull-deploy-main'
 CLASSIFIER='/usr/local/libexec/rozkalns-cv/classify-deploy-impact'
 TOKEN_BROKER='/usr/local/sbin/rozkalns-github-app-read-token'
 
@@ -32,9 +34,6 @@ done
 [[ -d "$PRIMARY" && ! -L "$PRIMARY" ]] || fail 'primary CV checkout is missing or unsafe'
 [[ -d "$SOURCE" && ! -L "$SOURCE" ]] || fail 'release-control worktree is missing or unsafe'
 [[ -f "$STATE_FILE" && ! -L "$STATE_FILE" ]] || fail 'production state file is missing or unsafe'
-[[ -x "$HELPER" && ! -L "$HELPER" ]] || fail 'installed deploy helper is missing or unsafe'
-[[ "$(stat -c '%U:%G:%a' "$HELPER")" == 'root:root:755' ]] \
-    || fail 'installed deploy helper ownership/mode is unexpected'
 [[ -x "$CLASSIFIER" && ! -L "$CLASSIFIER" ]] \
     || fail 'deploy-impact classifier is missing or unsafe'
 [[ "$(stat -c '%U:%G:%a' "$CLASSIFIER")" == 'root:root:755' ]] \
@@ -178,38 +177,75 @@ case "$DEPLOY_IMPACT" in
         ;;
 esac
 
-# Only an auto-deploy-safe target needs the installed production helper to match
-# the target source before the later controller stage may become deploy-ready.
-# Manual/DB/no-deploy outcomes above remain read-only and never require helper
-# activation, avoiding accidental activation of the still-live legacy runner.
-EXPECTED_HELPER_BLOB="$(gh api \
+# Only an auto-deploy-safe target needs the future pull transport installed.
+# Manual/DB/no-deploy outcomes above remain read-only and never require host
+# activation. Missing or stale pull artifacts are a bounded WAIT state, not an
+# instruction to activate them.
+EXPECTED_PULL_LIBRARY_BLOB="$(gh api \
     -H 'Accept: application/vnd.github+json' \
-    "repos/$REPO/contents/$HELPER_SOURCE?ref=$TARGET_SHA" \
+    "repos/$REPO/contents/$PULL_LIBRARY_SOURCE?ref=$TARGET_SHA" \
     --jq '.sha')"
-[[ "$EXPECTED_HELPER_BLOB" =~ ^[0-9a-f]{40}$ ]] \
-    || fail 'target deploy-helper blob SHA is invalid'
-ACTUAL_HELPER_BLOB="$(git hash-object "$HELPER")"
-[[ "$ACTUAL_HELPER_BLOB" =~ ^[0-9a-f]{40}$ ]] \
-    || fail 'installed deploy-helper blob SHA is invalid'
+EXPECTED_PULL_WRAPPER_BLOB="$(gh api \
+    -H 'Accept: application/vnd.github+json' \
+    "repos/$REPO/contents/$PULL_WRAPPER_SOURCE?ref=$TARGET_SHA" \
+    --jq '.sha')"
+[[ "$EXPECTED_PULL_LIBRARY_BLOB" =~ ^[0-9a-f]{40}$ ]] \
+    || fail 'target pull deploy-library blob SHA is invalid'
+[[ "$EXPECTED_PULL_WRAPPER_BLOB" =~ ^[0-9a-f]{40}$ ]] \
+    || fail 'target pull wrapper blob SHA is invalid'
 
-if [[ "$ACTUAL_HELPER_BLOB" != "$EXPECTED_HELPER_BLOB" ]]; then
-    printf 'PULL_DEPLOY_PREFLIGHT_RESULT=WAIT_HELPER_ACTIVATION\n'
+if [[ ! -x "$PULL_LIBRARY" || -L "$PULL_LIBRARY" \
+   || ! -x "$PULL_WRAPPER" || -L "$PULL_WRAPPER" ]]; then
+    printf 'PULL_DEPLOY_PREFLIGHT_RESULT=WAIT_PULL_TRANSPORT_ACTIVATION\n'
     printf 'TARGET_SHA=%s\n' "$TARGET_SHA"
     printf 'PRODUCTION_SHA=%s\n' "$PRODUCTION_SHA"
     printf 'CI_RUN_ID=%s\n' "$CI_RUN_ID"
     printf 'DEPLOY_IMPACT=%s\n' "$DEPLOY_IMPACT"
     printf 'PRODUCTION_MUTATION_AUTHORIZED=false\n'
+    unset GH_TOKEN
+    exit 0
+fi
+
+if [[ "$(stat -c '%U:%G:%a' "$PULL_LIBRARY")" != 'root:root:755' \
+   || "$(stat -c '%U:%G:%a' "$PULL_WRAPPER")" != 'root:root:755' ]]; then
+    printf 'PULL_DEPLOY_PREFLIGHT_RESULT=WAIT_PULL_TRANSPORT_ACTIVATION\n'
+    printf 'TARGET_SHA=%s\n' "$TARGET_SHA"
+    printf 'PRODUCTION_SHA=%s\n' "$PRODUCTION_SHA"
+    printf 'CI_RUN_ID=%s\n' "$CI_RUN_ID"
+    printf 'DEPLOY_IMPACT=%s\n' "$DEPLOY_IMPACT"
+    printf 'PRODUCTION_MUTATION_AUTHORIZED=false\n'
+    unset GH_TOKEN
+    exit 0
+fi
+
+ACTUAL_PULL_LIBRARY_BLOB="$(git hash-object "$PULL_LIBRARY")"
+ACTUAL_PULL_WRAPPER_BLOB="$(git hash-object "$PULL_WRAPPER")"
+[[ "$ACTUAL_PULL_LIBRARY_BLOB" =~ ^[0-9a-f]{40}$ ]] \
+    || fail 'installed pull deploy-library blob SHA is invalid'
+[[ "$ACTUAL_PULL_WRAPPER_BLOB" =~ ^[0-9a-f]{40}$ ]] \
+    || fail 'installed pull wrapper blob SHA is invalid'
+
+if [[ "$ACTUAL_PULL_LIBRARY_BLOB" != "$EXPECTED_PULL_LIBRARY_BLOB" \
+   || "$ACTUAL_PULL_WRAPPER_BLOB" != "$EXPECTED_PULL_WRAPPER_BLOB" ]]; then
+    printf 'PULL_DEPLOY_PREFLIGHT_RESULT=WAIT_PULL_TRANSPORT_ACTIVATION\n'
+    printf 'TARGET_SHA=%s\n' "$TARGET_SHA"
+    printf 'PRODUCTION_SHA=%s\n' "$PRODUCTION_SHA"
+    printf 'CI_RUN_ID=%s\n' "$CI_RUN_ID"
+    printf 'DEPLOY_IMPACT=%s\n' "$DEPLOY_IMPACT"
+    printf 'PRODUCTION_MUTATION_AUTHORIZED=false\n'
+    unset GH_TOKEN
     exit 0
 fi
 
 # Deliberately no production deploy call here. The only sudo capability used by
-# this stage is the exact read-token broker above; legacy deployment remains
-# untouched until a later reviewed canary stage.
+# this stage is the exact read-token broker above. Pull transport activation and
+# any later deployment remain separate explicitly authorized operations.
 printf 'PULL_DEPLOY_PREFLIGHT_RESULT=READY\n'
 printf 'TARGET_SHA=%s\n' "$TARGET_SHA"
 printf 'PRODUCTION_SHA=%s\n' "$PRODUCTION_SHA"
 printf 'CI_RUN_ID=%s\n' "$CI_RUN_ID"
 printf 'DEPLOY_IMPACT=%s\n' "$DEPLOY_IMPACT"
-printf 'HELPER_BLOB_SHA=%s\n' "$ACTUAL_HELPER_BLOB"
+printf 'PULL_LIBRARY_BLOB_SHA=%s\n' "$ACTUAL_PULL_LIBRARY_BLOB"
+printf 'PULL_WRAPPER_BLOB_SHA=%s\n' "$ACTUAL_PULL_WRAPPER_BLOB"
 printf 'PRODUCTION_MUTATION_AUTHORIZED=false\n'
 unset GH_TOKEN
