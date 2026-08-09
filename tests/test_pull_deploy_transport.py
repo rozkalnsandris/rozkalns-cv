@@ -91,6 +91,39 @@ class PullDeployTransportContractTests(unittest.TestCase):
 
         self.assertNotIn("cloudflared", self.pull.lower())
 
+    def test_pull_public_frontend_contracts_are_inside_transaction(self) -> None:
+        for marker in (
+            "verify_public_frontend_contracts()",
+            "/assets/app\\.[0-9a-f]{12}\\.mjs\\?cfg=[0-9a-f]{12}",
+            "^Cache-Control:.*immutable",
+            "^X-Content-Type-Options:[[:space:]]*nosniff",
+            "nonce-[0-9a-f]{32}",
+            "script-src-attr 'none'",
+            "https://static.cloudflareinsights.com/beacon.min.js",
+            "unsafe-inline",
+            "PUBLIC_MODULE_MIME=PASS",
+            "PUBLIC_CACHE_IMMUTABLE=PASS",
+            "PUBLIC_NOSNIFF=PASS",
+            "PUBLIC_CSP_NONCE=PASS",
+            "failed-public-contract-runtime",
+            "public frontend contract verification failed",
+        ):
+            self.assertIn(marker, self.pull)
+
+        deploy = self.pull.index(
+            'if ! deploy_runtime >>"$EVIDENCE_DIR/deploy.log" 2>&1; then'
+        )
+        public_gate = self.pull.index(
+            'if ! verify_public_frontend_contracts >>"$EVIDENCE_DIR/deploy.log" 2>&1; then'
+        )
+        state = self.pull.index(
+            "write_state_atomically || fail 'atomic deployed-state update failed'"
+        )
+        committed = self.pull.index("TRANSACTION_COMMITTED=true")
+        self.assertLess(deploy, public_gate)
+        self.assertLess(public_gate, state)
+        self.assertLess(state, committed)
+
     def test_installer_adds_parallel_transport_without_touching_legacy_rule(self) -> None:
         for marker in (
             "LIBRARY_SOURCE=\"$SOURCE_WORKTREE/runner/release/"
