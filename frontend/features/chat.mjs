@@ -25,10 +25,7 @@ export function normalizeCompletedHistory(history, maxMessages = 12) {
 export function buildChatPayload(message, history) {
   const current = String(message ?? "").trim();
   if (!current) throw new TypeError("message is required");
-  return {
-    message: current,
-    history: normalizeCompletedHistory(history)
-  };
+  return { message: current, history: normalizeCompletedHistory(history) };
 }
 
 function focusableElements(container) {
@@ -101,8 +98,28 @@ function appendMessage(root, log, text, role) {
   return message;
 }
 
+let turnstilePromise = null;
+function loadTurnstile(root, windowLike) {
+  if (windowLike.turnstile) return Promise.resolve(windowLike.turnstile);
+  if (turnstilePromise) return turnstilePromise;
+  turnstilePromise = new Promise((resolve, reject) => {
+    const script = root.createElement("script");
+    script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+    script.async = true;
+    script.defer = true;
+    script.addEventListener("load", () => {
+      if (windowLike.turnstile) resolve(windowLike.turnstile);
+      else reject(new Error("chat verification unavailable"));
+    }, { once: true });
+    script.addEventListener("error", () => reject(new Error("chat verification unavailable")), { once: true });
+    root.head.append(script);
+  });
+  return turnstilePromise;
+}
+
 export function createChatController(languageController, {
   root = globalThis.document,
+  windowLike = globalThis.window,
   fetchImpl = globalThis.fetch
 } = {}) {
   const form = root.querySelector("#chatForm");
@@ -112,6 +129,62 @@ export function createChatController(languageController, {
   const status = root.querySelector("#chatStatus");
   if (!form || !input || !send || !log || !status) return null;
   const completedHistory = [];
+  let admissionSession = "";
+  let admissionPromise = null;
+
+  async function ensureAdmission() {
+    if (admissionSession) return admissionSession;
+    if (admissionPromise) return admissionPromise;
+    admissionPromise = (async () => {
+      const configResponse = await fetchImpl("/api/chat-config", { cache: "no-store" });
+      const config = await configResponse.json();
+      if (!configResponse.ok || !config?.configured || typeof config.sitekey !== "string" || !config.sitekey) {
+        throw new Error("Chat verification is temporarily unavailable. Please email Andris instead.");
+      }
+      const turnstile = await loadTurnstile(root, windowLike);
+      const mount = root.createElement("div");
+      mount.className = "turnstile-mount";
+      status.after(mount);
+      return new Promise((resolve, reject) => {
+        let widgetId = null;
+        const cleanup = () => mount.remove();
+        widgetId = turnstile.render(mount, {
+          sitekey: config.sitekey,
+          theme: "dark",
+          size: "flexible",
+          appearance: "interaction-only",
+          action: "chat_admission",
+          callback: async (token) => {
+            try {
+              const response = await fetchImpl("/api/chat-admission", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                cache: "no-store",
+                body: JSON.stringify({ token })
+              });
+              const payload = await response.json();
+              if (!response.ok || typeof payload?.session !== "string" || !payload.session) {
+                turnstile.reset(widgetId);
+                throw new Error(payload?.reply || "Chat verification failed. Please try again.");
+              }
+              admissionSession = payload.session;
+              cleanup();
+              resolve(admissionSession);
+            } catch (error) {
+              cleanup();
+              reject(error);
+            }
+          },
+          "error-callback": () => {
+            cleanup();
+            reject(new Error("Chat verification failed. Please try again."));
+          },
+          "expired-callback": () => turnstile.reset(widgetId)
+        });
+      });
+    })().finally(() => { admissionPromise = null; });
+    return admissionPromise;
+  }
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -124,12 +197,17 @@ export function createChatController(languageController, {
     status.textContent = languageController.messages?.chat_typing || "Preparing answer…";
 
     try {
+      const session = await ensureAdmission();
       const response = await fetchImpl("/api/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Chat-Admission": session
+        },
         body: JSON.stringify(buildChatPayload(message, completedHistory))
       });
       if (!response.ok) {
+        if (response.status === 401) admissionSession = "";
         let errorMessage = languageController.messages?.chat_error || "Connection issue.";
         try {
           const body = await response.json();
