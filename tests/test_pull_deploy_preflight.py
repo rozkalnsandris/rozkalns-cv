@@ -18,6 +18,20 @@ class PullDeployPreflightContractTests(unittest.TestCase):
         self.assertNotIn("runs-on:", self.text)
         self.assertNotIn("self-hosted", self.text)
 
+    def test_uses_only_scoped_github_app_auth(self) -> None:
+        self.assertIn(
+            "/usr/local/sbin/rozkalns-github-app-read-token",
+            self.text,
+        )
+        self.assertIn("unset GH_TOKEN GITHUB_TOKEN", self.text)
+        self.assertIn(
+            'sudo -n "$TOKEN_BROKER" --repository "$REPO"',
+            self.text,
+        )
+        self.assertEqual(self.text.count("sudo -n"), 1)
+        self.assertNotIn("gh auth status", self.text)
+        self.assertIn("root:root:755", self.text)
+
     def test_requires_exact_main_and_exact_successful_ci(self) -> None:
         self.assertIn("refs/remotes/origin/main", self.text)
         self.assertIn("merge-base --is-ancestor", self.text)
@@ -35,9 +49,9 @@ class PullDeployPreflightContractTests(unittest.TestCase):
         self.assertIn("root:root:755", self.text)
 
     def test_first_stage_cannot_mutate_production(self) -> None:
-        self.assertNotIn("sudo ", self.text)
         self.assertNotIn("docker ", self.text)
         self.assertNotIn("systemctl ", self.text)
+        self.assertNotIn('sudo -n "$HELPER"', self.text)
         self.assertNotIn("rozkalns-cv-deploy-main \"$TARGET_SHA\"", self.text)
         self.assertIn("PRODUCTION_MUTATION_AUTHORIZED=false", self.text)
         self.assertIn("PULL_DEPLOY_PREFLIGHT_RESULT=READY", self.text)
