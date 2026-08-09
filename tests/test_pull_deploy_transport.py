@@ -117,6 +117,50 @@ class PullDeployTransportContractTests(unittest.TestCase):
 
         self.assertNotIn("cloudflared", self.pull.lower())
 
+    def test_target_runtime_prerequisites_are_checked_before_any_mutation(self) -> None:
+        for marker in (
+            "validate_candidate_runtime_prerequisites()",
+            'runtime_requires_cvbot_client_secret "$CANDIDATE"',
+            "TARGET_RUNTIME_PREREQUISITES=PASS",
+            "target-prerequisites.log",
+            "target runtime prerequisites failed before production mutation",
+        ):
+            self.assertIn(marker, self.pull)
+
+        prerequisite = self.pull.index(
+            "if ! validate_candidate_runtime_prerequisites"
+        )
+        backup = self.pull.index(
+            'BACKUP="$BACKUP_ROOT/${STAMP}-${OLD_SHA:-unknown}"'
+        )
+        mutation = self.pull.index("MUTATION_STARTED=true")
+        sync = self.pull.index('managed_rsync "$CANDIDATE" "$RUNTIME"')
+        self.assertLess(prerequisite, backup)
+        self.assertLess(prerequisite, mutation)
+        self.assertLess(prerequisite, sync)
+
+    def test_pull_rollback_secret_contract_is_restored_baseline_aware(self) -> None:
+        for marker in (
+            "runtime_requires_cvbot_client_secret()",
+            "CLIENT_KEY_SECRET_MIN_BYTES = 32",
+            "def validate_client_key_secret",
+            "validate_cvbot_runtime_secret_strict()",
+            "validate_cvbot_runtime_secret()",
+            'runtime_requires_cvbot_client_secret "$RUNTIME"',
+            "CVBOT_CLIENT_KEY_SECRET=NOT_REQUIRED_BY_BASELINE",
+            "cvbot client pseudonymization secret contract failed",
+            "cvbot client pseudonymization secret must be dedicated",
+        ):
+            self.assertIn(marker, self.pull)
+
+        source_library = self.pull.index('source "$DEPLOY_LIBRARY"')
+        override = self.pull.index("validate_cvbot_runtime_secret()")
+        self.assertLess(source_library, override)
+        self.assertNotIn('echo "$CLIENT_KEY_SECRET"', self.pull)
+        self.assertNotIn('echo "$LLM_API_KEY"', self.pull)
+        self.assertNotIn('printf "%s" "$CLIENT_KEY_SECRET"', self.pull)
+        self.assertNotIn('printf "%s" "$LLM_API_KEY"', self.pull)
+
     def test_pull_public_frontend_contracts_are_inside_transaction(self) -> None:
         for marker in (
             "verify_public_frontend_contracts()",
