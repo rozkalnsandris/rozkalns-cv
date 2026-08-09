@@ -10,12 +10,12 @@ ROOT = Path(__file__).resolve().parents[1]
 class HealthContractTests(unittest.TestCase):
     def test_app_exposes_distinct_liveness_and_readiness(self) -> None:
         source = (ROOT / "bot/app.py").read_text(encoding="utf-8")
-        self.assertIn('@app.get("/health")', source)
-        self.assertIn('@app.get("/health/live")', source)
-        self.assertIn('@app.get("/health/ready")', source)
+        self.assertIn('@flask_app.get("/health")', source)
+        self.assertIn('@flask_app.get("/health/live")', source)
+        self.assertIn('@flask_app.get("/health/ready")', source)
         self.assertIn("check_local_readiness(", source)
         readiness_body = source.split("def readiness()", 1)[1].split(
-            '@app.get("/contact-config")', 1
+            '@flask_app.get("/contact-config")', 1
         )[0]
         self.assertNotIn("requests.get(", readiness_body)
         self.assertNotIn("requests.post(", readiness_body)

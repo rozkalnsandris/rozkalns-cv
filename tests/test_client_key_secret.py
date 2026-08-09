@@ -12,7 +12,7 @@ BOT = ROOT / "bot"
 
 
 class ClientKeySecretStartupTests(unittest.TestCase):
-    def _import_app(
+    def _create_app(
         self, *, client_secret: str | None, provider_key: str
     ) -> subprocess.CompletedProcess[str]:
         with tempfile.TemporaryDirectory() as tmp:
@@ -31,7 +31,11 @@ class ClientKeySecretStartupTests(unittest.TestCase):
             else:
                 env["CLIENT_KEY_SECRET"] = client_secret
             return subprocess.run(
-                [sys.executable, "-c", "import app"],
+                [
+                    sys.executable,
+                    "-c",
+                    "from app import create_app; create_app(start_maintenance=False)",
+                ],
                 cwd=BOT,
                 env=env,
                 text=True,
@@ -40,7 +44,7 @@ class ClientKeySecretStartupTests(unittest.TestCase):
             )
 
     def test_missing_secret_fails_startup_without_provider_fallback(self) -> None:
-        result = self._import_app(
+        result = self._create_app(
             client_secret=None, provider_key="provider-secret-marker"
         )
         self.assertNotEqual(result.returncode, 0)
@@ -50,14 +54,14 @@ class ClientKeySecretStartupTests(unittest.TestCase):
 
     def test_provider_key_reuse_fails_startup(self) -> None:
         shared = "B" * 43
-        result = self._import_app(client_secret=shared, provider_key=shared)
+        result = self._create_app(client_secret=shared, provider_key=shared)
         self.assertNotEqual(result.returncode, 0)
         combined = result.stdout + result.stderr
         self.assertIn("dedicated", combined)
         self.assertNotIn(shared, combined)
 
     def test_valid_dedicated_secret_allows_startup(self) -> None:
-        result = self._import_app(
+        result = self._create_app(
             client_secret="A" * 43, provider_key="provider-key"
         )
         self.assertEqual(result.returncode, 0, result.stderr)

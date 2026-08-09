@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Public, sandboxed CV assistant.
+"""Public, sandboxed CV assistant application factory.
 
 The service has no tools or access to other homelab services. Requests are
 validated before quota is reserved, client addresses are pseudonymized, and
@@ -11,8 +11,6 @@ from __future__ import annotations
 import atexit
 import ipaddress
 import json
-import os
-import threading
 import time
 from typing import Any
 import uuid
@@ -20,143 +18,27 @@ import uuid
 import requests
 from flask import Flask, Response, jsonify, request, stream_with_context
 
+from chat_admission import (
+    ChatAdmissionConfig,
+    ChatAdmissionError,
+    issue_session,
+    validate_session,
+    verify_chat_turnstile,
+)
 from chat_policy import ProtectedContactPolicy, ProtectedContactStreamGuard
+from config import SUPPORTED_LLM_MODELS, Settings
 from contact import (
     ContactVerificationError,
     load_contact_config,
     normalize_token,
     verify_turnstile,
 )
+from notifier import TelegramNotifier
+from provider import DeepSeekProvider
 from provider_stream import ProviderStreamError, ProviderStreamParser
 from readiness import check_local_readiness
-from storage import (
-    AssistantStore,
-    RateDecision,
-    validate_client_key_secret,
-)
-
-
-app = Flask(__name__)
-app.config["MAX_CONTENT_LENGTH"] = 32 * 1024
-
-
-# ---------------- CONFIG ----------------
-LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://api.deepseek.com").rstrip("/")
-LLM_API_KEY = os.getenv("LLM_API_KEY", "")
-SUPPORTED_LLM_MODELS = frozenset({"deepseek-v4-flash", "deepseek-v4-pro"})
-LLM_MODEL = os.getenv("LLM_MODEL", "deepseek-v4-flash").strip()
-if LLM_MODEL not in SUPPORTED_LLM_MODELS:
-    raise RuntimeError("LLM_MODEL must be a supported DeepSeek V4 model")
-LLM_THINKING = {"type": "disabled"}
-MAX_INPUT_CHARS = int(os.getenv("MAX_INPUT_CHARS", "500"))
-MAX_RESPONSE_TOKENS = int(os.getenv("MAX_RESPONSE_TOKENS", "350"))
-MAX_HISTORY_TURNS = int(os.getenv("MAX_HISTORY_TURNS", "6"))
-RATE_PER_IP_HOUR = int(os.getenv("RATE_PER_IP_HOUR", "8"))
-DAILY_GLOBAL_CAP = int(os.getenv("DAILY_GLOBAL_CAP", "200"))
-LLM_CONNECT_TIMEOUT = float(os.getenv("LLM_CONNECT_TIMEOUT", "5"))
-LLM_READ_TIMEOUT = float(os.getenv("LLM_READ_TIMEOUT", "70"))
-CHAT_RETENTION_DAYS = int(os.getenv("CHAT_RETENTION_DAYS", "0"))
-DB_PATH = os.getenv("ASSISTANT_DB_PATH", "/app/data/assistant.sqlite3")
-CLIENT_KEY_SECRET = validate_client_key_secret(
-    os.getenv("CLIENT_KEY_SECRET", ""), LLM_API_KEY
-)
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "")
-TELEGRAM_CHAT_ID = os.getenv("CHAT_ID", "")
-TELEGRAM_INCLUDE_CONTENT = os.getenv(
-    "TELEGRAM_INCLUDE_CONTENT", "false"
-).lower() in {"1", "true", "yes"}
-TRUSTED_PROXY_CIDRS = tuple(
-    ipaddress.ip_network(value.strip(), strict=False)
-    for value in os.getenv("TRUSTED_PROXY_CIDRS", "172.19.0.10/32").split(",")
-    if value.strip()
-)
-CONTACT_CONFIG = load_contact_config()
-CHAT_OUTPUT_POLICY = ProtectedContactPolicy(
-    CONTACT_CONFIG.phone_display,
-    CONTACT_CONFIG.phone_uri,
-)
-
-STORE = AssistantStore(
-    DB_PATH,
-    per_client_hour=RATE_PER_IP_HOUR,
-    daily_global_cap=DAILY_GLOBAL_CAP,
-    chat_retention_days=CHAT_RETENTION_DAYS,
-)
-STORE.start_retention_maintenance()
-atexit.register(STORE.close)
-
-
-# ---------------- GENERATED KNOWLEDGE (do not edit) ----------------
-# BEGIN GENERATED SYSTEM PROMPT
-SYSTEM_PROMPT = """You are the CV assistant for Andris Rožkalns.
-Answer only questions about this public CV, professional skills, projects, experience, education, and availability.
-
-PUBLIC PROFILE
-Name: Andris Rožkalns
-Role: Junior DevOps & Linux Engineer
-Location: Dortmund, Germany
-Availability: 2027-01
-Career goal: Junior DevOps or Linux Systems Administrator, progressing toward MLOps
-
-PUBLIC CONTACT
-Email: andris@rozkalns.net
-Phone and WhatsApp: available only through the verified contact section on the public CV.
-GitHub: https://github.com/rozkalnsandris
-Website: https://rozkalns.net/
-
-LANGUAGES
-- Latvian: native
-- English: fluent working language
-- German: B1
-
-WORK EXPERIENCE
-- Warehouse Employee — Sonepar Deutschland GmbH, Region West · Dortmund, Germany (2023-07 – 2026-12 planned)
-  - Processed high-volume electrical wholesale orders using scanner systems
-  - Prepared cable, operated forklifts, and worked rotating logistics shifts
-  - Built process discipline and reliability transferable to IT operations
-- Painting Area Manager / Main Paint Sprayer — SIA Koksne · Latvia (2020-05 – 2023-06)
-  - Managed daily production, warehouse workflow, and staff tasks
-  - Performed precision airless coating of wooden windows and doors
-- Warehouse / Shop Manager — SIA Apavu Bode · Latvia (2011-08 – 2020-04)
-  - Managed receiving, stock organisation, staff coordination, and daily operations
-- Early IT — self-taught — Secondary school · Riga, Latvia (2008 – 2011)
-  - Administered Linux Counter-Strike 1.6 servers through SSH and FTP
-  - Maintained IPB forum templates and plugins and built HTML websites
-
-EDUCATION
-- The Linux Command Line — ongoing self-study; Applied daily in the homelab
-- Multimedia Communication — Rīga Stradiņš University; 2011 – 2013; partial studies, not completed
-- Secondary Education — Riga 45th Secondary School; 2004 – 2011
-
-TECHNICAL SKILLS
-- Core: Linux administration, Docker, Docker Compose, Bash, Nginx, DNS, SSL/TLS, Prometheus, Grafana, systemd, Git
-- Working knowledge: Python, REST APIs, Home Assistant, ESP32/IoT, YAML
-- Learning: Ansible, Terraform, AWS Cloud
-- Foundations: SSH/FTP, PHP/IPB forums, HTML
-
-PROJECTS
-- Production Linux server stack: Raspberry Pi 5 with NVMe storage; Docker Compose services running 24/7; Nginx, AdGuard Home, TLS, and Cloudflare Tunnel
-- Hermes self-hosted AI agent: Primary and fallback LLM routing; ChromaDB vector search and persistent memory; Telegram and Home Assistant integration
-- Monitoring and observability: Prometheus; Grafana; Node Exporter; live CV metrics
-- Home automation: Matter devices; Home Assistant dashboards; energy-cost tracking
-- Automated maintenance: controlled APT and container updates; Telegram evidence; availability checks
-- Balcony irrigation: ESP32; 15 moisture sensors; relay pump; multiplexer; safety limits
-
-INFRASTRUCTURE
-- Host: Raspberry Pi 5
-- Storage: NVMe SSD
-- Runtime: Docker Compose
-- Availability: 24/7
-- Public Site: https://rozkalns.net/
-
-RULES
-- Do not answer unrelated questions.
-- The dedicated recruiting email is public and may be provided directly.
-- Do not reveal, infer, or guess the protected phone number; direct phone or WhatsApp requests to the verified contact section on the public CV.
-- For salary expectations, say Andris is open to discussion based on the role and company.
-- For the start date, say Andris is available from 2027-01.
-- Keep answers concise, factual, and professional."""
-# END GENERATED SYSTEM PROMPT
+from storage import AssistantStore, RateDecision
+from system_prompt import load_system_prompt
 
 
 class RequestValidationError(ValueError):
@@ -172,25 +54,46 @@ def _valid_address(value: str | None) -> ipaddress._BaseAddress | None:
         return None
 
 
-def _resolve_client_address() -> str:
-    """Accept nginx's normalized address only from the fixed nginx container."""
+def _resolve_client_address(
+    trusted_proxy_cidrs: tuple[ipaddress._BaseNetwork, ...] | None = None,
+) -> str:
+    """Accept nginx's normalized address only from explicitly trusted peers."""
 
+    networks = (
+        _legacy_settings().trusted_proxy_cidrs
+        if trusted_proxy_cidrs is None
+        else trusted_proxy_cidrs
+    )
     peer = _valid_address(request.remote_addr)
     if peer is None:
         return "unknown"
-    if any(peer in network for network in TRUSTED_PROXY_CIDRS):
+    if any(peer in network for network in networks):
         forwarded = _valid_address(request.headers.get("X-Real-IP"))
         if forwarded is not None:
             return forwarded.compressed
     return peer.compressed
 
 
-def _normalize_history(raw_history: Any, current_message: str) -> list[dict[str, str]]:
+def _normalize_history(
+    raw_history: Any,
+    current_message: str,
+    *,
+    max_history_turns: int | None = None,
+    max_input_chars: int | None = None,
+) -> list[dict[str, str]]:
+    settings = None
+    if max_history_turns is None or max_input_chars is None:
+        settings = _legacy_settings()
+    history_limit = (
+        settings.max_history_turns if max_history_turns is None else max_history_turns
+    )
+    input_limit = settings.max_input_chars if max_input_chars is None else max_input_chars
+
     if raw_history is None:
         return []
     if not isinstance(raw_history, list):
         raise RequestValidationError("History must be a list.")
-    if len(raw_history) > (MAX_HISTORY_TURNS * 2) + 1:
+    if len(raw_history) > (history_limit * 2) + 1:
         raise RequestValidationError("Conversation history is too long.")
 
     normalized: list[dict[str, str]] = []
@@ -202,7 +105,7 @@ def _normalize_history(raw_history: Any, current_message: str) -> list[dict[str,
         if role not in {"user", "assistant"} or not isinstance(content, str):
             raise RequestValidationError("History contains an invalid turn.")
         content = content.strip()
-        if not content or len(content) > MAX_INPUT_CHARS:
+        if not content or len(content) > input_limit:
             raise RequestValidationError("History contains invalid content.")
         normalized.append({"role": role, "content": content})
 
@@ -212,10 +115,8 @@ def _normalize_history(raw_history: Any, current_message: str) -> list[dict[str,
         and normalized[-1]["content"] == current_message
     ):
         normalized.pop()
-
     if normalized and normalized[-1]["role"] == "user":
         normalized.pop()
-
     if len(normalized) % 2:
         raise RequestValidationError("History must contain completed turns.")
     for index in range(0, len(normalized), 2):
@@ -224,10 +125,11 @@ def _normalize_history(raw_history: Any, current_message: str) -> list[dict[str,
             or normalized[index + 1]["role"] != "assistant"
         ):
             raise RequestValidationError("History must alternate roles.")
-    return normalized[-(MAX_HISTORY_TURNS * 2) :]
+    return normalized[-(history_limit * 2) :]
 
 
-def _parse_payload(data: Any) -> tuple[str, list[dict[str, str]]]:
+def _parse_payload(data: Any, settings: Settings | None = None) -> tuple[str, list[dict[str, str]]]:
+    active = _legacy_settings() if settings is None else settings
     if not isinstance(data, dict):
         raise RequestValidationError("Request body must be a JSON object.")
     message = data.get("message")
@@ -238,49 +140,41 @@ def _parse_payload(data: Any) -> tuple[str, list[dict[str, str]]]:
         raise RequestValidationError(
             "Ask me anything about Andris's experience or skills."
         )
-    if len(message) > MAX_INPUT_CHARS:
+    if len(message) > active.max_input_chars:
         raise RequestValidationError(
-            f"Please keep questions under {MAX_INPUT_CHARS} characters."
+            f"Please keep questions under {active.max_input_chars} characters."
         )
-    return message, _normalize_history(data.get("history"), message)
+    return message, _normalize_history(
+        data.get("history"),
+        message,
+        max_history_turns=active.max_history_turns,
+        max_input_chars=active.max_input_chars,
+    )
 
 
 def _build_messages(
-    message: str, history: list[dict[str, str]]
+    message: str,
+    history: list[dict[str, str]],
+    system_prompt: str | None = None,
 ) -> list[dict[str, str]]:
+    prompt = load_system_prompt() if system_prompt is None else system_prompt
     return [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": prompt},
         *history,
         {"role": "user", "content": message},
     ]
 
 
-def _rate_headers(decision: RateDecision) -> dict[str, str]:
+def _rate_headers(decision: RateDecision, rate_limit: int | None = None) -> dict[str, str]:
+    limit = _legacy_settings().rate_per_ip_hour if rate_limit is None else rate_limit
     headers = {
-        "X-RateLimit-Limit": str(RATE_PER_IP_HOUR),
+        "X-RateLimit-Limit": str(limit),
         "X-RateLimit-Remaining": str(decision.client_remaining),
         "X-RateLimit-Global-Remaining": str(decision.global_remaining),
     }
     if decision.retry_after:
         headers["Retry-After"] = str(decision.retry_after)
     return headers
-
-
-def _notify_telegram(client_key: str, question: str, answer: str) -> None:
-    if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
-        return
-    try:
-        text = f"CV assistant interaction\nClient: {client_key}"
-        if TELEGRAM_INCLUDE_CONTENT:
-            text += f"\n\nQuestion: {question[:300]}\n\nAnswer: {answer[:600]}"
-        response = requests.post(
-            f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
-            data={"chat_id": TELEGRAM_CHAT_ID, "text": text},
-            timeout=10,
-        )
-        response.raise_for_status()
-    except Exception as error:
-        app.logger.error("telegram notification failed: %s", type(error).__name__)
 
 
 def _provider_notice(status: str) -> str:
@@ -299,6 +193,7 @@ def _provider_notice(status: str) -> str:
 
 def _log_provider_result(
     *,
+    logger,
     request_id: str,
     started_at: float,
     status: str,
@@ -307,7 +202,7 @@ def _log_provider_result(
     decision: RateDecision,
 ) -> None:
     usage = parser.usage
-    app.logger.info(
+    logger.info(
         json.dumps(
             {
                 "event": "cvbot_provider_result",
@@ -327,231 +222,373 @@ def _log_provider_result(
     )
 
 
-@app.get("/health")
-@app.get("/health/live")
-def health() -> Response:
-    response = jsonify(ok=True)
-    response.headers["Cache-Control"] = "no-store"
-    return response
+def create_app(
+    settings: Settings | None = None,
+    *,
+    store: AssistantStore | None = None,
+    provider: DeepSeekProvider | None = None,
+    notifier: TelegramNotifier | None = None,
+    contact_config=None,
+    system_prompt: str | None = None,
+    start_maintenance: bool = True,
+) -> Flask:
+    """Create one isolated cvbot application instance and its service graph."""
 
-
-@app.get("/health/ready")
-def readiness() -> Response:
-    result = check_local_readiness(
-        DB_PATH,
-        llm_api_key=LLM_API_KEY,
-        client_key_secret=CLIENT_KEY_SECRET,
-        llm_model=LLM_MODEL,
-        supported_models=SUPPORTED_LLM_MODELS,
+    active = Settings.from_env() if settings is None else settings
+    contacts = load_contact_config() if contact_config is None else contact_config
+    prompt = load_system_prompt() if system_prompt is None else system_prompt
+    active_store = store or AssistantStore(
+        active.db_path,
+        per_client_hour=active.rate_per_ip_hour,
+        daily_global_cap=active.daily_global_cap,
+        chat_retention_days=active.chat_retention_days,
     )
-    response = jsonify(ready=result.ready)
-    response.headers["Cache-Control"] = "no-store"
-    return response if result.ready else (response, 503)
-
-
-@app.get("/contact-config")
-def contact_config() -> Response:
-    response = jsonify(
-        configured=CONTACT_CONFIG.configured,
-        sitekey=CONTACT_CONFIG.site_key if CONTACT_CONFIG.configured else "",
+    if start_maintenance:
+        active_store.start_retention_maintenance()
+    active_provider = provider or DeepSeekProvider(
+        base_url=active.llm_base_url,
+        api_key=active.llm_api_key,
+        model=active.llm_model,
+        max_response_tokens=active.max_response_tokens,
+        connect_timeout=active.llm_connect_timeout,
+        read_timeout=active.llm_read_timeout,
+        http=requests,
     )
-    response.headers["Cache-Control"] = "no-store"
-    return response
+    active_notifier = notifier or TelegramNotifier(
+        token=active.telegram_token,
+        chat_id=active.telegram_chat_id,
+        include_content=active.telegram_include_content,
+    )
+    output_policy = ProtectedContactPolicy(
+        contacts.phone_display,
+        contacts.phone_uri,
+    )
+    admission_config = ChatAdmissionConfig(
+        site_key=contacts.site_key,
+        secret_key=contacts.secret_key,
+        hostnames=contacts.hostnames,
+    )
 
+    flask_app = Flask(__name__)
+    flask_app.config["MAX_CONTENT_LENGTH"] = 32 * 1024
+    flask_app.extensions["cvbot"] = {
+        "settings": active,
+        "store": active_store,
+        "provider": active_provider,
+        "notifier": active_notifier,
+        "contact_config": contacts,
+        "system_prompt": prompt,
+    }
 
-@app.post("/contact-reveal")
-def contact_reveal() -> Response:
-    if not CONTACT_CONFIG.configured:
-        return jsonify(error="Contact verification is not configured."), 503
+    def client_identity() -> tuple[str, str]:
+        address = _resolve_client_address(active.trusted_proxy_cidrs)
+        return address, active_store.pseudonymize(address, active.client_key_secret)
 
-    payload = request.get_json(silent=True)
-    if not isinstance(payload, dict):
-        return jsonify(error="Request body must be a JSON object."), 400
-    try:
-        token = normalize_token(payload.get("token"))
-    except ContactVerificationError as error:
-        return jsonify(error=str(error)), 400
+    @flask_app.get("/health")
+    @flask_app.get("/health/live")
+    def health() -> Response:
+        response = jsonify(ok=True)
+        response.headers["Cache-Control"] = "no-store"
+        return response
 
-    try:
-        verified = verify_turnstile(
-            token,
-            _resolve_client_address(),
-            CONTACT_CONFIG,
+    @flask_app.get("/health/ready")
+    def readiness() -> Response:
+        result = check_local_readiness(
+            active.db_path,
+            llm_api_key=active.llm_api_key,
+            client_key_secret=active.client_key_secret,
+            llm_model=active.llm_model,
+            supported_models=SUPPORTED_LLM_MODELS,
         )
-    except ContactVerificationError as error:
-        app.logger.error("turnstile verification failed: %s", type(error).__name__)
-        return jsonify(error="Contact verification is temporarily unavailable."), 503
+        response = jsonify(ready=result.ready)
+        response.headers["Cache-Control"] = "no-store"
+        return response if result.ready else (response, 503)
 
-    if not verified:
-        return jsonify(error="Verification failed. Please try again."), 403
+    @flask_app.get("/contact-config")
+    def contact_config_route() -> Response:
+        response = jsonify(
+            configured=contacts.configured,
+            sitekey=contacts.site_key if contacts.configured else "",
+        )
+        response.headers["Cache-Control"] = "no-store"
+        return response
 
-    response = jsonify(
-        email=CONTACT_CONFIG.email,
-        phone=CONTACT_CONFIG.phone_display,
-        phone_uri=CONTACT_CONFIG.phone_uri,
-    )
-    response.headers["Cache-Control"] = "no-store"
-    return response
-
-
-@app.post("/chat")
-def chat() -> Response:
-    if not LLM_API_KEY or not CLIENT_KEY_SECRET:
-        return jsonify(reply="The assistant isn't configured yet."), 503
-
-    try:
-        user_msg, history = _parse_payload(request.get_json(silent=True))
-    except RequestValidationError as error:
-        return jsonify(reply=str(error)), 400
-
-    client_address = _resolve_client_address()
-    client_key = STORE.pseudonymize(client_address, CLIENT_KEY_SECRET)
-    try:
-        decision = STORE.reserve(client_key)
-    except Exception as error:
-        app.logger.error("rate store failure: %s", type(error).__name__)
-        return jsonify(reply="The assistant is temporarily unavailable."), 503
-
-    if not decision.allowed:
-        if decision.reason == "global":
-            reply = (
-                "The assistant has reached today's usage limit. "
-                "Please email Andris instead."
-            )
-        else:
-            reply = (
-                "You've sent several messages — please wait a bit, "
-                "or email Andris directly."
-            )
-        return jsonify(reply=reply), 429, _rate_headers(decision)
-
-    messages = _build_messages(user_msg, history)
-    request_id = uuid.uuid4().hex[:16]
-
-    def generate():
-        full_reply: list[str] = []
-        guard = ProtectedContactStreamGuard(CHAT_OUTPUT_POLICY)
-        parser = ProviderStreamParser()
-        started_at = time.monotonic()
-        status = "protocol_error"
-        finish_reason: str | None = None
-        persist_answer = False
+    @flask_app.post("/contact-reveal")
+    def contact_reveal() -> Response:
+        if not contacts.configured:
+            return jsonify(error="Contact verification is not configured."), 503
+        payload = request.get_json(silent=True)
+        if not isinstance(payload, dict):
+            return jsonify(error="Request body must be a JSON object."), 400
         try:
-            with requests.post(
-                f"{LLM_BASE_URL}/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {LLM_API_KEY}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": LLM_MODEL,
-                    "messages": messages,
-                    "max_tokens": MAX_RESPONSE_TOKENS,
-                    "temperature": 0.4,
-                    "thinking": LLM_THINKING,
-                    "stream": True,
-                    "stream_options": {"include_usage": True},
-                },
-                timeout=(LLM_CONNECT_TIMEOUT, LLM_READ_TIMEOUT),
-                stream=True,
-            ) as upstream:
-                upstream.raise_for_status()
-                for line in upstream.iter_lines(decode_unicode=True):
-                    for event in parser.feed_line(line):
-                        if event.kind == "content":
-                            for safe_chunk in guard.feed(event.content):
+            token = normalize_token(payload.get("token"))
+        except ContactVerificationError as error:
+            return jsonify(error=str(error)), 400
+        try:
+            verified = verify_turnstile(
+                token,
+                _resolve_client_address(active.trusted_proxy_cidrs),
+                contacts,
+            )
+        except ContactVerificationError as error:
+            flask_app.logger.error(
+                "turnstile verification failed: %s", type(error).__name__
+            )
+            return jsonify(error="Contact verification is temporarily unavailable."), 503
+        if not verified:
+            return jsonify(error="Verification failed. Please try again."), 403
+        response = jsonify(
+            email=contacts.email,
+            phone=contacts.phone_display,
+            phone_uri=contacts.phone_uri,
+        )
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
+    @flask_app.get("/chat-config")
+    def chat_config() -> Response:
+        response = jsonify(
+            configured=admission_config.configured,
+            sitekey=admission_config.site_key if admission_config.configured else "",
+            action="chat_admission",
+        )
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
+    @flask_app.post("/chat-admission")
+    def chat_admission() -> Response:
+        payload = request.get_json(silent=True)
+        if not isinstance(payload, dict):
+            return jsonify(reply="Verification is required before chat."), 400
+        address, client_key = client_identity()
+        try:
+            valid = verify_chat_turnstile(payload.get("token"), address, admission_config)
+        except ChatAdmissionError as error:
+            flask_app.logger.error(
+                "chat admission unavailable: %s", type(error).__name__
+            )
+            return jsonify(
+                reply=(
+                    "Chat verification is temporarily unavailable. "
+                    "Please email Andris instead."
+                )
+            ), 503
+        if not valid:
+            return jsonify(reply="Chat verification failed. Please try again."), 403
+        response = jsonify(
+            session=issue_session(client_key, active.client_key_secret)
+        )
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
+    @flask_app.post("/chat")
+    def chat() -> Response:
+        _address, client_key = client_identity()
+        session = request.headers.get("X-Chat-Admission", "")
+        if not validate_session(session, client_key, active.client_key_secret):
+            return jsonify(reply="Chat verification is required or has expired."), 401
+        if not active.llm_api_key:
+            return jsonify(reply="The assistant isn't configured yet."), 503
+        try:
+            user_msg, history = _parse_payload(request.get_json(silent=True), active)
+        except RequestValidationError as error:
+            return jsonify(reply=str(error)), 400
+        try:
+            decision = active_store.reserve(client_key)
+        except Exception as error:
+            flask_app.logger.error("rate store failure: %s", type(error).__name__)
+            return jsonify(reply="The assistant is temporarily unavailable."), 503
+        if not decision.allowed:
+            if decision.reason == "global":
+                reply = (
+                    "The assistant has reached today's usage limit. "
+                    "Please email Andris instead."
+                )
+            else:
+                reply = (
+                    "You've sent several messages — please wait a bit, "
+                    "or email Andris directly."
+                )
+            return jsonify(reply=reply), 429, _rate_headers(
+                decision, active.rate_per_ip_hour
+            )
+
+        messages = _build_messages(user_msg, history, prompt)
+        request_id = uuid.uuid4().hex[:16]
+
+        def generate():
+            full_reply: list[str] = []
+            guard = ProtectedContactStreamGuard(output_policy)
+            parser = ProviderStreamParser()
+            started_at = time.monotonic()
+            status = "protocol_error"
+            finish_reason: str | None = None
+            persist_answer = False
+            try:
+                with active_provider.open_stream(messages) as upstream:
+                    upstream.raise_for_status()
+                    for line in upstream.iter_lines(decode_unicode=True):
+                        for event in parser.feed_line(line):
+                            if event.kind == "content":
+                                for safe_chunk in guard.feed(event.content):
+                                    full_reply.append(safe_chunk)
+                                    yield safe_chunk
+                                if guard.blocked:
+                                    status = "policy_blocked"
+                                    persist_answer = True
+                                    break
+                            elif event.kind == "terminal":
+                                finish_reason = event.finish_reason
+                        if guard.blocked:
+                            break
+
+                    if guard.blocked:
+                        status = "policy_blocked"
+                    else:
+                        parser.finish_eof()
+                        finish_reason = parser.finish_reason
+                        if finish_reason == "stop":
+                            for safe_chunk in guard.finish():
                                 full_reply.append(safe_chunk)
                                 yield safe_chunk
-                            if guard.blocked:
-                                status = "policy_blocked"
-                                persist_answer = True
-                                break
-                        elif event.kind == "terminal":
-                            finish_reason = event.finish_reason
-                    if guard.blocked:
-                        break
+                            status = "success"
+                            persist_answer = True
+                        elif finish_reason == "length":
+                            for safe_chunk in guard.finish():
+                                full_reply.append(safe_chunk)
+                                yield safe_chunk
+                            status = "length"
+                            yield _provider_notice(status)
+                        elif finish_reason in {
+                            "content_filter",
+                            "insufficient_system_resource",
+                            "tool_calls",
+                        }:
+                            status = finish_reason
+                            yield _provider_notice(status)
+                        else:
+                            raise ProviderStreamError(
+                                "missing classified finish reason"
+                            )
+            except GeneratorExit:
+                status = "browser_disconnect"
+                raise
+            except requests.exceptions.Timeout:
+                status = "timeout"
+                yield _provider_notice(status)
+            except requests.exceptions.HTTPError as error:
+                status_code = getattr(error.response, "status_code", None)
+                status = (
+                    f"http_{status_code // 100}xx"
+                    if isinstance(status_code, int) and 400 <= status_code < 600
+                    else "http_error"
+                )
+                yield _provider_notice("http_error")
+            except ProviderStreamError:
+                status = "protocol_error"
+                yield _provider_notice(status)
+            except Exception as error:
+                status = "internal_error"
+                flask_app.logger.error("LLM stream failed: %s", type(error).__name__)
+                yield _provider_notice(status)
+            finally:
+                answer_text = "".join(full_reply).strip()
+                if persist_answer and answer_text:
+                    try:
+                        active_store.record_chat(client_key, user_msg, answer_text)
+                    except Exception as error:
+                        flask_app.logger.error(
+                            "chat retention write failed: %s", type(error).__name__
+                        )
+                    active_notifier.submit(client_key, user_msg, answer_text)
+                _log_provider_result(
+                    logger=flask_app.logger,
+                    request_id=request_id,
+                    started_at=started_at,
+                    status=status,
+                    finish_reason=finish_reason,
+                    parser=parser,
+                    decision=decision,
+                )
 
-                if guard.blocked:
-                    status = "policy_blocked"
-                else:
-                    parser.finish_eof()
-                    finish_reason = parser.finish_reason
-                    if finish_reason == "stop":
-                        for safe_chunk in guard.finish():
-                            full_reply.append(safe_chunk)
-                            yield safe_chunk
-                        status = "success"
-                        persist_answer = True
-                    elif finish_reason == "length":
-                        for safe_chunk in guard.finish():
-                            full_reply.append(safe_chunk)
-                            yield safe_chunk
-                        status = "length"
-                        yield _provider_notice(status)
-                    elif finish_reason in {
-                        "content_filter",
-                        "insufficient_system_resource",
-                        "tool_calls",
-                    }:
-                        status = finish_reason
-                        yield _provider_notice(status)
-                    else:
-                        raise ProviderStreamError("missing classified finish reason")
-        except GeneratorExit:
-            status = "browser_disconnect"
-            raise
-        except requests.exceptions.Timeout:
-            status = "timeout"
-            yield _provider_notice(status)
-        except requests.exceptions.HTTPError as error:
-            status_code = getattr(error.response, "status_code", None)
-            status = (
-                f"http_{status_code // 100}xx"
-                if isinstance(status_code, int) and 400 <= status_code < 600
-                else "http_error"
-            )
-            yield _provider_notice("http_error")
-        except ProviderStreamError:
-            status = "protocol_error"
-            yield _provider_notice(status)
-        except Exception as error:
-            status = "internal_error"
-            app.logger.error("LLM stream failed: %s", type(error).__name__)
-            yield _provider_notice(status)
-        finally:
-            answer_text = "".join(full_reply).strip()
-            if persist_answer and answer_text:
-                try:
-                    STORE.record_chat(client_key, user_msg, answer_text)
-                except Exception as error:
-                    app.logger.error(
-                        "chat retention write failed: %s", type(error).__name__
-                    )
-                threading.Thread(
-                    target=_notify_telegram,
-                    args=(client_key, user_msg, answer_text),
-                    daemon=True,
-                ).start()
-            _log_provider_result(
-                request_id=request_id,
-                started_at=started_at,
-                status=status,
-                finish_reason=finish_reason,
-                parser=parser,
-                decision=decision,
-            )
+        return Response(
+            stream_with_context(generate()),
+            mimetype="text/plain; charset=utf-8",
+            headers={
+                "X-Accel-Buffering": "no",
+                "Cache-Control": "no-store",
+                "X-Request-ID": request_id,
+                **_rate_headers(decision, active.rate_per_ip_hour),
+            },
+        )
 
-    return Response(
-        stream_with_context(generate()),
-        mimetype="text/plain; charset=utf-8",
-        headers={
-            "X-Accel-Buffering": "no",
-            "Cache-Control": "no-store",
-            "X-Request-ID": request_id,
-            **_rate_headers(decision),
-        },
-    )
+    return flask_app
+
+
+def close_app_services(flask_app: Flask) -> None:
+    services = flask_app.extensions.get("cvbot") or {}
+    notifier = services.get("notifier")
+    store = services.get("store")
+    if notifier is not None:
+        notifier.close()
+    if store is not None:
+        store.close()
+
+
+_legacy_settings_cache: Settings | None = None
+_legacy_app_cache: Flask | None = None
+
+
+def _legacy_settings() -> Settings:
+    global _legacy_settings_cache
+    if _legacy_settings_cache is None:
+        _legacy_settings_cache = Settings.from_env()
+    return _legacy_settings_cache
+
+
+def _legacy_app() -> Flask:
+    global _legacy_app_cache
+    if _legacy_app_cache is None:
+        _legacy_app_cache = create_app(_legacy_settings())
+    return _legacy_app_cache
+
+
+def __getattr__(name: str):
+    if name == "app":
+        return _legacy_app()
+    if name == "STORE":
+        return _legacy_app().extensions["cvbot"]["store"]
+    if name == "CONTACT_CONFIG":
+        return _legacy_app().extensions["cvbot"]["contact_config"]
+    if name == "SYSTEM_PROMPT":
+        return _legacy_app().extensions["cvbot"]["system_prompt"]
+    settings = _legacy_settings()
+    mapping = {
+        "LLM_BASE_URL": settings.llm_base_url,
+        "LLM_API_KEY": settings.llm_api_key,
+        "LLM_MODEL": settings.llm_model,
+        "LLM_THINKING": {"type": "disabled"},
+        "MAX_INPUT_CHARS": settings.max_input_chars,
+        "MAX_RESPONSE_TOKENS": settings.max_response_tokens,
+        "MAX_HISTORY_TURNS": settings.max_history_turns,
+        "RATE_PER_IP_HOUR": settings.rate_per_ip_hour,
+        "DAILY_GLOBAL_CAP": settings.daily_global_cap,
+        "LLM_CONNECT_TIMEOUT": settings.llm_connect_timeout,
+        "LLM_READ_TIMEOUT": settings.llm_read_timeout,
+        "CHAT_RETENTION_DAYS": settings.chat_retention_days,
+        "DB_PATH": settings.db_path,
+        "CLIENT_KEY_SECRET": settings.client_key_secret,
+        "TELEGRAM_TOKEN": settings.telegram_token,
+        "TELEGRAM_CHAT_ID": settings.telegram_chat_id,
+        "TELEGRAM_INCLUDE_CONTENT": settings.telegram_include_content,
+        "TRUSTED_PROXY_CIDRS": settings.trusted_proxy_cidrs,
+    }
+    if name in mapping:
+        return mapping[name]
+    raise AttributeError(name)
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, threaded=True)
+    development_app = create_app()
+    atexit.register(close_app_services, development_app)
+    development_app.run(host="0.0.0.0", port=5000, threaded=True)

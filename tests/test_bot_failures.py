@@ -59,14 +59,25 @@ class BotFailureBehaviorTests(unittest.TestCase):
         sys.modules[module_name] = self.module
         self.addCleanup(sys.modules.pop, module_name, None)
         spec.loader.exec_module(self.module)
-        self.addCleanup(self.module.STORE.close)
         self.client = self.module.app.test_client()
+        self.addCleanup(self.module.close_app_services, self.module.app)
+
+    def _headers(self, address: str = "203.0.113.10") -> dict[str, str]:
+        client_key = self.module.STORE.pseudonymize(
+            address, self.module.CLIENT_KEY_SECRET
+        )
+        return {
+            "X-Real-IP": address,
+            "X-Chat-Admission": self.module.issue_session(
+                client_key, self.module.CLIENT_KEY_SECRET
+            ),
+        }
 
     def post(self, payload):
         return self.client.post(
             "/chat",
             json=payload,
-            headers={"X-Real-IP": "203.0.113.10"},
+            headers=self._headers(),
             environ_base={"REMOTE_ADDR": "172.19.0.10"},
             buffered=True,
         )
@@ -138,6 +149,7 @@ class BotFailureBehaviorTests(unittest.TestCase):
             "/chat",
             data=b"x" * (33 * 1024),
             content_type="application/json",
+            headers=self._headers(),
             environ_base={"REMOTE_ADDR": "172.19.0.10"},
         )
         self.assertIn(response.status_code, {400, 413})

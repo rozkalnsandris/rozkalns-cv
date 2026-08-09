@@ -14,6 +14,8 @@ ROOT = Path(__file__).resolve().parents[1]
 BOT = ROOT / "bot"
 sys.path.insert(0, str(BOT))
 
+from notifier import TelegramNotifier  # noqa: E402
+
 
 class FakeUpstreamResponse:
     def __enter__(self):
@@ -65,16 +67,26 @@ class BotBehaviorTests(unittest.TestCase):
         self.addCleanup(self.env_patch.stop)
 
         module_name = f"cv_app_test_{id(self)}"
-        spec = importlib.util.spec_from_file_location(
-            module_name, BOT / "app.py"
-        )
+        spec = importlib.util.spec_from_file_location(module_name, BOT / "app.py")
         assert spec and spec.loader
         self.module = importlib.util.module_from_spec(spec)
         sys.modules[module_name] = self.module
         self.addCleanup(sys.modules.pop, module_name, None)
         spec.loader.exec_module(self.module)
-        self.addCleanup(self.module.STORE.close)
         self.client = self.module.app.test_client()
+        self.addCleanup(self.module.close_app_services, self.module.app)
+
+    def _admission_header(self, address: str) -> dict[str, str]:
+        client_key = self.module.STORE.pseudonymize(
+            address, self.module.CLIENT_KEY_SECRET
+        )
+        session = self.module.issue_session(
+            client_key, self.module.CLIENT_KEY_SECRET
+        )
+        return {
+            "X-Real-IP": address,
+            "X-Chat-Admission": session,
+        }
 
     def _post(self, message: str, history=None, *, address="203.0.113.10"):
         captured: list[dict] = []
@@ -87,7 +99,7 @@ class BotBehaviorTests(unittest.TestCase):
             response = self.client.post(
                 "/chat",
                 json={"message": message, "history": history or []},
-                headers={"X-Real-IP": address},
+                headers=self._admission_header(address),
                 environ_base={"REMOTE_ADDR": "172.19.0.10"},
                 buffered=True,
             )
@@ -110,8 +122,7 @@ class BotBehaviorTests(unittest.TestCase):
             ["system", "user", "assistant", "user"],
         )
         self.assertEqual(
-            sum(row["content"] == "Current question" for row in messages),
-            1,
+            sum(row["content"] == "Current question" for row in messages), 1
         )
 
     def test_unpaired_failed_browser_turn_is_not_forwarded(self) -> None:
@@ -127,9 +138,7 @@ class BotBehaviorTests(unittest.TestCase):
             [row["role"] for row in captured[0]["messages"]],
             ["system", "user"],
         )
-        self.assertEqual(
-            captured[0]["messages"][-1]["content"], "New question"
-        )
+        self.assertEqual(captured[0]["messages"][-1]["content"], "New question")
 
     def test_v4_request_contract_is_explicit_non_thinking(self) -> None:
         response, captured = self._post("Question")
@@ -158,17 +167,16 @@ class BotBehaviorTests(unittest.TestCase):
         self.assertNotIn("deepseek-reasoner", self.module.SUPPORTED_LLM_MODELS)
 
     def test_invalid_payload_does_not_consume_quota(self) -> None:
+        address = "203.0.113.10"
         response = self.client.post(
             "/chat",
             json={"message": "", "history": []},
             environ_base={"REMOTE_ADDR": "172.19.0.10"},
-            headers={"X-Real-IP": "203.0.113.10"},
+            headers=self._admission_header(address),
         )
         self.assertEqual(response.status_code, 400)
         with sqlite3.connect(self.db_path) as connection:
-            count = connection.execute(
-                "SELECT COUNT(*) FROM rate_events"
-            ).fetchone()[0]
+            count = connection.execute("SELECT COUNT(*) FROM rate_events").fetchone()[0]
         self.assertEqual(count, 0)
 
     def test_trusted_proxy_uses_normalized_real_ip(self) -> None:
@@ -180,9 +188,7 @@ class BotBehaviorTests(unittest.TestCase):
             },
             environ_base={"REMOTE_ADDR": "172.19.0.10"},
         ):
-            self.assertEqual(
-                self.module._resolve_client_address(), "203.0.113.40"
-            )
+            self.assertEqual(self.module._resolve_client_address(), "203.0.113.40")
 
     def test_direct_peer_cannot_spoof_forwarding_headers(self) -> None:
         with self.module.app.test_request_context(
@@ -194,9 +200,7 @@ class BotBehaviorTests(unittest.TestCase):
             },
             environ_base={"REMOTE_ADDR": "192.0.2.10"},
         ):
-            self.assertEqual(
-                self.module._resolve_client_address(), "192.0.2.10"
-            )
+            self.assertEqual(self.module._resolve_client_address(), "192.0.2.10")
 
     def test_two_public_visitors_have_independent_limits(self) -> None:
         self.module.STORE.per_client_hour = 1
@@ -227,17 +231,18 @@ class BotBehaviorTests(unittest.TestCase):
         self.assertNotIn(address, json.dumps(row))
 
     def test_telegram_notification_is_redacted_by_default(self) -> None:
-        self.module.TELEGRAM_TOKEN = "token"
-        self.module.TELEGRAM_CHAT_ID = "chat"
-        self.module.TELEGRAM_INCLUDE_CONTENT = False
-        with patch.object(
-            self.module.requests,
-            "post",
+        notifier = TelegramNotifier(
+            token="token",
+            chat_id="chat",
+            include_content=False,
+            max_workers=1,
+        )
+        self.addCleanup(notifier.close)
+        with patch(
+            "notifier.requests.post",
             return_value=FakeTelegramResponse(),
         ) as mocked:
-            self.module._notify_telegram(
-                "client-key", "private question", "private answer"
-            )
+            notifier._send("client-key", "private question", "private answer")
         text = mocked.call_args.kwargs["data"]["text"]
         self.assertIn("client-key", text)
         self.assertNotIn("private question", text)
