@@ -23,7 +23,8 @@ RUN addgroup -S -g "${APP_GID}" cvbot \
 COPY requirements.lock ./requirements.lock
 RUN python -m pip install --require-hashes --no-deps -r requirements.lock
 
-COPY --chown=${APP_UID}:${APP_GID} app.py contact.py storage.py ./
+COPY --chown=${APP_UID}:${APP_GID} \
+    app.py chat_policy.py contact.py provider_stream.py readiness.py storage.py ./
 RUN mkdir -p /app/data \
     && chown "${APP_UID}:${APP_GID}" /app/data \
     && chmod 0700 /app/data
@@ -32,5 +33,5 @@ USER ${APP_UID}:${APP_GID}
 
 EXPOSE 5000
 
-# A single worker keeps streaming behavior simple; SQLite coordinates threads.
-CMD ["gunicorn", "-w", "1", "--threads", "4", "-b", "0.0.0.0:5000", "--timeout", "60", "app:app"]
+# Provider idle-read budget is 70s; keep Gunicorn above it and Nginx at 120s.
+CMD ["gunicorn", "-w", "1", "--threads", "4", "-b", "0.0.0.0:5000", "--timeout", "90", "app:app"]
