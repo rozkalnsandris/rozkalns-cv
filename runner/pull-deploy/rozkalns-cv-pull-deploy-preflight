@@ -21,6 +21,7 @@ LOCK_ROOT='/home/andris/.local/state/rozkalns-cv-pull-deploy'
 LOCK_FILE="$LOCK_ROOT/preflight.lock"
 HELPER='/usr/local/sbin/rozkalns-cv-deploy-main'
 HELPER_SOURCE='runner/release/rozkalns-cv-deploy-main'
+CLASSIFIER='/usr/local/libexec/rozkalns-cv/classify-deploy-impact'
 TOKEN_BROKER='/usr/local/sbin/rozkalns-github-app-read-token'
 
 for command_name in flock gh git id install python3 stat sudo; do
@@ -34,6 +35,10 @@ done
 [[ -x "$HELPER" && ! -L "$HELPER" ]] || fail 'installed deploy helper is missing or unsafe'
 [[ "$(stat -c '%U:%G:%a' "$HELPER")" == 'root:root:755' ]] \
     || fail 'installed deploy helper ownership/mode is unexpected'
+[[ -x "$CLASSIFIER" && ! -L "$CLASSIFIER" ]] \
+    || fail 'deploy-impact classifier is missing or unsafe'
+[[ "$(stat -c '%U:%G:%a' "$CLASSIFIER")" == 'root:root:755' ]] \
+    || fail 'deploy-impact classifier ownership/mode is unexpected'
 [[ -x "$TOKEN_BROKER" && ! -L "$TOKEN_BROKER" ]] \
     || fail 'GitHub App token broker is missing or unsafe'
 [[ "$(stat -c '%U:%G:%a' "$TOKEN_BROKER")" == 'root:root:755' ]] \
@@ -123,6 +128,60 @@ if job.get("status") != "completed" or job.get("conclusion") != "success":
     raise SystemExit("validate job is not completed/success")
 ' <<<"$JOBS_JSON" || fail 'exact-SHA CI validate job is not trustworthy'
 
+IMPACT_JSON="$(
+    "$CLASSIFIER" \
+        --repo "$SOURCE" \
+        --base "$PRODUCTION_SHA" \
+        --target "$TARGET_SHA" \
+        --json
+)" || fail 'deploy-impact classification failed'
+mapfile -t impact < <(
+    python3 -c '
+import json, sys
+payload = json.load(sys.stdin)
+classification = payload.get("classification")
+control = payload.get("control_plane_changed")
+if classification not in {
+    "NO_DEPLOY",
+    "AUTO_DEPLOY_SAFE",
+    "MANUAL_ROLLOUT_REQUIRED",
+    "DB_HOST_APPLY_REQUIRED",
+}:
+    raise SystemExit("invalid deploy-impact classification")
+if not isinstance(control, bool):
+    raise SystemExit("invalid control-plane flag")
+print(classification)
+print("true" if control else "false")
+' <<<"$IMPACT_JSON"
+)
+[[ ${#impact[@]} -eq 2 ]] || fail 'invalid deploy-impact output'
+DEPLOY_IMPACT="${impact[0]}"
+CONTROL_PLANE_CHANGED="${impact[1]}"
+
+printf 'DEPLOY_IMPACT=%s\n' "$DEPLOY_IMPACT"
+printf 'CONTROL_PLANE_CHANGED=%s\n' "$CONTROL_PLANE_CHANGED"
+
+case "$DEPLOY_IMPACT" in
+    DB_HOST_APPLY_REQUIRED|MANUAL_ROLLOUT_REQUIRED|NO_DEPLOY)
+        printf 'PULL_DEPLOY_PREFLIGHT_RESULT=%s\n' "$DEPLOY_IMPACT"
+        printf 'TARGET_SHA=%s\n' "$TARGET_SHA"
+        printf 'PRODUCTION_SHA=%s\n' "$PRODUCTION_SHA"
+        printf 'CI_RUN_ID=%s\n' "$CI_RUN_ID"
+        printf 'PRODUCTION_MUTATION_AUTHORIZED=false\n'
+        unset GH_TOKEN
+        exit 0
+        ;;
+    AUTO_DEPLOY_SAFE)
+        ;;
+    *)
+        fail "unsupported deploy impact: $DEPLOY_IMPACT"
+        ;;
+esac
+
+# Only an auto-deploy-safe target needs the installed production helper to match
+# the target source before the later controller stage may become deploy-ready.
+# Manual/DB/no-deploy outcomes above remain read-only and never require helper
+# activation, avoiding accidental activation of the still-live legacy runner.
 EXPECTED_HELPER_BLOB="$(gh api \
     -H 'Accept: application/vnd.github+json' \
     "repos/$REPO/contents/$HELPER_SOURCE?ref=$TARGET_SHA" \
@@ -138,6 +197,8 @@ if [[ "$ACTUAL_HELPER_BLOB" != "$EXPECTED_HELPER_BLOB" ]]; then
     printf 'TARGET_SHA=%s\n' "$TARGET_SHA"
     printf 'PRODUCTION_SHA=%s\n' "$PRODUCTION_SHA"
     printf 'CI_RUN_ID=%s\n' "$CI_RUN_ID"
+    printf 'DEPLOY_IMPACT=%s\n' "$DEPLOY_IMPACT"
+    printf 'PRODUCTION_MUTATION_AUTHORIZED=false\n'
     exit 0
 fi
 
@@ -148,6 +209,7 @@ printf 'PULL_DEPLOY_PREFLIGHT_RESULT=READY\n'
 printf 'TARGET_SHA=%s\n' "$TARGET_SHA"
 printf 'PRODUCTION_SHA=%s\n' "$PRODUCTION_SHA"
 printf 'CI_RUN_ID=%s\n' "$CI_RUN_ID"
+printf 'DEPLOY_IMPACT=%s\n' "$DEPLOY_IMPACT"
 printf 'HELPER_BLOB_SHA=%s\n' "$ACTUAL_HELPER_BLOB"
 printf 'PRODUCTION_MUTATION_AUTHORIZED=false\n'
 unset GH_TOKEN
