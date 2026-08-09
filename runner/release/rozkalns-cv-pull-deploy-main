@@ -35,6 +35,88 @@ do
         || fail "required command is missing: $command_name"
 done
 
+runtime_requires_cvbot_client_secret() {
+    local root="$1"
+    local storage="$root/bot/storage.py"
+    [[ -f "$storage" && ! -L "$storage" ]] || return 1
+    grep -Fq 'CLIENT_KEY_SECRET_MIN_BYTES = 32' "$storage" \
+        && grep -Fq 'def validate_client_key_secret' "$storage"
+}
+
+validate_cvbot_runtime_secret_strict() {
+    local env_file="$RUNTIME/bot/.env"
+    [[ -f "$env_file" && ! -L "$env_file" ]] || return 1
+    python3 - "$env_file" <<'PY_SECRET'
+from __future__ import annotations
+
+import base64
+import binascii
+import hmac
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+values: dict[str, str] = {}
+for raw in path.read_text(encoding="utf-8").splitlines():
+    line = raw.strip()
+    if not line or line.startswith("#"):
+        continue
+    key, separator, value = line.partition("=")
+    key = key.strip()
+    if not separator or key not in {"CLIENT_KEY_SECRET", "LLM_API_KEY"}:
+        continue
+    if key in values:
+        raise SystemExit("cvbot secret contract failed: duplicate key")
+    value = value.strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+        value = value[1:-1]
+    values[key] = value
+
+secret = values.get("CLIENT_KEY_SECRET", "")
+allowed = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_")
+if not secret or not secret.isascii() or any(
+    character not in allowed for character in secret
+):
+    raise SystemExit("cvbot client pseudonymization secret contract failed")
+padding = "=" * ((4 - len(secret) % 4) % 4)
+try:
+    decoded = base64.b64decode(secret + padding, altchars=b"-_", validate=True)
+except (binascii.Error, ValueError):
+    raise SystemExit(
+        "cvbot client pseudonymization secret contract failed"
+    ) from None
+if len(decoded) < 32:
+    raise SystemExit("cvbot client pseudonymization secret contract failed")
+provider = values.get("LLM_API_KEY", "")
+if provider and hmac.compare_digest(secret, provider):
+    raise SystemExit("cvbot client pseudonymization secret must be dedicated")
+print("CVBOT_CLIENT_KEY_SECRET=PASS")
+PY_SECRET
+}
+
+# The sourced deployment library calls validate_cvbot_runtime_secret() from
+# deploy_runtime(). Override that function only inside the pull transport so
+# rollback evaluates the source tree that was actually restored. Older
+# baselines that predate the dedicated pseudonymization key do not inherit a
+# newer target-only prerequisite; baselines that require it still get the
+# strict, non-disclosing validation.
+validate_cvbot_runtime_secret() {
+    if runtime_requires_cvbot_client_secret "$RUNTIME"; then
+        validate_cvbot_runtime_secret_strict
+    else
+        printf 'CVBOT_CLIENT_KEY_SECRET=NOT_REQUIRED_BY_BASELINE\n'
+    fi
+}
+
+validate_candidate_runtime_prerequisites() {
+    if runtime_requires_cvbot_client_secret "$CANDIDATE"; then
+        validate_cvbot_runtime_secret_strict
+        printf 'TARGET_RUNTIME_PREREQUISITES=PASS\n'
+    else
+        printf 'TARGET_RUNTIME_PREREQUISITES=NO_SECRET_REQUIRED\n'
+    fi
+}
+
 [[ "${SUDO_USER:-}" == "$PULL_CALLER" ]] \
     || fail 'pull-deploy helper must be invoked by the dedicated local controller'
 [[ "${SUDO_UID:-}" =~ ^[0-9]+$ && "${SUDO_GID:-}" =~ ^[0-9]+$ ]] \
@@ -198,6 +280,11 @@ runuser -u "$OWNER" -- bash -c \
     >"$EVIDENCE_DIR/source-validation.log" 2>&1 \
     || fail 'source validation failed'
 prepare_candidate || fail 'candidate preparation failed'
+
+if ! validate_candidate_runtime_prerequisites \
+    >"$EVIDENCE_DIR/target-prerequisites.log" 2>&1; then
+    fail 'target runtime prerequisites failed before production mutation'
+fi
 
 BACKUP="$BACKUP_ROOT/${STAMP}-${OLD_SHA:-unknown}"
 create_backup || fail 'rollback backup creation failed'
