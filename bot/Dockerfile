@@ -24,8 +24,8 @@ COPY requirements.lock ./requirements.lock
 RUN python -m pip install --require-hashes --no-deps -r requirements.lock
 
 COPY --chown=${APP_UID}:${APP_GID} \
-    app.py chat_admission.py chat_entry.py chat_policy.py contact.py \
-    provider_stream.py readiness.py storage.py ./
+    app.py chat_admission.py chat_entry.py chat_policy.py config.py contact.py \
+    notifier.py provider_stream.py readiness.py storage.py ./
 RUN mkdir -p /app/data \
     && chown "${APP_UID}:${APP_GID}" /app/data \
     && chmod 0700 /app/data
