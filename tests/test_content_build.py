@@ -66,19 +66,24 @@ class CanonicalContentTests(unittest.TestCase):
         self.assertIn("Raspberry Pi 5", prompt)
         self.assertIn("Do not answer unrelated questions.", prompt)
 
-    def test_prompt_sync_migrates_once_and_is_idempotent(self) -> None:
-        old = (
-            "before\n"
-            "# ---------------- KNOWLEDGE (CV facts only) ----------------\n"
-            'SYSTEM_PROMPT = \"\"\"old\"\"\"\n'
-            "after\n"
+    def test_prompt_sync_enforces_single_resource_owner(self) -> None:
+        app_text = (
+            "from system_prompt import load_system_prompt\n"
+            "def create_app():\n"
+            "    prompt = load_system_prompt()\n"
         )
-        migrated = syncer.expected_app_text(old, "new prompt\n")
-        self.assertIn(syncer.BEGIN, migrated)
-        self.assertIn('SYSTEM_PROMPT = \"\"\"new prompt\"\"\"', migrated)
-        self.assertEqual(
-            syncer.expected_app_text(migrated, "new prompt\n"), migrated
+        loader_text = (
+            "from pathlib import Path\n"
+            'DEFAULT_PROMPT_PATH = Path(__file__).with_name("system_prompt.txt")\n'
+            'prompt = DEFAULT_PROMPT_PATH.read_text(encoding="utf-8")\n'
         )
+        syncer.validate_prompt_boundary(app_text, "new prompt\n", loader_text)
+        with self.assertRaises(syncer.PromptSyncError):
+            syncer.validate_prompt_boundary(
+                app_text + 'SYSTEM_PROMPT = """duplicate"""\n',
+                "new prompt\n",
+                loader_text,
+            )
 
 
 if __name__ == "__main__":
