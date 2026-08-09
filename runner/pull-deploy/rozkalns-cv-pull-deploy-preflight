@@ -21,8 +21,9 @@ LOCK_ROOT='/home/andris/.local/state/rozkalns-cv-pull-deploy'
 LOCK_FILE="$LOCK_ROOT/preflight.lock"
 HELPER='/usr/local/sbin/rozkalns-cv-deploy-main'
 HELPER_SOURCE='runner/release/rozkalns-cv-deploy-main'
+TOKEN_BROKER='/usr/local/sbin/rozkalns-github-app-read-token'
 
-for command_name in flock gh git id install python3 stat; do
+for command_name in flock gh git id install python3 stat sudo; do
     command -v "$command_name" >/dev/null 2>&1 \
         || fail "required command is missing: $command_name"
 done
@@ -33,9 +34,20 @@ done
 [[ -x "$HELPER" && ! -L "$HELPER" ]] || fail 'installed deploy helper is missing or unsafe'
 [[ "$(stat -c '%U:%G:%a' "$HELPER")" == 'root:root:755' ]] \
     || fail 'installed deploy helper ownership/mode is unexpected'
+[[ -x "$TOKEN_BROKER" && ! -L "$TOKEN_BROKER" ]] \
+    || fail 'GitHub App token broker is missing or unsafe'
+[[ "$(stat -c '%U:%G:%a' "$TOKEN_BROKER")" == 'root:root:755' ]] \
+    || fail 'GitHub App token broker ownership/mode is unexpected'
 
-gh auth status --hostname github.com >/dev/null 2>&1 \
-    || fail 'GitHub authentication is unavailable'
+# Never inherit a persistent user/PAT token. The only authenticated GitHub API
+# path is a short-lived, repository-scoped token minted by the root-owned App
+# broker from the protected private key.
+unset GH_TOKEN GITHUB_TOKEN
+GH_TOKEN="$(sudo -n "$TOKEN_BROKER" --repository "$REPO")" \
+    || fail 'GitHub App read token is unavailable'
+[[ ${#GH_TOKEN} -ge 20 && "$GH_TOKEN" != *[[:space:]]* ]] \
+    || fail 'GitHub App read token is malformed'
+export GH_TOKEN
 
 install -d -m 0700 "$LOCK_ROOT"
 exec 9>"$LOCK_FILE"
@@ -129,11 +141,13 @@ if [[ "$ACTUAL_HELPER_BLOB" != "$EXPECTED_HELPER_BLOB" ]]; then
     exit 0
 fi
 
-# Deliberately no sudo/deploy call here. This first migration stage proves the
-# trusted pull path while the legacy self-hosted runner remains available.
+# Deliberately no production deploy call here. The only sudo capability used by
+# this stage is the exact read-token broker above; legacy deployment remains
+# untouched until a later reviewed canary stage.
 printf 'PULL_DEPLOY_PREFLIGHT_RESULT=READY\n'
 printf 'TARGET_SHA=%s\n' "$TARGET_SHA"
 printf 'PRODUCTION_SHA=%s\n' "$PRODUCTION_SHA"
 printf 'CI_RUN_ID=%s\n' "$CI_RUN_ID"
 printf 'HELPER_BLOB_SHA=%s\n' "$ACTUAL_HELPER_BLOB"
 printf 'PRODUCTION_MUTATION_AUTHORIZED=false\n'
+unset GH_TOKEN
