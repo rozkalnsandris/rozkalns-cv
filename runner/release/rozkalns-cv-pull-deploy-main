@@ -68,6 +68,82 @@ EVIDENCE_DIR="$EVIDENCE_REAL"
 EVIDENCE_READY=true
 printf 'DEPLOY_TRANSPORT=pull-controller\n' >"$EVIDENCE_DIR/transport.env"
 
+verify_public_frontend_contracts() {
+    local tmp html root_headers module_path module_headers content_type csp
+    tmp="$(mktemp -d)" || return 1
+    html="$tmp/root.html"
+    root_headers="$tmp/root.headers"
+
+    if ! curl --fail --silent --show-error --max-time 20 \
+        --dump-header "$root_headers" \
+        --output "$html" \
+        "$PUBLIC_URL"; then
+        rm -rf -- "$tmp"
+        return 1
+    fi
+
+    module_path="$(
+        grep -oE '/assets/app\.[0-9a-f]{12}\.mjs\?cfg=[0-9a-f]{12}' "$html" \
+            | head -n 1 \
+            || true
+    )"
+    if [[ -z "$module_path" ]]; then
+        rm -rf -- "$tmp"
+        return 1
+    fi
+
+    if ! module_headers="$(
+        curl --fail --silent --show-error --head --max-time 20 \
+            "${PUBLIC_URL%/}${module_path}"
+    )"; then
+        rm -rf -- "$tmp"
+        return 1
+    fi
+
+    content_type="$(
+        printf '%s\n' "$module_headers" \
+            | awk 'tolower($1) == "content-type:" { value=$2; sub(/\r$/, "", value); print value; exit }'
+    )"
+    case "$content_type" in
+        text/javascript|application/javascript)
+            ;;
+        *)
+            rm -rf -- "$tmp"
+            return 1
+            ;;
+    esac
+
+    if ! printf '%s\n' "$module_headers" \
+        | grep -Eiq '^Cache-Control:.*immutable'; then
+        rm -rf -- "$tmp"
+        return 1
+    fi
+    if ! printf '%s\n' "$module_headers" \
+        | grep -Eiq '^X-Content-Type-Options:[[:space:]]*nosniff'; then
+        rm -rf -- "$tmp"
+        return 1
+    fi
+
+    csp="$(
+        awk 'tolower($1) == "content-security-policy:" { sub(/\r$/, ""); sub(/^[^:]+:[[:space:]]*/, ""); print; exit }' \
+            "$root_headers"
+    )"
+    if [[ ! "$csp" =~ nonce-[0-9a-f]{32} ]] \
+       || [[ "$csp" != *"script-src-attr 'none'"* ]] \
+       || [[ "$csp" != *"https://static.cloudflareinsights.com/beacon.min.js"* ]] \
+       || [[ "$csp" == *"unsafe-inline"* ]]; then
+        rm -rf -- "$tmp"
+        return 1
+    fi
+
+    rm -rf -- "$tmp"
+    printf 'PUBLIC_SITE=PASS\n'
+    printf 'PUBLIC_MODULE_MIME=PASS type=%s\n' "$content_type"
+    printf 'PUBLIC_CACHE_IMMUTABLE=PASS\n'
+    printf 'PUBLIC_NOSNIFF=PASS\n'
+    printf 'PUBLIC_CSP_NONCE=PASS\n'
+}
+
 install -d -m 0700 "$BACKUP_ROOT"
 install -d -m 0755 "$STATE_DIR"
 exec 9>"$LOCK_FILE"
@@ -136,6 +212,11 @@ fi
 if ! deploy_runtime >>"$EVIDENCE_DIR/deploy.log" 2>&1; then
     capture_runtime_diagnostics 'failed-deploy-runtime'
     fail 'runtime deployment checks failed'
+fi
+
+if ! verify_public_frontend_contracts >>"$EVIDENCE_DIR/deploy.log" 2>&1; then
+    capture_runtime_diagnostics 'failed-public-contract-runtime'
+    fail 'public frontend contract verification failed'
 fi
 
 capture_runtime_diagnostics 'post-deploy-runtime'
