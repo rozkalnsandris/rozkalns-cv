@@ -69,6 +69,7 @@ for required in \
     scripts/build-content.py \
     scripts/sync-system-prompt.py \
     scripts/validate-source.sh \
+    runner/pull-deploy/classify_deploy_impact.py \
     .github/workflows/ci.yml \
     .github/workflows/deploy-main.yml
 do
@@ -132,7 +133,7 @@ while IFS= read -r -d '' python_file; do
         python3 -m py_compile "$python_file"
     python_count=$((python_count + 1))
 done < <(
-    find "$ROOT/bot" "$ROOT/scripts" "$ROOT/tests" \
+    find "$ROOT/bot" "$ROOT/scripts" "$ROOT/tests" "$ROOT/runner" \
         -type f -name '*.py' -print0
 )
 (( python_count > 0 )) || fail 'no Python source files were validated'
