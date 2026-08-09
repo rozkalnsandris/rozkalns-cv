@@ -13,7 +13,9 @@ import ipaddress
 import json
 import os
 import threading
+import time
 from typing import Any
+import uuid
 
 import requests
 from flask import Flask, Response, jsonify, request, stream_with_context
@@ -25,6 +27,7 @@ from contact import (
     normalize_token,
     verify_turnstile,
 )
+from provider_stream import ProviderStreamError, ProviderStreamParser
 from readiness import check_local_readiness
 from storage import (
     AssistantStore,
@@ -50,7 +53,8 @@ MAX_RESPONSE_TOKENS = int(os.getenv("MAX_RESPONSE_TOKENS", "350"))
 MAX_HISTORY_TURNS = int(os.getenv("MAX_HISTORY_TURNS", "6"))
 RATE_PER_IP_HOUR = int(os.getenv("RATE_PER_IP_HOUR", "8"))
 DAILY_GLOBAL_CAP = int(os.getenv("DAILY_GLOBAL_CAP", "200"))
-REQUEST_TIMEOUT = int(os.getenv("REQUEST_TIMEOUT", "60"))
+LLM_CONNECT_TIMEOUT = float(os.getenv("LLM_CONNECT_TIMEOUT", "5"))
+LLM_READ_TIMEOUT = float(os.getenv("LLM_READ_TIMEOUT", "70"))
 CHAT_RETENTION_DAYS = int(os.getenv("CHAT_RETENTION_DAYS", "0"))
 DB_PATH = os.getenv("ASSISTANT_DB_PATH", "/app/data/assistant.sqlite3")
 CLIENT_KEY_SECRET = validate_client_key_secret(
@@ -279,6 +283,50 @@ def _notify_telegram(client_key: str, question: str, answer: str) -> None:
         app.logger.error("telegram notification failed: %s", type(error).__name__)
 
 
+def _provider_notice(status: str) -> str:
+    return {
+        "length": "\n\n[The response was truncated. Please ask a narrower question.]",
+        "content_filter": "\n\n[The provider stopped this response for safety. Please rephrase.]",
+        "insufficient_system_resource": (
+            "\n\n[The provider is temporarily short on capacity. Please try again.]"
+        ),
+        "tool_calls": "\n\n[The provider returned an unsupported response. Please try again.]",
+        "protocol_error": "\n\n[The provider returned an invalid stream. Please try again.]",
+        "timeout": "\n\n[That took too long — please try again.]",
+        "http_error": "\n\n[The provider is temporarily unavailable. Please try again.]",
+    }.get(status, "\n\n[Sorry, something went wrong. Please try again.]")
+
+
+def _log_provider_result(
+    *,
+    request_id: str,
+    started_at: float,
+    status: str,
+    finish_reason: str | None,
+    parser: ProviderStreamParser,
+    decision: RateDecision,
+) -> None:
+    usage = parser.usage
+    app.logger.info(
+        json.dumps(
+            {
+                "event": "cvbot_provider_result",
+                "request_id": request_id,
+                "duration_ms": max(0, int((time.monotonic() - started_at) * 1000)),
+                "status": status,
+                "finish_reason": finish_reason,
+                "prompt_tokens": usage.prompt_tokens if usage else None,
+                "completion_tokens": usage.completion_tokens if usage else None,
+                "total_tokens": usage.total_tokens if usage else None,
+                "quota_client_remaining": decision.client_remaining,
+                "quota_global_remaining": decision.global_remaining,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+    )
+
+
 @app.get("/health")
 @app.get("/health/live")
 def health() -> Response:
@@ -378,10 +426,16 @@ def chat() -> Response:
         return jsonify(reply=reply), 429, _rate_headers(decision)
 
     messages = _build_messages(user_msg, history)
+    request_id = uuid.uuid4().hex[:16]
 
     def generate():
         full_reply: list[str] = []
         guard = ProtectedContactStreamGuard(CHAT_OUTPUT_POLICY)
+        parser = ProviderStreamParser()
+        started_at = time.monotonic()
+        status = "protocol_error"
+        finish_reason: str | None = None
+        persist_answer = False
         try:
             with requests.post(
                 f"{LLM_BASE_URL}/chat/completions",
@@ -396,54 +450,77 @@ def chat() -> Response:
                     "temperature": 0.4,
                     "thinking": LLM_THINKING,
                     "stream": True,
+                    "stream_options": {"include_usage": True},
                 },
-                timeout=REQUEST_TIMEOUT,
+                timeout=(LLM_CONNECT_TIMEOUT, LLM_READ_TIMEOUT),
                 stream=True,
             ) as upstream:
                 upstream.raise_for_status()
                 for line in upstream.iter_lines(decode_unicode=True):
-                    if not line or not line.startswith("data:"):
-                        continue
-                    payload = line[5:].strip()
-                    if payload == "[DONE]":
+                    for event in parser.feed_line(line):
+                        if event.kind == "content":
+                            for safe_chunk in guard.feed(event.content):
+                                full_reply.append(safe_chunk)
+                                yield safe_chunk
+                            if guard.blocked:
+                                status = "policy_blocked"
+                                persist_answer = True
+                                break
+                        elif event.kind == "terminal":
+                            finish_reason = event.finish_reason
+                    if guard.blocked:
                         break
-                    try:
-                        choice = json.loads(payload)["choices"][0]
-                        delta_payload = choice["delta"]
-                        if not isinstance(delta_payload, dict):
-                            continue
-                        delta = delta_payload.get("content")
-                    except (json.JSONDecodeError, KeyError, IndexError, TypeError):
-                        continue
-                    if isinstance(delta, str) and delta:
-                        for safe_chunk in guard.feed(delta):
+
+                if guard.blocked:
+                    status = "policy_blocked"
+                else:
+                    parser.finish_eof()
+                    finish_reason = parser.finish_reason
+                    if finish_reason == "stop":
+                        for safe_chunk in guard.finish():
                             full_reply.append(safe_chunk)
                             yield safe_chunk
-                        if guard.blocked:
-                            break
-
-                if not guard.blocked:
-                    for safe_chunk in guard.finish():
-                        full_reply.append(safe_chunk)
-                        yield safe_chunk
+                        status = "success"
+                        persist_answer = True
+                    elif finish_reason == "length":
+                        for safe_chunk in guard.finish():
+                            full_reply.append(safe_chunk)
+                            yield safe_chunk
+                        status = "length"
+                        yield _provider_notice(status)
+                    elif finish_reason in {
+                        "content_filter",
+                        "insufficient_system_resource",
+                        "tool_calls",
+                    }:
+                        status = finish_reason
+                        yield _provider_notice(status)
+                    else:
+                        raise ProviderStreamError("missing classified finish reason")
+        except GeneratorExit:
+            status = "browser_disconnect"
+            raise
         except requests.exceptions.Timeout:
-            if not guard.blocked:
-                for safe_chunk in guard.finish():
-                    full_reply.append(safe_chunk)
-                    yield safe_chunk
-            if not guard.blocked:
-                yield "\n\n[That took too long — please try again.]"
+            status = "timeout"
+            yield _provider_notice(status)
+        except requests.exceptions.HTTPError as error:
+            status_code = getattr(error.response, "status_code", None)
+            status = (
+                f"http_{status_code // 100}xx"
+                if isinstance(status_code, int) and 400 <= status_code < 600
+                else "http_error"
+            )
+            yield _provider_notice("http_error")
+        except ProviderStreamError:
+            status = "protocol_error"
+            yield _provider_notice(status)
         except Exception as error:
+            status = "internal_error"
             app.logger.error("LLM stream failed: %s", type(error).__name__)
-            if not guard.blocked:
-                for safe_chunk in guard.finish():
-                    full_reply.append(safe_chunk)
-                    yield safe_chunk
-            if not guard.blocked:
-                yield "\n\n[Sorry, something went wrong. Please email Andris directly.]"
+            yield _provider_notice(status)
         finally:
             answer_text = "".join(full_reply).strip()
-            if answer_text:
+            if persist_answer and answer_text:
                 try:
                     STORE.record_chat(client_key, user_msg, answer_text)
                 except Exception as error:
@@ -455,6 +532,14 @@ def chat() -> Response:
                     args=(client_key, user_msg, answer_text),
                     daemon=True,
                 ).start()
+            _log_provider_result(
+                request_id=request_id,
+                started_at=started_at,
+                status=status,
+                finish_reason=finish_reason,
+                parser=parser,
+                decision=decision,
+            )
 
     return Response(
         stream_with_context(generate()),
@@ -462,6 +547,7 @@ def chat() -> Response:
         headers={
             "X-Accel-Buffering": "no",
             "Cache-Control": "no-store",
+            "X-Request-ID": request_id,
             **_rate_headers(decision),
         },
     )
