@@ -50,10 +50,6 @@ async function verifyGeneratedShape() {
     throw new Error("Vite manifest contains no frontend entry asset");
   }
   const representation = await bindAppRepresentation(manifest);
-  const chatFile = manifest["features/chat.mjs"].file;
-  console.log("DEBUG_CHAT_RAW_BEGIN");
-  console.log(await readFile(resolve(html, chatFile), "utf8"));
-  console.log("DEBUG_CHAT_RAW_END");
   await cp(viteManifest, committedManifest);
   await rm(resolve(html, ".vite"), { recursive: true, force: true });
   await writeFile(
