@@ -15,6 +15,8 @@ fail_bootstrap() {
 }
 
 [[ ${EUID:-$(id -u)} -eq 0 ]] || fail_bootstrap 'pull-deploy helper must run as root'
+[[ "$#" -eq 2 ]] \
+    || fail_bootstrap 'pull-deploy helper requires exactly target SHA and evidence directory'
 [[ -f "$DEPLOY_LIBRARY" && ! -L "$DEPLOY_LIBRARY" ]] \
     || fail_bootstrap 'installed deploy library is missing or unsafe'
 [[ "$(stat -c '%U:%G:%a' "$DEPLOY_LIBRARY")" == 'root:root:755' ]] \
@@ -164,8 +166,8 @@ require_capacity "$BACKUP_ROOT" "$REQUIRED_BACKUP_BYTES" "$MIN_FREE_INODES" \
 owner_git -C "$PRIMARY" fetch --prune origin main
 REMOTE_MAIN="$(owner_git -C "$PRIMARY" rev-parse refs/remotes/origin/main)"
 owner_git -C "$PRIMARY" cat-file -e "${TARGET_SHA}^{commit}"
-owner_git -C "$PRIMARY" merge-base --is-ancestor "$TARGET_SHA" "$REMOTE_MAIN" \
-    || fail 'target SHA is not an ancestor of current origin/main'
+[[ "$TARGET_SHA" == "$REMOTE_MAIN" ]] \
+    || fail 'target SHA is not current origin/main'
 
 if [[ -s "$STATE_FILE" ]]; then
     OLD_SHA="$(tr -d '[:space:]' <"$STATE_FILE")"
