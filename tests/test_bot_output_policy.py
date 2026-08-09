@@ -76,8 +76,19 @@ class BotOutputPolicyIntegrationTests(unittest.TestCase):
         sys.modules[module_name] = self.module
         self.addCleanup(sys.modules.pop, module_name, None)
         spec.loader.exec_module(self.module)
-        self.addCleanup(self.module.STORE.close)
         self.client = self.module.app.test_client()
+        self.addCleanup(self.module.close_app_services, self.module.app)
+
+    def _headers(self, address: str = "203.0.113.10") -> dict[str, str]:
+        client_key = self.module.STORE.pseudonymize(
+            address, self.module.CLIENT_KEY_SECRET
+        )
+        return {
+            "X-Real-IP": address,
+            "X-Chat-Admission": self.module.issue_session(
+                client_key, self.module.CLIENT_KEY_SECRET
+            ),
+        }
 
     def _post_chunks(self, chunks: list[str]):
         def upstream(*args, **kwargs):
@@ -87,7 +98,7 @@ class BotOutputPolicyIntegrationTests(unittest.TestCase):
             response = self.client.post(
                 "/chat",
                 json={"message": "How can I contact Andris?", "history": []},
-                headers={"X-Real-IP": "203.0.113.10"},
+                headers=self._headers(),
                 environ_base={"REMOTE_ADDR": "172.19.0.10"},
                 buffered=True,
             )
@@ -116,10 +127,7 @@ class BotOutputPolicyIntegrationTests(unittest.TestCase):
 
     def test_numbered_whatsapp_target_is_blocked(self) -> None:
         response = self._post_chunks(["Open https://wa.", "me/491701234567"])
-        self.assertEqual(
-            response.get_data(as_text=True),
-            BLOCKED_CONTACT_REPLY,
-        )
+        self.assertEqual(response.get_data(as_text=True), BLOCKED_CONTACT_REPLY)
 
 
 if __name__ == "__main__":
