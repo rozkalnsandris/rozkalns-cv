@@ -1,0 +1,148 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+IFS=$'\n\t'
+umask 077
+PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+export PATH
+
+DEPLOY_LIBRARY='/usr/local/libexec/rozkalns-cv/rozkalns-cv-deploy-library'
+PULL_EVIDENCE_ROOT='/home/andris/.local/state/rozkalns-cv-pull-deploy/evidence'
+PULL_CALLER='andris'
+
+fail_bootstrap() {
+    printf 'ERROR: %s\n' "$*" >&2
+    exit 1
+}
+
+[[ ${EUID:-$(id -u)} -eq 0 ]] || fail_bootstrap 'pull-deploy helper must run as root'
+[[ -f "$DEPLOY_LIBRARY" && ! -L "$DEPLOY_LIBRARY" ]] \
+    || fail_bootstrap 'installed deploy library is missing or unsafe'
+[[ "$(stat -c '%U:%G:%a' "$DEPLOY_LIBRARY")" == 'root:root:755' ]] \
+    || fail_bootstrap 'installed deploy library ownership/mode is unexpected'
+
+ROZKALNS_CV_DEPLOY_LIBRARY_ONLY=1
+# shellcheck source=/dev/null
+source "$DEPLOY_LIBRARY"
+unset ROZKALNS_CV_DEPLOY_LIBRARY_ONLY
+
+for command_name in \
+    awk bash chmod chown curl df docker du find flock grep head id install mktemp mv \
+    python3 realpath rm rsync runuser sha256sum sort stat sync tee tr wc xargs
+do
+    command -v "$command_name" >/dev/null 2>&1 \
+        || fail "required command is missing: $command_name"
+done
+
+[[ "${SUDO_USER:-}" == "$PULL_CALLER" ]] \
+    || fail 'pull-deploy helper must be invoked by the dedicated local controller'
+[[ "${SUDO_UID:-}" =~ ^[0-9]+$ && "${SUDO_GID:-}" =~ ^[0-9]+$ ]] \
+    || fail 'pull-deploy caller uid/gid are unavailable'
+[[ "${SUDO_UID}" -gt 0 && "${SUDO_GID}" -gt 0 ]] \
+    || fail 'pull-deploy caller uid/gid must be non-root'
+[[ "$(id -un "$SUDO_UID" 2>/dev/null)" == "$PULL_CALLER" ]] \
+    || fail 'pull-deploy caller identity mismatch'
+EVIDENCE_UID="$SUDO_UID"
+EVIDENCE_GID="$SUDO_GID"
+
+[[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]] || fail 'target SHA is invalid'
+[[ -n "$EVIDENCE_DIR" ]] || fail 'evidence directory is required'
+[[ -d "$PRIMARY/.git" ]] || fail "primary Git repository is missing: $PRIMARY"
+[[ -d "$RUNTIME" && ! -L "$RUNTIME" ]] \
+    || fail "runtime directory is missing or a symlink: $RUNTIME"
+[[ -d "$EVIDENCE_DIR" && ! -L "$EVIDENCE_DIR" ]] \
+    || fail 'evidence directory must already exist and must not be a symlink'
+
+EVIDENCE_REAL="$(realpath -e -- "$EVIDENCE_DIR")"
+case "$EVIDENCE_REAL" in
+    "$PULL_EVIDENCE_ROOT"/rozkalns-cv-main-deploy-*)
+        ;;
+    *)
+        fail 'evidence directory is outside the pull-deploy evidence root'
+        ;;
+esac
+[[ "$(stat -c '%u' "$EVIDENCE_DIR")" == "$EVIDENCE_UID" ]] \
+    || fail 'evidence directory is not owned by the pull-deploy caller'
+[[ "$(stat -c '%g' "$EVIDENCE_DIR")" == "$EVIDENCE_GID" ]] \
+    || fail 'evidence directory group does not match the pull-deploy caller'
+EVIDENCE_DIR="$EVIDENCE_REAL"
+EVIDENCE_READY=true
+printf 'DEPLOY_TRANSPORT=pull-controller\n' >"$EVIDENCE_DIR/transport.env"
+
+install -d -m 0700 "$BACKUP_ROOT"
+install -d -m 0755 "$STATE_DIR"
+exec 9>"$LOCK_FILE"
+flock 9
+prune_backups || fail 'backup retention preflight failed'
+validate_existing_network \
+    || fail 'existing cv_default network conflicts with the pinned subnet'
+
+RUNTIME_BYTES="$(managed_size_bytes "$RUNTIME")" \
+    || fail 'could not determine runtime size'
+REQUIRED_RUNTIME_BYTES=$((RUNTIME_BYTES * 2 + MIN_FREE_BYTES))
+REQUIRED_BACKUP_BYTES=$((RUNTIME_BYTES + MIN_FREE_BYTES))
+require_capacity "$RUNTIME" "$REQUIRED_RUNTIME_BYTES" "$MIN_FREE_INODES" \
+    || fail 'runtime filesystem lacks required free space or inodes'
+require_capacity "$BACKUP_ROOT" "$REQUIRED_BACKUP_BYTES" "$MIN_FREE_INODES" \
+    || fail 'backup filesystem lacks required free space or inodes'
+
+owner_git -C "$PRIMARY" fetch --prune origin main
+REMOTE_MAIN="$(owner_git -C "$PRIMARY" rev-parse refs/remotes/origin/main)"
+owner_git -C "$PRIMARY" cat-file -e "${TARGET_SHA}^{commit}"
+owner_git -C "$PRIMARY" merge-base --is-ancestor "$TARGET_SHA" "$REMOTE_MAIN" \
+    || fail 'target SHA is not an ancestor of current origin/main'
+
+if [[ -s "$STATE_FILE" ]]; then
+    OLD_SHA="$(tr -d '[:space:]' <"$STATE_FILE")"
+fi
+
+if [[ "$OLD_SHA" == "$TARGET_SHA" ]]; then
+    write_summary 'NO_OP_ALREADY_CURRENT' false
+    exit 0
+fi
+
+if [[ "$OLD_SHA" =~ ^[0-9a-f]{40}$ ]] \
+   && owner_git -C "$PRIMARY" merge-base --is-ancestor "$TARGET_SHA" "$OLD_SHA"; then
+    write_summary 'NO_OP_STALE' false
+    exit 0
+fi
+
+install -d -o "$OWNER" -g "$OWNER" -m 0700 \
+    /home/andris/.cache/rozkalns-cv-deploy
+WORK="$(runuser -u "$OWNER" -- \
+    mktemp -d '/home/andris/.cache/rozkalns-cv-deploy/run.XXXXXXXX')"
+STAGE="$WORK/source"
+CANDIDATE="$WORK/candidate"
+owner_git -C "$PRIMARY" worktree add --detach "$STAGE" "$TARGET_SHA" >/dev/null
+
+runuser -u "$OWNER" -- bash -c \
+    'cd "$1" && exec bash "$1/scripts/validate-source.sh" "$1"' \
+    bash "$STAGE" \
+    >"$EVIDENCE_DIR/source-validation.log" 2>&1 \
+    || fail 'source validation failed'
+prepare_candidate || fail 'candidate preparation failed'
+
+BACKUP="$BACKUP_ROOT/${STAMP}-${OLD_SHA:-unknown}"
+create_backup || fail 'rollback backup creation failed'
+capture_runtime_diagnostics 'pre-deploy-runtime'
+
+MUTATION_STARTED=true
+DEPLOYED=true
+if ! managed_rsync "$CANDIDATE" "$RUNTIME" \
+    >"$EVIDENCE_DIR/deploy.log" 2>&1; then
+    capture_runtime_diagnostics 'failed-source-sync-runtime'
+    fail 'production source synchronization failed'
+fi
+
+if ! deploy_runtime >>"$EVIDENCE_DIR/deploy.log" 2>&1; then
+    capture_runtime_diagnostics 'failed-deploy-runtime'
+    fail 'runtime deployment checks failed'
+fi
+
+capture_runtime_diagnostics 'post-deploy-runtime'
+write_runtime_manifest "$EVIDENCE_DIR/runtime-managed.sha256" \
+    || fail 'runtime manifest generation failed'
+write_state_atomically || fail 'atomic deployed-state update failed'
+TRANSACTION_COMMITTED=true
+prune_backups || printf 'WARNING: post-deploy backup pruning failed\n' \
+    | tee -a "$EVIDENCE_DIR/deploy.log" >&2
+write_summary 'PASS' false
