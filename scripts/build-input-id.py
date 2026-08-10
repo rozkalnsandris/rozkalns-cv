@@ -6,12 +6,26 @@ import hashlib
 from pathlib import Path
 import sys
 
-INPUTS = (
-    "bot/Dockerfile",
+CVBOT_DOCKER_COPY_INPUTS = (
     "bot/requirements.lock",
     "bot/app.py",
+    "bot/chat_admission.py",
+    "bot/chat_entry.py",
+    "bot/chat_policy.py",
+    "bot/config.py",
     "bot/contact.py",
+    "bot/notifier.py",
+    "bot/provider.py",
+    "bot/provider_stream.py",
+    "bot/readiness.py",
     "bot/storage.py",
+    "bot/system_prompt.py",
+    "bot/system_prompt.txt",
+)
+
+INPUTS = (
+    "bot/Dockerfile",
+    *CVBOT_DOCKER_COPY_INPUTS,
     "docker-compose.yml",
     "security/supply-chain.json",
 )
