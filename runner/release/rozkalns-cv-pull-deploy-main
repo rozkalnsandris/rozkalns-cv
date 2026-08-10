@@ -110,7 +110,7 @@ validate_cvbot_runtime_secret() {
 
 validate_candidate_runtime_prerequisites() {
     if runtime_requires_cvbot_client_secret "$CANDIDATE"; then
-        validate_cvbot_runtime_secret_strict
+        validate_cvbot_runtime_secret_strict || return 1
         printf 'TARGET_RUNTIME_PREREQUISITES=PASS\n'
     else
         printf 'TARGET_RUNTIME_PREREQUISITES=NO_SECRET_REQUIRED\n'

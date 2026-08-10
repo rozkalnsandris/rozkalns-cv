@@ -121,6 +121,7 @@ class PullDeployTransportContractTests(unittest.TestCase):
         for marker in (
             "validate_candidate_runtime_prerequisites()",
             'runtime_requires_cvbot_client_secret "$CANDIDATE"',
+            "validate_cvbot_runtime_secret_strict || return 1",
             "TARGET_RUNTIME_PREREQUISITES=PASS",
             "target-prerequisites.log",
             "target runtime prerequisites failed before production mutation",
@@ -138,6 +139,29 @@ class PullDeployTransportContractTests(unittest.TestCase):
         self.assertLess(prerequisite, backup)
         self.assertLess(prerequisite, mutation)
         self.assertLess(prerequisite, sync)
+
+    def test_candidate_prerequisite_failure_survives_conditional_context(self) -> None:
+        marker = "validate_candidate_runtime_prerequisites() {"
+        body = self.pull.split(marker, 1)[1].split("\n}\n", 1)[0]
+        function_source = marker + body + "\n}\n"
+        script = f"""
+set -Eeuo pipefail
+CANDIDATE=/tmp/unused
+runtime_requires_cvbot_client_secret() {{ return 0; }}
+validate_cvbot_runtime_secret_strict() {{ return 17; }}
+{function_source}
+if validate_candidate_runtime_prerequisites >/dev/null 2>&1; then
+    exit 91
+fi
+"""
+        completed = subprocess.run(
+            ["bash", "-c", script],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stdout)
 
     def test_pull_rollback_secret_contract_is_restored_baseline_aware(self) -> None:
         for marker in (
