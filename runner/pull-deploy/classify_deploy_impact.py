@@ -38,15 +38,20 @@ NO_DEPLOY_PREFIXES = (
 AUTO_DEPLOY_EXACT = frozenset(
     {
         "frontend-dist-manifest.json",
+        "bot/system_prompt.txt",
     }
 )
 AUTO_DEPLOY_PREFIXES = (
     "content/",
     "frontend/",
     "html/",
-    "bot/",
 )
 
+# CVBot executable/runtime surfaces are deliberately explicit. The bot image
+# entrypoint, service graph, security/admission policy, runtime configuration,
+# provider/notification integrations, readiness/storage boundaries and Python
+# prompt loader all require reviewed rollout. New bot paths are not implicitly
+# auto-approved: they fall through to MANUAL_ROLLOUT_REQUIRED below.
 MANUAL_EXACT = frozenset(
     {
         "Makefile",
@@ -60,7 +65,18 @@ MANUAL_EXACT = frozenset(
         "vite.config.mjs",
         "bot/.env.example",
         "bot/Dockerfile",
+        "bot/app.py",
+        "bot/chat_admission.py",
+        "bot/chat_entry.py",
+        "bot/chat_policy.py",
+        "bot/config.py",
+        "bot/contact.py",
+        "bot/notifier.py",
+        "bot/provider.py",
+        "bot/provider_stream.py",
+        "bot/readiness.py",
         "bot/storage.py",
+        "bot/system_prompt.py",
     }
 )
 MANUAL_PREFIXES = (
