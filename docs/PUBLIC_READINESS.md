@@ -12,7 +12,7 @@ The repository is public. Keep the remaining cleanup items below visible until t
 - [x] Keep production deploy restricted to successful trusted exact-`main` CI and explicit owner-controlled deployment boundaries.
 - [x] Keep the full-history Gitleaks gate green with zero unresolved credential findings.
 - [x] #89 — retained Actions artifacts/logs and historical PR/issue content were audited and dispositioned. No reusable credential value, protected personal contact value or RFC1918/LAN coordinate was found in the reviewed accessible surfaces; historical host-path/topology metadata is accepted as documented low-risk operational metadata, expired evidence is recorded as unavailable, and legacy self-hosted deploy log cleanup is deferred until #90 retires the runner/reachability.
-- [ ] #91 — verify effective post-public `main` ruleset, merge policy, fork-workflow approval and least-privilege Actions settings.
+- [x] #91 — effective post-public `main` control-plane protection is configured: an active no-bypass default-branch ruleset requires the normal PR path, squash-only linear history, conversation resolution and strict GitHub Actions `validate`; deletion and force-push/non-fast-forward updates are blocked; repository merge methods are squash-only; least-privilege Actions defaults and approval for all external fork contributors are UI-verified.
 - [ ] #90 — complete replacement of the persistent public-repository RPi5 release runner. The pull/controller baseline is installed and production/classifier state is reconciled; the remaining path waits for a genuine newer `AUTO_DEPLOY_SAFE` delta, one-shot controller canary, recurring replacement proof and separately authorized legacy-runner retirement.
 - [ ] #92 — after #90 completes, regenerate the live branch inventory and prune only separately approved obsolete refs.
 
@@ -32,12 +32,30 @@ Bounded legacy self-hosted deploy job-log samples consistently expose runner/mac
 
 Owner disposition recorded 2026-08-11: **accept the reviewed host-path/topology disclosure as documented low-risk operational metadata**. Do not delete benign active artifacts solely for normal CI/public evidence. Do not rewrite history or force-push refs for this issue. Defer one-time legacy self-hosted deploy job-log cleanup until #90 has retired the repository runner/reachability so equivalent public logs are not recreated immediately after cleanup. Any future discovery of an actual reusable credential value requires rotation/revocation first and must not be reproduced in public evidence.
 
+## GitHub control-plane disposition
+
+The #91 post-public control-plane audit was remediated on 2026-08-12 without weakening CI or production boundaries.
+
+- Repository ruleset `main-protection` is **Active** and targets the default branch (`main`).
+- The ruleset has no bypass actors, and the authenticated owner/integration is not able to bypass it.
+- Matching refs block deletion and non-fast-forward/force-push updates and require linear history.
+- Changes to `main` require a pull request; required approvals remain `0` for the single-owner workflow, review conversations must be resolved, and the only allowed merge method is `squash`.
+- The GitHub Actions `validate` check is required with strict/up-to-date enforcement before merge.
+- Repository merge settings independently allow squash merge and disable merge commits and rebase merges.
+- Repository Actions defaults were owner-verified in the GitHub UI as **Read repository contents and packages permissions**; **Allow GitHub Actions to create and approve pull requests** is disabled.
+- Fork pull-request workflow policy was owner-verified in the GitHub UI as **Require approval for all external contributors**.
+- The current GitHub integration cannot read the two repository-level Actions permission endpoints and receives HTTP 403, so those two settings are deliberately recorded as UI-verified rather than falsely claimed as API-verified.
+- Ordinary pull-request CI remains GitHub-hosted with explicit `contents: read`; the temporary legacy self-hosted release workflow remains post-`main` only while #90 completes its separate migration.
+
+This documentation-only reconciliation PR is the bounded ruleset canary: the configured control plane must require the exact PR-head `validate` check to pass through the normal PR path before this change can be merged. It authorizes no direct-`main` write, production deployment, RPi5 mutation, runner retirement, branch deletion or history rewrite.
+
 ## Current observations
 
+- `main` is protected by the active `main-protection` repository ruleset; direct normal writes are no longer the accepted change path.
 - Main CI performs a full Git-history Gitleaks scan with project-specific credential rules and detector canaries.
 - Production deploy remains exact-main/CI gated and transactional. The legacy self-hosted release path remains temporarily present while #90 finishes migration to the RPi5-local pull/controller execution path.
 - The replacement controller/readiness baseline is installed with the recurring timer disabled/inactive. The last proven production/classifier baseline is `4a0069a97022841da07a687a197ea8cfacc56cd6`; current CV `main` is newer because of documentation-only public-readiness work and the full production-to-current-main range remains `NO_DEPLOY`.
 - `andris@rozkalns.net` is intentionally public for recruiting. Phone values remain runtime configuration. Public PDFs use the verified-site WhatsApp flow instead of printing the phone number.
 - Closed audit/migration branches may remain reachable in public Git history until #90 completes and #92 performs its final separately authorized live branch cleanup.
 
-Remaining public-hardening work is tracked in #91, #90 and #92. No production deployment is required for this documentation-only update.
+Remaining public-hardening work is tracked in #90 and #92. No production deployment is required for this documentation-only update.
