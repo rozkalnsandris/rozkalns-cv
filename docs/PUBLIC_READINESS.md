@@ -1,61 +1,98 @@
 # Public-repository readiness
 
-Status: **PUBLIC — remediation in progress**.
+Status: **PUBLIC — hardening complete**.
 
-The repository is public. Keep the remaining cleanup items below visible until they are resolved.
+This document records the completed public-repository hardening posture for `rozkalns-cv`. The repository remains public and is expected to stay within the controls below. A future regression in any of these controls reopens readiness review; completion does not authorize weakening them.
 
-## Public-readiness gates
+## Completed public-readiness gates
 
-- [x] #94 — dedicated recruiting email is intentionally public; phone remains runtime-protected; one-page public PDFs use the protected-site WhatsApp flow. Current tracked/generated/PDF outputs are guarded against reintroducing the protected phone.
-- [x] #88 — historical phone/address exposure is accepted as documented history-only risk. The current tracked tree is clean for protected phone/address semantics; no Git-history rewrite, force-push or ref rewrite is authorized or planned.
-- [x] Keep normal pull-request CI on GitHub-hosted runners. Current `main` does not contain a pull-request workflow targeting the legacy `rozkalns-cv-release` self-hosted runner.
-- [x] Keep production deploy restricted to successful trusted exact-`main` CI and explicit owner-controlled deployment boundaries.
-- [x] Keep the full-history Gitleaks gate green with zero unresolved credential findings.
-- [x] #89 — retained Actions artifacts/logs and historical PR/issue content were audited and dispositioned. No reusable credential value, protected personal contact value or RFC1918/LAN coordinate was found in the reviewed accessible surfaces; historical host-path/topology metadata is accepted as documented low-risk operational metadata, expired evidence is recorded as unavailable, and legacy self-hosted deploy log cleanup is deferred until #90 retires the runner/reachability.
-- [x] #91 — effective post-public `main` control-plane protection is configured: an active no-bypass default-branch ruleset requires the normal PR path, squash-only linear history, conversation resolution and strict GitHub Actions `validate`; deletion and force-push/non-fast-forward updates are blocked; repository merge methods are squash-only; least-privilege Actions defaults and approval for all external fork contributors are UI-verified.
-- [ ] #90 — complete replacement of the persistent public-repository RPi5 release runner. The pull/controller baseline is installed and production/classifier state is reconciled; the remaining path waits for a genuine newer `AUTO_DEPLOY_SAFE` delta, one-shot controller canary, recurring replacement proof and separately authorized legacy-runner retirement.
-- [ ] #92 — after #90 completes, regenerate the live branch inventory and prune only separately approved obsolete refs.
+- [x] #94 — current tracked/generated/PDF contact policy is remediated and guarded. The recruiting contact channel intentionally designated public remains public; protected phone semantics remain runtime-only and are not printed in public PDFs.
+- [x] #88 — historical protected phone/address exposure has an explicit owner disposition: accept the documented history-only risk and preserve repository history. No Git-history rewrite or force-push is planned for that accepted historical exposure.
+- [x] #89 — retained Actions artifacts/logs and historical PR/issue content were audited and dispositioned. No confirmed reusable credential value or protected current contact value was found in reviewed accessible evidence; accepted historical host-path/topology disclosure remains documented low-risk operational metadata.
+- [x] #91 — effective `main` control-plane protection is configured and proven: PR-only change path, squash-only linear history, conversation resolution, deletion/non-fast-forward protection, and strict required GitHub Actions `validate`.
+- [x] #156 — GitHub-native public security-analysis baseline was reviewed/remediated while retaining the repository's independent Gitleaks and Trivy gates.
+- [x] #157 / PR #158 — public HTTP validation failures no longer serialize exception-object text across the public trust boundary.
+- [x] #90 — the persistent public-repository RPi5 self-hosted release runner was replaced and retired. The RPi5-local pull controller passed a genuine AUTO-safe one-shot canary and recurring timer-driven execution proof; the recurring timer is enabled/active; the repository runner count was verified as zero; the legacy runner service and sudo reachability were removed.
+- [x] PR #161 — the obsolete `.github/workflows/deploy-main.yml` self-hosted deployment workflow was removed, and source/tests now reject its reintroduction while preserving the public-response contract on the active pull-deploy path.
+- [x] #92 — final live branch hygiene completed after #90. The approved batch deleted exactly 92 obsolete non-main refs through normal branch deletion, with no force-push/history rewrite; immediate final verification showed `main` as the only branch and zero open PRs.
+
+## Security and CI invariants to preserve
+
+- Ordinary pull-request CI executes only on GitHub-hosted runners; untrusted pull-request code must not execute on RPi5.
+- The repository has no configured self-hosted Actions runner for CV release work.
+- `main` changes require the protected PR path and the exact PR-head `validate` check before merge.
+- CI retains complete-history Gitleaks scanning, deterministic frontend rebuild/verification, frontend behavior tests, real Chromium smoke, pinned nginx/HTTP response contracts, CVBot image identity checks, Trivy HIGH/CRITICAL scanning, and final clean-source revalidation.
+- Production application deployment remains exact-main/CI gated, transactional and rollback-aware.
+- The RPi5-local recurring pull controller remains least-privilege/fail-closed and must continue to distinguish AUTO-safe application changes from manual/control-plane/DB-host changes.
+- Shared Cloudflare Tunnel ownership remains outside the CV repository; CV must not regain ownership of the shared connector lifecycle.
+- Protected contact values, runtime secrets, Turnstile secrets/tokens, cookies and environment values must never be copied into tracked/public evidence.
+- Branch deletion, history rewrite, production mutation, GitHub settings changes and RPi5 host/root mutations remain separate authorization boundaries.
 
 ## Historical contact-data disposition
 
-The sanitized historical audit found protected phone/address ancestry effectively repository-wide across the inspected public Git refs. The current tree is clean for the protected values, but rewriting the historical ancestry would change descendant commit identities, disrupt reference/PR integrity and require coordinated destructive ref updates while still not guaranteeing removal from old clones, forks or GitHub-managed cached/ref surfaces.
+The sanitized historical audit found protected phone/address ancestry broadly reachable through prior public Git history. The current tracked tree is guarded against reintroducing those protected semantics, but rewriting historical ancestry would change descendant commit identities, disrupt PR/reference integrity and still would not guarantee removal from old clones, forks or GitHub-managed caches/refs.
 
-Owner disposition recorded 2026-08-11: **accept the residual history-only exposure and preserve repository history**. Continue preventing protected phone/address values from re-entering the current tracked tree. Do not perform a history rewrite or force-push for this issue.
+Owner disposition recorded 2026-08-11: **accept the residual history-only exposure and preserve repository history**. Do not perform a history rewrite or force-push for this accepted issue. Continue preventing protected phone/address values from re-entering the current tracked tree.
 
-The dedicated recruiting email remains intentionally public and is not treated as protected historical contact data under the final #94 policy.
+The recruiting contact channel explicitly designated public under the final #94 policy is not treated as protected historical contact data.
 
 ## Retained public-evidence disposition
 
-The #89 audit enumerated all 163 retained Actions artifact metadata records and reviewed representative active artifact families manifest-first with bounded content inspection. Reviewed accessible artifacts did not contain a confirmed reusable credential value, protected personal contact value, RFC1918/LAN address, raw secret environment dump or RPi5 user-home path. Older expired evidence is explicitly recorded as unavailable rather than treated as scanned.
+The #89 audit enumerated retained Actions artifact metadata and reviewed representative accessible artifact families with bounded content inspection. Reviewed evidence did not establish a reusable credential value or protected current personal-contact value. Expired evidence is recorded as unavailable rather than falsely treated as scanned.
 
-Bounded legacy self-hosted deploy job-log samples consistently expose runner/machine identity, absolute runner-work/helper paths and internal deploy/container naming. Historical issue/PR text also contains absolute production/runtime paths; issue #44 identifies the location and filesystem ownership/mode of a root-only host credential file, but not the credential value itself.
+Historical issue/PR/job-log material can contain machine identity, absolute paths, internal naming and other topology details. Owner disposition recorded 2026-08-11: **accept the reviewed host-path/topology disclosure as documented low-risk operational metadata**. Do not rewrite Git history for this reason. Any future discovery of an actual reusable credential requires rotation/revocation first and the credential value must not be reproduced in public evidence.
 
-Owner disposition recorded 2026-08-11: **accept the reviewed host-path/topology disclosure as documented low-risk operational metadata**. Do not delete benign active artifacts solely for normal CI/public evidence. Do not rewrite history or force-push refs for this issue. Defer one-time legacy self-hosted deploy job-log cleanup until #90 has retired the repository runner/reachability so equivalent public logs are not recreated immediately after cleanup. Any future discovery of an actual reusable credential value requires rotation/revocation first and must not be reproduced in public evidence.
+The legacy public self-hosted runner and its active workflow reachability have now been retired, so equivalent new self-hosted deployment logs are no longer generated by this repository.
 
 ## GitHub control-plane disposition
 
-The #91 post-public control-plane audit was remediated on 2026-08-12 without weakening CI or production boundaries.
+The #91 post-public control-plane audit was remediated without weakening CI or production boundaries.
 
-- Repository ruleset `main-protection` is **Active** and targets the default branch (`main`).
-- The ruleset has no bypass actors, and the authenticated owner/integration is not able to bypass it.
-- Matching refs block deletion and non-fast-forward/force-push updates and require linear history.
-- Changes to `main` require a pull request; required approvals remain `0` for the single-owner workflow, review conversations must be resolved, and the only allowed merge method is `squash`.
-- The GitHub Actions `validate` check is required with strict/up-to-date enforcement before merge.
-- Repository merge settings independently allow squash merge and disable merge commits and rebase merges.
-- Repository Actions defaults were owner-verified in the GitHub UI as **Read repository contents and packages permissions**; **Allow GitHub Actions to create and approve pull requests** is disabled.
-- Fork pull-request workflow policy was owner-verified in the GitHub UI as **Require approval for all external contributors**.
-- The current GitHub integration cannot read the two repository-level Actions permission endpoints and receives HTTP 403, so those two settings are deliberately recorded as UI-verified rather than falsely claimed as API-verified.
-- Ordinary pull-request CI remains GitHub-hosted with explicit `contents: read`; the temporary legacy self-hosted release workflow remains post-`main` only while #90 completes its separate migration.
+- Repository ruleset `main-protection` is Active and targets the default branch.
+- There are no intended bypass actors for normal repository work.
+- Matching refs block deletion and non-fast-forward updates and require linear history.
+- Changes to `main` require a pull request; review conversations must be resolved; repository merge policy is squash-only.
+- GitHub Actions `validate` is the strict required status check for the protected merge path.
+- Ordinary PR CI remains GitHub-hosted with explicit read-only repository permissions.
+- Repository Actions default workflow permissions and external-fork approval policy were owner-verified in the GitHub UI where the linked integration could not read the corresponding settings endpoints.
 
-This documentation-only reconciliation PR is the bounded ruleset canary: the configured control plane must require the exact PR-head `validate` check to pass through the normal PR path before this change can be merged. It authorizes no direct-`main` write, production deployment, RPi5 mutation, runner retirement, branch deletion or history rewrite.
+## Deployment-control disposition
 
-## Current observations
+Phase 3 replaced the persistent public-repository self-hosted release runner with an RPi5-local polling/pull controller using short-lived scoped GitHub App read authentication.
 
-- `main` is protected by the active `main-protection` repository ruleset; direct normal writes are no longer the accepted change path.
-- Main CI performs a full Git-history Gitleaks scan with project-specific credential rules and detector canaries.
-- Production deploy remains exact-main/CI gated and transactional. The legacy self-hosted release path remains temporarily present while #90 finishes migration to the RPi5-local pull/controller execution path.
-- The replacement controller/readiness baseline is installed with the recurring timer disabled/inactive. The last proven production/classifier baseline is `4a0069a97022841da07a687a197ea8cfacc56cd6`; current CV `main` is newer because of documentation-only public-readiness work and the full production-to-current-main range remains `NO_DEPLOY`.
-- `andris@rozkalns.net` is intentionally public for recruiting. Phone values remain runtime configuration. Public PDFs use the verified-site WhatsApp flow instead of printing the phone number.
-- Closed audit/migration branches may remain reachable in public Git history until #90 completes and #92 performs its final separately authorized live branch cleanup.
+Proven sequence:
 
-Remaining public-hardening work is tracked in #90 and #92. No production deployment is required for this documentation-only update.
+1. exact-main CI and deploy-impact classification gate;
+2. genuine AUTO-safe one-shot controller canary PASS;
+3. recurring timer activation and timer-driven controller execution PASS;
+4. readiness remained `CURRENT` and the public application contract remained healthy;
+5. legacy `rpi5-rozkalns-cv-release` runner deregistered;
+6. legacy runner systemd service removed;
+7. legacy runner sudo reachability removed;
+8. repository self-hosted runner count verified as zero;
+9. obsolete self-hosted deploy workflow removed from source by PR #161.
+
+The recurring controller does not turn manual/control-plane changes into unattended production deployments. Existing classification and authorization boundaries remain authoritative.
+
+## Branch-hygiene disposition
+
+#92 regenerated the live inventory only after #90 completed, required a separate explicit owner authorization for deletion, and rechecked exact `main`, exact-main CI, all live refs, open PR heads and protection state immediately before mutation.
+
+The approved cleanup removed exactly 92 classified obsolete non-main refs through normal GitHub ref deletion. No ref was force-moved, no history was rewritten and `main` was unchanged. Immediate final verification showed one branch total (`main`) and zero open PRs.
+
+Future active PR branches are normal temporary workflow state; completed/superseded branches should not be allowed to accumulate again.
+
+## Final baseline
+
+At the start of this final readiness declaration:
+
+- protected base `main`: `0d2c4f97708e509968358e56525fc0df864173d7`;
+- exact-main CI #655 / run `31643356454`: **PASS** across all required validation/security/browser/runtime gates;
+- last proven production application SHA: `edea046966b8e69c14fb652b799297b9ae1df1bf`;
+- the `edea046...` → `0d2c4f...` delta is control-plane/source-cleanup only from PR #161 and does not require an application production deploy;
+- #90: completed;
+- #92: completed;
+- repository self-hosted runner count: 0;
+- obsolete non-main branch inventory: pruned.
+
+This final readiness update is documentation-only. `PRODUCTION_DEPLOY_REQUIRED=no`.
