@@ -5,12 +5,12 @@ import subprocess
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-WORKFLOW = ROOT / ".github" / "workflows" / "deploy-main.yml"
+PULL_WRAPPER = ROOT / "runner" / "release" / "rozkalns-cv-pull-deploy-main"
 
 
 class DeployPublicHeaderTests(unittest.TestCase):
-    def test_deploy_verifier_uses_portable_case_insensitive_header_parsing(self) -> None:
-        text = WORKFLOW.read_text(encoding="utf-8")
+    def test_pull_deploy_verifier_uses_portable_case_insensitive_header_parsing(self) -> None:
+        text = PULL_WRAPPER.read_text(encoding="utf-8")
         self.assertNotIn("IGNORECASE=1", text)
         self.assertIn('tolower($1) == "content-type:"', text)
         self.assertIn('tolower($1) == "content-security-policy:"', text)

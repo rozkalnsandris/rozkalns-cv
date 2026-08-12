@@ -5,7 +5,6 @@ import subprocess
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-WORKFLOW = ROOT / ".github" / "workflows" / "deploy-main.yml"
 CI = ROOT / ".github" / "workflows" / "ci.yml"
 HELPER = ROOT / "runner" / "release" / "rozkalns-cv-deploy-main"
 RUNNER_INSTALLER = ROOT / "runner" / "install-github-cv-runner.sh"
@@ -24,23 +23,6 @@ def read(path: Path) -> str:
 
 
 class DeployContractTests(unittest.TestCase):
-    def test_workflow_is_sha_bound_and_uses_dedicated_runner(self) -> None:
-        text = read(WORKFLOW)
-        for marker in (
-            "workflow_run:",
-            "workflows:\n      - CI",
-            "branches:\n      - main",
-            "github.event.workflow_run.conclusion == 'success'",
-            "rozkalns-cv-release",
-            "/usr/local/sbin/rozkalns-cv-deploy-main",
-            "https://rozkalns.net/",
-            "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
-        ):
-            self.assertIn(marker, text)
-        self.assertNotIn("actions/checkout", text)
-        self.assertNotIn("actions/upload-artifact@v", text)
-        self.assertNotIn("concurrency:", text)
-
     def test_main_push_ci_is_not_cancelled_by_newer_merge(self) -> None:
         text = read(CI)
         self.assertIn(
