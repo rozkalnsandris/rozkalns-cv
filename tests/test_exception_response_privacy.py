@@ -97,8 +97,8 @@ class ExceptionResponsePrivacyTests(unittest.TestCase):
             response.get_json(),
             {
                 "reply": (
-                    "Invalid chat request. Please check your message and "
-                    "conversation history."
+                    "Invalid chat request: message or conversation history is "
+                    "invalid or too long."
                 )
             },
         )
