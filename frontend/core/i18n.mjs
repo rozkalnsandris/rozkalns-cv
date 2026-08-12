@@ -84,8 +84,18 @@ export function createLanguageController({
     return messages;
   }
 
+  async function tryApply(nextLanguage) {
+    try {
+      await apply(nextLanguage);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   return {
     apply,
+    tryApply,
     get language() { return language; },
     get messages() { return messages; }
   };
