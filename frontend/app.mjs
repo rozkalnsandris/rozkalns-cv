@@ -98,12 +98,14 @@ function requestedWhatsAppContact() {
 
 async function init() {
   const languageController = createLanguageController({ pdfs: PDFS });
-  try { await languageController.apply(languageController.language); }
-  catch { await languageController.apply("en"); }
+  const preferredApplied = await languageController.tryApply(languageController.language);
+  if (!preferredApplied && languageController.language !== "en") {
+    await languageController.tryApply("en");
+  }
 
   document.querySelectorAll("[data-lang]").forEach((button) => {
-    button.addEventListener("click", async () => {
-      await languageController.apply(button.dataset.lang);
+    button.addEventListener("click", () => {
+      void languageController.tryApply(button.dataset.lang);
     });
   });
 
