@@ -394,8 +394,8 @@ def create_app(
         except RequestValidationError:
             return jsonify(
                 reply=(
-                    "Invalid chat request. Please check your message and "
-                    "conversation history."
+                    "Invalid chat request: message or conversation history is "
+                    "invalid or too long."
                 )
             ), 400
         try:
