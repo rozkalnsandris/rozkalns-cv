@@ -99,9 +99,7 @@ function requestedWhatsAppContact() {
 async function init() {
   const languageController = createLanguageController({ pdfs: PDFS });
   const preferredApplied = await languageController.tryApply(languageController.language);
-  if (!preferredApplied && languageController.language !== "en") {
-    await languageController.tryApply("en");
-  }
+  if (!preferredApplied) await languageController.tryApply("en");
 
   document.querySelectorAll("[data-lang]").forEach((button) => {
     button.addEventListener("click", () => {
