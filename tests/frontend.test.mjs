@@ -7,6 +7,7 @@ import {
   normalizeLanguage,
   preferredLanguage
 } from "../frontend/core/i18n.mjs";
+import { createTurnstileLoader } from "../frontend/core/turnstile.mjs";
 import {
   buildChatPayload,
   normalizeCompletedHistory
@@ -85,6 +86,56 @@ test("incomplete history is dropped", () => {
     { role: "user", content: "orphan" }
   ];
   assert.deepEqual(normalizeCompletedHistory(history), history.slice(0, 2));
+});
+
+test("Turnstile script loading is shared in flight and retryable after failure", async () => {
+  const scripts = [];
+  const root = {
+    createElement(tagName) {
+      assert.equal(tagName, "script");
+      const listeners = new Map();
+      return {
+        src: "",
+        async: false,
+        defer: false,
+        removed: false,
+        addEventListener(type, listener) { listeners.set(type, listener); },
+        remove() { this.removed = true; },
+        dispatch(type) { listeners.get(type)?.(); }
+      };
+    },
+    head: {
+      append(script) { scripts.push(script); }
+    }
+  };
+  const windowLike = {};
+  const loadTurnstile = createTurnstileLoader();
+
+  const first = loadTurnstile(root, windowLike);
+  const concurrent = loadTurnstile(root, windowLike);
+  assert.equal(first, concurrent);
+  assert.equal(scripts.length, 1);
+  assert.equal(
+    scripts[0].src,
+    "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
+  );
+  assert.equal(scripts[0].async, true);
+  assert.equal(scripts[0].defer, true);
+
+  scripts[0].dispatch("error");
+  await assert.rejects(first, /turnstile unavailable/);
+  assert.equal(scripts[0].removed, true);
+
+  const second = loadTurnstile(root, windowLike);
+  assert.notEqual(second, first);
+  assert.equal(scripts.length, 2);
+
+  const api = { render() {} };
+  windowLike.turnstile = api;
+  scripts[1].dispatch("load");
+  assert.equal(await second, api);
+  assert.equal(await loadTurnstile(root, windowLike), api);
+  assert.equal(scripts.length, 2);
 });
 
 test("valid recent stats are live", () => {
@@ -233,7 +284,7 @@ test("contact reveal payload must contain bounded contact shapes", () => {
     contactPayloadIsValid({
       email: "not-an-email",
       phone: "123",
-      phone_uri: "javascript:alert(1)"
+      phone_uri: "invalid-phone-uri"
     }),
     false
   );

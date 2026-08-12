@@ -1,3 +1,5 @@
+import { loadTurnstile } from "../core/turnstile.mjs";
+
 export function normalizeCompletedHistory(history, maxMessages = 12) {
   if (!Array.isArray(history)) return [];
   const completed = [];
@@ -98,25 +100,6 @@ function appendMessage(root, log, text, role) {
   return message;
 }
 
-let turnstilePromise = null;
-function loadTurnstile(root, windowLike) {
-  if (windowLike.turnstile) return Promise.resolve(windowLike.turnstile);
-  if (turnstilePromise) return turnstilePromise;
-  turnstilePromise = new Promise((resolve, reject) => {
-    const script = root.createElement("script");
-    script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
-    script.async = true;
-    script.defer = true;
-    script.addEventListener("load", () => {
-      if (windowLike.turnstile) resolve(windowLike.turnstile);
-      else reject(new Error("chat verification unavailable"));
-    }, { once: true });
-    script.addEventListener("error", () => reject(new Error("chat verification unavailable")), { once: true });
-    root.head.append(script);
-  });
-  return turnstilePromise;
-}
-
 export function createChatController(languageController, {
   root = globalThis.document,
   windowLike = globalThis.window,
@@ -141,7 +124,12 @@ export function createChatController(languageController, {
       if (!configResponse.ok || !config?.configured || typeof config.sitekey !== "string" || !config.sitekey) {
         throw new Error("Chat verification is temporarily unavailable. Please email Andris instead.");
       }
-      const turnstile = await loadTurnstile(root, windowLike);
+      let turnstile = null;
+      try {
+        turnstile = await loadTurnstile(root, windowLike);
+      } catch {
+        throw new Error("Chat verification is temporarily unavailable. Please email Andris instead.");
+      }
       const mount = root.createElement("div");
       mount.className = "turnstile-mount";
       status.after(mount);

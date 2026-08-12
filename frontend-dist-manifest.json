@@ -27,20 +27,30 @@
       "i18n/lv.a738ee511e6b.json"
     ]
   },
+  "_turnstile.bbb79bd4f3d2.mjs": {
+    "file": "assets/turnstile.bbb79bd4f3d2.mjs",
+    "name": "turnstile"
+  },
   "features/chat.mjs": {
-    "file": "assets/chat.27b178e1f1ac.mjs",
+    "file": "assets/chat.7bf938fb1d04.mjs",
     "name": "chat",
     "src": "features/chat.mjs",
-    "isDynamicEntry": true
+    "isDynamicEntry": true,
+    "imports": [
+      "_turnstile.bbb79bd4f3d2.mjs"
+    ]
   },
   "features/contact.mjs": {
-    "file": "assets/contact.e14a6808d908.mjs",
+    "file": "assets/contact.c19f8c6b9cab.mjs",
     "name": "contact",
     "src": "features/contact.mjs",
-    "isDynamicEntry": true
+    "isDynamicEntry": true,
+    "imports": [
+      "_turnstile.bbb79bd4f3d2.mjs"
+    ]
   },
   "index.html": {
-    "file": "assets/app.f028ac1b3210.mjs",
+    "file": "assets/app.64b1bf07d9c3.mjs",
     "name": "app",
     "src": "index.html",
     "isEntry": true,
