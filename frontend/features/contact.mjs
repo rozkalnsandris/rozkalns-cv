@@ -1,28 +1,10 @@
+import { loadTurnstile } from "../core/turnstile.mjs";
+
 function setStatus(root, message, state = "") {
   const status = root.querySelector("#contactVerifyStatus");
   if (!status) return;
   status.textContent = message;
   status.dataset.state = state;
-}
-
-let turnstilePromise = null;
-function loadTurnstile(root, windowLike) {
-  if (windowLike.turnstile) return Promise.resolve(windowLike.turnstile);
-  if (turnstilePromise) return turnstilePromise;
-  turnstilePromise = new Promise((resolve, reject) => {
-    const script = root.createElement("script");
-    script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
-    script.async = true;
-    script.defer = true;
-    script.addEventListener(
-      "load",
-      () => windowLike.turnstile ? resolve(windowLike.turnstile) : reject(new Error("turnstile unavailable")),
-      { once: true }
-    );
-    script.addEventListener("error", () => reject(new Error("turnstile unavailable")), { once: true });
-    root.head.append(script);
-  });
-  return turnstilePromise;
 }
 
 function revealLink(root, element, value, href) {
