@@ -322,8 +322,8 @@ def create_app(
             return jsonify(error="Request body must be a JSON object."), 400
         try:
             token = normalize_token(payload.get("token"))
-        except ContactVerificationError as error:
-            return jsonify(error=str(error)), 400
+        except ContactVerificationError:
+            return jsonify(error="Turnstile token is invalid."), 400
         try:
             verified = verify_turnstile(
                 token,
@@ -391,8 +391,13 @@ def create_app(
             return jsonify(reply="The assistant isn't configured yet."), 503
         try:
             user_msg, history = _parse_payload(request.get_json(silent=True), active)
-        except RequestValidationError as error:
-            return jsonify(reply=str(error)), 400
+        except RequestValidationError:
+            return jsonify(
+                reply=(
+                    "Invalid chat request: message or conversation history is "
+                    "invalid or too long."
+                )
+            ), 400
         try:
             decision = active_store.reserve(client_key)
         except Exception as error:
