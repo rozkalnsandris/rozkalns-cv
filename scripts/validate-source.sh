@@ -70,13 +70,19 @@ for required in \
     scripts/sync-system-prompt.py \
     scripts/validate-source.sh \
     runner/pull-deploy/classify_deploy_impact.py \
-    .github/workflows/ci.yml \
-    .github/workflows/deploy-main.yml
+    .github/workflows/ci.yml
 do
     [[ -s "$ROOT/$required" ]] || fail "required file is missing or empty: $required"
 done
 
-for retired in update.sh update_cv-1.sh cloudflared.env.example frontend/styles/main.css frontend/styles/extra.css; do
+for retired in \
+    update.sh \
+    update_cv-1.sh \
+    cloudflared.env.example \
+    frontend/styles/main.css \
+    frontend/styles/extra.css \
+    .github/workflows/deploy-main.yml
+do
     [[ ! -e "$ROOT/$retired" ]] \
         || fail "retired source file must not exist: $retired"
 done
