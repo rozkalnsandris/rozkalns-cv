@@ -559,7 +559,15 @@ async function runBrowserSmoke(baseUrl, state) {
       ]
     });
 
-    await submit("Trigger failure", "Synthetic chat failure");
+    await submit(
+      "Trigger failure",
+      "Savienojuma kļūda — lūdzu, rakstiet Andrim e-pastā."
+    );
+    const failureBubble = await cdp.evaluate(
+      `document.querySelector('#chatLog .message.bot:last-child')?.textContent`
+    );
+    assert.equal(failureBubble, "Synthetic chat failure");
+
     await submit("After failure", "Atbilde pabeigta.");
     assert.equal(state.chatRequests.length, 4);
     assert.deepEqual(state.chatAdmissionRequests, [{ token: "synthetic-chat-turnstile-token" }]);
