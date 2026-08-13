@@ -970,42 +970,92 @@ test("future, malformed, and non-finite stats are offline", () => {
   assert.equal(validateStats(missing).valid, false);
 });
 
-test("stats polling follows initial and changing page visibility", () => {
+test("stats polling follows visibility and repeated bfcache lifecycle", () => {
   const calls = [];
   const documentListeners = new Map();
   const windowListeners = new Map();
+
   const documentLike = {
     hidden: true,
-    addEventListener(type, listener) { documentListeners.set(type, listener); },
+    addEventListener(type, listener) {
+      documentListeners.set(type, listener);
+    },
     removeEventListener(type, listener) {
-      if (documentListeners.get(type) === listener) documentListeners.delete(type);
+      if (documentListeners.get(type) === listener) {
+        documentListeners.delete(type);
+      }
     }
   };
+
   const windowLike = {
-    addEventListener(type, listener) { windowListeners.set(type, listener); },
+    addEventListener(type, listener, options) {
+      windowListeners.set(type, { listener, options });
+    },
     removeEventListener(type, listener) {
-      if (windowListeners.get(type) === listener) windowListeners.delete(type);
+      if (windowListeners.get(type)?.listener === listener) {
+        windowListeners.delete(type);
+      }
     }
   };
+
   const stats = {
     start() { calls.push("start"); },
     stop() { calls.push("stop"); }
   };
 
-  const cleanup = bindStatsVisibility(stats, { documentLike, windowLike });
+  const cleanup = bindStatsVisibility(stats, {
+    documentLike,
+    windowLike
+  });
+
+  assert.deepEqual(calls, ["stop"]);
+  assert.equal(typeof windowListeners.get("pagehide")?.listener, "function");
+  assert.equal(typeof windowListeners.get("pageshow")?.listener, "function");
+  assert.notEqual(windowListeners.get("pagehide")?.options?.once, true);
+
+  // Initial/non-bfcache pageshow must not duplicate startup work.
+  windowListeners.get("pageshow").listener({ persisted: false });
   assert.deepEqual(calls, ["stop"]);
 
+  // Normal visibility restore starts polling.
   documentLike.hidden = false;
   documentListeners.get("visibilitychange")();
+  assert.deepEqual(calls, ["stop", "start"]);
+
+  // First bfcache cycle.
+  windowListeners.get("pagehide").listener({ persisted: true });
+  windowListeners.get("pageshow").listener({ persisted: true });
+  assert.deepEqual(calls, ["stop", "start", "stop", "start"]);
+
+  // Second cycle proves pagehide was not registered once-only.
+  windowListeners.get("pagehide").listener({ persisted: true });
+  assert.deepEqual(calls, ["stop", "start", "stop", "start", "stop"]);
+
+  // A restored background/hidden document must remain stopped.
   documentLike.hidden = true;
-  documentListeners.get("visibilitychange")();
-  windowListeners.get("pagehide")();
-  assert.deepEqual(calls, ["stop", "start", "stop", "stop"]);
+  windowListeners.get("pageshow").listener({ persisted: true });
+  assert.deepEqual(
+    calls,
+    ["stop", "start", "stop", "start", "stop", "stop"]
+  );
+
+  // When restored visible again, polling resumes.
+  documentLike.hidden = false;
+  windowListeners.get("pageshow").listener({ persisted: true });
+  assert.deepEqual(
+    calls,
+    ["stop", "start", "stop", "start", "stop", "stop", "start"]
+  );
 
   cleanup();
+
   assert.equal(documentListeners.has("visibilitychange"), false);
   assert.equal(windowListeners.has("pagehide"), false);
-  assert.deepEqual(calls, ["stop", "start", "stop", "stop", "stop"]);
+  assert.equal(windowListeners.has("pageshow"), false);
+  assert.deepEqual(
+    calls,
+    ["stop", "start", "stop", "start", "stop", "stop", "start", "stop"]
+  );
 });
 
 test("hidden stats polling has no recurring fetch and visible restore refreshes immediately", () => {
