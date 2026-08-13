@@ -82,12 +82,19 @@ export function createContactController(languageController, {
 
   async function submitToken(token, turnstile, widgetId) {
     setContactStatus("contact_verifying");
-    const response = await fetchImpl("/api/contact-reveal", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      cache: "no-store",
-      body: JSON.stringify({ token })
-    });
+    let response;
+    try {
+      response = await fetchImpl("/api/contact-reveal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
+        body: JSON.stringify({ token })
+      });
+    } catch {
+      setContactStatus("contact_failed", "error");
+      turnstile.reset(widgetId);
+      return false;
+    }
     let payload = null;
     try { payload = await response.json(); } catch {}
     if (!response.ok || !contactPayloadIsValid(payload)) {
