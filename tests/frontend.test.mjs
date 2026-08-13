@@ -1110,6 +1110,130 @@ test("hidden stats polling has no recurring fetch and visible restore refreshes 
   assert.equal(interval, null);
 });
 
+test("stats ignores stale responses and stopped in-flight loads", async () => {
+  const stat = {
+    dataset: {
+      stat: "cpu_usage",
+      decimals: "0",
+      suffix: ""
+    },
+    textContent: ""
+  };
+  const dot = { dataset: {} };
+  const label = { textContent: "" };
+  const updated = { textContent: "" };
+
+  const root = {
+    querySelector(selector) {
+      if (selector === "#liveDot") return dot;
+      if (selector === "#liveLabel") return label;
+      if (selector === "#statsUpdated") return updated;
+      return null;
+    },
+    querySelectorAll(selector) {
+      return selector === "[data-stat]" ? [stat] : [];
+    }
+  };
+
+  const pending = [];
+  const fetchImpl = () => new Promise((resolve, reject) => {
+    pending.push({ resolve, reject });
+  });
+
+  const windowLike = {
+    clearInterval() {},
+    setInterval() { return 1; }
+  };
+
+  const languageController = {
+    language: "en",
+    messages: {
+      status_live: "Live",
+      status_offline: "Offline",
+      last_update: "Last update"
+    }
+  };
+
+  const response = (cpuUsage) => ({
+    ok: true,
+    async json() {
+      return {
+        ...liveStats,
+        updated: new Date().toISOString(),
+        cpu_usage: cpuUsage
+      };
+    }
+  });
+
+  const stats = createStatsController(languageController, {
+    root,
+    fetchImpl,
+    windowLike
+  });
+
+  // Newer successful response must remain authoritative even if an older
+  // request completes afterwards.
+  const olderSuccess = stats.load();
+  const newerSuccess = stats.load();
+
+  assert.equal(pending.length, 2);
+
+  pending[1].resolve(response(22));
+  await newerSuccess;
+
+  assert.equal(stat.textContent, "22");
+  assert.equal(label.textContent, "Live");
+
+  pending[0].resolve(response(11));
+  await olderSuccess;
+
+  assert.equal(stat.textContent, "22");
+  assert.equal(label.textContent, "Live");
+
+  // A stale failure must not turn a newer successful render offline.
+  const staleFailure = stats.load();
+  const authoritativeSuccess = stats.load();
+
+  assert.equal(pending.length, 4);
+
+  pending[3].resolve(response(33));
+  await authoritativeSuccess;
+
+  assert.equal(stat.textContent, "33");
+
+  pending[2].resolve({
+    ok: false,
+    async json() { return {}; }
+  });
+  await staleFailure;
+
+  assert.equal(stat.textContent, "33");
+  assert.equal(label.textContent, "Live");
+
+  // stop() invalidates an already-running request.
+  const stoppedLoad = stats.load();
+
+  assert.equal(pending.length, 5);
+
+  stats.stop();
+
+  pending[4].resolve(response(44));
+  await stoppedLoad;
+
+  assert.equal(stat.textContent, "33");
+
+  // A later request after invalidation can render normally.
+  const resumedLoad = stats.load();
+
+  assert.equal(pending.length, 6);
+
+  pending[5].resolve(response(55));
+  await resumedLoad;
+
+  assert.equal(stat.textContent, "55");
+  assert.equal(label.textContent, "Live");
+});
+
 test("cached stats rerender in the applied language without refetching", async () => {
   let fetches = 0;
   let unavailable = false;
