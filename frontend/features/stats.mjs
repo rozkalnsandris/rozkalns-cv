@@ -69,6 +69,7 @@ export function createStatsController(languageController, {
 } = {}) {
   let timer = null;
   let renderState = null;
+  let loadGeneration = 0;
 
   function rerender() {
     if (!renderState) return false;
@@ -89,15 +90,18 @@ export function createStatsController(languageController, {
   }
 
   async function load() {
+    const generation = ++loadGeneration;
     try {
       const response = await fetchImpl(`/stats.json?_=${Date.now()}`, { cache: "no-store" });
       if (!response.ok) throw new Error("stats unavailable");
       const payload = await response.json();
       const validation = validateStats(payload);
       if (!validation.valid) throw new Error(validation.reason);
+      if (generation !== loadGeneration) return;
       renderState = { kind: "data", payload, validation };
       rerender();
     } catch {
+      if (generation !== loadGeneration) return;
       renderState = { kind: "offline" };
       rerender();
     }
@@ -110,6 +114,7 @@ export function createStatsController(languageController, {
   }
 
   function stop() {
+    loadGeneration += 1;
     windowLike.clearInterval(timer);
     timer = null;
   }
