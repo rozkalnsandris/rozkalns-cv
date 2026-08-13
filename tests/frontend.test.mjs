@@ -124,6 +124,58 @@ test("failed language switch leaves the previously applied state unchanged", asy
   assert.equal(storage.value, "en");
 });
 
+test("latest language request wins when responses complete out of order", async () => {
+  const root = {
+    documentElement: { lang: "en" },
+    querySelectorAll() { return []; },
+    querySelector() { return null; }
+  };
+  const storage = {
+    value: "en",
+    getItem() { return this.value; },
+    setItem(_key, value) { this.value = value; }
+  };
+  const pending = new Map();
+  const applied = [];
+  const fetchImpl = async (url) => {
+    const language = ["en", "de", "lv"].find((candidate) => String(url).endsWith(`/${candidate}.json`));
+    assert.ok(language, `unexpected translation URL: ${url}`);
+    if (language === "en") {
+      return { ok: true, async json() { return { label: "English" }; } };
+    }
+    return new Promise((resolveResponse) => pending.set(language, resolveResponse));
+  };
+  const controller = createLanguageController({
+    root,
+    storage,
+    navigatorLike: { language: "en-GB" },
+    fetchImpl,
+    onApplied(state) { applied.push({ language: state.language, messages: state.messages }); }
+  });
+
+  assert.equal(await controller.tryApply("en"), true);
+  const de = controller.tryApply("de");
+  const lv = controller.tryApply("lv");
+  assert.equal(pending.has("de"), true);
+  assert.equal(pending.has("lv"), true);
+
+  pending.get("lv")({ ok: true, async json() { return { label: "Latviešu" }; } });
+  assert.equal(await lv, true);
+  assert.equal(controller.language, "lv");
+  assert.deepEqual(controller.messages, { label: "Latviešu" });
+  assert.equal(root.documentElement.lang, "lv");
+  assert.equal(storage.value, "lv");
+  assert.deepEqual(applied.map((state) => state.language), ["en", "lv"]);
+
+  pending.get("de")({ ok: true, async json() { return { label: "Deutsch" }; } });
+  assert.equal(await de, true);
+  assert.equal(controller.language, "lv");
+  assert.deepEqual(controller.messages, { label: "Latviešu" });
+  assert.equal(root.documentElement.lang, "lv");
+  assert.equal(storage.value, "lv");
+  assert.deepEqual(applied.map((state) => state.language), ["en", "lv"]);
+});
+
 test("contact copy lives in canonical translation documents", async () => {
   const keys = [
     "contact_reveal",
