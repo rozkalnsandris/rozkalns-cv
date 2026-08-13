@@ -75,9 +75,12 @@ export function createLanguageController({
 } = {}) {
   let language = preferredLanguage({ storage, navigatorLike });
   let messages = null;
+  let latestRequest = 0;
 
   async function apply(nextLanguage) {
+    const request = ++latestRequest;
     const loaded = await loadMessages(nextLanguage, { fetchImpl });
+    if (request !== latestRequest) return messages;
     language = applyTranslations(loaded.messages, loaded.language, { root, storage, pdfs });
     messages = loaded.messages;
     onApplied?.({ language, messages });
