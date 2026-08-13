@@ -101,18 +101,20 @@ async function init() {
   const preferredApplied = await languageController.tryApply(languageController.language);
   if (!preferredApplied) await languageController.tryApply("en");
 
+  const stats = createStatsController(languageController);
+  bindStatsVisibility(stats);
+
   document.querySelectorAll("[data-lang]").forEach((button) => {
     button.addEventListener("click", () => {
-      void languageController.tryApply(button.dataset.lang);
+      void languageController.tryApply(button.dataset.lang).then((applied) => {
+        if (applied) stats.rerender();
+      });
     });
   });
 
   enhanceSkillIcons();
   const activateContact = installLazyContact(languageController);
   if (requestedWhatsAppContact()) await activateContact?.();
-
-  const stats = createStatsController(languageController);
-  bindStatsVisibility(stats);
 
   installLazyChat(languageController);
   createNavigationObserver();
