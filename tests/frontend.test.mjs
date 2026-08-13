@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import test from "node:test";
 import {
+  createLanguageController,
   localeFor,
   normalizeLanguage,
   preferredLanguage
@@ -44,6 +45,83 @@ test("shared locale core preserves cvlang preference and fallback semantics", ()
   assert.equal(localeFor("lv"), "lv-LV");
   assert.equal(localeFor("de"), "de-DE");
   assert.equal(localeFor("en"), "en-GB");
+});
+
+test("language switching contains load failures, preserves state, and remains retryable", async () => {
+  const root = {
+    documentElement: { lang: "en" },
+    querySelectorAll() { return []; },
+    querySelector() { return null; }
+  };
+  const storage = {
+    value: "en",
+    getItem(key) { return key === "cvlang" ? this.value : null; },
+    setItem(key, value) { if (key === "cvlang") this.value = value; }
+  };
+  let attempt = 0;
+  const fetchImpl = async () => {
+    attempt += 1;
+    if (attempt === 1) {
+      return { ok: true, async json() { return { label: "English" }; } };
+    }
+    if (attempt === 2) {
+      return { ok: false, async json() { return {}; } };
+    }
+    return { ok: true, async json() { return { label: "Deutsch" }; } };
+  };
+  const controller = createLanguageController({
+    root,
+    storage,
+    navigatorLike: { language: "en-GB" },
+    fetchImpl
+  });
+
+  assert.equal(await controller.tryApply("en"), true);
+  const previousMessages = controller.messages;
+  assert.equal(controller.language, "en");
+  assert.equal(storage.value, "en");
+
+  await assert.doesNotReject(() => controller.tryApply("de"));
+  assert.equal(await controller.tryApply("de"), true);
+  assert.equal(controller.language, "de");
+  assert.deepEqual(controller.messages, { label: "Deutsch" });
+  assert.equal(root.documentElement.lang, "de");
+  assert.equal(storage.value, "de");
+  assert.notEqual(controller.messages, previousMessages);
+});
+
+test("failed language switch leaves the previously applied state unchanged", async () => {
+  const root = {
+    documentElement: { lang: "en" },
+    querySelectorAll() { return []; },
+    querySelector() { return null; }
+  };
+  const storage = {
+    value: "en",
+    getItem() { return this.value; },
+    setItem(_key, value) { this.value = value; }
+  };
+  let fail = false;
+  const fetchImpl = async () => {
+    if (fail) return { ok: false, async json() { return {}; } };
+    return { ok: true, async json() { return { label: "English" }; } };
+  };
+  const controller = createLanguageController({
+    root,
+    storage,
+    navigatorLike: { language: "en-GB" },
+    fetchImpl
+  });
+
+  assert.equal(await controller.tryApply("en"), true);
+  const previousMessages = controller.messages;
+  fail = true;
+
+  assert.equal(await controller.tryApply("de"), false);
+  assert.equal(controller.language, "en");
+  assert.equal(controller.messages, previousMessages);
+  assert.equal(root.documentElement.lang, "en");
+  assert.equal(storage.value, "en");
 });
 
 test("contact copy lives in canonical translation documents", async () => {
@@ -260,6 +338,14 @@ test("chat and contact stay behind interaction-only dynamic imports", async () =
   assert.match(source, /import\("\.\/features\/contact\.mjs"\)/);
   assert.match(source, /from "\.\/features\/stats\.mjs";/);
   assert.match(source, /bindStatsVisibility\(stats\)/);
+});
+
+test("page entrypoints use contained language switching only", async () => {
+  for (const sourcePath of ["frontend/app.mjs", "frontend/smarthome.mjs"]) {
+    const source = await readFile(resolve(ROOT, sourcePath), "utf8");
+    assert.match(source, /languageController\.tryApply\(button\.dataset\.lang\)/, sourcePath);
+    assert.doesNotMatch(source, /languageController\.apply\(/, sourcePath);
+  }
 });
 
 test("skill chips map to meaningful SVG icon families", () => {
