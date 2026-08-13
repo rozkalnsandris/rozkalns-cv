@@ -118,6 +118,10 @@
   "smart_heating": "Heating",
   "smart_on": "On",
   "smart_off": "Off",
+  "smart_desk_lamp": "Desk lamp",
+  "smart_air_quality": "Air quality",
+  "smart_heating_zones": "Heating zones",
+  "smart_open_windows": "Open windows",
   "smart_footer": "Static demonstration only — no access to the real home or devices.",
   "contact_whatsapp_verify": "Verify to open WhatsApp"
 }

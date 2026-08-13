@@ -118,6 +118,10 @@
   "smart_heating": "Silda",
   "smart_on": "Ieslēgts",
   "smart_off": "Izslēgts",
+  "smart_desk_lamp": "Galda lampa",
+  "smart_air_quality": "Gaisa kvalitāte",
+  "smart_heating_zones": "Apkures zonas",
+  "smart_open_windows": "Atvērtie logi",
   "smart_footer": "Tikai statiska demonstrācija — nav piekļuves īstajai mājai vai ierīcēm.",
   "contact_whatsapp_verify": "Pārbaudīt, lai atvērtu WhatsApp"
 }
