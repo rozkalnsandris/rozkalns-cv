@@ -11,6 +11,7 @@ import {
 import { createTurnstileLoader } from "../frontend/core/turnstile.mjs";
 import {
   buildChatPayload,
+  createChatController,
   normalizeCompletedHistory
 } from "../frontend/features/chat.mjs";
 import {
@@ -401,6 +402,267 @@ test("contact status rerenders in the applied language without refetch or reset"
       globalThis.MutationObserver = previousMutationObserver;
     }
   }
+});
+
+test("current chat status rerenders after language changes without refetching", async () => {
+  const observers = [];
+  class FakeMutationObserver {
+    constructor(callback) {
+      this.callback = callback;
+      observers.push(this);
+    }
+    observe() {}
+  }
+
+  const formListeners = new Map();
+  const form = {
+    attributes: {},
+    addEventListener(type, listener) {
+      formListeners.set(type, listener);
+    },
+    setAttribute(name, value) {
+      this.attributes[name] = value;
+    }
+  };
+  const input = {
+    value: "",
+    focused: false,
+    focus() { this.focused = true; }
+  };
+  const send = { disabled: false };
+  const log = {
+    children: [],
+    scrollTop: 0,
+    scrollHeight: 0,
+    append(message) {
+      this.children.push(message);
+      this.scrollHeight = this.children.length;
+    }
+  };
+  const status = {
+    textContent: "",
+    after(node) { this.afterNode = node; }
+  };
+
+  const root = {
+    documentElement: { lang: "en" },
+    querySelector(selector) {
+      if (selector === "#chatForm") return form;
+      if (selector === "#chatInput") return input;
+      if (selector === "#chatSend") return send;
+      if (selector === "#chatLog") return log;
+      if (selector === "#chatStatus") return status;
+      return null;
+    },
+    createElement(tagName) {
+      assert.equal(tagName, "div");
+      return {
+        className: "",
+        textContent: "",
+        attributes: {},
+        removed: false,
+        setAttribute(name, value) {
+          this.attributes[name] = value;
+        },
+        remove() {
+          this.removed = true;
+        }
+      };
+    }
+  };
+
+  let turnstileOptions = null;
+  let resets = 0;
+  const windowLike = {
+    MutationObserver: FakeMutationObserver,
+    turnstile: {
+      render(_mount, options) {
+        turnstileOptions = options;
+        return 23;
+      },
+      reset(widgetId) {
+        assert.equal(widgetId, 23);
+        resets += 1;
+      }
+    }
+  };
+
+  let fetches = 0;
+  let chatMode = "success";
+  let resolveChat = null;
+
+  const fetchImpl = async (url, options = {}) => {
+    fetches += 1;
+
+    if (url === "/api/chat-config") {
+      return {
+        ok: true,
+        async json() {
+          return { configured: true, sitekey: "chat-site-key" };
+        }
+      };
+    }
+
+    if (url === "/api/chat-admission") {
+      assert.deepEqual(JSON.parse(options.body), { token: "token" });
+      return {
+        ok: true,
+        async json() {
+          return { session: "chat-session" };
+        }
+      };
+    }
+
+    if (url === "/api/chat") {
+      if (chatMode === "success") {
+        return new Promise((resolveResponse) => {
+          resolveChat = resolveResponse;
+        });
+      }
+
+      return {
+        ok: false,
+        status: 503,
+        async json() {
+          return { reply: "Synthetic safe failure" };
+        }
+      };
+    }
+
+    throw new Error(`unexpected chat URL: ${url}`);
+  };
+
+  const languageController = {
+    messages: {
+      chat_typing: "Preparing answer",
+      chat_complete: "Answer complete",
+      chat_error: "Connection issue"
+    }
+  };
+
+  const controller = createChatController(languageController, {
+    root,
+    windowLike,
+    fetchImpl
+  });
+
+  assert.ok(controller);
+  assert.equal(observers.length, 1);
+  assert.equal(controller.rerender(), false);
+
+  input.value = "Hello";
+  const first = formListeners.get("submit")({
+    preventDefault() {}
+  });
+
+  assert.equal(status.textContent, "Preparing answer");
+  assert.equal(form.attributes["aria-busy"], "true");
+  assert.equal(log.children.length, 1);
+  assert.equal(log.children[0].textContent, "Hello");
+
+  const fetchesWhileTyping = fetches;
+
+  languageController.messages = {
+    chat_typing: "Antwort wird vorbereitet",
+    chat_complete: "Antwort fertig",
+    chat_error: "Verbindungsfehler"
+  };
+
+  observers[0].callback();
+
+  assert.equal(status.textContent, "Antwort wird vorbereitet");
+  assert.equal(fetches, fetchesWhileTyping);
+  assert.equal(resets, 0);
+  assert.equal(log.children[0].textContent, "Hello");
+
+  for (let attempt = 0; attempt < 10 && !turnstileOptions; attempt += 1) {
+    await Promise.resolve();
+  }
+  assert.ok(turnstileOptions);
+
+  await turnstileOptions.callback("token");
+
+  for (let attempt = 0; attempt < 10 && !resolveChat; attempt += 1) {
+    await Promise.resolve();
+  }
+  assert.ok(resolveChat);
+
+  resolveChat(new Response("Antwort", { status: 200 }));
+  await first;
+
+  assert.equal(status.textContent, "Antwort fertig");
+  assert.equal(log.children.length, 2);
+  assert.equal(log.children[0].textContent, "Hello");
+  assert.equal(log.children[1].textContent, "Antwort");
+  assert.deepEqual(controller.completedHistory, [
+    { role: "user", content: "Hello" },
+    { role: "assistant", content: "Antwort" }
+  ]);
+
+  const fetchesAfterSuccess = fetches;
+
+  languageController.messages = {
+    chat_typing: "Gatavo atbildi",
+    chat_complete: "Atbilde pabeigta",
+    chat_error: "Savienojuma kļūda"
+  };
+
+  observers[0].callback();
+
+  assert.equal(status.textContent, "Atbilde pabeigta");
+  assert.equal(fetches, fetchesAfterSuccess);
+  assert.equal(resets, 0);
+  assert.equal(log.children[1].textContent, "Antwort");
+  assert.deepEqual(controller.completedHistory, [
+    { role: "user", content: "Hello" },
+    { role: "assistant", content: "Antwort" }
+  ]);
+
+  chatMode = "failure";
+  input.value = "Fail";
+
+  const second = formListeners.get("submit")({
+    preventDefault() {}
+  });
+
+  assert.equal(status.textContent, "Gatavo atbildi");
+
+  await second;
+
+  assert.equal(status.textContent, "Savienojuma kļūda");
+  assert.equal(log.children.at(-1).textContent, "Synthetic safe failure");
+  assert.deepEqual(controller.completedHistory, [
+    { role: "user", content: "Hello" },
+    { role: "assistant", content: "Antwort" }
+  ]);
+
+  const fetchesAfterFailure = fetches;
+
+  languageController.messages = {
+    chat_typing: "Antwort wird erneut vorbereitet",
+    chat_complete: "Antwort erneut fertig",
+    chat_error: "Erneuter Verbindungsfehler"
+  };
+
+  observers[0].callback();
+
+  assert.equal(status.textContent, "Erneuter Verbindungsfehler");
+  assert.equal(fetches, fetchesAfterFailure);
+  assert.equal(resets, 0);
+  assert.equal(log.children.at(-1).textContent, "Synthetic safe failure");
+  assert.deepEqual(controller.completedHistory, [
+    { role: "user", content: "Hello" },
+    { role: "assistant", content: "Antwort" }
+  ]);
+
+  const source = await readFile(
+    resolve(ROOT, "frontend/features/chat.mjs"),
+    "utf8"
+  );
+  assert.doesNotMatch(
+    source,
+    /Chat verification is temporarily unavailable|Chat verification failed|stream unavailable/
+  );
 });
 
 test("chat payload contains the current question once", () => {
