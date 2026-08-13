@@ -228,6 +228,57 @@ test("latest language request wins when responses complete out of order", async 
   assert.deepEqual(applied.map((state) => state.language), ["en", "lv"]);
 });
 
+test("Smart Home device headings use canonical translations in every language", async () => {
+  const source = await readFile(
+    resolve(ROOT, "frontend/smarthome.html"),
+    "utf8"
+  );
+
+  const expected = {
+    en: {
+      smart_desk_lamp: "Desk lamp",
+      smart_air_quality: "Air quality",
+      smart_heating_zones: "Heating zones",
+      smart_open_windows: "Open windows"
+    },
+    de: {
+      smart_desk_lamp: "Schreibtischlampe",
+      smart_air_quality: "Luftqualität",
+      smart_heating_zones: "Heizzonen",
+      smart_open_windows: "Offene Fenster"
+    },
+    lv: {
+      smart_desk_lamp: "Galda lampa",
+      smart_air_quality: "Gaisa kvalitāte",
+      smart_heating_zones: "Apkures zonas",
+      smart_open_windows: "Atvērtie logi"
+    }
+  };
+
+  const keys = Object.keys(expected.en);
+
+  for (const key of keys) {
+    assert.equal(
+      source.includes(`data-i18n="${key}"`),
+      true,
+      `missing Smart Home i18n binding: ${key}`
+    );
+  }
+
+  for (const [language, values] of Object.entries(expected)) {
+    const document = JSON.parse(
+      await readFile(
+        resolve(ROOT, `content/translations/${language}.json`),
+        "utf8"
+      )
+    );
+
+    for (const [key, value] of Object.entries(values)) {
+      assert.equal(document[key], value, `${language}:${key}`);
+    }
+  }
+});
+
 test("contact copy lives in canonical translation documents", async () => {
   const keys = [
     "contact_reveal",
