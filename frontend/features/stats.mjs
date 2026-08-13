@@ -68,6 +68,25 @@ export function createStatsController(languageController, {
   windowLike = globalThis.window
 } = {}) {
   let timer = null;
+  let renderState = null;
+
+  function rerender() {
+    if (!renderState) return false;
+    if (renderState.kind === "data") {
+      renderStats(
+        renderState.payload,
+        renderState.validation,
+        languageController.language,
+        languageController.messages,
+        root
+      );
+    } else {
+      setStatus("offline", languageController.messages, root);
+      const updated = root.querySelector("#statsUpdated");
+      if (updated) updated.textContent = "—";
+    }
+    return true;
+  }
 
   async function load() {
     try {
@@ -76,11 +95,11 @@ export function createStatsController(languageController, {
       const payload = await response.json();
       const validation = validateStats(payload);
       if (!validation.valid) throw new Error(validation.reason);
-      renderStats(payload, validation, languageController.language, languageController.messages, root);
+      renderState = { kind: "data", payload, validation };
+      rerender();
     } catch {
-      setStatus("offline", languageController.messages, root);
-      const updated = root.querySelector("#statsUpdated");
-      if (updated) updated.textContent = "—";
+      renderState = { kind: "offline" };
+      rerender();
     }
   }
 
@@ -95,7 +114,7 @@ export function createStatsController(languageController, {
     timer = null;
   }
 
-  return { load, start, stop };
+  return { load, rerender, start, stop };
 }
 
 export function bindStatsVisibility(statsController, {
