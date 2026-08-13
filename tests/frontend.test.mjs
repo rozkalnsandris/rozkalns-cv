@@ -404,6 +404,170 @@ test("contact status rerenders in the applied language without refetch or reset"
   }
 });
 
+test("contact reveal transport failure resets the challenge and remains retryable", async () => {
+  const previousMutationObserver = globalThis.MutationObserver;
+  globalThis.MutationObserver = class {
+    constructor(callback) {
+      this.callback = callback;
+    }
+    observe() {}
+  };
+
+  try {
+    const label = { textContent: "" };
+    const status = { textContent: "", dataset: {} };
+    const mount = { hidden: true };
+
+    let currentPhone = {
+      dataset: {},
+      setAttribute() {},
+      replaceWith(link) {
+        currentPhone = link;
+      }
+    };
+
+    const button = {
+      dataset: {},
+      disabled: false,
+      hidden: false,
+      querySelector(selector) {
+        return selector === ".contact-reveal-label" ? label : null;
+      },
+      addEventListener() {}
+    };
+
+    const root = {
+      documentElement: {},
+      querySelector(selector) {
+        if (selector === "#contactReveal") return button;
+        if (selector === "#turnstileMount") return mount;
+        if (selector === "#contactVerifyStatus") return status;
+        if (selector === "#contactPhone") return currentPhone;
+        return null;
+      },
+      createElement(tagName) {
+        assert.equal(tagName, "a");
+        return {
+          dataset: {},
+          href: "",
+          textContent: "",
+          focused: false,
+          focus() {
+            this.focused = true;
+          }
+        };
+      }
+    };
+
+    let turnstileOptions = null;
+    const resets = [];
+
+    const windowLike = {
+      location: { href: "https://rozkalns.net/" },
+      setTimeout(callback) {
+        callback();
+      },
+      turnstile: {
+        render(_mount, options) {
+          turnstileOptions = options;
+          return 41;
+        },
+        reset(widgetId) {
+          resets.push(widgetId);
+        }
+      }
+    };
+
+    let revealAttempts = 0;
+
+    const fetchImpl = async (url) => {
+      if (url === "/api/contact-config") {
+        return {
+          ok: true,
+          async json() {
+            return { configured: true, sitekey: "site-key" };
+          }
+        };
+      }
+
+      if (url === "/api/contact-reveal") {
+        revealAttempts += 1;
+
+        if (revealAttempts === 1) {
+          throw new TypeError("synthetic network failure");
+        }
+
+        return {
+          ok: true,
+          async json() {
+            return {
+              email: "person@example.com",
+              phone: "+49 123 456789",
+              phone_uri: "+49123456789"
+            };
+          }
+        };
+      }
+
+      throw new Error(`unexpected URL: ${url}`);
+    };
+
+    const languageController = {
+      messages: {
+        contact_reveal: "Reveal phone",
+        contact_phone_hidden: "Phone hidden",
+        contact_loading: "Loading",
+        contact_verifying: "Verifying",
+        contact_failed: "Failed",
+        contact_success: "Success",
+        contact_unavailable: "Unavailable"
+      }
+    };
+
+    const controller = createContactController(languageController, {
+      root,
+      windowLike,
+      fetchImpl
+    });
+
+    assert.ok(controller);
+
+    await controller.start();
+
+    assert.ok(turnstileOptions);
+    assert.equal(mount.hidden, false);
+
+    const failed = await turnstileOptions.callback("first-token");
+
+    assert.equal(failed, false);
+    assert.equal(revealAttempts, 1);
+    assert.equal(status.textContent, "Failed");
+    assert.equal(status.dataset.state, "error");
+    assert.deepEqual(resets, [41]);
+    assert.equal(button.hidden, false);
+
+    const succeeded = await turnstileOptions.callback("fresh-token");
+
+    assert.equal(succeeded, true);
+    assert.equal(revealAttempts, 2);
+    assert.equal(status.textContent, "Success");
+    assert.equal(status.dataset.state, "success");
+    assert.deepEqual(resets, [41]);
+    assert.equal(button.hidden, true);
+    assert.equal(mount.hidden, true);
+
+    assert.equal(currentPhone.textContent, "+49 123 456789");
+    assert.equal(currentPhone.href, "https://wa.me/49123456789");
+    assert.equal(currentPhone.dataset.revealed, "true");
+  } finally {
+    if (previousMutationObserver === undefined) {
+      delete globalThis.MutationObserver;
+    } else {
+      globalThis.MutationObserver = previousMutationObserver;
+    }
+  }
+});
+
 test("current chat status rerenders after language changes without refetching", async () => {
   const observers = [];
   class FakeMutationObserver {
