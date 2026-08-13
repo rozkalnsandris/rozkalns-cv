@@ -13,7 +13,11 @@ import {
   buildChatPayload,
   normalizeCompletedHistory
 } from "../frontend/features/chat.mjs";
-import { contactPayloadIsValid, contactPurpose } from "../frontend/features/contact.mjs";
+import {
+  createContactController,
+  contactPayloadIsValid,
+  contactPurpose
+} from "../frontend/features/contact.mjs";
 import {
   bindStatsVisibility,
   createStatsController,
@@ -196,6 +200,207 @@ test("contact copy lives in canonical translation documents", async () => {
   }
   const compatibility = await readFile(resolve(ROOT, "frontend/enhancements.mjs"), "utf8");
   assert.doesNotMatch(compatibility, /const\s+TEXT\s*=/);
+});
+
+test("contact status rerenders in the applied language without refetch or reset", async () => {
+  const previousMutationObserver = globalThis.MutationObserver;
+  const observers = [];
+  globalThis.MutationObserver = class {
+    constructor(callback) {
+      this.callback = callback;
+      observers.push(this);
+    }
+    observe() {}
+  };
+
+  try {
+    const label = { textContent: "" };
+    const status = { textContent: "", dataset: {} };
+    const mount = { hidden: true };
+    let currentPhone = {
+      dataset: {},
+      ariaLabel: "",
+      setAttribute(name, value) {
+        if (name === "aria-label") this.ariaLabel = value;
+      },
+      replaceWith(link) {
+        currentPhone = link;
+      }
+    };
+    const buttonListeners = new Map();
+    const button = {
+      dataset: {},
+      disabled: false,
+      hidden: false,
+      querySelector(selector) {
+        return selector === ".contact-reveal-label" ? label : null;
+      },
+      addEventListener(type, listener) {
+        buttonListeners.set(type, listener);
+      },
+      removeEventListener(type, listener) {
+        if (buttonListeners.get(type) === listener) buttonListeners.delete(type);
+      }
+    };
+    const root = {
+      documentElement: {},
+      querySelector(selector) {
+        if (selector === "#contactReveal") return button;
+        if (selector === "#turnstileMount") return mount;
+        if (selector === "#contactVerifyStatus") return status;
+        if (selector === "#contactPhone") return currentPhone;
+        return null;
+      },
+      createElement(tagName) {
+        assert.equal(tagName, "a");
+        return {
+          dataset: {},
+          href: "",
+          textContent: "",
+          focused: false,
+          focus() { this.focused = true; }
+        };
+      }
+    };
+    let turnstileOptions = null;
+    let resets = 0;
+    const windowLike = {
+      location: { href: "https://rozkalns.net/" },
+      setTimeout(callback) { callback(); },
+      turnstile: {
+        render(_mount, options) {
+          turnstileOptions = options;
+          return 17;
+        },
+        reset(widgetId) {
+          assert.equal(widgetId, 17);
+          resets += 1;
+        }
+      }
+    };
+    let fetches = 0;
+    let resolveReveal = null;
+    const fetchImpl = async (url) => {
+      fetches += 1;
+      if (url === "/api/contact-config") {
+        return {
+          ok: true,
+          async json() { return { configured: true, sitekey: "site-key" }; }
+        };
+      }
+      if (url === "/api/contact-reveal") {
+        return new Promise((resolveResponse) => { resolveReveal = resolveResponse; });
+      }
+      throw new Error(`unexpected contact URL: ${url}`);
+    };
+    const languageController = {
+      messages: {
+        contact_reveal: "Reveal phone",
+        contact_phone_hidden: "Phone hidden",
+        contact_loading: "Loading",
+        contact_verifying: "Verifying",
+        contact_failed: "Failed",
+        contact_success: "Success",
+        contact_unavailable: "Unavailable"
+      }
+    };
+    const controller = createContactController(languageController, { root, windowLike, fetchImpl });
+    assert.ok(controller);
+    assert.equal(observers.length, 1);
+
+    const start = controller.start();
+    assert.equal(status.textContent, "Loading");
+    assert.equal(fetches, 1);
+
+    languageController.messages = {
+      contact_reveal: "Telefon anzeigen",
+      contact_phone_hidden: "Telefon verborgen",
+      contact_loading: "Wird geladen",
+      contact_verifying: "Wird geprüft",
+      contact_failed: "Fehlgeschlagen",
+      contact_success: "Erfolgreich",
+      contact_unavailable: "Nicht verfügbar"
+    };
+    observers[0].callback();
+    assert.equal(status.textContent, "Wird geladen");
+    assert.equal(fetches, 1);
+    assert.equal(resets, 0);
+
+    await start;
+    assert.ok(turnstileOptions);
+    turnstileOptions["error-callback"]();
+    assert.equal(status.textContent, "Fehlgeschlagen");
+
+    languageController.messages = {
+      contact_reveal: "Rādīt tālruni",
+      contact_phone_hidden: "Tālrunis paslēpts",
+      contact_loading: "Ielādē",
+      contact_verifying: "Pārbauda",
+      contact_failed: "Neizdevās",
+      contact_success: "Veiksmīgi",
+      contact_unavailable: "Nav pieejams"
+    };
+    observers[0].callback();
+    assert.equal(status.textContent, "Neizdevās");
+    assert.equal(fetches, 1);
+    assert.equal(resets, 0);
+
+    const verification = turnstileOptions.callback("token");
+    assert.equal(status.textContent, "Pārbauda");
+    assert.equal(fetches, 2);
+
+    languageController.messages = {
+      contact_reveal: "Reveal phone again",
+      contact_phone_hidden: "Phone hidden again",
+      contact_loading: "Loading again",
+      contact_verifying: "Verifying again",
+      contact_failed: "Failed again",
+      contact_success: "Success again",
+      contact_unavailable: "Unavailable again"
+    };
+    observers[0].callback();
+    assert.equal(status.textContent, "Verifying again");
+    assert.equal(fetches, 2);
+    assert.equal(resets, 0);
+
+    resolveReveal({
+      ok: true,
+      async json() {
+        return {
+          email: "person@example.com",
+          phone: "+49 123 456789",
+          phone_uri: "+49123456789"
+        };
+      }
+    });
+    assert.equal(await verification, true);
+    assert.equal(status.textContent, "Success again");
+    assert.equal(currentPhone.textContent, "+49 123 456789");
+    assert.equal(currentPhone.href, "https://wa.me/49123456789");
+    assert.equal(currentPhone.dataset.revealed, "true");
+
+    languageController.messages = {
+      contact_reveal: "Telefon anzeigen erneut",
+      contact_phone_hidden: "Telefon verborgen erneut",
+      contact_loading: "Wird erneut geladen",
+      contact_verifying: "Wird erneut geprüft",
+      contact_failed: "Erneut fehlgeschlagen",
+      contact_success: "Erneut erfolgreich",
+      contact_unavailable: "Erneut nicht verfügbar"
+    };
+    observers[0].callback();
+    assert.equal(status.textContent, "Erneut erfolgreich");
+    assert.equal(fetches, 2);
+    assert.equal(resets, 0);
+    assert.equal(currentPhone.textContent, "+49 123 456789");
+    assert.equal(currentPhone.href, "https://wa.me/49123456789");
+  } finally {
+    if (previousMutationObserver === undefined) {
+      delete globalThis.MutationObserver;
+    } else {
+      globalThis.MutationObserver = previousMutationObserver;
+    }
+  }
 });
 
 test("chat payload contains the current question once", () => {

@@ -48,10 +48,23 @@ export function createContactController(languageController, {
   if (!button || !mount) return null;
 
   const purpose = contactPurpose(windowLike);
+  let statusKey = "";
+  let statusState = "";
   const message = (key) => {
     const value = languageController.messages?.[key];
     return typeof value === "string" ? value : "";
   };
+
+  function renderStatus() {
+    if (!statusKey) return;
+    setStatus(root, message(statusKey), statusState);
+  }
+
+  function setContactStatus(key, state = "") {
+    statusKey = key;
+    statusState = state;
+    renderStatus();
+  }
 
   function refreshCopy() {
     const label = button.querySelector(".contact-reveal-label");
@@ -64,10 +77,11 @@ export function createContactController(languageController, {
     if (phone && phone.dataset.revealed !== "true") {
       phone.setAttribute("aria-label", message("contact_phone_hidden"));
     }
+    renderStatus();
   }
 
   async function submitToken(token, turnstile, widgetId) {
-    setStatus(root, message("contact_verifying"));
+    setContactStatus("contact_verifying");
     const response = await fetchImpl("/api/contact-reveal", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -77,7 +91,7 @@ export function createContactController(languageController, {
     let payload = null;
     try { payload = await response.json(); } catch {}
     if (!response.ok || !contactPayloadIsValid(payload)) {
-      setStatus(root, message("contact_failed"), "error");
+      setContactStatus("contact_failed", "error");
       turnstile.reset(widgetId);
       return false;
     }
@@ -86,7 +100,7 @@ export function createContactController(languageController, {
     const whatsappUrl = `https://wa.me/${whatsappNumber}`;
     button.hidden = true;
     mount.hidden = true;
-    setStatus(root, message("contact_success"), "success");
+    setContactStatus("contact_success", "success");
     if (purpose === "whatsapp") {
       windowLike.setTimeout(() => windowLike.location.assign(whatsappUrl), 0);
       return true;
@@ -99,7 +113,7 @@ export function createContactController(languageController, {
   async function start() {
     button.disabled = true;
     button.dataset.locked = "true";
-    setStatus(root, message("contact_loading"));
+    setContactStatus("contact_loading");
     try {
       const configResponse = await fetchImpl("/api/contact-config", { cache: "no-store" });
       const config = await configResponse.json();
@@ -116,11 +130,11 @@ export function createContactController(languageController, {
         appearance: "interaction-only",
         action: "contact_reveal",
         callback: (token) => submitToken(token, turnstile, widgetId),
-        "error-callback": () => setStatus(root, message("contact_failed"), "error"),
+        "error-callback": () => setContactStatus("contact_failed", "error"),
         "expired-callback": () => turnstile.reset(widgetId)
       });
     } catch {
-      setStatus(root, message("contact_unavailable"), "error");
+      setContactStatus("contact_unavailable", "error");
       button.disabled = false;
       delete button.dataset.locked;
       refreshCopy();
