@@ -1,5 +1,11 @@
 import { loadTurnstile } from "../core/turnstile.mjs";
 
+const CHAT_STATUS = Object.freeze({
+  typing: Object.freeze({ key: "chat_typing", fallback: "Preparing answer…" }),
+  complete: Object.freeze({ key: "chat_complete", fallback: "Answer complete." }),
+  error: Object.freeze({ key: "chat_error", fallback: "Connection issue." })
+});
+
 export function normalizeCompletedHistory(history, maxMessages = 12) {
   if (!Array.isArray(history)) return [];
   const completed = [];
@@ -114,6 +120,38 @@ export function createChatController(languageController, {
   const completedHistory = [];
   let admissionSession = "";
   let admissionPromise = null;
+  let currentStatus = null;
+
+  function localized(key, fallback) {
+    const value = languageController.messages?.[key];
+    return typeof value === "string" && value ? value : fallback;
+  }
+
+  function renderStatus() {
+    if (!currentStatus) return false;
+    const definition = CHAT_STATUS[currentStatus];
+    if (!definition) return false;
+    status.textContent = localized(definition.key, definition.fallback);
+    return true;
+  }
+
+  function setStatus(nextStatus) {
+    currentStatus = nextStatus;
+    return renderStatus();
+  }
+
+  function genericErrorText() {
+    const definition = CHAT_STATUS.error;
+    return localized(definition.key, definition.fallback);
+  }
+
+  const Observer = windowLike?.MutationObserver || globalThis.MutationObserver;
+  if (typeof Observer === "function" && root.documentElement) {
+    new Observer(renderStatus).observe(root.documentElement, {
+      attributes: true,
+      attributeFilter: ["lang"]
+    });
+  }
 
   async function ensureAdmission() {
     if (admissionSession) return admissionSession;
@@ -122,13 +160,13 @@ export function createChatController(languageController, {
       const configResponse = await fetchImpl("/api/chat-config", { cache: "no-store" });
       const config = await configResponse.json();
       if (!configResponse.ok || !config?.configured || typeof config.sitekey !== "string" || !config.sitekey) {
-        throw new Error("Chat verification is temporarily unavailable. Please email Andris instead.");
+        throw new Error(genericErrorText());
       }
       let turnstile = null;
       try {
         turnstile = await loadTurnstile(root, windowLike);
       } catch {
-        throw new Error("Chat verification is temporarily unavailable. Please email Andris instead.");
+        throw new Error(genericErrorText());
       }
       const mount = root.createElement("div");
       mount.className = "turnstile-mount";
@@ -153,7 +191,7 @@ export function createChatController(languageController, {
               const payload = await response.json();
               if (!response.ok || typeof payload?.session !== "string" || !payload.session) {
                 turnstile.reset(widgetId);
-                throw new Error(payload?.reply || "Chat verification failed. Please try again.");
+                throw new Error(payload?.reply || genericErrorText());
               }
               admissionSession = payload.session;
               cleanup();
@@ -165,7 +203,7 @@ export function createChatController(languageController, {
           },
           "error-callback": () => {
             cleanup();
-            reject(new Error("Chat verification failed. Please try again."));
+            reject(new Error(genericErrorText()));
           },
           "expired-callback": () => turnstile.reset(widgetId)
         });
@@ -182,7 +220,7 @@ export function createChatController(languageController, {
     send.disabled = true;
     form.setAttribute("aria-busy", "true");
     appendMessage(root, log, message, "user");
-    status.textContent = languageController.messages?.chat_typing || "Preparing answer…";
+    setStatus("typing");
 
     try {
       const session = await ensureAdmission();
@@ -196,14 +234,14 @@ export function createChatController(languageController, {
       });
       if (!response.ok) {
         if (response.status === 401) admissionSession = "";
-        let errorMessage = languageController.messages?.chat_error || "Connection issue.";
+        let errorMessage = genericErrorText();
         try {
           const body = await response.json();
           if (typeof body.reply === "string") errorMessage = body.reply;
         } catch {}
         throw new Error(errorMessage);
       }
-      if (!response.body) throw new Error("stream unavailable");
+      if (!response.body) throw new Error(genericErrorText());
       const answer = appendMessage(root, log, "", "bot");
       answer.setAttribute("aria-live", "off");
       const reader = response.body.getReader();
@@ -222,18 +260,18 @@ export function createChatController(languageController, {
         { role: "user", content: message },
         { role: "assistant", content: full }
       );
-      status.textContent = languageController.messages?.chat_complete || "Answer complete.";
+      setStatus("complete");
     } catch (error) {
       const text = error instanceof Error && error.message
         ? error.message
-        : (languageController.messages?.chat_error || "Connection issue.");
+        : genericErrorText();
       appendMessage(root, log, text, "bot");
-      status.textContent = text;
+      setStatus("error");
     } finally {
       send.disabled = false;
       form.setAttribute("aria-busy", "false");
       input.focus();
     }
   });
-  return { completedHistory };
+  return { completedHistory, rerender: renderStatus };
 }
