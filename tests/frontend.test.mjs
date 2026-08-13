@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import test from "node:test";
+import { installPreloadErrorRecovery } from "../frontend/app.mjs";
 import {
   createLanguageController,
   localeFor,
@@ -38,6 +39,52 @@ const liveStats = {
   disk_usage: 35.4,
   cpu_temp: 52.3
 };
+
+test("Vite preload recovery reloads a stale document at most once", async () => {
+  const listeners = new Map();
+  let reloads = 0;
+
+  const windowLike = {
+    addEventListener(type, listener) {
+      listeners.set(type, listener);
+    },
+    location: {
+      reload() {
+        reloads += 1;
+      }
+    }
+  };
+
+  const recover = installPreloadErrorRecovery(windowLike);
+
+  assert.equal(typeof recover, "function");
+  assert.equal(listeners.has("vite:preloadError"), true);
+
+  let prevented = 0;
+  const event = {
+    preventDefault() {
+      prevented += 1;
+    }
+  };
+
+  assert.equal(listeners.get("vite:preloadError")(event), true);
+  assert.equal(listeners.get("vite:preloadError")(event), false);
+
+  assert.equal(prevented, 2);
+  assert.equal(reloads, 1);
+
+  assert.equal(installPreloadErrorRecovery({}), null);
+
+  const source = await readFile(
+    resolve(ROOT, "frontend/app.mjs"),
+    "utf8"
+  );
+
+  assert.match(
+    source,
+    /installPreloadErrorRecovery\(window\);\s*window\.addEventListener\("DOMContentLoaded"/
+  );
+});
 
 test("shared locale core preserves cvlang preference and fallback semantics", () => {
   const storage = { getItem: (key) => key === "cvlang" ? "lv" : null };

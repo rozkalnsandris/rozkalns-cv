@@ -15,6 +15,27 @@ const PDFS = Object.freeze({
 
 export { REQUIRED_STATS, validateStats };
 
+export function installPreloadErrorRecovery(windowLike = globalThis.window) {
+  if (
+    typeof windowLike?.addEventListener !== "function" ||
+    typeof windowLike?.location?.reload !== "function"
+  ) {
+    return null;
+  }
+
+  let reloadRequested = false;
+  function recover(event) {
+    event?.preventDefault?.();
+    if (reloadRequested) return false;
+    reloadRequested = true;
+    windowLike.location.reload();
+    return true;
+  }
+
+  windowLike.addEventListener("vite:preloadError", recover);
+  return recover;
+}
+
 function createNavigationObserver() {
   if (!("IntersectionObserver" in window)) return;
   const links = [...document.querySelectorAll(".site-nav a")];
@@ -121,5 +142,6 @@ async function init() {
 }
 
 if (typeof document !== "undefined") {
+  installPreloadErrorRecovery(window);
   window.addEventListener("DOMContentLoaded", init, { once: true });
 }
