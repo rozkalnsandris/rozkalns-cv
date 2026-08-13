@@ -382,6 +382,77 @@ test("hidden stats polling has no recurring fetch and visible restore refreshes 
   assert.equal(interval, null);
 });
 
+test("cached stats rerender in the applied language without refetching", async () => {
+  let fetches = 0;
+  let unavailable = false;
+  const dot = { dataset: {} };
+  const label = { textContent: "" };
+  const updated = { textContent: "" };
+  const root = {
+    querySelector(selector) {
+      if (selector === "#liveDot") return dot;
+      if (selector === "#liveLabel") return label;
+      if (selector === "#statsUpdated") return updated;
+      return null;
+    },
+    querySelectorAll() { return []; }
+  };
+  const fetchImpl = async () => {
+    fetches += 1;
+    if (unavailable) return { ok: false, async json() { return {}; } };
+    return {
+      ok: true,
+      async json() { return { ...liveStats, updated: new Date().toISOString() }; }
+    };
+  };
+  const languageController = {
+    language: "en",
+    messages: {
+      status_live: "Live",
+      status_offline: "Offline",
+      last_update: "Last update"
+    }
+  };
+  const stats = createStatsController(languageController, {
+    root,
+    fetchImpl,
+    windowLike: { clearInterval() {}, setInterval() { return 1; } }
+  });
+
+  await stats.load();
+  assert.equal(fetches, 1);
+  assert.equal(label.textContent, "Live");
+  assert.match(updated.textContent, /^Last update:/);
+
+  languageController.language = "de";
+  languageController.messages = {
+    status_live: "Aktuell",
+    status_offline: "Nicht verfügbar",
+    last_update: "Letzte Aktualisierung"
+  };
+  assert.equal(stats.rerender(), true);
+  assert.equal(fetches, 1);
+  assert.equal(label.textContent, "Aktuell");
+  assert.match(updated.textContent, /^Letzte Aktualisierung:/);
+
+  unavailable = true;
+  await stats.load();
+  assert.equal(fetches, 2);
+  assert.equal(label.textContent, "Nicht verfügbar");
+  assert.equal(updated.textContent, "—");
+
+  languageController.language = "lv";
+  languageController.messages = {
+    status_live: "Tiešsaistē",
+    status_offline: "Bezsaistē",
+    last_update: "Pēdējais atjauninājums"
+  };
+  assert.equal(stats.rerender(), true);
+  assert.equal(fetches, 2);
+  assert.equal(label.textContent, "Bezsaistē");
+  assert.equal(updated.textContent, "—");
+});
+
 test("chat and contact stay behind interaction-only dynamic imports", async () => {
   const source = await readFile(resolve(ROOT, "frontend/app.mjs"), "utf8");
   assert.doesNotMatch(source, /^import[\s\S]*?from "\.\/features\/chat\.mjs";/m);
@@ -390,6 +461,7 @@ test("chat and contact stay behind interaction-only dynamic imports", async () =
   assert.match(source, /import\("\.\/features\/contact\.mjs"\)/);
   assert.match(source, /from "\.\/features\/stats\.mjs";/);
   assert.match(source, /bindStatsVisibility\(stats\)/);
+  assert.match(source, /if \(applied\) stats\.rerender\(\);/);
 });
 
 test("page entrypoints use contained language switching only", async () => {
