@@ -126,14 +126,19 @@ export function bindStatsVisibility(statsController, {
     else statsController.start();
   };
   const stop = () => statsController.stop();
+  const restore = (event) => {
+    if (event?.persisted === true) sync();
+  };
 
   sync();
   documentLike.addEventListener("visibilitychange", sync);
-  windowLike.addEventListener("pagehide", stop, { once: true });
+  windowLike.addEventListener("pagehide", stop);
+  windowLike.addEventListener("pageshow", restore);
 
   return () => {
     documentLike.removeEventListener("visibilitychange", sync);
     windowLike.removeEventListener("pagehide", stop);
+    windowLike.removeEventListener("pageshow", restore);
     statsController.stop();
   };
 }
