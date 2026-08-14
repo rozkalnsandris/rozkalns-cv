@@ -11,6 +11,7 @@ from __future__ import annotations
 import atexit
 import ipaddress
 import json
+from pathlib import Path
 import time
 from typing import Any
 import uuid
@@ -177,18 +178,31 @@ def _rate_headers(decision: RateDecision, rate_limit: int | None = None) -> dict
     return headers
 
 
+_PROVIDER_NOTICE_KEYS = frozenset({
+    "length",
+    "content_filter",
+    "insufficient_system_resource",
+    "tool_calls",
+    "protocol_error",
+    "timeout",
+    "http_error",
+    "internal_error",
+})
+_PROVIDER_NOTICES_PATH = Path(__file__).with_name("provider_notices.json")
+_PROVIDER_NOTICES = json.loads(_PROVIDER_NOTICES_PATH.read_text(encoding="utf-8"))
+if (
+    not isinstance(_PROVIDER_NOTICES, dict)
+    or set(_PROVIDER_NOTICES) != _PROVIDER_NOTICE_KEYS
+    or not all(
+        isinstance(value, str) and value
+        for value in _PROVIDER_NOTICES.values()
+    )
+):
+    raise RuntimeError("provider notice contract is invalid")
+
+
 def _provider_notice(status: str) -> str:
-    return {
-        "length": "\n\n[The response was truncated. Please ask a narrower question.]",
-        "content_filter": "\n\n[The provider stopped this response for safety. Please rephrase.]",
-        "insufficient_system_resource": (
-            "\n\n[The provider is temporarily short on capacity. Please try again.]"
-        ),
-        "tool_calls": "\n\n[The provider returned an unsupported response. Please try again.]",
-        "protocol_error": "\n\n[The provider returned an invalid stream. Please try again.]",
-        "timeout": "\n\n[That took too long — please try again.]",
-        "http_error": "\n\n[The provider is temporarily unavailable. Please try again.]",
-    }.get(status, "\n\n[Sorry, something went wrong. Please try again.]")
+    return _PROVIDER_NOTICES.get(status, _PROVIDER_NOTICES["internal_error"])
 
 
 def _log_provider_result(
