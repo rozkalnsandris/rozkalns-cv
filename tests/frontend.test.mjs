@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import test from "node:test";
 import { installPreloadErrorRecovery, updateMainDocumentTitle } from "../frontend/app.mjs";
 import {
+  applySkillTranslations,
   createLanguageController,
   localeFor,
   normalizeLanguage,
@@ -26,7 +27,7 @@ import {
   createStatsController,
   validateStats
 } from "../frontend/features/stats.mjs";
-import { skillIconName } from "../frontend/ui/icons.mjs";
+import { enhanceSkillIcons, skillIconName } from "../frontend/ui/icons.mjs";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const liveStats = {
@@ -1684,6 +1685,88 @@ test("skill chips map to meaningful SVG icon families", () => {
   assert.equal(skillIconName("Home Assistant"), "home");
   assert.equal(skillIconName("ESP32 / IoT"), "chip");
   assert.equal(skillIconName("Terraform"), "cloud");
+});
+
+test("skill icons initialize before translation network work", async () => {
+  const source = await readFile(resolve(ROOT, "frontend/app.mjs"), "utf8");
+  const iconInit = source.indexOf("enhanceSkillIcons();");
+  const translationAwait = source.indexOf("await languageController.tryApply");
+  assert.ok(iconInit >= 0);
+  assert.ok(translationAwait >= 0);
+  assert.ok(iconInit < translationAwait);
+});
+
+test("skill translation preserves an existing SVG enhancement", () => {
+  const icon = { kind: "svg" };
+  const chip = {
+    value: "Networking",
+    icon,
+    querySelector(selector) { return selector === "svg" ? this.icon : null; },
+    get textContent() { return this.value; },
+    set textContent(value) { this.value = value; this.icon = null; },
+    prepend(node) { this.icon = node; }
+  };
+  const row = {
+    querySelector(selector) {
+      return selector === "dt[data-i18n]" ? { dataset: { i18n: "skills_foundations" } } : null;
+    },
+    querySelectorAll(selector) { return selector === ".skill-chip" ? [chip] : []; }
+  };
+  const root = {
+    querySelectorAll(selector) { return selector === ".skill-row" ? [row] : []; }
+  };
+
+  assert.equal(
+    applySkillTranslations({ skills_foundations_items: "Netzwerke" }, { root }),
+    1
+  );
+  assert.equal(chip.textContent, "Netzwerke");
+  assert.equal(chip.icon, icon);
+});
+
+test("skill icon enhancement is idempotent and repaired families use complete paths", () => {
+  function render(label) {
+    const chip = {
+      textContent: label,
+      icon: null,
+      prepends: 0,
+      querySelector(selector) { return selector === "svg" ? this.icon : null; },
+      prepend(node) { this.icon = node; this.prepends += 1; }
+    };
+    const root = {
+      querySelectorAll(selector) { return selector === ".skill-chip" ? [chip] : []; },
+      createElementNS(_namespace, tagName) {
+        return {
+          tagName,
+          attributes: {},
+          children: [],
+          setAttribute(name, value) { this.attributes[name] = String(value); },
+          append(child) { this.children.push(child); }
+        };
+      }
+    };
+    enhanceSkillIcons(root);
+    enhanceSkillIcons(root);
+    return { chip, svg: chip.icon };
+  }
+
+  const shield = render("SSL/TLS");
+  assert.equal(shield.chip.prepends, 1);
+  assert.equal(shield.svg.attributes["aria-hidden"], "true");
+  assert.deepEqual(
+    shield.svg.children.map((path) => path.attributes.d),
+    [
+      "M12 3 19 6v5c0 4.5-2.8 7.7-7 10C7.8 18.7 5 15.5 5 11V6l7-3Z",
+      "M9 12l2 2 4-5"
+    ]
+  );
+
+  const code = render("Python");
+  assert.equal(code.chip.prepends, 1);
+  assert.deepEqual(
+    code.svg.children.map((path) => path.attributes.d),
+    ["M8 9 5 12 8 15", "M16 9 19 12 16 15", "M14 5 10 19"]
+  );
 });
 
 test("contact reveal payload must contain bounded contact shapes", () => {
