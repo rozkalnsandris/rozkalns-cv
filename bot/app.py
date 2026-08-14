@@ -27,7 +27,7 @@ from chat_admission import (
     verify_chat_turnstile,
 )
 from chat_policy import ProtectedContactPolicy, ProtectedContactStreamGuard
-from config import SUPPORTED_LLM_MODELS, Settings
+from config import SUPPORTED_LLM_MODELS, Settings, VerificationRateConfig
 from contact import (
     ContactVerificationError,
     load_contact_config,
@@ -244,11 +244,17 @@ def create_app(
     notifier: TelegramNotifier | None = None,
     contact_config=None,
     system_prompt: str | None = None,
+    verification_rate: VerificationRateConfig | None = None,
     start_maintenance: bool = True,
 ) -> Flask:
     """Create one isolated cvbot application instance and its service graph."""
 
     active = Settings.from_env() if settings is None else settings
+    active_verification_rate = (
+        VerificationRateConfig.from_env()
+        if verification_rate is None
+        else verification_rate
+    )
     contacts = load_contact_config() if contact_config is None else contact_config
     prompt = load_system_prompt() if system_prompt is None else system_prompt
     active_store = store or AssistantStore(
@@ -292,11 +298,42 @@ def create_app(
         "notifier": active_notifier,
         "contact_config": contacts,
         "system_prompt": prompt,
+        "verification_rate": active_verification_rate,
     }
 
     def client_identity() -> tuple[str, str]:
         address = _resolve_client_address(active.trusted_proxy_cidrs)
         return address, active_store.pseudonymize(address, active.client_key_secret)
+
+    def verification_gate(
+        client_key: str,
+        *,
+        response_key: str,
+    ) -> tuple[Response, int] | None:
+        try:
+            decision = active_store.reserve_verification(
+                client_key,
+                per_client_hour=active_verification_rate.per_client_hour,
+                global_hour=active_verification_rate.global_hour,
+            )
+        except Exception as error:
+            flask_app.logger.error(
+                "verification rate store failure: %s", type(error).__name__
+            )
+            return jsonify(
+                **{response_key: "Verification is temporarily unavailable."}
+            ), 503
+        if decision.allowed:
+            return None
+        response = jsonify(
+            **{
+                response_key: (
+                    "Too many verification attempts. Please try again later."
+                )
+            }
+        )
+        response.headers["Retry-After"] = str(decision.retry_after)
+        return response, 429
 
     @flask_app.get("/health")
     @flask_app.get("/health/live")
@@ -338,10 +375,14 @@ def create_app(
             token = normalize_token(payload.get("token"))
         except ContactVerificationError:
             return jsonify(error="Turnstile token is invalid."), 400
+        address, client_key = client_identity()
+        limited = verification_gate(client_key, response_key="error")
+        if limited is not None:
+            return limited
         try:
             verified = verify_turnstile(
                 token,
-                _resolve_client_address(active.trusted_proxy_cidrs),
+                address,
                 contacts,
             )
         except ContactVerificationError as error:
@@ -374,9 +415,23 @@ def create_app(
         payload = request.get_json(silent=True)
         if not isinstance(payload, dict):
             return jsonify(reply="Verification is required before chat."), 400
-        address, client_key = client_identity()
+        if not admission_config.configured:
+            return jsonify(
+                reply=(
+                    "Chat verification is temporarily unavailable. "
+                    "Please email Andris instead."
+                )
+            ), 503
         try:
-            valid = verify_chat_turnstile(payload.get("token"), address, admission_config)
+            token = normalize_token(payload.get("token"))
+        except ContactVerificationError:
+            return jsonify(reply="Chat verification failed. Please try again."), 403
+        address, client_key = client_identity()
+        limited = verification_gate(client_key, response_key="reply")
+        if limited is not None:
+            return limited
+        try:
+            valid = verify_chat_turnstile(token, address, admission_config)
         except ChatAdmissionError as error:
             flask_app.logger.error(
                 "chat admission unavailable: %s", type(error).__name__
