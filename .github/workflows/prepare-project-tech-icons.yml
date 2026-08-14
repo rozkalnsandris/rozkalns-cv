@@ -24,10 +24,10 @@ jobs:
           git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
           git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
             fetch --no-tags origin \
-            refs/heads/fix/230-project-tech-icons \
+            "$GITHUB_SHA" \
             ed83a53a8222057c97eeba9f074a469fcd346fbd
-          git checkout --detach FETCH_HEAD
-          test "$(git rev-parse HEAD^)" = "7c073a3a387fc4996d66320dbd0257ac3b719912"
+          git checkout --detach "$GITHUB_SHA"
+          test "$(git rev-parse HEAD^)" = "d65335885497f7cbfe3a5adb259fe734cb33c505"
 
       - name: Set up pinned Node.js frontend toolchain
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -86,8 +86,11 @@ jobs:
           git diff --check
           git add -A
           git status --short
-          test -z "$(git diff --cached --name-only | grep -E '^\.github/workflows/' || true)"
-          test -z "$(git diff --cached --name-only | grep -E '^(package\.json|frontend/styles/index\.css|tests/test_css_source_contract\.py)$' || true)"
+          git diff --quiet "$base" -- \
+            .github/workflows \
+            package.json \
+            frontend/styles/index.css \
+            tests/test_css_source_contract.py
 
       - name: Commit exact generated result back to PR branch
         env:
