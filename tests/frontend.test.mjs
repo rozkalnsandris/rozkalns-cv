@@ -4,11 +4,13 @@ import { resolve } from "node:path";
 import test from "node:test";
 import { installPreloadErrorRecovery, updateMainDocumentTitle } from "../frontend/app.mjs";
 import {
+  applyRegionDisplayNames,
   applySkillTranslations,
   createLanguageController,
   localeFor,
   normalizeLanguage,
-  preferredLanguage
+  preferredLanguage,
+  regionDisplayName
 } from "../frontend/core/i18n.mjs";
 import { createTurnstileLoader, turnstileLanguage } from "../frontend/core/turnstile.mjs";
 import {
@@ -99,6 +101,53 @@ test("shared locale core preserves cvlang preference and fallback semantics", ()
   assert.equal(localeFor("lv"), "lv-LV");
   assert.equal(localeFor("de"), "de-DE");
   assert.equal(localeFor("en"), "en-GB");
+});
+
+test("profile location uses semantic region data and locale display names", async () => {
+  const source = await readFile(resolve(ROOT, "frontend/index.html"), "utf8");
+  assert.match(
+    source,
+    /id="profileLocation" data-city="Dortmund" data-region-code="DE">Dortmund, Germany<\/span>/
+  );
+
+  const expected = new Map([
+    ["en-GB", "Germany"],
+    ["de-DE", "Deutschland"],
+    ["lv-LV", "Vācija"]
+  ]);
+  class FakeDisplayNames {
+    constructor(locales, options) {
+      this.locale = locales[0];
+      assert.deepEqual(options, { type: "region", fallback: "code" });
+    }
+    of(code) {
+      assert.equal(code, "DE");
+      return expected.get(this.locale);
+    }
+  }
+
+  assert.equal(regionDisplayName("DE", "en", { DisplayNames: FakeDisplayNames }), "Germany");
+  assert.equal(regionDisplayName("DE", "de", { DisplayNames: FakeDisplayNames }), "Deutschland");
+  assert.equal(regionDisplayName("DE", "lv", { DisplayNames: FakeDisplayNames }), "Vācija");
+  assert.equal(regionDisplayName("DE", "lv", { DisplayNames: null }), "DE");
+  assert.equal(regionDisplayName("not-a-region", "de", { DisplayNames: FakeDisplayNames }), "NOT-A-REGION");
+
+  class BrokenDisplayNames {
+    constructor() { throw new Error("missing locale data"); }
+  }
+  assert.equal(regionDisplayName("DE", "de", { DisplayNames: BrokenDisplayNames }), "DE");
+
+  const location = {
+    dataset: { city: "Dortmund", regionCode: "DE" },
+    textContent: "Dortmund, Germany"
+  };
+  const root = {
+    querySelectorAll(selector) {
+      return selector === "[data-region-code]" ? [location] : [];
+    }
+  };
+  applyRegionDisplayNames("de", { root, DisplayNames: FakeDisplayNames });
+  assert.equal(location.textContent, "Dortmund, Deutschland");
 });
 
 test("language switching contains load failures, preserves state, and remains retryable", async () => {
