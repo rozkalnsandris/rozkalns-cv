@@ -1,4 +1,4 @@
-import { loadTurnstile, turnstileLanguage } from "../core/turnstile.mjs";
+import { createLocalizedTurnstileRenderer, loadTurnstile } from "../core/turnstile.mjs";
 
 function setStatus(root, message, state = "") {
   const status = root.querySelector("#contactVerifyStatus");
@@ -50,6 +50,8 @@ export function createContactController(languageController, {
   const purpose = contactPurpose(windowLike);
   let statusKey = "";
   let statusState = "";
+  let widgetRenderer = null;
+  let verificationPending = false;
   const message = (key) => {
     const value = languageController.messages?.[key];
     return typeof value === "string" ? value : "";
@@ -78,9 +80,11 @@ export function createContactController(languageController, {
       phone.setAttribute("aria-label", message("contact_phone_hidden"));
     }
     renderStatus();
+    if (!mount.hidden && !verificationPending) widgetRenderer?.refreshLanguage();
   }
 
   async function submitToken(token, turnstile, widgetId) {
+    verificationPending = true;
     setContactStatus("contact_verifying");
     let response;
     try {
@@ -91,6 +95,7 @@ export function createContactController(languageController, {
         body: JSON.stringify({ token })
       });
     } catch {
+      verificationPending = false;
       setContactStatus("contact_failed", "error");
       turnstile.reset(widgetId);
       return false;
@@ -98,6 +103,7 @@ export function createContactController(languageController, {
     let payload = null;
     try { payload = await response.json(); } catch {}
     if (!response.ok || !contactPayloadIsValid(payload)) {
+      verificationPending = false;
       setContactStatus("contact_failed", "error");
       turnstile.reset(widgetId);
       return false;
@@ -107,6 +113,7 @@ export function createContactController(languageController, {
     const whatsappUrl = `https://wa.me/${whatsappNumber}`;
     button.hidden = true;
     mount.hidden = true;
+    verificationPending = false;
     setContactStatus("contact_success", "success");
     if (purpose === "whatsapp") {
       windowLike.setTimeout(() => windowLike.location.assign(whatsappUrl), 0);
@@ -129,18 +136,22 @@ export function createContactController(languageController, {
       }
       const turnstile = await loadTurnstile(root, windowLike);
       mount.hidden = false;
-      let widgetId = null;
-      widgetId = turnstile.render(mount, {
-        sitekey: config.sitekey,
-        theme: "dark",
-        language: turnstileLanguage(root.documentElement?.lang),
-        size: "flexible",
-        appearance: "interaction-only",
-        action: "contact_reveal",
-        callback: (token) => submitToken(token, turnstile, widgetId),
-        "error-callback": () => setContactStatus("contact_failed", "error"),
-        "expired-callback": () => turnstile.reset(widgetId)
-      });
+      widgetRenderer = createLocalizedTurnstileRenderer(
+        turnstile,
+        mount,
+        () => ({
+          sitekey: config.sitekey,
+          theme: "dark",
+          size: "flexible",
+          appearance: "interaction-only",
+          action: "contact_reveal",
+          callback: (token) => submitToken(token, turnstile, widgetRenderer.widgetId),
+          "error-callback": () => setContactStatus("contact_failed", "error"),
+          "expired-callback": () => turnstile.reset(widgetRenderer.widgetId)
+        }),
+        { root }
+      );
+      widgetRenderer.render();
     } catch {
       setContactStatus("contact_unavailable", "error");
       button.disabled = false;

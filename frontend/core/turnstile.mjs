@@ -4,6 +4,45 @@ export function turnstileLanguage(language) {
   return String(language ?? "").toLowerCase().startsWith("de") ? "de" : "en";
 }
 
+export function createLocalizedTurnstileRenderer(turnstile, mount, optionsFactory, {
+  root = globalThis.document
+} = {}) {
+  let widgetId = null;
+  let renderedLanguage = null;
+
+  function effectiveLanguage() {
+    return turnstileLanguage(root?.documentElement?.lang);
+  }
+
+  function renderWith(language) {
+    widgetId = turnstile.render(mount, {
+      ...optionsFactory(),
+      language
+    });
+    renderedLanguage = language;
+    return widgetId;
+  }
+
+  function render() {
+    return renderWith(effectiveLanguage());
+  }
+
+  function refreshLanguage() {
+    const nextLanguage = effectiveLanguage();
+    if (widgetId === null || nextLanguage === renderedLanguage) return false;
+    turnstile.remove(widgetId);
+    renderWith(nextLanguage);
+    return true;
+  }
+
+  return {
+    render,
+    refreshLanguage,
+    get widgetId() { return widgetId; },
+    get language() { return renderedLanguage; }
+  };
+}
+
 export function createTurnstileLoader() {
   let inFlight = null;
 

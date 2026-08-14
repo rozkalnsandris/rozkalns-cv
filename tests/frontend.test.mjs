@@ -998,6 +998,231 @@ test("provider failure notices are reserved non-completed stream suffixes", asyn
   }
 });
 
+test("active contact Turnstile rerenders only when effective CV language changes", async () => {
+  const previousMutationObserver = globalThis.MutationObserver;
+  const observers = [];
+  globalThis.MutationObserver = class {
+    constructor(callback) {
+      this.callback = callback;
+      observers.push(this);
+    }
+    observe() {}
+  };
+
+  try {
+    const label = { textContent: "" };
+    const status = { textContent: "", dataset: {} };
+    const mount = { hidden: true };
+    const phone = { dataset: {}, setAttribute() {} };
+    const button = {
+      dataset: {},
+      disabled: false,
+      hidden: false,
+      querySelector(selector) {
+        return selector === ".contact-reveal-label" ? label : null;
+      },
+      addEventListener() {},
+      removeEventListener() {}
+    };
+    const root = {
+      documentElement: { lang: "en" },
+      querySelector(selector) {
+        if (selector === "#contactReveal") return button;
+        if (selector === "#turnstileMount") return mount;
+        if (selector === "#contactVerifyStatus") return status;
+        if (selector === "#contactPhone") return phone;
+        return null;
+      }
+    };
+    const renders = [];
+    const removals = [];
+    let nextWidgetId = 1;
+    const windowLike = {
+      location: { href: "https://rozkalns.net/" },
+      turnstile: {
+        render(_mount, options) {
+          const id = nextWidgetId++;
+          renders.push({ id, language: options.language });
+          return id;
+        },
+        remove(widgetId) {
+          removals.push(widgetId);
+        },
+        reset() {}
+      }
+    };
+    let configFetches = 0;
+    const fetchImpl = async (url) => {
+      assert.equal(url, "/api/contact-config");
+      configFetches += 1;
+      return {
+        ok: true,
+        async json() { return { configured: true, sitekey: "site-key" }; }
+      };
+    };
+    const languageController = {
+      messages: {
+        contact_reveal: "Reveal phone",
+        contact_phone_hidden: "Phone hidden",
+        contact_loading: "Loading",
+        contact_failed: "Failed",
+        contact_unavailable: "Unavailable"
+      }
+    };
+
+    const controller = createContactController(languageController, { root, windowLike, fetchImpl });
+    await controller.start();
+    assert.deepEqual(renders.map((entry) => entry.language), ["en"]);
+    assert.deepEqual(removals, []);
+    assert.equal(configFetches, 1);
+
+    root.documentElement.lang = "lv";
+    observers[0].callback();
+    assert.deepEqual(renders.map((entry) => entry.language), ["en"]);
+    assert.deepEqual(removals, []);
+
+    root.documentElement.lang = "de";
+    observers[0].callback();
+    assert.deepEqual(renders.map((entry) => entry.language), ["en", "de"]);
+    assert.deepEqual(removals, [1]);
+    assert.equal(configFetches, 1);
+
+    root.documentElement.lang = "lv";
+    observers[0].callback();
+    assert.deepEqual(renders.map((entry) => entry.language), ["en", "de", "en"]);
+    assert.deepEqual(removals, [1, 2]);
+    assert.equal(configFetches, 1);
+  } finally {
+    if (previousMutationObserver === undefined) {
+      delete globalThis.MutationObserver;
+    } else {
+      globalThis.MutationObserver = previousMutationObserver;
+    }
+  }
+});
+
+test("active chat admission Turnstile rerenders without restarting admission", async () => {
+  const observers = [];
+  class FakeMutationObserver {
+    constructor(callback) {
+      this.callback = callback;
+      observers.push(this);
+    }
+    observe() {}
+  }
+
+  const formListeners = new Map();
+  const form = {
+    attributes: {},
+    addEventListener(type, listener) { formListeners.set(type, listener); },
+    setAttribute(name, value) { this.attributes[name] = value; }
+  };
+  const input = { value: "Hello", focus() {} };
+  const send = { disabled: false };
+  const log = {
+    children: [],
+    scrollTop: 0,
+    scrollHeight: 0,
+    append(message) {
+      this.children.push(message);
+      this.scrollHeight = this.children.length;
+    }
+  };
+  const status = {
+    textContent: "",
+    after(node) { this.mount = node; }
+  };
+  const root = {
+    documentElement: { lang: "en" },
+    querySelector(selector) {
+      if (selector === "#chatForm") return form;
+      if (selector === "#chatInput") return input;
+      if (selector === "#chatSend") return send;
+      if (selector === "#chatLog") return log;
+      if (selector === "#chatStatus") return status;
+      return null;
+    },
+    createElement(tagName) {
+      assert.equal(tagName, "div");
+      return {
+        className: "",
+        textContent: "",
+        attributes: {},
+        removed: false,
+        setAttribute(name, value) { this.attributes[name] = value; },
+        remove() { this.removed = true; }
+      };
+    }
+  };
+  const renders = [];
+  const removals = [];
+  let latestOptions = null;
+  let nextWidgetId = 11;
+  const windowLike = {
+    MutationObserver: FakeMutationObserver,
+    turnstile: {
+      render(_mount, options) {
+        const id = nextWidgetId++;
+        latestOptions = options;
+        renders.push({ id, language: options.language });
+        return id;
+      },
+      remove(widgetId) { removals.push(widgetId); },
+      reset() {}
+    }
+  };
+  let configFetches = 0;
+  const fetchImpl = async (url) => {
+    assert.equal(url, "/api/chat-config");
+    configFetches += 1;
+    return {
+      ok: true,
+      async json() { return { configured: true, sitekey: "chat-site-key" }; }
+    };
+  };
+  const languageController = {
+    messages: {
+      chat_typing: "Preparing answer",
+      chat_complete: "Answer complete",
+      chat_error: "Connection issue"
+    }
+  };
+
+  createChatController(languageController, { root, windowLike, fetchImpl });
+  const submit = formListeners.get("submit")({ preventDefault() {} });
+  for (let attempt = 0; attempt < 10 && renders.length === 0; attempt += 1) {
+    await Promise.resolve();
+  }
+  assert.deepEqual(renders.map((entry) => entry.language), ["en"]);
+  assert.deepEqual(removals, []);
+  assert.equal(configFetches, 1);
+
+  root.documentElement.lang = "lv";
+  observers[0].callback();
+  assert.deepEqual(renders.map((entry) => entry.language), ["en"]);
+  assert.deepEqual(removals, []);
+
+  root.documentElement.lang = "de";
+  observers[0].callback();
+  assert.deepEqual(renders.map((entry) => entry.language), ["en", "de"]);
+  assert.deepEqual(removals, [11]);
+  assert.equal(configFetches, 1);
+
+  root.documentElement.lang = "lv";
+  observers[0].callback();
+  assert.deepEqual(renders.map((entry) => entry.language), ["en", "de", "en"]);
+  assert.deepEqual(removals, [11, 12]);
+  assert.equal(configFetches, 1);
+
+  latestOptions["error-callback"]();
+  await submit;
+  const renderCount = renders.length;
+  root.documentElement.lang = "de";
+  observers[0].callback();
+  assert.equal(renders.length, renderCount);
+  assert.equal(configFetches, 1);
+});
+
 test("Turnstile widgets follow selected CV language with deterministic fallback", async () => {
   assert.equal(turnstileLanguage("en"), "en");
   assert.equal(turnstileLanguage("en-GB"), "en");
@@ -1007,16 +1232,20 @@ test("Turnstile widgets follow selected CV language with deterministic fallback"
   assert.equal(turnstileLanguage("fr"), "en");
   assert.equal(turnstileLanguage(undefined), "en");
 
+  const turnstileCore = await readFile(
+    resolve(ROOT, "frontend/core/turnstile.mjs"),
+    "utf8"
+  );
+  assert.match(turnstileCore, /createLocalizedTurnstileRenderer/);
+  assert.match(turnstileCore, /turnstileLanguage\(root\?\.documentElement\?\.lang\)/);
+  assert.match(turnstileCore, /turnstile\.remove\(widgetId\)/);
+
   for (const path of [
     "frontend/features/contact.mjs",
     "frontend/features/chat.mjs"
   ]) {
     const source = await readFile(resolve(ROOT, path), "utf8");
-    assert.match(
-      source,
-      /language: turnstileLanguage\(root\.documentElement\?\.lang\)/,
-      path
-    );
+    assert.match(source, /createLocalizedTurnstileRenderer/, path);
   }
 });
 
