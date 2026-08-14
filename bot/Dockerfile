@@ -25,7 +25,7 @@ RUN python -m pip install --require-hashes --no-deps -r requirements.lock
 
 COPY --chown=${APP_UID}:${APP_GID} \
     app.py chat_admission.py chat_entry.py chat_policy.py config.py contact.py \
-    notifier.py provider.py provider_stream.py readiness.py storage.py \
+    notifier.py provider.py provider_notices.json provider_stream.py readiness.py storage.py \
     system_prompt.py system_prompt.txt ./
 RUN mkdir -p /app/data \
     && chown "${APP_UID}:${APP_GID}" /app/data \

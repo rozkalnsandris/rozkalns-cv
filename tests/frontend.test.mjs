@@ -12,6 +12,7 @@ import {
 import { createTurnstileLoader } from "../frontend/core/turnstile.mjs";
 import {
   buildChatPayload,
+  chatStreamSucceeded,
   createChatController,
   normalizeCompletedHistory
 } from "../frontend/features/chat.mjs";
@@ -752,6 +753,10 @@ test("current chat status rerenders after language changes without refetching", 
   let fetches = 0;
   let chatMode = "success";
   let resolveChat = null;
+  const chatPayloads = [];
+  const providerNotices = JSON.parse(
+    await readFile(resolve(ROOT, "bot/provider_notices.json"), "utf8")
+  );
 
   const fetchImpl = async (url, options = {}) => {
     fetches += 1;
@@ -776,10 +781,14 @@ test("current chat status rerenders after language changes without refetching", 
     }
 
     if (url === "/api/chat") {
+      chatPayloads.push(JSON.parse(options.body));
       if (chatMode === "success") {
         return new Promise((resolveResponse) => {
           resolveChat = resolveResponse;
         });
+      }
+      if (chatMode === "stream-failure") {
+        return new Response(`Partial answer${providerNotices.timeout}`, { status: 200 });
       }
 
       return {
@@ -898,6 +907,32 @@ test("current chat status rerenders after language changes without refetching", 
     { role: "assistant", content: "Antwort" }
   ]);
 
+  chatMode = "stream-failure";
+  input.value = "Timeout";
+  const streamedFailure = formListeners.get("submit")({
+    preventDefault() {}
+  });
+  await streamedFailure;
+
+  assert.equal(status.textContent, "Savienojuma kļūda");
+  assert.equal(log.children.at(-1).textContent, `Partial answer${providerNotices.timeout}`);
+  assert.deepEqual(controller.completedHistory, [
+    { role: "user", content: "Hello" },
+    { role: "assistant", content: "Antwort" }
+  ]);
+  assert.deepEqual(chatPayloads.at(-1).history, [
+    { role: "user", content: "Hello" },
+    { role: "assistant", content: "Antwort" }
+  ]);
+
+  chatMode = "failure";
+  input.value = "After timeout";
+  await formListeners.get("submit")({ preventDefault() {} });
+  assert.deepEqual(chatPayloads.at(-1).history, [
+    { role: "user", content: "Hello" },
+    { role: "assistant", content: "Antwort" }
+  ]);
+
   const fetchesAfterFailure = fetches;
 
   languageController.messages = {
@@ -945,6 +980,18 @@ test("incomplete history is dropped", () => {
     { role: "user", content: "orphan" }
   ];
   assert.deepEqual(normalizeCompletedHistory(history), history.slice(0, 2));
+});
+
+test("provider failure notices are reserved non-completed stream suffixes", async () => {
+  const notices = JSON.parse(
+    await readFile(resolve(ROOT, "bot/provider_notices.json"), "utf8")
+  );
+  assert.equal(chatStreamSucceeded("Normal answer"), true);
+  assert.equal(chatStreamSucceeded("   "), false);
+  for (const [statusName, notice] of Object.entries(notices)) {
+    assert.equal(chatStreamSucceeded(notice), false, statusName);
+    assert.equal(chatStreamSucceeded(`Partial answer${notice}`), false, statusName);
+  }
 });
 
 test("Turnstile script loading is shared in flight and retryable after failure", async () => {

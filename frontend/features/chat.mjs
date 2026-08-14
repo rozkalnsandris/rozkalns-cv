@@ -1,3 +1,4 @@
+import providerNotices from "../../bot/provider_notices.json" with { type: "json" };
 import { loadTurnstile } from "../core/turnstile.mjs";
 
 const CHAT_STATUS = Object.freeze({
@@ -5,6 +6,13 @@ const CHAT_STATUS = Object.freeze({
   complete: Object.freeze({ key: "chat_complete", fallback: "Answer complete." }),
   error: Object.freeze({ key: "chat_error", fallback: "Connection issue." })
 });
+
+const PROVIDER_FAILURE_NOTICES = Object.freeze(Object.values(providerNotices));
+
+export function chatStreamSucceeded(text) {
+  const full = String(text ?? "");
+  return Boolean(full.trim()) && !PROVIDER_FAILURE_NOTICES.some((notice) => full.endsWith(notice));
+}
 
 export function normalizeCompletedHistory(history, maxMessages = 12) {
   if (!Array.isArray(history)) return [];
@@ -256,11 +264,15 @@ export function createChatController(languageController, {
       }
       full += decoder.decode();
       answer.textContent = full;
-      completedHistory.push(
-        { role: "user", content: message },
-        { role: "assistant", content: full }
-      );
-      setStatus("complete");
+      if (chatStreamSucceeded(full)) {
+        completedHistory.push(
+          { role: "user", content: message },
+          { role: "assistant", content: full }
+        );
+        setStatus("complete");
+      } else {
+        setStatus("error");
+      }
     } catch (error) {
       const text = error instanceof Error && error.message
         ? error.message

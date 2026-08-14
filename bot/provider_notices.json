@@ -1,0 +1,10 @@
+{
+  "length": "\n\n[The response was truncated. Please ask a narrower question.]",
+  "content_filter": "\n\n[The provider stopped this response for safety. Please rephrase.]",
+  "insufficient_system_resource": "\n\n[The provider is temporarily short on capacity. Please try again.]",
+  "tool_calls": "\n\n[The provider returned an unsupported response. Please try again.]",
+  "protocol_error": "\n\n[The provider returned an invalid stream. Please try again.]",
+  "timeout": "\n\n[That took too long — please try again.]",
+  "http_error": "\n\n[The provider is temporarily unavailable. Please try again.]",
+  "internal_error": "\n\n[Sorry, something went wrong. Please try again.]"
+}

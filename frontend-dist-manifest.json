@@ -32,7 +32,7 @@
     "name": "turnstile"
   },
   "features/chat.mjs": {
-    "file": "assets/chat.abba8da1b650.mjs",
+    "file": "assets/chat.6ae77716cedf.mjs",
     "name": "chat",
     "src": "features/chat.mjs",
     "isDynamicEntry": true,
@@ -50,7 +50,7 @@
     ]
   },
   "index.html": {
-    "file": "assets/app.31270d43cfbb.mjs",
+    "file": "assets/app.23f7a6c5035b.mjs",
     "name": "app",
     "src": "index.html",
     "isEntry": true,

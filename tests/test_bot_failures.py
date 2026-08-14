@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
 from pathlib import Path
 import sqlite3
@@ -61,6 +62,9 @@ class BotFailureBehaviorTests(unittest.TestCase):
         spec.loader.exec_module(self.module)
         self.client = self.module.app.test_client()
         self.addCleanup(self.module.close_app_services, self.module.app)
+        self.provider_notices = json.loads(
+            (BOT / "provider_notices.json").read_text(encoding="utf-8")
+        )
 
     def _headers(self, address: str = "203.0.113.10") -> dict[str, str]:
         client_key = self.module.STORE.pseudonymize(
@@ -94,7 +98,7 @@ class BotFailureBehaviorTests(unittest.TestCase):
         ):
             response = self.post({"message": "Will this time out?", "history": []})
         self.assertEqual(response.status_code, 200)
-        self.assertIn("took too long", response.get_data(as_text=True))
+        self.assertEqual(response.get_data(as_text=True), self.provider_notices["timeout"])
         self.assertEqual(self.table_count("rate_events"), 1)
         self.assertEqual(self.table_count("chats"), 0)
 
@@ -107,10 +111,26 @@ class BotFailureBehaviorTests(unittest.TestCase):
             response = self.post({"message": "Will this fail?", "history": []})
         self.assertEqual(response.status_code, 200)
         body = response.get_data(as_text=True)
-        self.assertIn("provider is temporarily unavailable", body.lower())
+        self.assertEqual(body, self.provider_notices["http_error"])
         self.assertNotIn("synthetic upstream", body)
         self.assertEqual(self.table_count("rate_events"), 1)
         self.assertEqual(self.table_count("chats"), 0)
+
+    def test_provider_notice_contract_has_all_stream_failure_states(self) -> None:
+        self.assertEqual(
+            set(self.provider_notices),
+            {
+                "length",
+                "content_filter",
+                "insufficient_system_resource",
+                "tool_calls",
+                "protocol_error",
+                "timeout",
+                "http_error",
+                "internal_error",
+            },
+        )
+        self.assertEqual(self.module._PROVIDER_NOTICES, self.provider_notices)
 
     def test_non_list_history_is_rejected_before_quota(self) -> None:
         response = self.post({"message": "Question", "history": "not-a-list"})
