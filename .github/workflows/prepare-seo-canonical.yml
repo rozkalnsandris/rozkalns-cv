@@ -19,15 +19,17 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
+          base=7e348ffb2d6b316cc5cc5ed51de28694b8abbd34
           auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
           git init .
           git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
           git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
             fetch --no-tags origin \
             refs/heads/fix/228-canonical-preview-crawl \
-            7e348ffb2d6b316cc5cc5ed51de28694b8abbd34
+            "$base"
           git checkout --detach FETCH_HEAD
-          test "$(git rev-parse HEAD^^)" = "7e348ffb2d6b316cc5cc5ed51de28694b8abbd34"
+          test "$(git merge-base HEAD "$base")" = "$base"
+          test -z "$(git diff --name-only "$base"..HEAD | grep -v '^.github/workflows/prepare-seo-canonical.yml$' || true)"
 
       - name: Set up pinned Node.js frontend toolchain
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -39,6 +41,7 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
+          base=7e348ffb2d6b316cc5cc5ed51de28694b8abbd34
           python3 - <<'PY'
           from pathlib import Path
 
@@ -93,7 +96,7 @@ jobs:
           git rm -f .github/workflows/prepare-seo-canonical.yml
           git diff --check
           git add -A
-          test -z "$(git diff --cached --name-only | grep -E '^\.github/workflows/' || true)"
+          test -z "$(git diff --name-only "$base" -- .github/workflows/ || true)"
           git status --short
 
       - name: Commit exact generated result back to PR branch
