@@ -11,17 +11,13 @@ ROOT = Path(__file__).resolve().parents[1]
 class ProjectTechIconTests(unittest.TestCase):
     def test_project_tags_use_shared_progressive_icon_enhancement(self) -> None:
         icons = (ROOT / "frontend/ui/icons.mjs").read_text(encoding="utf-8")
-        styles = (ROOT / "frontend/styles/features/tech-icons.css").read_text(
-            encoding="utf-8"
-        )
-        style_index = (ROOT / "frontend/styles/index.css").read_text(encoding="utf-8")
+        styles = (ROOT / "frontend/styles/components.css").read_text(encoding="utf-8")
 
         self.assertIn('root.querySelectorAll(".tech-tag")', icons)
         self.assertIn('element.querySelector("svg")', icons)
         self.assertIn('element.classList?.add?.("has-tech-icon")', icons)
         self.assertIn('enhanceIconPill(tag, root, { hideFallback: true })', icons)
 
-        self.assertIn('@import "./features/tech-icons.css";', style_index)
         self.assertIn(".tech-tag.has-tech-icon::before", styles)
         self.assertIn("display: none", styles)
         self.assertIn(".tech-tag svg", styles)

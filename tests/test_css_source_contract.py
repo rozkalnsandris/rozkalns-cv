@@ -12,7 +12,6 @@ EXPECTED_IMPORTS = [
     "./base.css",
     "./layout.css",
     "./components.css",
-    "./features/tech-icons.css",
     "./features/stats.css",
     "./features/chat.css",
     "./features/contact.css",
@@ -105,8 +104,8 @@ class CssSourceContractTests(unittest.TestCase):
         self.assertNotIn(".skill-chip::before", combined)
         self.assertIn(".skill-chip svg", combined)
         for relative in (
-            "layout.css", "components.css", "features/tech-icons.css",
-            "features/stats.css", "features/chat.css", "features/contact.css",
+            "layout.css", "components.css", "features/stats.css",
+            "features/chat.css", "features/contact.css",
             "features/smarthome.css", "responsive.css",
         ):
             self.assertNotIn(
