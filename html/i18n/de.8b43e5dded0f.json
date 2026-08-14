@@ -123,5 +123,11 @@
   "smart_heating_zones": "Heizzonen",
   "smart_open_windows": "Offene Fenster",
   "smart_footer": "Nur statische Demonstration — kein Zugriff auf das echte Zuhause oder Geräte.",
-  "contact_whatsapp_verify": "Prüfen, um WhatsApp zu öffnen"
+  "contact_whatsapp_verify": "Prüfen, um WhatsApp zu öffnen",
+  "profile_languages_label": "Sprachen",
+  "profile_lang_latvian": "Lettisch",
+  "profile_lang_english": "Englisch",
+  "profile_lang_german": "Deutsch",
+  "profile_level_native": "Muttersprache",
+  "profile_level_fluent": "fließend"
 }

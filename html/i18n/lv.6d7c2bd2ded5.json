@@ -123,5 +123,11 @@
   "smart_heating_zones": "Apkures zonas",
   "smart_open_windows": "Atvērtie logi",
   "smart_footer": "Tikai statiska demonstrācija — nav piekļuves īstajai mājai vai ierīcēm.",
-  "contact_whatsapp_verify": "Pārbaudīt, lai atvērtu WhatsApp"
+  "contact_whatsapp_verify": "Pārbaudīt, lai atvērtu WhatsApp",
+  "profile_languages_label": "Valodas",
+  "profile_lang_latvian": "Latviešu",
+  "profile_lang_english": "Angļu",
+  "profile_lang_german": "Vācu",
+  "profile_level_native": "dzimtā valoda",
+  "profile_level_fluent": "brīvi"
 }
