@@ -6,6 +6,13 @@ const TRANSLATIONS = Object.freeze({
   lv: new URL("../../content/translations/lv.json", import.meta.url).href
 });
 
+const SKILL_LIST_KEYS = Object.freeze({
+  skills_core: "skills_core_items",
+  skills_working: "skills_working_items",
+  skills_learning: "skills_learning_items",
+  skills_foundations: "skills_foundations_items"
+});
+
 export function normalizeLanguage(value) {
   const candidate = String(value || "").slice(0, 2).toLowerCase();
   return Object.hasOwn(TRANSLATIONS, candidate) ? candidate : "en";
@@ -35,6 +42,31 @@ export async function loadMessages(language, { fetchImpl = globalThis.fetch } = 
   return { language: safe, messages: data };
 }
 
+function translationItems(value) {
+  if (typeof value !== "string") return null;
+  const items = value.split("·").map((item) => item.trim());
+  if (!items.length || items.some((item) => !item)) return null;
+  return items;
+}
+
+export function applySkillTranslations(messages, { root = globalThis.document } = {}) {
+  let applied = 0;
+  root.querySelectorAll(".skill-row").forEach((row) => {
+    const label = row.querySelector("dt[data-i18n]");
+    const listKey = SKILL_LIST_KEYS[label?.dataset?.i18n];
+    if (!listKey) return;
+    const items = translationItems(messages[listKey]);
+    if (!items) return;
+    const chips = [...row.querySelectorAll(".skill-chip")];
+    if (items.length !== chips.length) return;
+    chips.forEach((chip, index) => {
+      chip.textContent = items[index];
+    });
+    applied += 1;
+  });
+  return applied;
+}
+
 export function applyTranslations(messages, language, {
   root = globalThis.document,
   storage = globalThis.localStorage,
@@ -54,6 +86,7 @@ export function applyTranslations(messages, language, {
     const value = messages[element.dataset.i18nLabel];
     if (typeof value === "string") element.setAttribute("aria-label", value);
   });
+  applySkillTranslations(messages, { root });
   root.querySelectorAll("[data-lang]").forEach((button) => {
     button.setAttribute("aria-pressed", String(button.dataset.lang === safe));
   });
