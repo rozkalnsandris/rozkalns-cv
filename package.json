@@ -6,7 +6,7 @@
     "node": ">=20.19.0"
   },
   "scripts": {
-    "build:frontend": "node scripts/build-frontend.mjs",
+    "build:frontend": "node scripts/build-frontend.mjs && node scripts/dump-frontend-dist.mjs",
     "check:frontend": "node scripts/check-frontend-dist.mjs"
   },
   "devDependencies": {
