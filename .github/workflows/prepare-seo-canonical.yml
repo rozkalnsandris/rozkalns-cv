@@ -27,7 +27,7 @@ jobs:
             refs/heads/fix/228-canonical-preview-crawl \
             7e348ffb2d6b316cc5cc5ed51de28694b8abbd34
           git checkout --detach FETCH_HEAD
-          test "$(git rev-parse HEAD^)" = "7e348ffb2d6b316cc5cc5ed51de28694b8abbd34"
+          test "$(git rev-parse HEAD^^)" = "7e348ffb2d6b316cc5cc5ed51de28694b8abbd34"
 
       - name: Set up pinned Node.js frontend toolchain
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -50,44 +50,45 @@ jobs:
           needle = '  <meta property="og:url" content="https://rozkalns.net/">\n'
           if text.count(needle) != 1:
               raise SystemExit('og:url source contract changed unexpectedly')
-          text = text.replace(needle, needle + f'  {canonical}\n')
-          source.write_text(text, encoding='utf-8')
+          source.write_text(text.replace(needle, needle + f'  {canonical}\n'), encoding='utf-8')
 
           Path('html/robots.txt').write_text('User-agent: *\nAllow: /\n', encoding='utf-8')
 
-          Path('tests/test_seo_canonical.py').write_text(r'''from pathlib import Path
-import unittest
-
-ROOT = Path(__file__).resolve().parents[1]
-CANONICAL = '<link rel="canonical" href="https://rozkalns.net/">'
-OG_URL = '<meta property="og:url" content="https://rozkalns.net/">'
-OG_IMAGE = '<meta property="og:image" content="https://rozkalns.net/photo.jpg">'
-
-
-class SeoCanonicalContractTest(unittest.TestCase):
-    def test_source_and_generated_html_publish_one_canonical(self):
-        for relative in ("frontend/index.html", "html/index.html"):
-            html = (ROOT / relative).read_text(encoding="utf-8")
-            self.assertEqual(html.count(CANONICAL), 1, relative)
-            self.assertEqual(html.count(OG_URL), 1, relative)
-            self.assertEqual(html.count(OG_IMAGE), 1, relative)
-
-    def test_preview_image_is_crawlable(self):
-        robots = (ROOT / "html/robots.txt").read_text(encoding="utf-8")
-        self.assertIn("User-agent: *", robots)
-        self.assertIn("Allow: /", robots)
-        self.assertNotIn("Disallow: /photo.jpg", robots)
-
-
-if __name__ == "__main__":
-    unittest.main()
-''', encoding='utf-8')
+          test_lines = [
+              'from pathlib import Path',
+              'import unittest',
+              '',
+              'ROOT = Path(__file__).resolve().parents[1]',
+              'CANONICAL = \'<link rel="canonical" href="https://rozkalns.net/">\'',
+              'OG_URL = \'<meta property="og:url" content="https://rozkalns.net/">\'',
+              'OG_IMAGE = \'<meta property="og:image" content="https://rozkalns.net/photo.jpg">\'',
+              '',
+              '',
+              'class SeoCanonicalContractTest(unittest.TestCase):',
+              '    def test_source_and_generated_html_publish_one_canonical(self):',
+              '        for relative in ("frontend/index.html", "html/index.html"):',
+              '            html = (ROOT / relative).read_text(encoding="utf-8")',
+              '            self.assertEqual(html.count(CANONICAL), 1, relative)',
+              '            self.assertEqual(html.count(OG_URL), 1, relative)',
+              '            self.assertEqual(html.count(OG_IMAGE), 1, relative)',
+              '',
+              '    def test_preview_image_is_crawlable(self):',
+              '        robots = (ROOT / "html/robots.txt").read_text(encoding="utf-8")',
+              '        self.assertIn("User-agent: *", robots)',
+              '        self.assertIn("Allow: /", robots)',
+              '        self.assertNotIn("Disallow: /photo.jpg", robots)',
+              '',
+              '',
+              'if __name__ == "__main__":',
+              '    unittest.main()',
+          ]
+          Path('tests/test_seo_canonical.py').write_text('\n'.join(test_lines) + '\n', encoding='utf-8')
           PY
 
           npm ci --ignore-scripts --no-audit --no-fund
           npm run build:frontend
           npm run check:frontend
-          python3 -m unittest tests.test_seo_canonical
+          python3 -m unittest discover -s tests -p 'test_seo_canonical.py'
 
           git rm -f .github/workflows/prepare-seo-canonical.yml
           git diff --check
