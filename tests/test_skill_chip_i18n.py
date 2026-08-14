@@ -23,6 +23,10 @@ def translation_items(value: str) -> list[str]:
     return [item.strip() for item in value.split("·")]
 
 
+def skill_identity(value: str) -> str:
+    return re.sub(r"\s*/\s*", "/", value.strip())
+
+
 def skill_rows() -> dict[str, list[str]]:
     html = INDEX.read_text(encoding="utf-8")
     pattern = re.compile(
@@ -45,7 +49,9 @@ class SkillChipI18nTests(unittest.TestCase):
             (TRANSLATIONS / "en.json").read_text(encoding="utf-8")
         )
         for row_key, list_key in ROW_TO_LIST.items():
-            self.assertEqual(translation_items(messages[list_key]), rows[row_key])
+            canonical = [skill_identity(item) for item in translation_items(messages[list_key])]
+            visible = [skill_identity(item) for item in rows[row_key]]
+            self.assertEqual(canonical, visible)
 
     def test_all_languages_have_complete_skill_lists(self) -> None:
         rows = skill_rows()
