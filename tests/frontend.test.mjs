@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import test from "node:test";
-import { installPreloadErrorRecovery } from "../frontend/app.mjs";
+import { installPreloadErrorRecovery, updateMainDocumentTitle } from "../frontend/app.mjs";
 import {
   createLanguageController,
   localeFor,
@@ -157,16 +157,19 @@ test("failed language switch leaves the previously applied state unchanged", asy
   let fail = false;
   const fetchImpl = async () => {
     if (fail) return { ok: false, async json() { return {}; } };
-    return { ok: true, async json() { return { label: "English" }; } };
+    return { ok: true, async json() { return { label: "English", role: "Junior DevOps & Linux Engineer" }; } };
   };
+  const documentLike = { title: "Initial title" };
   const controller = createLanguageController({
     root,
     storage,
     navigatorLike: { language: "en-GB" },
-    fetchImpl
+    fetchImpl,
+    onApplied(state) { updateMainDocumentTitle(state, { documentLike }); }
   });
 
   assert.equal(await controller.tryApply("en"), true);
+  assert.equal(documentLike.title, "Andris Rožkalns · DevOps & Linux Engineer");
   const previousMessages = controller.messages;
   fail = true;
 
@@ -175,6 +178,7 @@ test("failed language switch leaves the previously applied state unchanged", asy
   assert.equal(controller.messages, previousMessages);
   assert.equal(root.documentElement.lang, "en");
   assert.equal(storage.value, "en");
+  assert.equal(documentLike.title, "Andris Rožkalns · DevOps & Linux Engineer");
 });
 
 test("latest language request wins when responses complete out of order", async () => {

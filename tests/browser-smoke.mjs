@@ -426,6 +426,7 @@ async function runBrowserSmoke(baseUrl, state) {
     );
 
     const initialContract = await cdp.evaluate(`(() => ({
+      title: document.title,
       role: document.querySelector('[data-i18n="role"]')?.textContent,
       pdf: document.querySelector('#pdfLink')?.getAttribute('href'),
       dialogModal: document.querySelector('#chatDialog')?.getAttribute('aria-modal'),
@@ -434,6 +435,7 @@ async function runBrowserSmoke(baseUrl, state) {
       photoNaturalWidth: document.querySelector('.profile-photo')?.naturalWidth,
       photoNaturalHeight: document.querySelector('.profile-photo')?.naturalHeight
     }))()`);
+    assert.equal(initialContract.title, "Andris Rožkalns · DevOps & Linux Engineer");
     assert.equal(initialContract.role, "Junior DevOps & Linux Engineer");
     assert.match(initialContract.photoSrc, /\/assets\/photo\.[0-9a-f]{12}\.webp$/);
     assert.equal(initialContract.photoNaturalWidth, 480);
@@ -464,7 +466,7 @@ async function runBrowserSmoke(baseUrl, state) {
 
     await cdp.evaluate(`document.querySelector('[data-lang="lv"]').click()`);
     await cdp.waitFor(
-      `document.documentElement.lang === "lv" && document.querySelector('#pdfLink')?.getAttribute('href') === "/cv-lv.pdf"`,
+      `document.documentElement.lang === "lv" && document.title === "Andris Rožkalns · DevOps un Linux inženieris" && document.querySelector('#pdfLink')?.getAttribute('href') === "/cv-lv.pdf"`,
       10_000,
       "Latvian language switch"
     );
