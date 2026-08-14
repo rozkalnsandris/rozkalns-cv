@@ -23,6 +23,32 @@ export function localeFor(language) {
   return safe === "de" ? "de-DE" : safe === "lv" ? "lv-LV" : "en-GB";
 }
 
+export function regionDisplayName(region, language, { DisplayNames = globalThis.Intl?.DisplayNames } = {}) {
+  const code = String(region || "").trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(code)) return code;
+  if (typeof DisplayNames !== "function") return code;
+  try {
+    return new DisplayNames([localeFor(language)], {
+      type: "region",
+      fallback: "code"
+    }).of(code) || code;
+  } catch {
+    return code;
+  }
+}
+
+export function applyRegionDisplayNames(language, {
+  root = globalThis.document,
+  DisplayNames = globalThis.Intl?.DisplayNames
+} = {}) {
+  root.querySelectorAll("[data-region-code]").forEach((element) => {
+    const city = String(element.dataset.city || "").trim();
+    const region = String(element.dataset.regionCode || "").trim().toUpperCase();
+    if (!city || !/^[A-Z]{2}$/.test(region)) return;
+    element.textContent = `${city}, ${regionDisplayName(region, language, { DisplayNames })}`;
+  });
+}
+
 export function preferredLanguage({ storage = globalThis.localStorage, navigatorLike = globalThis.navigator } = {}) {
   try {
     const saved = storage?.getItem?.("cvlang");
@@ -76,6 +102,7 @@ export function applyTranslations(messages, language, {
 } = {}) {
   const safe = normalizeLanguage(language);
   root.documentElement.lang = safe;
+  applyRegionDisplayNames(safe, { root });
   root.querySelectorAll("[data-i18n]").forEach((element) => {
     const value = messages[element.dataset.i18n];
     if (typeof value === "string") element.textContent = value;

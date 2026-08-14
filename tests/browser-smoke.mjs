@@ -469,6 +469,7 @@ async function runBrowserSmoke(baseUrl, state) {
       photoSrc: document.querySelector('.profile-photo')?.currentSrc,
       photoAlt: document.querySelector('.profile-photo')?.getAttribute('alt'),
       profileHeading: document.querySelector('.sidebar h1')?.textContent,
+      location: document.querySelector('#profileLocation')?.textContent,
       photoNaturalWidth: document.querySelector('.profile-photo')?.naturalWidth,
       photoNaturalHeight: document.querySelector('.profile-photo')?.naturalHeight
     }))()`);
@@ -477,6 +478,7 @@ async function runBrowserSmoke(baseUrl, state) {
     assert.match(initialContract.photoSrc, /\/assets\/photo\.[0-9a-f]{12}\.webp$/);
     assert.equal(initialContract.photoAlt, "");
     assert.equal(initialContract.profileHeading, "Andris Rožkalns");
+    assert.equal(initialContract.location, "Dortmund, Germany");
     assert.equal(initialContract.photoNaturalWidth, 480);
     assert.equal(initialContract.photoNaturalHeight, 480);
     assert.equal(initialContract.pdf, "/cv.pdf");
@@ -509,6 +511,17 @@ async function runBrowserSmoke(baseUrl, state) {
     assert.equal(initialLanguageState.profileListLabel, "Languages");
     assert.deepEqual(initialLanguageState.profileListItems, ["listitem", "listitem", "listitem"]);
 
+    await cdp.evaluate(`document.querySelector('[data-lang="de"]').click()`);
+    await cdp.waitFor(
+      `document.documentElement.lang === "de" && document.querySelector('#profileLocation')?.textContent === "Dortmund, Deutschland"`,
+      10_000,
+      "German location localization"
+    );
+    assert.equal(
+      await cdp.evaluate(`document.querySelector('#profileLocation')?.textContent`),
+      "Dortmund, Deutschland"
+    );
+
     await cdp.evaluate(`document.querySelector('[data-lang="lv"]').click()`);
     await cdp.waitFor(
       `document.documentElement.lang === "lv" && document.title === "Andris Rožkalns · DevOps un Linux inženieris" && document.querySelector('#pdfLink')?.getAttribute('href') === "/cv-lv.pdf"`,
@@ -518,6 +531,10 @@ async function runBrowserSmoke(baseUrl, state) {
     assert.equal(
       await cdp.evaluate(`document.querySelector('[data-i18n="role"]').textContent`),
       "Junior DevOps un Linux inženieris"
+    );
+    assert.equal(
+      await cdp.evaluate(`document.querySelector('#profileLocation')?.textContent`),
+      "Dortmund, Vācija"
     );
     assert.deepEqual(
       await cdp.evaluate(`[...document.querySelectorAll('.language-switcher [data-lang]')].map((button) => [button.dataset.lang, button.getAttribute('aria-pressed')])`),
@@ -745,6 +762,19 @@ async function runBrowserSmoke(baseUrl, state) {
       deviceScaleFactor: 1,
       mobile: true
     });
+    await cdp.navigate(`${baseUrl}/`);
+    await cdp.waitFor(
+      `document.documentElement.lang === "lv" && document.querySelector('#profileLocation')?.textContent === "Dortmund, Vācija"`,
+      10_000,
+      "mobile Latvian location restoration"
+    );
+    const mobileLocationLayout = await cdp.evaluate(`(() => {
+      const row = document.querySelector('#profileLocation')?.closest('.contact-row');
+      return row ? { clientWidth: row.clientWidth, scrollWidth: row.scrollWidth } : null;
+    })()`);
+    assert.ok(mobileLocationLayout);
+    assert.ok(mobileLocationLayout.scrollWidth <= mobileLocationLayout.clientWidth);
+
     await cdp.navigate(`${baseUrl}/smarthome.html`);
     await cdp.waitFor(
       `document.readyState === "complete" && document.documentElement.lang === "lv" && document.querySelector('#demoMain h1')`,
