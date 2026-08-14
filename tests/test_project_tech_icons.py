@@ -62,14 +62,14 @@ class ProjectTechIconTests(unittest.TestCase):
             self.assertIn(label, labels)
 
         expected_rules = {
-            "database": r"chromadb\|database\|sqlite\|postgres\|mysql",
-            "send": r"telegram",
-            "shield": r"adguard\|safety\|health check\|ssl\|tls\|ssh\|ftp",
-            "chart": r"prometheus\|grafana\|node exporter\|live metrics\|energy",
-            "gear": r"systemd\|apt",
-            "chip": r"raspberry pi\|esp32\|iot\|matter\|sensor\|relay\|multiplexer",
-            "cloud": r"ansible\|terraform\|aws\|cloudflare\|cloud",
-            "network": r"dns\|network\|rest api\|nginx\|llm routing\|mqtt",
+            "database": "chromadb|database|sqlite|postgres|mysql",
+            "send": "telegram",
+            "shield": "adguard|safety|health check|ssl|tls|ssh|ftp",
+            "chart": "prometheus|grafana|node exporter|live metrics|energy",
+            "gear": "systemd|apt",
+            "chip": "raspberry pi|esp32|iot|matter|sensor|relay|multiplexer",
+            "cloud": "ansible|terraform|aws|cloudflare|cloud",
+            "network": "dns|network|rest api|nginx|llm routing|mqtt",
         }
         for family, pattern in expected_rules.items():
             self.assertIn(pattern, icons, family)
