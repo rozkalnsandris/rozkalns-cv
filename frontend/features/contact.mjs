@@ -1,4 +1,4 @@
-import { loadTurnstile } from "../core/turnstile.mjs";
+import { loadTurnstile, turnstileLanguage } from "../core/turnstile.mjs";
 
 function setStatus(root, message, state = "") {
   const status = root.querySelector("#contactVerifyStatus");
@@ -133,6 +133,7 @@ export function createContactController(languageController, {
       widgetId = turnstile.render(mount, {
         sitekey: config.sitekey,
         theme: "dark",
+        language: turnstileLanguage(root.documentElement?.lang),
         size: "flexible",
         appearance: "interaction-only",
         action: "contact_reveal",
