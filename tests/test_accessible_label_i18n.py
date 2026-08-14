@@ -22,6 +22,13 @@ class AccessibleLabelI18nTests(unittest.TestCase):
         )
         self.assertEqual(html.count('class="profile-language" role="listitem"'), 3)
 
+    def test_smarthome_language_group_uses_canonical_translation(self) -> None:
+        html = (ROOT / "frontend/smarthome.html").read_text(encoding="utf-8")
+        self.assertIn(
+            'class="language-switcher" role="group" data-i18n-label="profile_languages_label" aria-label="Language"',
+            html,
+        )
+
     def test_language_group_reuses_complete_canonical_translation(self) -> None:
         expected = {"en": "Languages", "de": "Sprachen", "lv": "Valodas"}
         for language, value in expected.items():
