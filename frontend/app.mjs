@@ -15,6 +15,15 @@ const PDFS = Object.freeze({
 
 export { REQUIRED_STATS, validateStats };
 
+export function updateMainDocumentTitle({ messages }, { documentLike = globalThis.document } = {}) {
+  const role = messages?.role;
+  if (!documentLike || typeof role !== "string" || !role.startsWith("Junior ")) return false;
+  const titleRole = role.slice("Junior ".length).trim();
+  if (!titleRole) return false;
+  documentLike.title = `Andris Rožkalns · ${titleRole}`;
+  return true;
+}
+
 export function installPreloadErrorRecovery(windowLike = globalThis.window) {
   if (
     typeof windowLike?.addEventListener !== "function" ||
@@ -118,7 +127,7 @@ function requestedWhatsAppContact() {
 }
 
 async function init() {
-  const languageController = createLanguageController({ pdfs: PDFS });
+  const languageController = createLanguageController({ pdfs: PDFS, onApplied: updateMainDocumentTitle });
   const preferredApplied = await languageController.tryApply(languageController.language);
   if (!preferredApplied) await languageController.tryApply("en");
 

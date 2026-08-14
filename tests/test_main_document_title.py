@@ -1,0 +1,42 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+import unittest
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+EXPECTED_TITLES = {
+    "en": "Andris Rožkalns · DevOps & Linux Engineer",
+    "de": "Andris Rožkalns · DevOps- & Linux-Engineer",
+    "lv": "Andris Rožkalns · DevOps un Linux inženieris",
+}
+
+
+class MainDocumentTitleTests(unittest.TestCase):
+    def test_main_title_updates_on_every_successful_language_apply(self) -> None:
+        source = (ROOT / "frontend" / "app.mjs").read_text(encoding="utf-8")
+        self.assertIn("export function updateMainDocumentTitle({ messages }", source)
+        self.assertIn("const role = messages?.role;", source)
+        self.assertIn('role.startsWith("Junior ")', source)
+        self.assertIn('documentLike.title = `Andris Rožkalns · ${titleRole}`;', source)
+        self.assertIn(
+            "createLanguageController({ pdfs: PDFS, onApplied: updateMainDocumentTitle })",
+            source,
+        )
+
+    def test_existing_role_translation_derives_expected_title_in_every_language(self) -> None:
+        for language, expected in EXPECTED_TITLES.items():
+            messages = json.loads(
+                (ROOT / "content" / "translations" / f"{language}.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            role = messages["role"]
+            self.assertTrue(role.startswith("Junior "), language)
+            self.assertEqual(f"Andris Rožkalns · {role.removeprefix('Junior ').strip()}", expected, language)
+
+
+if __name__ == "__main__":
+    unittest.main()
