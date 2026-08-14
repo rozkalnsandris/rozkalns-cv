@@ -455,7 +455,7 @@ async function runBrowserSmoke(baseUrl, state) {
       statusRole: document.querySelector('#chatStatus')?.getAttribute('role')
     }))()`);
     assert.equal(initialLanguageState.groupRole, "group");
-    assert.equal(initialLanguageState.groupLabel, "Language");
+    assert.equal(initialLanguageState.groupLabel, "Languages");
     assert.deepEqual(initialLanguageState.buttons, [
       { language: "en", label: "English", pressed: "true" },
       { language: "de", label: "Deutsch", pressed: "false" },
@@ -478,6 +478,18 @@ async function runBrowserSmoke(baseUrl, state) {
       await cdp.evaluate(`[...document.querySelectorAll('.language-switcher [data-lang]')].map((button) => [button.dataset.lang, button.getAttribute('aria-pressed')])`),
       [["en", "false"], ["de", "false"], ["lv", "true"]]
     );
+    assert.deepEqual(
+    await cdp.evaluate(`(() => ({
+      language: document.querySelector('.language-switcher')?.getAttribute('aria-label'),
+      focus: document.querySelector('.focus-tags')?.getAttribute('aria-label'),
+      navigation: document.querySelector('.site-nav')?.getAttribute('aria-label')
+    }))()`),
+    {
+      language: "Valodas",
+      focus: null,
+      navigation: "CV"
+    }
+  );
 
     await cdp.evaluate(`(() => {
       const launcher = document.querySelector('#chatLauncher');
