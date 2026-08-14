@@ -1,5 +1,9 @@
 const TURNSTILE_SRC = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
 
+export function turnstileLanguage(language) {
+  return String(language ?? "").toLowerCase().startsWith("de") ? "de" : "en";
+}
+
 export function createTurnstileLoader() {
   let inFlight = null;
 

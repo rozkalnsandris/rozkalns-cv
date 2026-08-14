@@ -9,7 +9,7 @@ import {
   normalizeLanguage,
   preferredLanguage
 } from "../frontend/core/i18n.mjs";
-import { createTurnstileLoader } from "../frontend/core/turnstile.mjs";
+import { createTurnstileLoader, turnstileLanguage } from "../frontend/core/turnstile.mjs";
 import {
   buildChatPayload,
   chatStreamSucceeded,
@@ -995,6 +995,28 @@ test("provider failure notices are reserved non-completed stream suffixes", asyn
   for (const [statusName, notice] of Object.entries(notices)) {
     assert.equal(chatStreamSucceeded(notice), false, statusName);
     assert.equal(chatStreamSucceeded(`Partial answer${notice}`), false, statusName);
+  }
+});
+
+test("Turnstile widgets follow selected CV language with deterministic fallback", async () => {
+  assert.equal(turnstileLanguage("en"), "en");
+  assert.equal(turnstileLanguage("en-GB"), "en");
+  assert.equal(turnstileLanguage("de"), "de");
+  assert.equal(turnstileLanguage("de-DE"), "de");
+  assert.equal(turnstileLanguage("lv"), "en");
+  assert.equal(turnstileLanguage("fr"), "en");
+  assert.equal(turnstileLanguage(undefined), "en");
+
+  for (const path of [
+    "frontend/features/contact.mjs",
+    "frontend/features/chat.mjs"
+  ]) {
+    const source = await readFile(resolve(ROOT, path), "utf8");
+    assert.match(
+      source,
+      /language: turnstileLanguage\(root\.documentElement\?\.lang\)/,
+      path
+    );
   }
 });
 

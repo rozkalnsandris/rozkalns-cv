@@ -1,5 +1,5 @@
 import providerNotices from "../../bot/provider_notices.json" with { type: "json" };
-import { loadTurnstile } from "../core/turnstile.mjs";
+import { loadTurnstile, turnstileLanguage } from "../core/turnstile.mjs";
 
 const CHAT_STATUS = Object.freeze({
   typing: Object.freeze({ key: "chat_typing", fallback: "Preparing answer…" }),
@@ -185,6 +185,7 @@ export function createChatController(languageController, {
         widgetId = turnstile.render(mount, {
           sitekey: config.sitekey,
           theme: "dark",
+          language: turnstileLanguage(root.documentElement?.lang),
           size: "flexible",
           appearance: "interaction-only",
           action: "chat_admission",
