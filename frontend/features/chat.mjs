@@ -1,5 +1,5 @@
 import providerNotices from "../../bot/provider_notices.json" with { type: "json" };
-import { loadTurnstile, turnstileLanguage } from "../core/turnstile.mjs";
+import { createLocalizedTurnstileRenderer, loadTurnstile } from "../core/turnstile.mjs";
 
 const CHAT_STATUS = Object.freeze({
   typing: Object.freeze({ key: "chat_typing", fallback: "Preparing answer…" }),
@@ -128,6 +128,8 @@ export function createChatController(languageController, {
   const completedHistory = [];
   let admissionSession = "";
   let admissionPromise = null;
+  let admissionWidget = null;
+  let admissionVerificationPending = false;
   let currentStatus = null;
 
   function localized(key, fallback) {
@@ -153,9 +155,14 @@ export function createChatController(languageController, {
     return localized(definition.key, definition.fallback);
   }
 
+  function refreshLanguageSensitiveState() {
+    renderStatus();
+    if (!admissionVerificationPending) admissionWidget?.refreshLanguage();
+  }
+
   const Observer = windowLike?.MutationObserver || globalThis.MutationObserver;
   if (typeof Observer === "function" && root.documentElement) {
-    new Observer(renderStatus).observe(root.documentElement, {
+    new Observer(refreshLanguageSensitiveState).observe(root.documentElement, {
       attributes: true,
       attributeFilter: ["lang"]
     });
@@ -180,42 +187,52 @@ export function createChatController(languageController, {
       mount.className = "turnstile-mount";
       status.after(mount);
       return new Promise((resolve, reject) => {
-        let widgetId = null;
-        const cleanup = () => mount.remove();
-        widgetId = turnstile.render(mount, {
-          sitekey: config.sitekey,
-          theme: "dark",
-          language: turnstileLanguage(root.documentElement?.lang),
-          size: "flexible",
-          appearance: "interaction-only",
-          action: "chat_admission",
-          callback: async (token) => {
-            try {
-              const response = await fetchImpl("/api/chat-admission", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                cache: "no-store",
-                body: JSON.stringify({ token })
-              });
-              const payload = await response.json();
-              if (!response.ok || typeof payload?.session !== "string" || !payload.session) {
-                turnstile.reset(widgetId);
-                throw new Error(payload?.reply || genericErrorText());
+        const cleanup = () => {
+          admissionWidget = null;
+          mount.remove();
+        };
+        admissionWidget = createLocalizedTurnstileRenderer(
+          turnstile,
+          mount,
+          () => ({
+            sitekey: config.sitekey,
+            theme: "dark",
+            size: "flexible",
+            appearance: "interaction-only",
+            action: "chat_admission",
+            callback: async (token) => {
+              admissionVerificationPending = true;
+              try {
+                const response = await fetchImpl("/api/chat-admission", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  cache: "no-store",
+                  body: JSON.stringify({ token })
+                });
+                const payload = await response.json();
+                if (!response.ok || typeof payload?.session !== "string" || !payload.session) {
+                  turnstile.reset(admissionWidget.widgetId);
+                  throw new Error(payload?.reply || genericErrorText());
+                }
+                admissionSession = payload.session;
+                cleanup();
+                resolve(admissionSession);
+              } catch (error) {
+                cleanup();
+                reject(error);
+              } finally {
+                admissionVerificationPending = false;
               }
-              admissionSession = payload.session;
+            },
+            "error-callback": () => {
               cleanup();
-              resolve(admissionSession);
-            } catch (error) {
-              cleanup();
-              reject(error);
-            }
-          },
-          "error-callback": () => {
-            cleanup();
-            reject(new Error(genericErrorText()));
-          },
-          "expired-callback": () => turnstile.reset(widgetId)
-        });
+              reject(new Error(genericErrorText()));
+            },
+            "expired-callback": () => turnstile.reset(admissionWidget.widgetId)
+          }),
+          { root }
+        );
+        admissionWidget.render();
       });
     })().finally(() => { admissionPromise = null; });
     return admissionPromise;
