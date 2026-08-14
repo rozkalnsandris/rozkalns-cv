@@ -16,6 +16,11 @@ class AccessibleLabelI18nTests(unittest.TestCase):
         self.assertIn('<div class="focus-tags">', html)
         self.assertNotIn('class="focus-tags" aria-label=', html)
         self.assertIn('<nav class="site-nav" aria-label="CV">', html)
+        self.assertIn(
+            'class="profile-languages" role="list" data-i18n-label="profile_languages_label" aria-label="Languages"',
+            html,
+        )
+        self.assertEqual(html.count('class="profile-language" role="listitem"'), 3)
 
     def test_language_group_reuses_complete_canonical_translation(self) -> None:
         expected = {"en": "Languages", "de": "Sprachen", "lv": "Valodas"}

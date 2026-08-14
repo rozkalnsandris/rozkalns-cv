@@ -40,7 +40,7 @@ class ProfileLanguageI18nTests(unittest.TestCase):
         html = (ROOT / "frontend/index.html").read_text(encoding="utf-8")
 
         self.assertIn(
-            'class="profile-languages" data-i18n-label="profile_languages_label"',
+            'class="profile-languages" role="list" data-i18n-label="profile_languages_label"',
             html,
         )
         for key in (

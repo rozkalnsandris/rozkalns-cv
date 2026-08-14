@@ -452,7 +452,10 @@ async function runBrowserSmoke(baseUrl, state) {
         pressed: button.getAttribute('aria-pressed')
       })),
       logLive: document.querySelector('#chatLog')?.getAttribute('aria-live'),
-      statusRole: document.querySelector('#chatStatus')?.getAttribute('role')
+      statusRole: document.querySelector('#chatStatus')?.getAttribute('role'),
+      profileListRole: document.querySelector('.profile-languages')?.getAttribute('role'),
+      profileListLabel: document.querySelector('.profile-languages')?.getAttribute('aria-label'),
+      profileListItems: [...document.querySelectorAll('.profile-languages .profile-language')].map((item) => item.getAttribute('role'))
     }))()`);
     assert.equal(initialLanguageState.groupRole, "group");
     assert.equal(initialLanguageState.groupLabel, "Languages");
@@ -463,6 +466,9 @@ async function runBrowserSmoke(baseUrl, state) {
     ]);
     assert.equal(initialLanguageState.logLive, "polite");
     assert.equal(initialLanguageState.statusRole, "status");
+    assert.equal(initialLanguageState.profileListRole, "list");
+    assert.equal(initialLanguageState.profileListLabel, "Languages");
+    assert.deepEqual(initialLanguageState.profileListItems, ["listitem", "listitem", "listitem"]);
 
     await cdp.evaluate(`document.querySelector('[data-lang="lv"]').click()`);
     await cdp.waitFor(
@@ -482,12 +488,18 @@ async function runBrowserSmoke(baseUrl, state) {
     await cdp.evaluate(`(() => ({
       language: document.querySelector('.language-switcher')?.getAttribute('aria-label'),
       focus: document.querySelector('.focus-tags')?.getAttribute('aria-label'),
-      navigation: document.querySelector('.site-nav')?.getAttribute('aria-label')
+      navigation: document.querySelector('.site-nav')?.getAttribute('aria-label'),
+      profileListRole: document.querySelector('.profile-languages')?.getAttribute('role'),
+      profileListLabel: document.querySelector('.profile-languages')?.getAttribute('aria-label'),
+      profileListItems: [...document.querySelectorAll('.profile-languages .profile-language')].map((item) => item.getAttribute('role'))
     }))()`),
     {
       language: "Valodas",
       focus: null,
-      navigation: "CV"
+      navigation: "CV",
+      profileListRole: "list",
+      profileListLabel: "Valodas",
+      profileListItems: ["listitem", "listitem", "listitem"]
     }
   );
 
