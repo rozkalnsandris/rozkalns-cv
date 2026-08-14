@@ -432,12 +432,16 @@ async function runBrowserSmoke(baseUrl, state) {
       dialogModal: document.querySelector('#chatDialog')?.getAttribute('aria-modal'),
       privacy: document.querySelector('[data-i18n="chat_privacy"]')?.textContent,
       photoSrc: document.querySelector('.profile-photo')?.currentSrc,
+      photoAlt: document.querySelector('.profile-photo')?.getAttribute('alt'),
+      profileHeading: document.querySelector('.sidebar h1')?.textContent,
       photoNaturalWidth: document.querySelector('.profile-photo')?.naturalWidth,
       photoNaturalHeight: document.querySelector('.profile-photo')?.naturalHeight
     }))()`);
     assert.equal(initialContract.title, "Andris Rožkalns · DevOps & Linux Engineer");
     assert.equal(initialContract.role, "Junior DevOps & Linux Engineer");
     assert.match(initialContract.photoSrc, /\/assets\/photo\.[0-9a-f]{12}\.webp$/);
+    assert.equal(initialContract.photoAlt, "");
+    assert.equal(initialContract.profileHeading, "Andris Rožkalns");
     assert.equal(initialContract.photoNaturalWidth, 480);
     assert.equal(initialContract.photoNaturalHeight, 480);
     assert.equal(initialContract.pdf, "/cv.pdf");

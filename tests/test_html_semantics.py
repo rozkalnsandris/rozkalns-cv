@@ -281,7 +281,7 @@ class HtmlSemanticTests(unittest.TestCase):
         )
         self.assertEqual(photo.attrs.get("width"), "118")
         self.assertEqual(photo.attrs.get("height"), "118")
-        self.assertEqual(photo.attrs.get("alt"), "Andris Rožkalns")
+        self.assertEqual(photo.attrs.get("alt"), "")
 
     def test_fingerprinted_assets_are_manifest_owned(self) -> None:
         manifest = json.loads(
