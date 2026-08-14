@@ -1,0 +1,11 @@
+.tech-tag.has-tech-icon::before {
+  display: none;
+}
+
+.tech-tag svg {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
+  color: currentColor;
+  opacity: .9;
+}

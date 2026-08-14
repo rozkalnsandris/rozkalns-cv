@@ -2,6 +2,7 @@
 @import "./base.css";
 @import "./layout.css";
 @import "./components.css";
+@import "./features/tech-icons.css";
 @import "./features/stats.css";
 @import "./features/chat.css";
 @import "./features/contact.css";
