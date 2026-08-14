@@ -708,23 +708,27 @@ async function runBrowserSmoke(baseUrl, state) {
     });
     await cdp.navigate(`${baseUrl}/smarthome.html`);
     await cdp.waitFor(
-      `document.readyState === "complete" && document.querySelector('#demoMain h1')`,
+      `document.readyState === "complete" && document.documentElement.lang === "lv" && document.querySelector('#demoMain h1')`,
       10_000,
-      "Smart Home mobile semantics"
+      "Smart Home Latvian initialization"
     );
     const smartSemantics = await cdp.evaluate(`(() => ({
       mainCount: document.querySelectorAll('main').length,
       h1Count: document.querySelectorAll('#demoMain h1').length,
       sectionH2Count: document.querySelectorAll('#demoMain > section > .section-heading > h2').length,
       deviceH3Count: document.querySelectorAll('.demo-device h3').length,
+      language: document.documentElement.lang,
       languageRole: document.querySelector('.language-switcher')?.getAttribute('role'),
+      groupLabel: document.querySelector('.language-switcher')?.getAttribute('aria-label'),
       languageLabels: [...document.querySelectorAll('.language-switcher [data-lang]')].map((button) => button.getAttribute('aria-label'))
     }))()`);
     assert.equal(smartSemantics.mainCount, 1);
     assert.equal(smartSemantics.h1Count, 1);
     assert.equal(smartSemantics.sectionH2Count, 2);
     assert.equal(smartSemantics.deviceH3Count, 8);
+    assert.equal(smartSemantics.language, "lv");
     assert.equal(smartSemantics.languageRole, "group");
+    assert.equal(smartSemantics.groupLabel, "Valodas");
     assert.deepEqual(smartSemantics.languageLabels, ["English", "Deutsch", "Latviešu"]);
   } catch (error) {
     throw new Error(`${error instanceof Error ? error.stack : error}\nChrome stderr:\n${stderr.slice(-4000)}`);
