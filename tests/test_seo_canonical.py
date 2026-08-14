@@ -4,7 +4,9 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 CANONICAL = '<link rel="canonical" href="https://rozkalns.net/">'
 OG_URL = '<meta property="og:url" content="https://rozkalns.net/">'
+OG_TYPE = '<meta property="og:type" content="website">'
 OG_IMAGE = '<meta property="og:image" content="https://rozkalns.net/photo.jpg">'
+OG_IMAGE_ALT = '<meta property="og:image:alt" content="Portrait of Andris Rožkalns">'
 
 
 class SeoCanonicalContractTest(unittest.TestCase):
@@ -13,7 +15,10 @@ class SeoCanonicalContractTest(unittest.TestCase):
             html = (ROOT / relative).read_text(encoding="utf-8")
             self.assertEqual(html.count(CANONICAL), 1, relative)
             self.assertEqual(html.count(OG_URL), 1, relative)
+            self.assertEqual(html.count(OG_TYPE), 1, relative)
             self.assertEqual(html.count(OG_IMAGE), 1, relative)
+            self.assertEqual(html.count(OG_IMAGE_ALT), 1, relative)
+            self.assertLess(html.index(OG_IMAGE), html.index(OG_IMAGE_ALT), relative)
 
     def test_preview_image_is_crawlable(self):
         robots = (ROOT / "html/robots.txt").read_text(encoding="utf-8")
