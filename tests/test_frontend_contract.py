@@ -26,6 +26,7 @@ TRANSLATIONS = [
     ROOT / "content" / "translations" / "lv.json",
 ]
 HASHED_ASSET = re.compile(r"\.[0-9a-f]{12}\.(?:css|mjs|js|json|webp)$")
+NON_EXECUTABLE_DATA_SCRIPT_TYPES = {"application/ld+json"}
 
 
 def load_manifest() -> dict[str, dict]:
@@ -53,7 +54,11 @@ class Parser(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         values = dict(attrs)
-        if tag == "script" and not values.get("src"):
+        if (
+            tag == "script"
+            and not values.get("src")
+            and values.get("type", "").lower() not in NON_EXECUTABLE_DATA_SCRIPT_TYPES
+        ):
             self.scripts_without_src += 1
         for name, _ in attrs:
             if name.startswith("on"):
