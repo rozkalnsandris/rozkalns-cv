@@ -82,10 +82,17 @@ host-infrastructure responsibilities.
 - Direct LAN publish: none
 - Public: `https://rozkalns.net/`
 
-Every successful `main` CI run queues a serial deployment on a dedicated,
-least-privilege RPi5 runner. The release helper deploys only `cv` and `cvbot`,
-checks local and public application health, and automatically rolls back CV
-application failures.
+GitHub Actions in this repository supplies CI evidence; it does not execute the
+RPi5 production deployment. The recurring RPi5-owned
+`rozkalns-cv-pull-deploy.timer`, whose source and lifecycle are managed in
+`RPi5_main`, runs a serial least-privilege pull controller. The controller
+independently resolves current `origin/main`, requires successful exact-SHA CI
+and classifies the complete production-to-target range. Only an
+`AUTO_DEPLOY_SAFE` range with no control-plane change may invoke the
+transactional pull deploy helper; manual, database, host and control-plane
+outcomes remain non-automatic and fail closed. The release helper deploys only
+`cv` and `cvbot`, checks local and public application health, and automatically
+rolls back CV application failures.
 
 Real CV application secrets are stored only on the RPi5. Shared Cloudflare
 credentials are outside the CV application ownership boundary.
