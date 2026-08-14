@@ -1,0 +1,109 @@
+name: One-shot canonical metadata finalizer
+
+on:
+  push:
+    branches:
+      - fix/228-canonical-preview-crawl
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact branch head
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            fetch --no-tags origin \
+            refs/heads/fix/228-canonical-preview-crawl \
+            7e348ffb2d6b316cc5cc5ed51de28694b8abbd34
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD^)" = "7e348ffb2d6b316cc5cc5ed51de28694b8abbd34"
+
+      - name: Set up pinned Node.js frontend toolchain
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.18.0'
+          package-manager-cache: false
+
+      - name: Apply focused SEO fix and generate exact dist
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          canonical = '<link rel="canonical" href="https://rozkalns.net/">'
+          source = Path('frontend/index.html')
+          text = source.read_text(encoding='utf-8')
+          if canonical in text:
+              raise SystemExit('canonical unexpectedly already present')
+          needle = '  <meta property="og:url" content="https://rozkalns.net/">\n'
+          if text.count(needle) != 1:
+              raise SystemExit('og:url source contract changed unexpectedly')
+          text = text.replace(needle, needle + f'  {canonical}\n')
+          source.write_text(text, encoding='utf-8')
+
+          Path('html/robots.txt').write_text('User-agent: *\nAllow: /\n', encoding='utf-8')
+
+          Path('tests/test_seo_canonical.py').write_text(r'''from pathlib import Path
+import unittest
+
+ROOT = Path(__file__).resolve().parents[1]
+CANONICAL = '<link rel="canonical" href="https://rozkalns.net/">'
+OG_URL = '<meta property="og:url" content="https://rozkalns.net/">'
+OG_IMAGE = '<meta property="og:image" content="https://rozkalns.net/photo.jpg">'
+
+
+class SeoCanonicalContractTest(unittest.TestCase):
+    def test_source_and_generated_html_publish_one_canonical(self):
+        for relative in ("frontend/index.html", "html/index.html"):
+            html = (ROOT / relative).read_text(encoding="utf-8")
+            self.assertEqual(html.count(CANONICAL), 1, relative)
+            self.assertEqual(html.count(OG_URL), 1, relative)
+            self.assertEqual(html.count(OG_IMAGE), 1, relative)
+
+    def test_preview_image_is_crawlable(self):
+        robots = (ROOT / "html/robots.txt").read_text(encoding="utf-8")
+        self.assertIn("User-agent: *", robots)
+        self.assertIn("Allow: /", robots)
+        self.assertNotIn("Disallow: /photo.jpg", robots)
+
+
+if __name__ == "__main__":
+    unittest.main()
+''', encoding='utf-8')
+          PY
+
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build:frontend
+          npm run check:frontend
+          python3 -m unittest tests.test_seo_canonical
+
+          git rm -f .github/workflows/prepare-seo-canonical.yml
+          git diff --check
+          git add -A
+          test -z "$(git diff --cached --name-only | grep -E '^\.github/workflows/' || true)"
+          git status --short
+
+      - name: Commit exact generated result back to PR branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix: publish canonical URL and crawlable preview image'
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            push origin HEAD:refs/heads/fix/228-canonical-preview-crawl
