@@ -1,0 +1,29 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+import unittest
+
+ROOT = Path(__file__).resolve().parents[1]
+
+class AccessibleLabelI18nTests(unittest.TestCase):
+    def test_main_accessibility_regions_use_valid_naming_semantics(self) -> None:
+        html = (ROOT / "frontend/index.html").read_text(encoding="utf-8")
+        self.assertIn(
+            'class="language-switcher" role="group" data-i18n-label="profile_languages_label" aria-label="Language"',
+            html,
+        )
+        self.assertIn('<div class="focus-tags">', html)
+        self.assertNotIn('class="focus-tags" aria-label=', html)
+        self.assertIn('<nav class="site-nav" aria-label="CV">', html)
+
+    def test_language_group_reuses_complete_canonical_translation(self) -> None:
+        expected = {"en": "Languages", "de": "Sprachen", "lv": "Valodas"}
+        for language, value in expected.items():
+            messages = json.loads(
+                (ROOT / "content" / "translations" / f"{language}.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(messages["profile_languages_label"], value, language)
+
+if __name__ == "__main__":
+    unittest.main()
