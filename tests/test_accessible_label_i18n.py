@@ -9,6 +9,8 @@ ROOT = Path(__file__).resolve().parents[1]
 class AccessibleLabelI18nTests(unittest.TestCase):
     def test_main_accessibility_regions_use_valid_naming_semantics(self) -> None:
         html = (ROOT / "frontend/index.html").read_text(encoding="utf-8")
+        self.assertIn('<img class="profile-photo" src="./photo.webp" alt="" width="118" height="118">', html)
+        self.assertIn("<h1>Andris Rožkalns</h1>", html)
         self.assertIn(
             'class="language-switcher" role="group" data-i18n-label="profile_languages_label" aria-label="Language"',
             html,
