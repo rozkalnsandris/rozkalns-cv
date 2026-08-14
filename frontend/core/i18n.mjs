@@ -60,7 +60,9 @@ export function applySkillTranslations(messages, { root = globalThis.document } 
     const chips = [...row.querySelectorAll(".skill-chip")];
     if (items.length !== chips.length) return;
     chips.forEach((chip, index) => {
+      const icon = chip.querySelector("svg");
       chip.textContent = items[index];
+      if (icon) chip.prepend(icon);
     });
     applied += 1;
   });

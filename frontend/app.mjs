@@ -127,6 +127,7 @@ function requestedWhatsAppContact() {
 }
 
 async function init() {
+  enhanceSkillIcons();
   const languageController = createLanguageController({ pdfs: PDFS, onApplied: updateMainDocumentTitle });
   const preferredApplied = await languageController.tryApply(languageController.language);
   if (!preferredApplied) await languageController.tryApply("en");
@@ -142,7 +143,6 @@ async function init() {
     });
   });
 
-  enhanceSkillIcons();
   const activateContact = installLazyContact(languageController);
   if (requestedWhatsAppContact()) await activateContact?.();
 

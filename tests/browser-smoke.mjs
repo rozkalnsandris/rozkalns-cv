@@ -188,6 +188,12 @@ function createFixtureServer(state) {
         return;
       }
 
+      if (url.pathname.startsWith("/i18n/") && state.translationDelayMs > 0) {
+        const translationDelayMs = state.translationDelayMs;
+        state.translationDelayMs = 0;
+        await delay(translationDelayMs);
+      }
+
       const target = safeStaticPath(url.pathname);
       const metadata = await stat(target);
       if (!metadata.isFile()) throw new Error("not a file");
@@ -414,6 +420,13 @@ async function runBrowserSmoke(baseUrl, state) {
     });
 
     await cdp.navigate(`${baseUrl}/`);
+    const firstRenderSkillIcons = await cdp.evaluate(`(() => ({
+      chips: document.querySelectorAll(".skill-chip").length,
+      icons: document.querySelectorAll(".skill-chip svg").length
+    }))()`);
+    assert.ok(firstRenderSkillIcons.chips > 0);
+    assert.equal(firstRenderSkillIcons.icons, firstRenderSkillIcons.chips);
+
     await cdp.waitFor(
       `document.readyState === "complete" && document.documentElement.lang === "en"`,
       10_000,
@@ -424,6 +437,28 @@ async function runBrowserSmoke(baseUrl, state) {
       10_000,
       "live statistics rendering"
     );
+
+    const skillIconContract = await cdp.evaluate(`(() => [...document.querySelectorAll(".skill-chip")].map((chip) => {
+      const svg = chip.querySelector("svg");
+      const box = svg?.getBBox();
+      return {
+        label: chip.textContent.trim(),
+        iconCount: chip.querySelectorAll("svg").length,
+        box: box ? { x: box.x, y: box.y, width: box.width, height: box.height } : null
+      };
+    }))()`);
+    assert.ok(skillIconContract.length > 0);
+    for (const icon of skillIconContract) {
+      assert.equal(icon.iconCount, 1, icon.label);
+      assert.ok(icon.box, icon.label);
+      assert.ok(icon.box.x >= 0 && icon.box.y >= 0, icon.label);
+      assert.ok(icon.box.x + icon.box.width <= 24, icon.label);
+      assert.ok(icon.box.y + icon.box.height <= 24, icon.label);
+    }
+    const shieldIcon = skillIconContract.find((icon) => icon.label === "SSL/TLS");
+    const codeIcon = skillIconContract.find((icon) => icon.label === "Python");
+    assert.ok(shieldIcon?.box.width >= 12);
+    assert.ok(codeIcon?.box.width >= 12);
 
     const initialContract = await cdp.evaluate(`(() => ({
       title: document.title,
@@ -749,6 +784,7 @@ async function runBrowserSmoke(baseUrl, state) {
 }
 
 const state = {
+  translationDelayMs: 1200,
   statsMode: "live",
   chatRequests: [],
   chatAdmissionRequests: [],
