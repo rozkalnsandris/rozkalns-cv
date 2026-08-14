@@ -64,6 +64,34 @@ def _trusted_proxy_cidrs(env: Mapping[str, str]) -> tuple[ipaddress._BaseNetwork
 
 
 @dataclass(frozen=True, slots=True)
+class VerificationRateConfig:
+    per_client_hour: int
+    global_hour: int
+
+    @classmethod
+    def from_env(
+        cls, env: Mapping[str, str] | None = None
+    ) -> "VerificationRateConfig":
+        source = os.environ if env is None else env
+        return cls(
+            per_client_hour=_integer(
+                source,
+                "TURNSTILE_VERIFY_PER_IP_HOUR",
+                60,
+                minimum=1,
+                maximum=1000,
+            ),
+            global_hour=_integer(
+                source,
+                "TURNSTILE_VERIFY_GLOBAL_HOUR",
+                600,
+                minimum=1,
+                maximum=100000,
+            ),
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class Settings:
     llm_base_url: str
     llm_api_key: str

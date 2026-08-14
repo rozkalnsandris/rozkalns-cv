@@ -127,6 +127,15 @@ class AssistantStore:
                         CHECK(request_count >= 0)
                 );
 
+                CREATE TABLE IF NOT EXISTS verification_events (
+                    client_key TEXT NOT NULL,
+                    occurred_at REAL NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS idx_verification_events_time
+                    ON verification_events(occurred_at);
+                CREATE INDEX IF NOT EXISTS idx_verification_events_client_time
+                    ON verification_events(client_key, occurred_at);
+
                 CREATE TABLE IF NOT EXISTS chats (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     occurred_at REAL NOT NULL,
@@ -246,6 +255,86 @@ class AssistantStore:
                 global_remaining=max(
                     0, self.daily_global_cap - global_count - 1
                 ),
+            )
+        except Exception:
+            try:
+                connection.execute("ROLLBACK")
+            except sqlite3.Error:
+                pass
+            raise
+        finally:
+            connection.close()
+
+    def reserve_verification(
+        self,
+        client_key: str,
+        *,
+        per_client_hour: int,
+        global_hour: int,
+    ) -> RateDecision:
+        """Atomically reserve one outbound Turnstile Siteverify attempt."""
+
+        if per_client_hour <= 0 or global_hour <= 0:
+            raise ValueError("verification rate limits must be positive")
+        now = float(self.clock())
+        cutoff = now - 3600
+        connection = self._connect()
+        try:
+            connection.execute("BEGIN IMMEDIATE")
+            connection.execute(
+                "DELETE FROM verification_events WHERE occurred_at <= ?",
+                (cutoff,),
+            )
+            global_row = connection.execute(
+                "SELECT COUNT(*), MIN(occurred_at) FROM verification_events"
+            ).fetchone()
+            global_count = int(global_row[0])
+            global_oldest = (
+                float(global_row[1]) if global_row[1] is not None else now
+            )
+            if global_count >= global_hour:
+                connection.execute("ROLLBACK")
+                return RateDecision(
+                    allowed=False,
+                    reason="global",
+                    retry_after=max(1, int(global_oldest + 3600 - now)),
+                    client_remaining=0,
+                    global_remaining=0,
+                )
+
+            client_row = connection.execute(
+                """
+                SELECT COUNT(*), MIN(occurred_at)
+                FROM verification_events
+                WHERE client_key = ?
+                """,
+                (client_key,),
+            ).fetchone()
+            client_count = int(client_row[0])
+            client_oldest = (
+                float(client_row[1]) if client_row[1] is not None else now
+            )
+            if client_count >= per_client_hour:
+                connection.execute("ROLLBACK")
+                return RateDecision(
+                    allowed=False,
+                    reason="client",
+                    retry_after=max(1, int(client_oldest + 3600 - now)),
+                    client_remaining=0,
+                    global_remaining=max(0, global_hour - global_count),
+                )
+
+            connection.execute(
+                "INSERT INTO verification_events(client_key, occurred_at) VALUES (?, ?)",
+                (client_key, now),
+            )
+            connection.execute("COMMIT")
+            return RateDecision(
+                allowed=True,
+                reason=None,
+                retry_after=0,
+                client_remaining=max(0, per_client_hour - client_count - 1),
+                global_remaining=max(0, global_hour - global_count - 1),
             )
         except Exception:
             try:
