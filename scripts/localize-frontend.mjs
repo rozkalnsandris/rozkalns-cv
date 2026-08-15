@@ -103,7 +103,7 @@ function replaceCanonical(html, url) {
   return html.replace(pattern, `<link rel="canonical" href="${url}">`);
 }
 
-function replaceStructuredData(html, language, url, description, title) {
+function replaceStructuredData(html, url, description, title) {
   const pattern = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/;
   const match = pattern.exec(html);
   if (!match) throw new Error("missing ProfilePage JSON-LD");
@@ -131,17 +131,28 @@ function titleFor(messages) {
   return `Andris Rožkalns · ${shortRole}`;
 }
 
+function replaceElementTextById(html, id, value) {
+  const pattern = new RegExp(`(<([a-z][a-z0-9-]*)\\b(?=[^>]*\\bid="${escapeRegExp(id)}")[^>]*>)([^<]*)(<\\/\\2>)`, "i");
+  if (!pattern.test(html)) throw new Error(`${id} binding missing`);
+  return html.replace(pattern, `$1${escapeHtml(value)}$4`);
+}
+
+function replaceAttributeById(html, id, attribute, value) {
+  const tagPattern = new RegExp(`<([a-z][a-z0-9-]*)\\b(?=[^>]*\\bid="${escapeRegExp(id)}")[^>]*>`, "i");
+  const tag = tagPattern.exec(html)?.[0];
+  if (!tag) throw new Error(`${id} element missing`);
+  const attributePattern = new RegExp(`\\b${escapeRegExp(attribute)}="[^"]*"`, "i");
+  if (!attributePattern.test(tag)) throw new Error(`${id} ${attribute} missing`);
+  return html.replace(tag, tag.replace(attributePattern, `${attribute}="${escapeHtml(value)}"`));
+}
+
 function localizeLocation(html, language) {
   const country = new Intl.DisplayNames([LOCALES[language]], { type: "region", fallback: "code" }).of("DE") || "DE";
-  const pattern = /(<span id="profileLocation"\b[^>]*>)([^<]*)(<\/span>)/;
-  if (!pattern.test(html)) throw new Error("profile location binding missing");
-  return html.replace(pattern, `$1Dortmund, ${escapeHtml(country)}$3`);
+  return replaceElementTextById(html, "profileLocation", `Dortmund, ${country}`);
 }
 
 function localizePdf(html, language) {
-  const pattern = /(<a\b[^>]*\bid="pdfLink"\b[^>]*\bhref=")[^"]*(")/;
-  if (!pattern.test(html)) throw new Error("PDF link missing");
-  return html.replace(pattern, `$1${PDFS[language]}$2`);
+  return replaceAttributeById(html, "pdfLink", "href", PDFS[language]);
 }
 
 function renderPage(template, language, messages) {
@@ -165,7 +176,7 @@ function renderPage(template, language, messages) {
   html = replaceMetaContent(html, "name", "twitter:title", title);
   html = replaceMetaContent(html, "name", "twitter:description", description);
   html = replaceCanonical(html, url);
-  html = replaceStructuredData(html, language, url, description, String(messages.role || ""));
+  html = replaceStructuredData(html, url, description, String(messages.role || ""));
   return html;
 }
 
