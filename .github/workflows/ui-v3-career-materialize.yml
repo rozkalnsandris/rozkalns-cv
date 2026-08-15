@@ -41,15 +41,6 @@ jobs:
               raise SystemExit('projects section anchor mismatch')
           text = text.replace(project_open, '      <div class="work-layout">\n' + project_open, 1)
 
-          projects_to_skills = '        </div>\n      </section>\n\n      <section id="skills">'
-          if projects_to_skills not in text:
-              raise SystemExit('projects/skills boundary missing')
-          text = text.replace(
-              projects_to_skills,
-              '        </div>\n      </section>\n\n      <div class="career-stack">\n      <section id="skills">',
-              1,
-          )
-
           exp_start = text.index('      <section id="experience">')
           stats_start = text.index('      <section id="stats">', exp_start)
           experience = text[exp_start:stats_start]
@@ -63,7 +54,7 @@ jobs:
           close = '        </div>\n      </section>\n\n'
           if not experience.endswith(close):
               raise SystemExit('experience closing boundary mismatch')
-          experience = experience[:-len(close)] + '        </ol>\n      </section>\n      </div>\n      </div>\n\n'
+          experience = experience[:-len(close)] + '        </ol>\n      </section>\n      </div>\n\n'
           text = text[:exp_start] + experience + text[stats_start:]
           index.write_text(text, encoding='utf-8')
 
@@ -74,7 +65,7 @@ jobs:
               raise SystemExit('layout insertion anchor missing')
           layout_text = layout_text.replace(
               anchor,
-              anchor + '\n.work-layout, .career-stack { min-width: 0; display: grid; gap: clamp(24px,4vw,42px); }\n.career-stack { align-content: start; gap: 30px; }',
+              anchor + '\n.work-layout { min-width: 0; display: grid; gap: clamp(24px,4vw,42px); }',
               1,
           )
           layout.write_text(layout_text, encoding='utf-8')
@@ -129,7 +120,7 @@ jobs:
               raise SystemExit('desktop insertion anchor missing')
           r = r.replace(
               desktop_anchor,
-              desktop_anchor + '  .work-layout { grid-template-columns: minmax(0,1.55fr) minmax(280px,.78fr); gap: clamp(30px,4vw,52px); align-items: start; }\n  .career-stack { gap: 34px; }\n  #skills .section-heading, #experience .section-heading { margin-block-end: 14px; }\n',
+              desktop_anchor + '  .work-layout { grid-template-columns: minmax(0,1.55fr) minmax(280px,.78fr); grid-template-areas: "projects skills" "projects experience"; gap: 34px clamp(30px,4vw,52px); align-items: start; }\n  #projects { grid-area: projects; }\n  #skills { grid-area: skills; }\n  #experience { grid-area: experience; }\n  #skills .section-heading, #experience .section-heading { margin-block-end: 14px; }\n',
               1,
           )
           responsive.write_text(r, encoding='utf-8')
@@ -141,14 +132,13 @@ jobs:
               raise SystemExit('frontend contract anchor missing')
           addition = anchor + (
               "        self.assertIn('class=\"work-layout\"', html)\n"
-              "        self.assertIn('class=\"career-stack\"', html)\n"
               "        self.assertIn('<ol class=\"timeline\">', html)\n"
               "        self.assertEqual(html.count('class=\"entry\"'), 4)\n"
               "        self.assertEqual(html.count('class=\"skill-row\"'), 4)\n"
               "        self.assertLess(html.index('id=\"projects\"'), html.index('id=\"skills\"'))\n"
               "        self.assertLess(html.index('id=\"skills\"'), html.index('id=\"experience\"'))\n"
               "        self.assertLess(html.index('id=\"experience\"'), html.index('id=\"stats\"'))\n"
-              "        self.assertIn('grid-template-columns: minmax(0,1.55fr) minmax(280px,.78fr);', responsive)\n"
+              "        self.assertIn('grid-template-areas: \"projects skills\" \"projects experience\";', responsive)\n"
           )
           t = t.replace(anchor, addition, 1)
           tests.write_text(t, encoding='utf-8')
