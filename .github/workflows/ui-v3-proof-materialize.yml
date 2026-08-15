@@ -85,7 +85,10 @@ jobs:
 
           components = Path('frontend/styles/components.css')
           css = components.read_text(encoding='utf-8')
-          start = css.index('.education-list {')
+          exact_education = '.education-list { gap: 10px; }'
+          if css.count(exact_education) != 1:
+              raise SystemExit('education CSS anchor mismatch')
+          start = css.index(exact_education)
           replacement = (
               '.education-list { gap: 0; border-top: 1px solid var(--border); }\n'
               '.education-row { display: grid; grid-template-columns: 1fr; gap: 4px; padding: 14px 0; border-bottom: 1px solid var(--border); }\n'
