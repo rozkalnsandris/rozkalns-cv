@@ -882,6 +882,13 @@ async function runBrowserSmoke(baseUrl, state) {
       );
     }
 
+    await cdp.navigate(`${baseUrl}/lv/`);
+    await cdp.waitFor(
+      `document.readyState === "complete" && document.documentElement.lang === "lv" && document.querySelector('#profileLocation')?.textContent === "Dortmund, Vācija"`,
+      10_000,
+      "Latvian restoration before Smart Home"
+    );
+
     await cdp.navigate(`${baseUrl}/smarthome.html`);
     await cdp.waitFor(
       `document.readyState === "complete" && document.documentElement.lang === "lv" && document.querySelector('#demoMain h1')`,
