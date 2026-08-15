@@ -15,6 +15,7 @@ NGINX = ROOT / "nginx.conf"
 COMPOSE = ROOT / "docker-compose.yml"
 MANIFEST = ROOT / "frontend-dist-manifest.json"
 SOURCE_LAYOUT = ROOT / "frontend" / "styles" / "layout.css"
+SOURCE_BASE = ROOT / "frontend" / "styles" / "base.css"
 SOURCE_RESPONSIVE = ROOT / "frontend" / "styles" / "responsive.css"
 SOURCE_APP = ROOT / "frontend" / "app.mjs"
 SOURCE_CHAT = ROOT / "frontend" / "features" / "chat.mjs"
@@ -156,6 +157,15 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn('grid-template-columns: auto minmax(0,1fr) 260px;', responsive)
         self.assertIn('"brand nav lang"', responsive)
         self.assertIn('"name name photo"', responsive)
+
+    def test_v3_accessibility_closeout_contract(self) -> None:
+        base = SOURCE_BASE.read_text(encoding="utf-8")
+        responsive = SOURCE_RESPONSIVE.read_text(encoding="utf-8")
+        self.assertIn("@media (prefers-reduced-motion: reduce)", base)
+        self.assertIn(":focus-visible", base)
+        self.assertIn("outline: 3px solid var(--accent)", base)
+        self.assertIn(".skip-link:focus", base)
+        self.assertNotIn("@media (max-width:", responsive)
 
     def test_cloudflare_analytics_is_not_manually_embedded(self) -> None:
         text = INDEX.read_text(encoding="utf-8")

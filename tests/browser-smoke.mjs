@@ -769,70 +769,117 @@ async function runBrowserSmoke(baseUrl, state) {
       { width: 1280, height: 900, mobile: false },
       { width: 1440, height: 1000, mobile: false }
     ];
-    for (const viewport of responsiveMatrix) {
-      await cdp.send("Emulation.setDeviceMetricsOverride", {
-        ...viewport,
-        deviceScaleFactor: 1
-      });
-      await cdp.navigate(`${baseUrl}/lv/`);
-      await cdp.waitFor(
-        `document.documentElement.lang === "lv" && document.querySelector('#profileLocation')?.textContent === "Dortmund, Vācija"`,
-        10_000,
-        `responsive ${viewport.width}px Latvian restoration`
-      );
-      const layout = await cdp.evaluate(`(() => {
-        const page = document.querySelector('#pageShell')?.getBoundingClientRect();
-        const locationRow = document.querySelector('#profileLocation')?.closest('.contact-row');
-        const primaryTargets = [...document.querySelectorAll(
-          '.language-switcher [data-lang], .actions .button, #contactReveal, #chatLauncher'
-        )].filter((element) => {
-          const rect = element.getBoundingClientRect();
-          return !element.hidden && rect.width > 0 && rect.height > 0;
-        }).map((element) => {
-          const rect = element.getBoundingClientRect();
-          return {
-            id: element.id || element.textContent.trim(),
-            width: rect.width,
-            height: rect.height
-          };
+    const localeMatrix = [
+      { path: "/en/", language: "en", location: "Dortmund, Germany", label: "English" },
+      { path: "/de/", language: "de", location: "Dortmund, Deutschland", label: "German" },
+      { path: "/lv/", language: "lv", location: "Dortmund, Vācija", label: "Latvian" }
+    ];
+    for (const locale of localeMatrix) {
+      for (const viewport of responsiveMatrix) {
+        await cdp.send("Emulation.setDeviceMetricsOverride", {
+          ...viewport,
+          deviceScaleFactor: 1
         });
-        return {
-          innerWidth: window.innerWidth,
-          documentClientWidth: document.documentElement.clientWidth,
-          documentScrollWidth: document.documentElement.scrollWidth,
-          bodyScrollWidth: document.body.scrollWidth,
-          page: page ? { left: page.left, right: page.right, width: page.width } : null,
-          location: locationRow ? {
-            clientWidth: locationRow.clientWidth,
-            scrollWidth: locationRow.scrollWidth
-          } : null,
-          primaryTargets
-        };
-      })()`);
-      assert.equal(layout.innerWidth, viewport.width, `${viewport.width}px viewport width`);
-      assert.ok(
-        layout.documentScrollWidth <= layout.documentClientWidth,
-        `${viewport.width}px document overflow: ${JSON.stringify(layout)}`
-      );
-      assert.ok(
-        layout.bodyScrollWidth <= layout.documentClientWidth,
-        `${viewport.width}px body overflow: ${JSON.stringify(layout)}`
-      );
-      assert.ok(layout.page, `${viewport.width}px page shell missing`);
-      assert.ok(layout.page.left >= -0.5, `${viewport.width}px page left overflow`);
-      assert.ok(layout.page.right <= viewport.width + 0.5, `${viewport.width}px page right overflow`);
-      assert.ok(layout.location, `${viewport.width}px location row missing`);
-      assert.ok(
-        layout.location.scrollWidth <= layout.location.clientWidth,
-        `${viewport.width}px location overflow: ${JSON.stringify(layout.location)}`
-      );
-      assert.ok(layout.primaryTargets.length >= 7, `${viewport.width}px primary targets missing`);
-      for (const target of layout.primaryTargets) {
-        assert.ok(
-          target.height >= 48,
-          `${viewport.width}px target below 48px: ${JSON.stringify(target)}`
+        await cdp.navigate(`${baseUrl}${locale.path}`);
+        await cdp.waitFor(
+          `document.documentElement.lang === ${JSON.stringify(locale.language)} && document.querySelector('#profileLocation')?.textContent === ${JSON.stringify(locale.location)}`,
+          10_000,
+          `responsive ${viewport.width}px ${locale.label} restoration`
         );
+        const layout = await cdp.evaluate(`(() => {
+          const page = document.querySelector('#pageShell')?.getBoundingClientRect();
+          const locationRow = document.querySelector('#profileLocation')?.closest('.contact-row');
+          const primaryTargets = [...document.querySelectorAll(
+            '.language-switcher [data-lang], .actions .button, #contactReveal, #chatLauncher'
+          )].filter((element) => {
+            const rect = element.getBoundingClientRect();
+            return !element.hidden && rect.width > 0 && rect.height > 0;
+          }).map((element) => {
+            const rect = element.getBoundingClientRect();
+            return {
+              id: element.id || element.textContent.trim(),
+              width: rect.width,
+              height: rect.height
+            };
+          });
+          return {
+            innerWidth: window.innerWidth,
+            documentClientWidth: document.documentElement.clientWidth,
+            documentScrollWidth: document.documentElement.scrollWidth,
+            bodyScrollWidth: document.body.scrollWidth,
+            page: page ? { left: page.left, right: page.right, width: page.width } : null,
+            location: locationRow ? {
+              clientWidth: locationRow.clientWidth,
+              scrollWidth: locationRow.scrollWidth
+            } : null,
+            primaryTargets
+          };
+        })()`);
+        const context = `${locale.label} ${viewport.width}px`;
+        assert.equal(layout.innerWidth, viewport.width, `${context} viewport width`);
+        assert.ok(
+          layout.documentScrollWidth <= layout.documentClientWidth,
+          `${context} document overflow: ${JSON.stringify(layout)}`
+        );
+        assert.ok(
+          layout.bodyScrollWidth <= layout.documentClientWidth,
+          `${context} body overflow: ${JSON.stringify(layout)}`
+        );
+        assert.ok(layout.page, `${context} page shell missing`);
+        assert.ok(layout.page.left >= -0.5, `${context} page left overflow`);
+        assert.ok(layout.page.right <= viewport.width + 0.5, `${context} page right overflow`);
+        assert.ok(layout.location, `${context} location row missing`);
+        assert.ok(
+          layout.location.scrollWidth <= layout.location.clientWidth,
+          `${context} location overflow: ${JSON.stringify(layout.location)}`
+        );
+        assert.ok(layout.primaryTargets.length >= 7, `${context} primary targets missing`);
+        for (const target of layout.primaryTargets) {
+          assert.ok(target.height >= 48, `${context} target below 48px: ${JSON.stringify(target)}`);
+        }
       }
+    }
+
+    await cdp.send("Emulation.setEmulatedMedia", {
+      features: [{ name: "prefers-reduced-motion", value: "reduce" }]
+    });
+    await cdp.navigate(`${baseUrl}/en/`);
+    await cdp.waitFor(
+      `document.readyState === "complete" && document.documentElement.lang === "en"`,
+      10_000,
+      "reduced-motion English restoration"
+    );
+    const reducedMotion = await cdp.evaluate(`(() => ({
+      scrollBehavior: getComputedStyle(document.documentElement).scrollBehavior,
+      transitionDurations: getComputedStyle(document.querySelector('.button')).transitionDuration
+        .split(',')
+        .map((value) => Number.parseFloat(value) || 0)
+    }))()`);
+    assert.equal(reducedMotion.scrollBehavior, "auto");
+    assert.ok(reducedMotion.transitionDurations.every((value) => value <= 0.001));
+    await cdp.send("Emulation.setEmulatedMedia", {
+      features: [{ name: "prefers-reduced-motion", value: "no-preference" }]
+    });
+
+    await cdp.navigate(`${baseUrl}/en/`);
+    await cdp.waitFor(
+      `document.readyState === "complete" && document.documentElement.lang === "en"`,
+      10_000,
+      "keyboard-order English restoration"
+    );
+    await cdp.evaluate(`document.activeElement?.blur()`);
+    await cdp.key("Tab");
+    assert.equal(await cdp.evaluate(`document.activeElement?.matches('.skip-link')`), true);
+    const expectedFocusHrefs = [
+      "#about", "#projects", "#skills", "#experience", "#stats", "#education", "/en/"
+    ];
+    for (const expectedHref of expectedFocusHrefs) {
+      await cdp.key("Tab");
+      assert.equal(
+        await cdp.evaluate(`document.activeElement?.getAttribute('href')`),
+        expectedHref,
+        `top-level keyboard order before ${expectedHref}`
+      );
     }
 
     await cdp.navigate(`${baseUrl}/smarthome.html`);
