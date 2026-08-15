@@ -27,139 +27,23 @@ jobs:
           git checkout -B test/ui-v3-closeout-254 FETCH_HEAD
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
 
-      - name: Strengthen responsive and accessibility closeout gates
+      - name: Strengthen closeout gates
         shell: bash
+        env:
+          RESPONSIVE_BLOCK_B64: ICAgIGNvbnN0IHJlc3BvbnNpdmVNYXRyaXggPSBbCiAgICAgIHsgd2lkdGg6IDM5MCwgaGVpZ2h0OiA4NDQsIG1vYmlsZTogdHJ1ZSB9LAogICAgICB7IHdpZHRoOiA0MzAsIGhlaWdodDogOTMyLCBtb2JpbGU6IHRydWUgfSwKICAgICAgeyB3aWR0aDogNzY4LCBoZWlnaHQ6IDEwMjQsIG1vYmlsZTogZmFsc2UgfSwKICAgICAgeyB3aWR0aDogMTI4MCwgaGVpZ2h0OiA5MDAsIG1vYmlsZTogZmFsc2UgfSwKICAgICAgeyB3aWR0aDogMTQ0MCwgaGVpZ2h0OiAxMDAwLCBtb2JpbGU6IGZhbHNlIH0KICAgIF07CiAgICBjb25zdCBsb2NhbGVNYXRyaXggPSBbCiAgICAgIHsgcGF0aDogIi9lbi8iLCBsYW5ndWFnZTogImVuIiwgbG9jYXRpb246ICJEb3J0bXVuZCwgR2VybWFueSIsIGxhYmVsOiAiRW5nbGlzaCIgfSwKICAgICAgeyBwYXRoOiAiL2RlLyIsIGxhbmd1YWdlOiAiZGUiLCBsb2NhdGlvbjogIkRvcnRtdW5kLCBEZXV0c2NobGFuZCIsIGxhYmVsOiAiR2VybWFuIiB9LAogICAgICB7IHBhdGg6ICIvbHYvIiwgbGFuZ3VhZ2U6ICJsdiIsIGxvY2F0aW9uOiAiRG9ydG11bmQsIFbEgWNpamEiLCBsYWJlbDogIkxhdHZpYW4iIH0KICAgIF07CiAgICBmb3IgKGNvbnN0IGxvY2FsZSBvZiBsb2NhbGVNYXRyaXgpIHsKICAgICAgZm9yIChjb25zdCB2aWV3cG9ydCBvZiByZXNwb25zaXZlTWF0cml4KSB7CiAgICAgICAgYXdhaXQgY2RwLnNlbmQoIkVtdWxhdGlvbi5zZXREZXZpY2VNZXRyaWNzT3ZlcnJpZGUiLCB7CiAgICAgICAgICAuLi52aWV3cG9ydCwKICAgICAgICAgIGRldmljZVNjYWxlRmFjdG9yOiAxCiAgICAgICAgfSk7CiAgICAgICAgYXdhaXQgY2RwLm5hdmlnYXRlKGAke2Jhc2VVcmx9JHtsb2NhbGUucGF0aH1gKTsKICAgICAgICBhd2FpdCBjZHAud2FpdEZvcigKICAgICAgICAgIGBkb2N1bWVudC5kb2N1bWVudEVsZW1lbnQubGFuZyA9PT0gJHtKU09OLnN0cmluZ2lmeShsb2NhbGUubGFuZ3VhZ2UpfSAmJiBkb2N1bWVudC5xdWVyeVNlbGVjdG9yKCcjcHJvZmlsZUxvY2F0aW9uJyk/LnRleHRDb250ZW50ID09PSAke0pTT04uc3RyaW5naWZ5KGxvY2FsZS5sb2NhdGlvbil9YCwKICAgICAgICAgIDEwXzAwMCwKICAgICAgICAgIGByZXNwb25zaXZlICR7dmlld3BvcnQud2lkdGh9cHggJHtsb2NhbGUubGFiZWx9IHJlc3RvcmF0aW9uYAogICAgICAgICk7CiAgICAgICAgY29uc3QgbGF5b3V0ID0gYXdhaXQgY2RwLmV2YWx1YXRlKGAoKCkgPT4gewogICAgICAgICAgY29uc3QgcGFnZSA9IGRvY3VtZW50LnF1ZXJ5U2VsZWN0b3IoJyNwYWdlU2hlbGwnKT8uZ2V0Qm91bmRpbmdDbGllbnRSZWN0KCk7CiAgICAgICAgICBjb25zdCBsb2NhdGlvblJvdyA9IGRvY3VtZW50LnF1ZXJ5U2VsZWN0b3IoJyNwcm9maWxlTG9jYXRpb24nKT8uY2xvc2VzdCgnLmNvbnRhY3Qtcm93Jyk7CiAgICAgICAgICBjb25zdCBwcmltYXJ5VGFyZ2V0cyA9IFsuLi5kb2N1bWVudC5xdWVyeVNlbGVjdG9yQWxsKAogICAgICAgICAgICAnLmxhbmd1YWdlLXN3aXRjaGVyIFtkYXRhLWxhbmddLCAuYWN0aW9ucyAuYnV0dG9uLCAjY29udGFjdFJldmVhbCwgI2NoYXRMYXVuY2hlcicKICAgICAgICAgICldLmZpbHRlcigoZWxlbWVudCkgPT4gewogICAgICAgICAgICBjb25zdCByZWN0ID0gZWxlbWVudC5nZXRCb3VuZGluZ0NsaWVudFJlY3QoKTsKICAgICAgICAgICAgcmV0dXJuICFlbGVtZW50LmhpZGRlbiAmJiByZWN0LndpZHRoID4gMCAmJiByZWN0LmhlaWdodCA+IDA7CiAgICAgICAgICB9KS5tYXAoKGVsZW1lbnQpID0+IHsKICAgICAgICAgICAgY29uc3QgcmVjdCA9IGVsZW1lbnQuZ2V0Qm91bmRpbmdDbGllbnRSZWN0KCk7CiAgICAgICAgICAgIHJldHVybiB7CiAgICAgICAgICAgICAgaWQ6IGVsZW1lbnQuaWQgfHwgZWxlbWVudC50ZXh0Q29udGVudC50cmltKCksCiAgICAgICAgICAgICAgd2lkdGg6IHJlY3Qud2lkdGgsCiAgICAgICAgICAgICAgaGVpZ2h0OiByZWN0LmhlaWdodAogICAgICAgICAgICB9OwogICAgICAgICAgfSk7CiAgICAgICAgICByZXR1cm4gewogICAgICAgICAgICBpbm5lcldpZHRoOiB3aW5kb3cuaW5uZXJXaWR0aCwKICAgICAgICAgICAgZG9jdW1lbnRDbGllbnRXaWR0aDogZG9jdW1lbnQuZG9jdW1lbnRFbGVtZW50LmNsaWVudFdpZHRoLAogICAgICAgICAgICBkb2N1bWVudFNjcm9sbFdpZHRoOiBkb2N1bWVudC5kb2N1bWVudEVsZW1lbnQuc2Nyb2xsV2lkdGgsCiAgICAgICAgICAgIGJvZHlTY3JvbGxXaWR0aDogZG9jdW1lbnQuYm9keS5zY3JvbGxXaWR0aCwKICAgICAgICAgICAgcGFnZTogcGFnZSA/IHsgbGVmdDogcGFnZS5sZWZ0LCByaWdodDogcGFnZS5yaWdodCwgd2lkdGg6IHBhZ2Uud2lkdGggfSA6IG51bGwsCiAgICAgICAgICAgIGxvY2F0aW9uOiBsb2NhdGlvblJvdyA/IHsKICAgICAgICAgICAgICBjbGllbnRXaWR0aDogbG9jYXRpb25Sb3cuY2xpZW50V2lkdGgsCiAgICAgICAgICAgICAgc2Nyb2xsV2lkdGg6IGxvY2F0aW9uUm93LnNjcm9sbFdpZHRoCiAgICAgICAgICAgIH0gOiBudWxsLAogICAgICAgICAgICBwcmltYXJ5VGFyZ2V0cwogICAgICAgICAgfTsKICAgICAgICB9KSgpYCk7CiAgICAgICAgY29uc3QgY29udGV4dCA9IGAke2xvY2FsZS5sYWJlbH0gJHt2aWV3cG9ydC53aWR0aH1weGA7CiAgICAgICAgYXNzZXJ0LmVxdWFsKGxheW91dC5pbm5lcldpZHRoLCB2aWV3cG9ydC53aWR0aCwgYCR7Y29udGV4dH0gdmlld3BvcnQgd2lkdGhgKTsKICAgICAgICBhc3NlcnQub2soCiAgICAgICAgICBsYXlvdXQuZG9jdW1lbnRTY3JvbGxXaWR0aCA8PSBsYXlvdXQuZG9jdW1lbnRDbGllbnRXaWR0aCwKICAgICAgICAgIGAke2NvbnRleHR9IGRvY3VtZW50IG92ZXJmbG93OiAke0pTT04uc3RyaW5naWZ5KGxheW91dCl9YAogICAgICAgICk7CiAgICAgICAgYXNzZXJ0Lm9rKAogICAgICAgICAgbGF5b3V0LmJvZHlTY3JvbGxXaWR0aCA8PSBsYXlvdXQuZG9jdW1lbnRDbGllbnRXaWR0aCwKICAgICAgICAgIGAke2NvbnRleHR9IGJvZHkgb3ZlcmZsb3c6ICR7SlNPTi5zdHJpbmdpZnkobGF5b3V0KX1gCiAgICAgICAgKTsKICAgICAgICBhc3NlcnQub2sobGF5b3V0LnBhZ2UsIGAke2NvbnRleHR9IHBhZ2Ugc2hlbGwgbWlzc2luZ2ApOwogICAgICAgIGFzc2VydC5vayhsYXlvdXQucGFnZS5sZWZ0ID49IC0wLjUsIGAke2NvbnRleHR9IHBhZ2UgbGVmdCBvdmVyZmxvd2ApOwogICAgICAgIGFzc2VydC5vayhsYXlvdXQucGFnZS5yaWdodCA8PSB2aWV3cG9ydC53aWR0aCArIDAuNSwgYCR7Y29udGV4dH0gcGFnZSByaWdodCBvdmVyZmxvd2ApOwogICAgICAgIGFzc2VydC5vayhsYXlvdXQubG9jYXRpb24sIGAke2NvbnRleHR9IGxvY2F0aW9uIHJvdyBtaXNzaW5nYCk7CiAgICAgICAgYXNzZXJ0Lm9rKAogICAgICAgICAgbGF5b3V0LmxvY2F0aW9uLnNjcm9sbFdpZHRoIDw9IGxheW91dC5sb2NhdGlvbi5jbGllbnRXaWR0aCwKICAgICAgICAgIGAke2NvbnRleHR9IGxvY2F0aW9uIG92ZXJmbG93OiAke0pTT04uc3RyaW5naWZ5KGxheW91dC5sb2NhdGlvbil9YAogICAgICAgICk7CiAgICAgICAgYXNzZXJ0Lm9rKGxheW91dC5wcmltYXJ5VGFyZ2V0cy5sZW5ndGggPj0gNywgYCR7Y29udGV4dH0gcHJpbWFyeSB0YXJnZXRzIG1pc3NpbmdgKTsKICAgICAgICBmb3IgKGNvbnN0IHRhcmdldCBvZiBsYXlvdXQucHJpbWFyeVRhcmdldHMpIHsKICAgICAgICAgIGFzc2VydC5vayh0YXJnZXQuaGVpZ2h0ID49IDQ4LCBgJHtjb250ZXh0fSB0YXJnZXQgYmVsb3cgNDhweDogJHtKU09OLnN0cmluZ2lmeSh0YXJnZXQpfWApOwogICAgICAgIH0KICAgICAgfQogICAgfQoKICAgIGF3YWl0IGNkcC5zZW5kKCJFbXVsYXRpb24uc2V0RW11bGF0ZWRNZWRpYSIsIHsKICAgICAgZmVhdHVyZXM6IFt7IG5hbWU6ICJwcmVmZXJzLXJlZHVjZWQtbW90aW9uIiwgdmFsdWU6ICJyZWR1Y2UiIH1dCiAgICB9KTsKICAgIGF3YWl0IGNkcC5uYXZpZ2F0ZShgJHtiYXNlVXJsfS9lbi9gKTsKICAgIGF3YWl0IGNkcC53YWl0Rm9yKAogICAgICBgZG9jdW1lbnQucmVhZHlTdGF0ZSA9PT0gImNvbXBsZXRlIiAmJiBkb2N1bWVudC5kb2N1bWVudEVsZW1lbnQubGFuZyA9PT0gImVuImAsCiAgICAgIDEwXzAwMCwKICAgICAgInJlZHVjZWQtbW90aW9uIEVuZ2xpc2ggcmVzdG9yYXRpb24iCiAgICApOwogICAgY29uc3QgcmVkdWNlZE1vdGlvbiA9IGF3YWl0IGNkcC5ldmFsdWF0ZShgKCgpID0+ICh7CiAgICAgIHNjcm9sbEJlaGF2aW9yOiBnZXRDb21wdXRlZFN0eWxlKGRvY3VtZW50LmRvY3VtZW50RWxlbWVudCkuc2Nyb2xsQmVoYXZpb3IsCiAgICAgIHRyYW5zaXRpb25EdXJhdGlvbnM6IGdldENvbXB1dGVkU3R5bGUoZG9jdW1lbnQucXVlcnlTZWxlY3RvcignLmJ1dHRvbicpKS50cmFuc2l0aW9uRHVyYXRpb24KICAgICAgICAuc3BsaXQoJywnKQogICAgICAgIC5tYXAoKHZhbHVlKSA9PiBOdW1iZXIucGFyc2VGbG9hdCh2YWx1ZSkgfHwgMCkKICAgIH0pKSgpYCk7CiAgICBhc3NlcnQuZXF1YWwocmVkdWNlZE1vdGlvbi5zY3JvbGxCZWhhdmlvciwgImF1dG8iKTsKICAgIGFzc2VydC5vayhyZWR1Y2VkTW90aW9uLnRyYW5zaXRpb25EdXJhdGlvbnMuZXZlcnkoKHZhbHVlKSA9PiB2YWx1ZSA8PSAwLjAwMSkpOwogICAgYXdhaXQgY2RwLnNlbmQoIkVtdWxhdGlvbi5zZXRFbXVsYXRlZE1lZGlhIiwgewogICAgICBmZWF0dXJlczogW3sgbmFtZTogInByZWZlcnMtcmVkdWNlZC1tb3Rpb24iLCB2YWx1ZTogIm5vLXByZWZlcmVuY2UiIH1dCiAgICB9KTsKCiAgICBhd2FpdCBjZHAubmF2aWdhdGUoYCR7YmFzZVVybH0vZW4vYCk7CiAgICBhd2FpdCBjZHAud2FpdEZvcigKICAgICAgYGRvY3VtZW50LnJlYWR5U3RhdGUgPT09ICJjb21wbGV0ZSIgJiYgZG9jdW1lbnQuZG9jdW1lbnRFbGVtZW50LmxhbmcgPT09ICJlbiJgLAogICAgICAxMF8wMDAsCiAgICAgICJrZXlib2FyZC1vcmRlciBFbmdsaXNoIHJlc3RvcmF0aW9uIgogICAgKTsKICAgIGF3YWl0IGNkcC5ldmFsdWF0ZShgZG9jdW1lbnQuYWN0aXZlRWxlbWVudD8uYmx1cigpYCk7CiAgICBhd2FpdCBjZHAua2V5KCJUYWIiKTsKICAgIGFzc2VydC5lcXVhbChhd2FpdCBjZHAuZXZhbHVhdGUoYGRvY3VtZW50LmFjdGl2ZUVsZW1lbnQ/Lm1hdGNoZXMoJy5za2lwLWxpbmsnKWApLCB0cnVlKTsKICAgIGNvbnN0IGV4cGVjdGVkRm9jdXNIcmVmcyA9IFsKICAgICAgIiNhYm91dCIsICIjcHJvamVjdHMiLCAiI3NraWxscyIsICIjZXhwZXJpZW5jZSIsICIjc3RhdHMiLCAiI2VkdWNhdGlvbiIsICIvZW4vIgogICAgXTsKICAgIGZvciAoY29uc3QgZXhwZWN0ZWRIcmVmIG9mIGV4cGVjdGVkRm9jdXNIcmVmcykgewogICAgICBhd2FpdCBjZHAua2V5KCJUYWIiKTsKICAgICAgYXNzZXJ0LmVxdWFsKAogICAgICAgIGF3YWl0IGNkcC5ldmFsdWF0ZShgZG9jdW1lbnQuYWN0aXZlRWxlbWVudD8uZ2V0QXR0cmlidXRlKCdocmVmJylgKSwKICAgICAgICBleHBlY3RlZEhyZWYsCiAgICAgICAgYHRvcC1sZXZlbCBrZXlib2FyZCBvcmRlciBiZWZvcmUgJHtleHBlY3RlZEhyZWZ9YAogICAgICApOwogICAgfQoK
+          CLOSEOUT_TEST_B64: ICAgIGRlZiB0ZXN0X3YzX2FjY2Vzc2liaWxpdHlfY2xvc2VvdXRfY29udHJhY3Qoc2VsZikgLT4gTm9uZToKICAgICAgICBiYXNlID0gU09VUkNFX0JBU0UucmVhZF90ZXh0KGVuY29kaW5nPSJ1dGYtOCIpCiAgICAgICAgcmVzcG9uc2l2ZSA9IFNPVVJDRV9SRVNQT05TSVZFLnJlYWRfdGV4dChlbmNvZGluZz0idXRmLTgiKQogICAgICAgIHNlbGYuYXNzZXJ0SW4oIkBtZWRpYSAocHJlZmVycy1yZWR1Y2VkLW1vdGlvbjogcmVkdWNlKSIsIGJhc2UpCiAgICAgICAgc2VsZi5hc3NlcnRJbigiOmZvY3VzLXZpc2libGUiLCBiYXNlKQogICAgICAgIHNlbGYuYXNzZXJ0SW4oIm91dGxpbmU6IDNweCBzb2xpZCB2YXIoLS1hY2NlbnQpIiwgYmFzZSkKICAgICAgICBzZWxmLmFzc2VydEluKCIuc2tpcC1saW5rOmZvY3VzIiwgYmFzZSkKICAgICAgICBzZWxmLmFzc2VydE5vdEluKCJAbWVkaWEgKG1heC13aWR0aDoiLCByZXNwb25zaXZlKQoK
         run: |
           set -Eeuo pipefail
           python3 - <<'PY'
+          import base64
+          import os
           from pathlib import Path
 
           browser_path = Path('tests/browser-smoke.mjs')
           browser = browser_path.read_text(encoding='utf-8')
           start = browser.index('    const responsiveMatrix = [')
-          end_marker = '    await cdp.navigate(`${baseUrl}/smarthome.html`);'
-          end = browser.index(end_marker, start)
-          replacement = r'''    const responsiveMatrix = [
-      { width: 390, height: 844, mobile: true },
-      { width: 430, height: 932, mobile: true },
-      { width: 768, height: 1024, mobile: false },
-      { width: 1280, height: 900, mobile: false },
-      { width: 1440, height: 1000, mobile: false }
-    ];
-    const localeMatrix = [
-      { path: "/en/", language: "en", location: "Dortmund, Germany", label: "English" },
-      { path: "/de/", language: "de", location: "Dortmund, Deutschland", label: "German" },
-      { path: "/lv/", language: "lv", location: "Dortmund, Vācija", label: "Latvian" }
-    ];
-    for (const locale of localeMatrix) {
-      for (const viewport of responsiveMatrix) {
-        await cdp.send("Emulation.setDeviceMetricsOverride", {
-          ...viewport,
-          deviceScaleFactor: 1
-        });
-        await cdp.navigate(`${baseUrl}${locale.path}`);
-        await cdp.waitFor(
-          `document.documentElement.lang === ${JSON.stringify(locale.language)} && document.querySelector('#profileLocation')?.textContent === ${JSON.stringify(locale.location)}`,
-          10_000,
-          `responsive ${viewport.width}px ${locale.label} restoration`
-        );
-        const layout = await cdp.evaluate(`(() => {
-          const page = document.querySelector('#pageShell')?.getBoundingClientRect();
-          const locationRow = document.querySelector('#profileLocation')?.closest('.contact-row');
-          const primaryTargets = [...document.querySelectorAll(
-            '.language-switcher [data-lang], .actions .button, #contactReveal, #chatLauncher'
-          )].filter((element) => {
-            const rect = element.getBoundingClientRect();
-            return !element.hidden && rect.width > 0 && rect.height > 0;
-          }).map((element) => {
-            const rect = element.getBoundingClientRect();
-            return {
-              id: element.id || element.textContent.trim(),
-              width: rect.width,
-              height: rect.height
-            };
-          });
-          return {
-            innerWidth: window.innerWidth,
-            documentClientWidth: document.documentElement.clientWidth,
-            documentScrollWidth: document.documentElement.scrollWidth,
-            bodyScrollWidth: document.body.scrollWidth,
-            page: page ? { left: page.left, right: page.right, width: page.width } : null,
-            location: locationRow ? {
-              clientWidth: locationRow.clientWidth,
-              scrollWidth: locationRow.scrollWidth
-            } : null,
-            primaryTargets
-          };
-        })()`);
-        const context = `${locale.label} ${viewport.width}px`;
-        assert.equal(layout.innerWidth, viewport.width, `${context} viewport width`);
-        assert.ok(
-          layout.documentScrollWidth <= layout.documentClientWidth,
-          `${context} document overflow: ${JSON.stringify(layout)}`
-        );
-        assert.ok(
-          layout.bodyScrollWidth <= layout.documentClientWidth,
-          `${context} body overflow: ${JSON.stringify(layout)}`
-        );
-        assert.ok(layout.page, `${context} page shell missing`);
-        assert.ok(layout.page.left >= -0.5, `${context} page left overflow`);
-        assert.ok(layout.page.right <= viewport.width + 0.5, `${context} page right overflow`);
-        assert.ok(layout.location, `${context} location row missing`);
-        assert.ok(
-          layout.location.scrollWidth <= layout.location.clientWidth,
-          `${context} location overflow: ${JSON.stringify(layout.location)}`
-        );
-        assert.ok(layout.primaryTargets.length >= 7, `${context} primary targets missing`);
-        for (const target of layout.primaryTargets) {
-          assert.ok(target.height >= 48, `${context} target below 48px: ${JSON.stringify(target)}`);
-        }
-      }
-    }
-
-    await cdp.send("Emulation.setEmulatedMedia", {
-      features: [{ name: "prefers-reduced-motion", value: "reduce" }]
-    });
-    await cdp.navigate(`${baseUrl}/en/`);
-    await cdp.waitFor(
-      `document.readyState === "complete" && document.documentElement.lang === "en"`,
-      10_000,
-      "reduced-motion English restoration"
-    );
-    const reducedMotion = await cdp.evaluate(`(() => ({
-      scrollBehavior: getComputedStyle(document.documentElement).scrollBehavior,
-      transitionDurations: getComputedStyle(document.querySelector('.button')).transitionDuration
-        .split(',')
-        .map((value) => Number.parseFloat(value) || 0)
-    }))()`);
-    assert.equal(reducedMotion.scrollBehavior, "auto");
-    assert.ok(reducedMotion.transitionDurations.every((value) => value <= 0.001));
-    await cdp.send("Emulation.setEmulatedMedia", {
-      features: [{ name: "prefers-reduced-motion", value: "no-preference" }]
-    });
-
-    await cdp.navigate(`${baseUrl}/en/`);
-    await cdp.waitFor(
-      `document.readyState === "complete" && document.documentElement.lang === "en"`,
-      10_000,
-      "keyboard-order English restoration"
-    );
-    await cdp.evaluate(`document.activeElement?.blur()`);
-    await cdp.key("Tab");
-    assert.equal(await cdp.evaluate(`document.activeElement?.matches('.skip-link')`), true);
-    const expectedFocusHrefs = [
-      "#about", "#projects", "#skills", "#experience", "#stats", "#education", "/en/"
-    ];
-    for (const expectedHref of expectedFocusHrefs) {
-      await cdp.key("Tab");
-      assert.equal(
-        await cdp.evaluate(`document.activeElement?.getAttribute('href')`),
-        expectedHref,
-        `top-level keyboard order before ${expectedHref}`
-      );
-    }
-
-'''
+          end = browser.index('    await cdp.navigate(`${baseUrl}/smarthome.html`);', start)
+          replacement = base64.b64decode(os.environ['RESPONSIVE_BLOCK_B64']).decode('utf-8')
           browser_path.write_text(browser[:start] + replacement + browser[end:], encoding='utf-8')
 
           contract_path = Path('tests/test_frontend_contract.py')
@@ -167,15 +51,11 @@ jobs:
           constant_anchor = 'SOURCE_LAYOUT = ROOT / "frontend" / "styles" / "layout.css"\n'
           if contract.count(constant_anchor) != 1:
               raise SystemExit('base CSS constant anchor mismatch')
-          contract = contract.replace(
-              constant_anchor,
-              constant_anchor + 'SOURCE_BASE = ROOT / "frontend" / "styles" / "base.css"\n',
-              1,
-          )
+          contract = contract.replace(constant_anchor, constant_anchor + 'SOURCE_BASE = ROOT / "frontend" / "styles" / "base.css"\n', 1)
           method_anchor = '    def test_cloudflare_analytics_is_not_manually_embedded(self) -> None:\n'
           if contract.count(method_anchor) != 1:
               raise SystemExit('accessibility method anchor mismatch')
-          closeout_test = '''    def test_v3_accessibility_closeout_contract(self) -> None:\n        base = SOURCE_BASE.read_text(encoding="utf-8")\n        responsive = SOURCE_RESPONSIVE.read_text(encoding="utf-8")\n        self.assertIn("@media (prefers-reduced-motion: reduce)", base)\n        self.assertIn(":focus-visible", base)\n        self.assertIn("outline: 3px solid var(--accent)", base)\n        self.assertIn(".skip-link:focus", base)\n        self.assertNotIn("@media (max-width:", responsive)\n\n'''
+          closeout_test = base64.b64decode(os.environ['CLOSEOUT_TEST_B64']).decode('utf-8')
           contract = contract.replace(method_anchor, closeout_test + method_anchor, 1)
           contract_path.write_text(contract, encoding='utf-8')
           PY
