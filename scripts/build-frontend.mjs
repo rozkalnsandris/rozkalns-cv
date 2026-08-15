@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { cp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { build } from "vite";
+import { LOCALIZED_LANGUAGES, renderLocalizedPages } from "./localize-frontend.mjs";
 
 const root = resolve(import.meta.dirname, "..");
 const html = resolve(root, "html");
@@ -16,6 +17,7 @@ async function removeGeneratedFrontend() {
     rm(resolve(html, ".vite"), { recursive: true, force: true }),
     rm(resolve(html, "index.html"), { force: true }),
     rm(resolve(html, "smarthome.html"), { force: true }),
+    ...LOCALIZED_LANGUAGES.map((language) => rm(resolve(html, language), { recursive: true, force: true })),
     rm(committedManifest, { force: true })
   ]);
 }
@@ -62,4 +64,5 @@ async function verifyGeneratedShape() {
 await removeGeneratedFrontend();
 await build({ configFile: resolve(root, "vite.config.mjs") });
 await verifyGeneratedShape();
+await renderLocalizedPages({ root, htmlRoot: html });
 console.log("FRONTEND_BUILD=PASS");

@@ -2,48 +2,49 @@ from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-TITLE = "Andris Rožkalns · DevOps &amp; Linux Engineer"
-DESCRIPTION = (
-    "Andris Rožkalns — self-taught DevOps and Linux engineer in Dortmund, "
-    "building and operating a production Raspberry Pi 5 homelab."
-)
-CANONICAL = '<link rel="canonical" href="https://rozkalns.net/">'
-OG_TITLE = f'<meta property="og:title" content="{TITLE}">'
-OG_URL = '<meta property="og:url" content="https://rozkalns.net/">'
-OG_TYPE = '<meta property="og:type" content="website">'
-OG_DESCRIPTION = f'<meta property="og:description" content="{DESCRIPTION}">'
-OG_IMAGE = '<meta property="og:image" content="https://rozkalns.net/photo.jpg">'
-OG_IMAGE_ALT = '<meta property="og:image:alt" content="Portrait of Andris Rožkalns">'
-TWITTER_CARD = '<meta name="twitter:card" content="summary_large_image">'
-TWITTER_TITLE = f'<meta name="twitter:title" content="{TITLE}">'
-TWITTER_DESCRIPTION = f'<meta name="twitter:description" content="{DESCRIPTION}">'
-TWITTER_IMAGE = '<meta name="twitter:image" content="https://rozkalns.net/photo.jpg">'
-TWITTER_IMAGE_ALT = '<meta name="twitter:image:alt" content="Portrait of Andris Rožkalns">'
-META_DESCRIPTION = f'<meta name="description" content="{DESCRIPTION}">'
+ALTERNATES = {
+    "en": "https://rozkalns.net/en/",
+    "de": "https://rozkalns.net/de/",
+    "lv": "https://rozkalns.net/lv/",
+    "x-default": "https://rozkalns.net/en/",
+}
 
 
 class SeoCanonicalContractTest(unittest.TestCase):
-    def test_source_and_generated_html_publish_complete_profile_metadata(self):
+    def test_root_alias_canonicalizes_to_english_locale(self):
         for relative in ("frontend/index.html", "html/index.html"):
             html = (ROOT / relative).read_text(encoding="utf-8")
-            for marker in (
-                META_DESCRIPTION,
-                CANONICAL,
-                OG_TITLE,
-                OG_URL,
-                OG_TYPE,
-                OG_DESCRIPTION,
-                OG_IMAGE,
-                OG_IMAGE_ALT,
-                TWITTER_CARD,
-                TWITTER_TITLE,
-                TWITTER_DESCRIPTION,
-                TWITTER_IMAGE,
-                TWITTER_IMAGE_ALT,
-            ):
-                self.assertEqual(html.count(marker), 1, f"{relative}: {marker}")
-            self.assertLess(html.index(OG_IMAGE), html.index(OG_IMAGE_ALT), relative)
-            self.assertLess(html.index(TWITTER_IMAGE), html.index(TWITTER_IMAGE_ALT), relative)
+            self.assertEqual(
+                html.count('<link rel="canonical" href="https://rozkalns.net/en/">'),
+                1,
+                relative,
+            )
+            self.assertEqual(
+                html.count('<meta property="og:url" content="https://rozkalns.net/en/">'),
+                1,
+                relative,
+            )
+            self.assertNotIn('<link rel="alternate" hreflang=', html)
+
+    def test_localized_pages_self_canonicalize_and_publish_reciprocal_hreflang(self):
+        for language in ("en", "de", "lv"):
+            html = (ROOT / f"html/{language}/index.html").read_text(encoding="utf-8")
+            self.assertIn(f'<html lang="{language}">', html)
+            self.assertEqual(
+                html.count(f'<link rel="canonical" href="https://rozkalns.net/{language}/">'),
+                1,
+            )
+            self.assertEqual(
+                html.count(f'<meta property="og:url" content="https://rozkalns.net/{language}/">'),
+                1,
+            )
+            for alternate, href in ALTERNATES.items():
+                self.assertEqual(
+                    html.count(f'<link rel="alternate" hreflang="{alternate}" href="{href}">'),
+                    1,
+                )
+            self.assertIn(f'href="/{language}/" data-lang="{language}"', html)
+            self.assertIn(f'data-lang="{language}" aria-label=', html)
 
     def test_preview_image_is_crawlable(self):
         robots = (ROOT / "html/robots.txt").read_text(encoding="utf-8")

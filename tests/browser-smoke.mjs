@@ -66,7 +66,8 @@ function readRequestBody(request) {
 }
 
 function safeStaticPath(pathname) {
-  const decoded = decodeURIComponent(pathname === "/" ? "/index.html" : pathname);
+  const routed = pathname.endsWith("/") ? `${pathname}index.html` : pathname;
+  const decoded = decodeURIComponent(routed);
   const relative = normalize(decoded).replace(/^([/\\])+/, "");
   const target = resolve(HTML_ROOT, relative);
   if (target !== HTML_ROOT && !target.startsWith(`${HTML_ROOT}${sep}`)) {
@@ -419,7 +420,7 @@ async function runBrowserSmoke(baseUrl, state) {
       urls: ["*://static.cloudflareinsights.com/*", "*://cloudflareinsights.com/*"]
     });
 
-    await cdp.navigate(`${baseUrl}/`);
+    await cdp.navigate(`${baseUrl}/en/`);
     const firstRenderSkillIcons = await cdp.evaluate(`(() => ({
       chips: document.querySelectorAll(".skill-chip").length,
       icons: document.querySelectorAll(".skill-chip svg").length
@@ -487,10 +488,11 @@ async function runBrowserSmoke(baseUrl, state) {
     const initialLanguageState = await cdp.evaluate(`(() => ({
       groupRole: document.querySelector('.language-switcher')?.getAttribute('role'),
       groupLabel: document.querySelector('.language-switcher')?.getAttribute('aria-label'),
-      buttons: [...document.querySelectorAll('.language-switcher [data-lang]')].map((button) => ({
-        language: button.dataset.lang,
-        label: button.getAttribute('aria-label'),
-        pressed: button.getAttribute('aria-pressed')
+      controls: [...document.querySelectorAll('.language-switcher [data-lang]')].map((control) => ({
+        language: control.dataset.lang,
+        label: control.getAttribute('aria-label'),
+        href: control.getAttribute('href'),
+        current: control.getAttribute('aria-current')
       })),
       logLive: document.querySelector('#chatLog')?.getAttribute('aria-live'),
       statusRole: document.querySelector('#chatStatus')?.getAttribute('role'),
@@ -500,10 +502,10 @@ async function runBrowserSmoke(baseUrl, state) {
     }))()`);
     assert.equal(initialLanguageState.groupRole, "group");
     assert.equal(initialLanguageState.groupLabel, "Languages");
-    assert.deepEqual(initialLanguageState.buttons, [
-      { language: "en", label: "English", pressed: "true" },
-      { language: "de", label: "Deutsch", pressed: "false" },
-      { language: "lv", label: "Latviešu", pressed: "false" }
+    assert.deepEqual(initialLanguageState.controls, [
+      { language: "en", label: "English", href: "/en/", current: "page" },
+      { language: "de", label: "Deutsch", href: "/de/", current: null },
+      { language: "lv", label: "Latviešu", href: "/lv/", current: null }
     ]);
     assert.equal(initialLanguageState.logLive, "polite");
     assert.equal(initialLanguageState.statusRole, "status");
@@ -511,22 +513,26 @@ async function runBrowserSmoke(baseUrl, state) {
     assert.equal(initialLanguageState.profileListLabel, "Languages");
     assert.deepEqual(initialLanguageState.profileListItems, ["listitem", "listitem", "listitem"]);
 
+    const germanLoaded = cdp.waitForEvent("Page.loadEventFired", 15_000);
     await cdp.evaluate(`document.querySelector('[data-lang="de"]').click()`);
+    await germanLoaded;
     await cdp.waitFor(
-      `document.documentElement.lang === "de" && document.querySelector('#profileLocation')?.textContent === "Dortmund, Deutschland"`,
+      `location.pathname === "/de/" && document.documentElement.lang === "de" && document.querySelector('#profileLocation')?.textContent === "Dortmund, Deutschland"`,
       10_000,
-      "German location localization"
+      "German localized URL"
     );
     assert.equal(
       await cdp.evaluate(`document.querySelector('#profileLocation')?.textContent`),
       "Dortmund, Deutschland"
     );
 
+    const latvianLoaded = cdp.waitForEvent("Page.loadEventFired", 15_000);
     await cdp.evaluate(`document.querySelector('[data-lang="lv"]').click()`);
+    await latvianLoaded;
     await cdp.waitFor(
-      `document.documentElement.lang === "lv" && document.title === "Andris Rožkalns · DevOps un Linux inženieris" && document.querySelector('#pdfLink')?.getAttribute('href') === "/cv-lv.pdf"`,
+      `location.pathname === "/lv/" && document.documentElement.lang === "lv" && document.title === "Andris Rožkalns · DevOps un Linux inženieris" && document.querySelector('#pdfLink')?.getAttribute('href') === "/cv-lv.pdf"`,
       10_000,
-      "Latvian language switch"
+      "Latvian localized URL"
     );
     assert.equal(
       await cdp.evaluate(`document.querySelector('[data-i18n="role"]').textContent`),
@@ -537,8 +543,8 @@ async function runBrowserSmoke(baseUrl, state) {
       "Dortmund, Vācija"
     );
     assert.deepEqual(
-      await cdp.evaluate(`[...document.querySelectorAll('.language-switcher [data-lang]')].map((button) => [button.dataset.lang, button.getAttribute('aria-pressed')])`),
-      [["en", "false"], ["de", "false"], ["lv", "true"]]
+      await cdp.evaluate(`[...document.querySelectorAll('.language-switcher [data-lang]')].map((control) => [control.dataset.lang, control.getAttribute('aria-current')])`),
+      [["en", null], ["de", null], ["lv", "page"]]
     );
     assert.deepEqual(
     await cdp.evaluate(`(() => ({
@@ -718,7 +724,7 @@ async function runBrowserSmoke(baseUrl, state) {
     );
 
     state.statsMode = "stale";
-    await cdp.navigate(`${baseUrl}/`);
+    await cdp.navigate(`${baseUrl}/lv/`);
     await cdp.waitFor(
       `document.querySelector('#liveDot')?.dataset.state === "stale"`,
       10_000,
@@ -726,7 +732,7 @@ async function runBrowserSmoke(baseUrl, state) {
     );
 
     state.statsMode = "invalid";
-    await cdp.navigate(`${baseUrl}/`);
+    await cdp.navigate(`${baseUrl}/lv/`);
     await cdp.waitFor(
       `document.querySelector('#liveDot')?.dataset.state === "offline" && document.querySelector('#statsUpdated')?.textContent === "—"`,
       10_000,
@@ -768,7 +774,7 @@ async function runBrowserSmoke(baseUrl, state) {
         ...viewport,
         deviceScaleFactor: 1
       });
-      await cdp.navigate(`${baseUrl}/`);
+      await cdp.navigate(`${baseUrl}/lv/`);
       await cdp.waitFor(
         `document.documentElement.lang === "lv" && document.querySelector('#profileLocation')?.textContent === "Dortmund, Vācija"`,
         10_000,
@@ -778,7 +784,7 @@ async function runBrowserSmoke(baseUrl, state) {
         const page = document.querySelector('#pageShell')?.getBoundingClientRect();
         const locationRow = document.querySelector('#profileLocation')?.closest('.contact-row');
         const primaryTargets = [...document.querySelectorAll(
-          '.language-switcher button, .actions .button, #contactReveal, #chatLauncher'
+          '.language-switcher [data-lang], .actions .button, #contactReveal, #chatLauncher'
         )].filter((element) => {
           const rect = element.getBoundingClientRect();
           return !element.hidden && rect.width > 0 && rect.height > 0;

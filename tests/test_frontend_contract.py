@@ -144,7 +144,7 @@ class FrontendContractTests(unittest.TestCase):
         for marker in (
             'role="dialog"', 'aria-modal="true"', 'aria-labelledby="chatTitle"',
             'aria-describedby="chatPrivacy"', 'role="log"', 'aria-live="polite"',
-            'aria-busy="false"', 'aria-pressed="true"',
+            'aria-busy="false"', 'aria-current="page"',
         ):
             self.assertIn(marker, text)
         chat = SOURCE_CHAT.read_text(encoding="utf-8")
