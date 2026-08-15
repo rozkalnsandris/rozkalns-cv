@@ -31,6 +31,27 @@ for (const language of ["en", "de", "lv"]) {
   assert.match(row.file, new RegExp(`^i18n/${language}\\.[0-9a-f]{12}\\.json$`));
 }
 
+const expectedLocalizedIdentity = Object.freeze({
+  en: "en/index.html",
+  de: "de/index.html",
+  lv: "lv/index.html",
+  sitemap: "sitemap.xml"
+});
+assert.deepEqual(
+  Object.keys(manifest._localized || {}).sort(),
+  Object.keys(expectedLocalizedIdentity).sort(),
+  "localized frontend identity set is incomplete"
+);
+for (const [name, path] of Object.entries(expectedLocalizedIdentity)) {
+  const row = manifest._localized[name];
+  assert.equal(row?.path, path, `${name} localized path mismatch`);
+  assert.match(row?.sha256 || "", /^[0-9a-f]{64}$/, `${name} localized sha256 missing`);
+  const digest = createHash("sha256")
+    .update(await readFile(resolve(htmlRoot, path)))
+    .digest("hex");
+  assert.equal(digest, row.sha256, `${name} localized file does not match manifest identity`);
+}
+
 const referenced = new Set();
 for (const row of Object.values(manifest)) {
   if (typeof row?.file === "string") referenced.add(row.file);
