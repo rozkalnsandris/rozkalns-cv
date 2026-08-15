@@ -41,7 +41,7 @@
     ]
   },
   "features/contact.mjs": {
-    "file": "assets/contact.828a632ff411.mjs",
+    "file": "assets/contact.2817e426c55c.mjs",
     "name": "contact",
     "src": "features/contact.mjs",
     "isDynamicEntry": true,
@@ -50,7 +50,7 @@
     ]
   },
   "index.html": {
-    "file": "assets/app.cb2cb9a6c7fc.mjs",
+    "file": "assets/app.bc025087aa19.mjs",
     "name": "app",
     "src": "index.html",
     "isEntry": true,
