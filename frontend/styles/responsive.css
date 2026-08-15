@@ -1,8 +1,7 @@
 @media (min-width: 640px) {
-  .page { width: min(calc(100% - 40px),var(--maxw)); padding-top: 20px; }
-  .sidebar { grid-template-columns: 116px minmax(0,1fr); padding: 22px; gap: 13px 18px; }
+  .page { width: min(calc(100% - 40px),var(--maxw)); padding-block-start: 20px; }
+  .hero-shell { grid-template-columns: 116px minmax(0,1fr); padding-block: 22px; padding-inline: 22px; gap: 13px 18px; }
   .profile-photo { width: 116px; height: 146px; }
-  .profile-languages { padding: 13px; }
   .project-list { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .skill-row { grid-template-columns: 145px minmax(0,1fr); gap: 18px; }
   .education-row { grid-template-columns: 135px minmax(0,1fr); gap: 18px; }
@@ -22,40 +21,45 @@
   .dialog-backdrop { padding: 22px; }
 }
 @media (min-width: 900px) {
-  .page { padding: 28px 0 84px; }
-  .sidebar {
-    grid-template-columns: minmax(0,1.25fr) 220px minmax(260px,.9fr);
+  .page { padding-block: 28px 84px; }
+  .hero-shell {
+    grid-template-columns: auto minmax(0,1fr) 260px;
     grid-template-areas:
-      "nav nav lang"
-      "name photo contacts"
-      "role photo contacts"
-      "tagline photo contacts"
-      "focus photo verify"
-      "langs photo verify"
-      "actions photo verify";
-    gap: 12px 28px;
-    padding: 26px;
+      "brand nav lang"
+      "name name photo"
+      "role role photo"
+      "tagline tagline photo"
+      "contacts contacts photo"
+      "focus focus photo"
+      "langs langs photo"
+      "actions actions photo"
+      "verify verify photo";
+    gap: 11px 28px;
+    padding-block: 24px 26px;
+    padding-inline: 26px;
     align-items: start;
   }
-  .sidebar::before { width: 300px; height: 300px; top: -150px; right: -96px; }
-  .site-nav { align-self: center; overflow: visible; }
+  .hero-shell::before { width: 320px; height: 320px; inset-block-start: -156px; inset-inline-end: -90px; }
+  .brand { align-self: center; font-size: 24px; }
+  .site-nav { align-self: center; justify-content: center; overflow: visible; }
   .site-nav a { min-height: 46px; padding-inline: 13px; }
   .language-switcher { align-self: center; }
-  .profile-photo { width: 100%; height: 100%; min-height: 350px; max-height: 420px; border-radius: 24px; }
-  .sidebar h1 { align-self: end; max-width: 9ch; font-size: clamp(54px,5.35vw,74px); }
-  .role { margin-top: 2px; }
-  .tagline { max-width: 43ch; margin-top: 8px; font-size: 18px; line-height: 1.68; }
-  .focus-tags { max-width: 44ch; align-self: end; }
-  .profile-languages { align-self: end; display: grid; gap: 7px; margin: 0; padding: 14px; }
-  .profile-language { width: 100%; border-radius: var(--radius-sm); }
-  .contacts { align-self: stretch; padding: 16px; }
+  .profile-photo { width: 100%; height: 100%; min-height: 300px; max-height: 360px; border-radius: 24px; }
+  .hero-shell h1 { align-self: end; max-width: 12ch; font-size: clamp(56px,5.2vw,74px); }
+  .role { margin-block-start: 1px; font-size: 15px; }
+  .tagline { max-width: 48ch; margin-block-start: 7px; font-size: 18px; line-height: 1.62; }
+  .contacts { align-self: start; display: flex; flex-wrap: wrap; gap: 4px 18px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+  .contact-row { min-height: 34px; }
+  .focus-tags { max-width: 52ch; align-self: start; }
+  .profile-languages { align-self: start; margin: 0; }
+  .profile-language { width: auto; border-radius: 999px; }
   .contact-verify { align-self: start; }
-  .actions { align-self: end; }
-  main { margin-top: 44px; }
-  #about { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 28px; padding: 4px 18px; }
-  #about .section-heading { grid-column: 1 / -1; margin-bottom: -2px; }
-  #about .lead + .lead { margin-top: 0; }
-  #projects .section-heading, #skills .section-heading, #experience .section-heading { margin-bottom: 24px; }
+  .actions { align-self: start; }
+  .v3-main { margin-block-start: 44px; }
+  #about { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 28px; padding-block: 4px; padding-inline: 18px; }
+  #about .section-heading { grid-column: 1 / -1; margin-block-end: -2px; }
+  #about .lead + .lead { margin-block-start: 0; }
+  #projects .section-heading, #skills .section-heading, #experience .section-heading { margin-block-end: 24px; }
   .project-entry { min-height: 210px; padding: 22px; }
   .skill-list { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .skill-row { grid-template-columns: 1fr; align-content: start; padding: 20px; }

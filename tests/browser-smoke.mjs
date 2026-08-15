@@ -469,7 +469,7 @@ async function runBrowserSmoke(baseUrl, state) {
       privacy: document.querySelector('[data-i18n="chat_privacy"]')?.textContent,
       photoSrc: document.querySelector('.profile-photo')?.currentSrc,
       photoAlt: document.querySelector('.profile-photo')?.getAttribute('alt'),
-      profileHeading: document.querySelector('.sidebar h1')?.textContent,
+      profileHeading: document.querySelector('.hero-shell h1')?.textContent,
       location: document.querySelector('#profileLocation')?.textContent,
       photoNaturalWidth: document.querySelector('.profile-photo')?.naturalWidth,
       photoNaturalHeight: document.querySelector('.profile-photo')?.naturalHeight
