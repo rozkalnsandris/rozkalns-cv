@@ -9,6 +9,12 @@ const html = resolve(root, "html");
 const viteManifest = resolve(html, ".vite", "manifest.json");
 const committedManifest = resolve(root, "frontend-dist-manifest.json");
 const nginxConfig = resolve(root, "nginx.conf");
+const localizedIdentityFiles = Object.freeze({
+  en: "en/index.html",
+  de: "de/index.html",
+  lv: "lv/index.html",
+  sitemap: "sitemap.xml"
+});
 
 async function removeGeneratedFrontend() {
   await Promise.all([
@@ -61,8 +67,23 @@ async function verifyGeneratedShape() {
   console.log(`FRONTEND_NGINX_REPRESENTATION=${representation}`);
 }
 
+async function bindLocalizedIdentity() {
+  const manifest = JSON.parse(await readFile(committedManifest, "utf8"));
+  manifest._localized = Object.fromEntries(await Promise.all(
+    Object.entries(localizedIdentityFiles).map(async ([name, relative]) => [
+      name,
+      {
+        file: relative,
+        sha256: createHash("sha256").update(await readFile(resolve(html, relative))).digest("hex")
+      }
+    ])
+  ));
+  await writeFile(committedManifest, `${JSON.stringify(manifest, null, 2)}\n`);
+}
+
 await removeGeneratedFrontend();
 await build({ configFile: resolve(root, "vite.config.mjs") });
 await verifyGeneratedShape();
 await renderLocalizedPages({ root, htmlRoot: html });
+await bindLocalizedIdentity();
 console.log("FRONTEND_BUILD=PASS");
