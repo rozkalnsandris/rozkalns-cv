@@ -8,7 +8,7 @@
   isolation: isolate;
   overflow: hidden;
   display: grid;
-  grid-template-columns: 92px minmax(0,1fr);
+  grid-template-columns: 84px minmax(0,1fr);
   grid-template-areas:
     "lang lang"
     "photo name"
