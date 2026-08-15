@@ -52,7 +52,6 @@ jobs:
         run: |
           set -Eeuo pipefail
           git add -- \
-            .github/workflows/ci.yml \
             frontend/index.html frontend/app.mjs frontend/core/i18n.mjs frontend/styles/components.css \
             scripts/build-frontend.mjs scripts/check-frontend-dist.mjs scripts/localize-frontend.mjs \
             tests/browser-smoke.mjs tests/frontend.test.mjs tests/test_frontend_contract.py tests/test_localized_pages.py \
