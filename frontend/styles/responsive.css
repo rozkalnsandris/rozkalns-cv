@@ -55,4 +55,10 @@
   #about { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 28px; padding: 4px 18px; }
   #about .section-heading { grid-column: 1 / -1; margin-bottom: -2px; }
   #about .lead + .lead { margin-top: 0; }
+  #projects .section-heading, #skills .section-heading, #experience .section-heading { margin-bottom: 24px; }
+  .project-entry { min-height: 210px; padding: 22px; }
+  .skill-list { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .skill-row { grid-template-columns: 1fr; align-content: start; padding: 20px; }
+  .timeline { gap: 16px; }
+  .entry { grid-template-columns: 160px minmax(0,1fr); padding: 22px; }
 }
