@@ -258,6 +258,14 @@ Before any slice becomes Ready for review:
 - no invented CV facts
 - no production deploy without separate owner authorization
 
+## Closeout status — 2026-08-15
+
+The implementation slices are now represented by merged UI v2 work for the visual shell, recruiter-first hierarchy, hero, projects/skills/experience, live-homelab evidence and ProfilePage/metadata polish.
+
+The multilingual URL migration is deliberately tracked separately in #251. The current EN/DE/LV client-side language switch remains supported in #243; crawlable `/en/`, `/de/`, `/lv/` variants and reciprocal `hreflang` belong to that dedicated routing/SEO change.
+
+The real-Chromium validation matrix is enforced at 390, 430, 768, 1280 and 1440 CSS px. Each width must keep the document/page shell free of horizontal overflow, keep the localized location row contained and retain at least 48 CSS px height for the primary language/action/contact/chat controls.
+
 ## Workflow boundary
 
 `fresh main → fresh branch → focused change → commit → push → Draft PR → exact-head CI/manual review → Ready → STOP → explicit owner squash merge → exact-main CI → deploy classification`
