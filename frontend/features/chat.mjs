@@ -108,7 +108,6 @@ function appendMessage(root, log, text, role) {
   const message = root.createElement("div");
   message.className = `message ${role}`;
   message.textContent = text;
-  message.setAttribute("role", "listitem");
   log.append(message);
   log.scrollTop = log.scrollHeight;
   return message;
