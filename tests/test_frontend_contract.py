@@ -118,6 +118,15 @@ class FrontendContractTests(unittest.TestCase):
         for section_id in ("about", "stats", "experience", "projects", "skills", "education"):
             self.assertIn(f'id="{section_id}"', html)
         self.assertGreaterEqual(html.count('class="project-entry'), 6)
+        self.assertEqual(html.count('class="project-entry primary"'), 3)
+        self.assertEqual(html.count('class="project-entry secondary"'), 3)
+        for number in ('01', '02', '03'):
+            self.assertIn(f'<span class="project-no">{number}</span>', html)
+        secondary_start = html.index('class="project-entry secondary"')
+        for key in ('p2_title', 'p1_title', 'p4_title'):
+            self.assertLess(html.index(f'data-i18n="{key}"'), secondary_start)
+        for key in ('p3_title', 'p5_title', 'p6_title'):
+            self.assertGreater(html.index(f'data-i18n="{key}"'), secondary_start)
         self.assertGreaterEqual(html.count('class="project-icon"'), 6)
         self.assertGreaterEqual(html.count('class="tech-tag"'), 25)
         self.assertGreaterEqual(html.count('class="skill-chip"'), 20)
