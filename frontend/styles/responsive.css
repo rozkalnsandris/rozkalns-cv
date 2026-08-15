@@ -1,7 +1,8 @@
 @media (min-width: 640px) {
   .page { width: min(calc(100% - 40px),var(--maxw)); padding-top: 20px; }
-  .sidebar { grid-template-columns: 108px minmax(0,1fr); padding: 22px; gap: 13px 18px; }
-  .profile-photo { width: 108px; height: 136px; }
+  .sidebar { grid-template-columns: 116px minmax(0,1fr); padding: 22px; gap: 13px 18px; }
+  .profile-photo { width: 116px; height: 146px; }
+  .profile-languages { padding: 13px; }
   .project-list { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .skill-row { grid-template-columns: 145px minmax(0,1fr); gap: 18px; }
   .education-row { grid-template-columns: 135px minmax(0,1fr); gap: 18px; }
@@ -32,20 +33,24 @@
       "focus photo verify"
       "langs photo verify"
       "actions photo verify";
-    gap: 11px 28px;
-    padding: 24px;
+    gap: 12px 28px;
+    padding: 26px;
     align-items: start;
   }
+  .sidebar::before { width: 300px; height: 300px; top: -150px; right: -96px; }
   .site-nav { align-self: center; overflow: visible; }
   .site-nav a { min-height: 46px; padding-inline: 13px; }
   .language-switcher { align-self: center; }
-  .profile-photo { width: 220px; height: 100%; min-height: 318px; border-radius: 24px; }
-  .sidebar h1 { align-self: end; max-width: 9ch; font-size: clamp(52px,5.2vw,72px); }
+  .profile-photo { width: 100%; height: 100%; min-height: 350px; max-height: 420px; border-radius: 24px; }
+  .sidebar h1 { align-self: end; max-width: 9ch; font-size: clamp(54px,5.35vw,74px); }
   .role { margin-top: 2px; }
-  .tagline { max-width: 45ch; margin-top: 8px; font-size: 18px; }
-  .profile-languages { align-self: end; }
-  .contacts { align-self: stretch; }
+  .tagline { max-width: 43ch; margin-top: 8px; font-size: 18px; line-height: 1.68; }
+  .focus-tags { max-width: 44ch; align-self: end; }
+  .profile-languages { align-self: end; display: grid; gap: 7px; margin: 0; padding: 14px; }
+  .profile-language { width: 100%; border-radius: var(--radius-sm); }
+  .contacts { align-self: stretch; padding: 16px; }
   .contact-verify { align-self: start; }
+  .actions { align-self: end; }
   main { margin-top: 44px; }
   #about { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 28px; padding: 4px 18px; }
   #about .section-heading { grid-column: 1 / -1; margin-bottom: -2px; }
