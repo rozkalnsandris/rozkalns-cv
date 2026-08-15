@@ -52,7 +52,7 @@
 .tech-tag { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 5px 9px; border: 1px solid var(--border-soft); border-radius: 999px; background: var(--surface-2); color: var(--text-dim); font: 650 11px/1.35 var(--sans); }
 .tech-tag::before { content: ""; width: 4px; height: 4px; border-radius: 50%; background: var(--accent); opacity: .75; }
 .tech-tag.has-tech-icon::before { display: none; }
-.tech-tag svg { width: 13px; height: 13px; flex: 0 0 13px; color: var(--accent); opacity: .9; }
+.tech-tag svg { width: 12px; height: 12px; flex: 0 0 12px; color: var(--accent); opacity: .9; }
 .focus-badge { display: inline-flex; margin-left: 7px; padding: 3px 7px; border-radius: 999px; background: var(--accent); color: #fff; font: 800 9px/1.3 var(--sans); letter-spacing: .08em; text-transform: uppercase; vertical-align: 2px; }
 .skill-list { margin: 0; gap: 12px; }
 .skill-row { display: grid; grid-template-columns: 1fr; gap: 11px; padding: 18px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-sm); transition: border-color .14s ease, box-shadow .14s ease; }
