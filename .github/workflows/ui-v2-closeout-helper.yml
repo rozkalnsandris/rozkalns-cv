@@ -1,0 +1,37 @@
+name: UI v2 closeout helper
+
+on:
+  push:
+    branches:
+      - test/cv-ui-v2-responsive-closeout-243
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+      - name: Apply closeout patch
+        run: python tools/tmp-ui-v2-closeout-patch.py
+      - name: Set up pinned Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.18.0'
+          package-manager-cache: false
+      - name: Validate and commit closeout source
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          node --check tests/browser-smoke.mjs
+          git add -- tests/browser-smoke.mjs docs/ui-v2/README.md
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'test: enforce UI v2 responsive quality matrix'
+          git push origin "HEAD:${GITHUB_REF_NAME}"
