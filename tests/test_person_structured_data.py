@@ -4,6 +4,10 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+DESCRIPTION = (
+    "Andris Rožkalns — self-taught DevOps and Linux engineer in Dortmund, "
+    "building and operating a production Raspberry Pi 5 homelab."
+)
 SCRIPT_RE = re.compile(
     r'<script type="application/ld\+json">\s*(.*?)\s*</script>', re.DOTALL
 )
@@ -36,7 +40,14 @@ class ProfilePageStructuredDataContractTest(unittest.TestCase):
         self.assertEqual(person["url"], "https://rozkalns.net/")
         self.assertEqual(person["image"], "https://rozkalns.net/photo.jpg")
         self.assertEqual(person["jobTitle"], "Junior DevOps & Linux Engineer")
+        self.assertEqual(person["description"], DESCRIPTION)
         self.assertEqual(person["sameAs"], ["https://github.com/rozkalnsandris"])
+
+    def test_description_is_visible_profile_truth(self):
+        html = (ROOT / "frontend/index.html").read_text(encoding="utf-8")
+        self.assertIn("self-taught Linux and DevOps engineer based in Dortmund", html)
+        self.assertIn("design, deploy and operate a production Raspberry Pi 5 homelab", html)
+        self.assertEqual(html.count(f'content="{DESCRIPTION}"'), 3)
 
     def test_location_languages_and_privacy_boundary(self):
         profile = load_profile_page("frontend/index.html")
