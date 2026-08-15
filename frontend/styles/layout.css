@@ -1,54 +1,76 @@
 .page {
   width: min(calc(100% - 24px), var(--maxw));
-  margin: 0 auto;
-  padding: 12px 0 72px;
+  margin-inline: auto;
+  padding-block: 12px 72px;
 }
-.sidebar {
+.hero-shell {
   position: relative;
   isolation: isolate;
   overflow: hidden;
   display: grid;
   grid-template-columns: 84px minmax(0,1fr);
   grid-template-areas:
-    "lang lang"
+    "brand lang"
+    "nav nav"
     "photo name"
     "photo role"
     "tagline tagline"
+    "contacts contacts"
     "focus focus"
     "langs langs"
-    "contacts contacts"
-    "verify verify"
     "actions actions"
-    "nav nav";
+    "verify verify";
   gap: 12px 14px;
   align-items: start;
-  padding: 18px;
+  padding-block: 18px;
+  padding-inline: 18px;
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
   background: linear-gradient(145deg,var(--surface),var(--surface-2));
   box-shadow: var(--shadow-md);
 }
-.sidebar::before {
+.hero-shell::before {
   content: "";
   position: absolute;
   z-index: -1;
-  top: -86px;
-  right: -74px;
+  inset-block-start: -86px;
+  inset-inline-end: -74px;
   width: 210px;
   height: 210px;
   border-radius: 50%;
   background: var(--accent-soft);
 }
-main {
+.v3-main {
   min-width: 0;
   display: grid;
   gap: var(--section-gap);
-  margin-top: 30px;
+  margin-block-start: 30px;
 }
 section { margin: 0; scroll-margin-top: 118px; }
-.section-heading { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
-.section-heading h2 { margin: 0; color: var(--text); font: 700 clamp(24px,6vw,34px)/1.05 var(--serif); letter-spacing: -.025em; }
-.section-heading::after { content: ""; height: 1px; flex: 1; background: var(--border); }
-.lead { max-width: 70ch; margin: 0; color: var(--text-dim); font-size: 16px; line-height: 1.75; }
-.lead + .lead { margin-top: 12px; }
-#about { padding: 2px 4px; }
+.section-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-block-end: 20px;
+}
+.section-heading h2 {
+  margin: 0;
+  color: var(--text);
+  font: 700 clamp(24px,6vw,34px)/1.05 var(--serif);
+  letter-spacing: -.025em;
+}
+.section-heading::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  background: var(--border);
+}
+.lead {
+  max-width: 70ch;
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 16px;
+  line-height: 1.75;
+}
+.lead + .lead { margin-block-start: 12px; }
+#about { padding-block: 2px; padding-inline: 4px; }

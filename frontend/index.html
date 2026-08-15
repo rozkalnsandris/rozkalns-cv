@@ -27,7 +27,17 @@
   <a class="skip-link" href="#main" data-i18n="skip">Skip to main content</a>
 
   <div id="pageShell" class="page">
-    <header class="sidebar">
+    <header class="site-header hero-shell">
+      <span class="brand" aria-hidden="true">AR</span>
+      <nav class="site-nav" aria-label="CV">
+        <a href="#about" data-i18n="nav_about">About</a>
+        <a href="#projects" data-i18n="nav_projects">Projects</a>
+        <a href="#skills" data-i18n="nav_skills">Skills</a>
+        <a href="#experience" data-i18n="nav_exp">Experience</a>
+        <a href="#stats" data-i18n="nav_stats">Live homelab</a>
+        <a href="#education" data-i18n="nav_edu">Education</a>
+      </nav>
+
       <div class="language-switcher" role="group" data-i18n-label="profile_languages_label" aria-label="Language">
         <a href="/en/" data-lang="en" aria-label="English" aria-current="page">EN</a>
         <a href="/de/" data-lang="de" aria-label="Deutsch">DE</a>
@@ -84,17 +94,9 @@
         <a class="button" href="/smarthome.html"><svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m3 11 9-7 9 7v9H3z"/><path d="M9 20v-6h6v6"/></svg><span data-i18n="smart_demo">Smart-home demo</span></a>
       </div>
 
-      <nav class="site-nav" aria-label="CV">
-        <a href="#about" data-i18n="nav_about">About</a>
-        <a href="#projects" data-i18n="nav_projects">Projects</a>
-        <a href="#skills" data-i18n="nav_skills">Skills</a>
-        <a href="#experience" data-i18n="nav_exp">Experience</a>
-        <a href="#stats" data-i18n="nav_stats">Live homelab</a>
-        <a href="#education" data-i18n="nav_edu">Education</a>
-      </nav>
     </header>
 
-    <main id="main">
+    <main id="main" class="v3-main">
       <section id="about">
         <div class="section-heading"><h2 data-i18n="about_title">About</h2></div>
         <p class="lead" data-i18n="about_p1">I am a self-taught Linux and DevOps engineer based in Dortmund, deliberately returning to IT after a long logistics career.</p>
