@@ -24,7 +24,7 @@
 @media (min-width: 900px) {
   .page { padding: 28px 0 84px; }
   .sidebar {
-    grid-template-columns: minmax(0,1.28fr) minmax(200px,.58fr) minmax(250px,.78fr);
+    grid-template-columns: minmax(0,1.25fr) 220px minmax(260px,.9fr);
     grid-template-areas:
       "nav nav lang"
       "name photo langs"
