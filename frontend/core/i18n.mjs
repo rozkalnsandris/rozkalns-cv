@@ -116,8 +116,16 @@ export function applyTranslations(messages, language, {
     if (typeof value === "string") element.setAttribute("aria-label", value);
   });
   applySkillTranslations(messages, { root });
-  root.querySelectorAll("[data-lang]").forEach((button) => {
-    button.setAttribute("aria-pressed", String(button.dataset.lang === safe));
+  root.querySelectorAll("[data-lang]").forEach((control) => {
+    const selected = control.dataset.lang === safe;
+    if (String(control.tagName || "").toUpperCase() === "A") {
+      control.removeAttribute("aria-pressed");
+      if (selected) control.setAttribute("aria-current", "page");
+      else control.removeAttribute("aria-current");
+    } else {
+      control.removeAttribute("aria-current");
+      control.setAttribute("aria-pressed", String(selected));
+    }
   });
   if (pdfs) {
     const pdf = root.querySelector("#pdfLink");
@@ -133,9 +141,12 @@ export function createLanguageController({
   navigatorLike = globalThis.navigator,
   fetchImpl = globalThis.fetch,
   pdfs = null,
-  onApplied = null
+  onApplied = null,
+  initialLanguage = null
 } = {}) {
-  let language = preferredLanguage({ storage, navigatorLike });
+  let language = initialLanguage === null
+    ? preferredLanguage({ storage, navigatorLike })
+    : normalizeLanguage(initialLanguage);
   let messages = null;
   let latestRequest = 0;
 

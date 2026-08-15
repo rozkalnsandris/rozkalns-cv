@@ -235,7 +235,7 @@ class HtmlSemanticTests(unittest.TestCase):
         ]
         self.assertEqual(len(skip_links), 1)
 
-    def test_language_switchers_are_named_toggle_groups(self) -> None:
+    def test_language_switchers_are_named_and_stateful(self) -> None:
         expected_labels = {"en": "English", "de": "Deutsch", "lv": "Latviešu"}
         for path in self.pages:
             parsed = parse(path)
@@ -248,15 +248,26 @@ class HtmlSemanticTests(unittest.TestCase):
             switcher = switchers[0]
             self.assertEqual(switcher.attrs.get("role"), "group")
             self.assertEqual(switcher.attrs.get("aria-label"), "Language")
-            buttons = [row for row in parsed.elements if row.attrs.get("data-lang")]
-            self.assertEqual({row.attrs.get("data-lang") for row in buttons}, set(expected_labels))
+            controls = [row for row in parsed.elements if row.attrs.get("data-lang")]
+            self.assertEqual({row.attrs.get("data-lang") for row in controls}, set(expected_labels))
             self.assertEqual(
-                {row.attrs.get("data-lang"): row.attrs.get("aria-label") for row in buttons},
+                {row.attrs.get("data-lang"): row.attrs.get("aria-label") for row in controls},
                 expected_labels,
             )
-            pressed = [row for row in buttons if row.attrs.get("aria-pressed") == "true"]
-            self.assertEqual(len(pressed), 1)
-            self.assertTrue(all(row.attrs.get("aria-pressed") in {"true", "false"} for row in buttons))
+            if path.name == "smarthome.html":
+                pressed = [row for row in controls if row.attrs.get("aria-pressed") == "true"]
+                self.assertEqual(len(pressed), 1)
+                self.assertTrue(all(row.tag == "button" for row in controls))
+                self.assertTrue(all(row.attrs.get("aria-pressed") in {"true", "false"} for row in controls))
+            else:
+                self.assertTrue(all(row.tag == "a" for row in controls))
+                self.assertEqual(
+                    {row.attrs.get("data-lang"): row.attrs.get("href") for row in controls},
+                    {"en": "/en/", "de": "/de/", "lv": "/lv/"},
+                )
+                current = [row for row in controls if row.attrs.get("aria-current") == "page"]
+                self.assertEqual([row.attrs.get("data-lang") for row in current], ["en"])
+                self.assertTrue(all("aria-pressed" not in row.attrs for row in controls))
 
     def test_smarthome_heading_hierarchy(self) -> None:
         parsed = parse(HTML_ROOT / "smarthome.html")

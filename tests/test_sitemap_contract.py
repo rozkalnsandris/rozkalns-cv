@@ -1,4 +1,3 @@
-import re
 import unittest
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -6,27 +5,36 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SITEMAP = ROOT / "html" / "sitemap.xml"
 ROBOTS = ROOT / "html" / "robots.txt"
-INDEX = ROOT / "frontend" / "index.html"
 SMARTHOME = ROOT / "html" / "smarthome.html"
-NS = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+NS = {
+    "sm": "http://www.sitemaps.org/schemas/sitemap/0.9",
+    "xhtml": "http://www.w3.org/1999/xhtml",
+}
+EXPECTED = {
+    "en": "https://rozkalns.net/en/",
+    "de": "https://rozkalns.net/de/",
+    "lv": "https://rozkalns.net/lv/",
+    "x-default": "https://rozkalns.net/en/",
+}
 
 
 class SitemapContractTests(unittest.TestCase):
-    def test_sitemap_contains_only_the_public_canonical_url(self):
+    def test_sitemap_contains_canonical_locales_with_reciprocal_alternates(self):
         root = ET.parse(SITEMAP).getroot()
         self.assertEqual(root.tag, f"{{{NS['sm']}}}urlset")
-        locations = [
-            node.text for node in root.findall("sm:url/sm:loc", NS) if node.text
-        ]
-        self.assertEqual(locations, ["https://rozkalns.net/"])
-
-        index = INDEX.read_text(encoding="utf-8")
-        canonical = re.findall(
-            r'<link rel="canonical" href="([^"]+)">', index
+        urls = root.findall("sm:url", NS)
+        self.assertEqual(
+            [url.find("sm:loc", NS).text for url in urls],
+            [EXPECTED["en"], EXPECTED["de"], EXPECTED["lv"]],
         )
-        self.assertEqual(canonical, locations)
-
+        for url in urls:
+            alternates = {
+                link.attrib["hreflang"]: link.attrib["href"]
+                for link in url.findall("xhtml:link", NS)
+            }
+            self.assertEqual(alternates, EXPECTED)
         xml = SITEMAP.read_text(encoding="utf-8")
+        self.assertNotIn("<loc>https://rozkalns.net/</loc>", xml)
         self.assertNotIn("<priority>", xml)
         self.assertNotIn("<changefreq>", xml)
         self.assertNotIn("<lastmod>", xml)
@@ -37,7 +45,6 @@ class SitemapContractTests(unittest.TestCase):
             [line for line in robots if line.lower().startswith("sitemap:")],
             ["Sitemap: https://rozkalns.net/sitemap.xml"],
         )
-
         smarthome = SMARTHOME.read_text(encoding="utf-8")
         self.assertIn('<meta name="robots" content="noindex">', smarthome)
         self.assertNotIn("smarthome.html", SITEMAP.read_text(encoding="utf-8"))

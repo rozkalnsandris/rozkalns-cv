@@ -15,16 +15,15 @@ EXPECTED_TITLES = {
 
 
 class MainDocumentTitleTests(unittest.TestCase):
-    def test_main_title_updates_on_every_successful_language_apply(self) -> None:
+    def test_main_title_uses_url_owned_initial_language_apply(self) -> None:
         source = (ROOT / "frontend" / "app.mjs").read_text(encoding="utf-8")
         self.assertIn("export function updateMainDocumentTitle({ messages }", source)
         self.assertIn("const role = messages?.role;", source)
         self.assertIn('role.startsWith("Junior ")', source)
         self.assertIn('documentLike.title = `Andris Rožkalns · ${titleRole}`;', source)
-        self.assertIn(
-            "createLanguageController({ pdfs: PDFS, onApplied: updateMainDocumentTitle })",
-            source,
-        )
+        self.assertIn("onApplied: updateMainDocumentTitle,", source)
+        self.assertIn("initialLanguage: document.documentElement.lang", source)
+        self.assertIn("await languageController.tryApply(languageController.language);", source)
 
     def test_existing_role_translation_derives_expected_title_in_every_language(self) -> None:
         for language, expected in EXPECTED_TITLES.items():

@@ -1716,15 +1716,18 @@ test("chat and contact stay behind interaction-only dynamic imports", async () =
   assert.match(source, /import\("\.\/features\/contact\.mjs"\)/);
   assert.match(source, /from "\.\/features\/stats\.mjs";/);
   assert.match(source, /bindStatsVisibility\(stats\)/);
-  assert.match(source, /if \(applied\) stats\.rerender\(\);/);
 });
 
-test("page entrypoints use contained language switching only", async () => {
-  for (const sourcePath of ["frontend/app.mjs", "frontend/smarthome.mjs"]) {
-    const source = await readFile(resolve(ROOT, sourcePath), "utf8");
-    assert.match(source, /languageController\.tryApply\(button\.dataset\.lang\)/, sourcePath);
-    assert.doesNotMatch(source, /languageController\.apply\(/, sourcePath);
-  }
+test("page entrypoints keep language state inside their intended routing model", async () => {
+  const mainSource = await readFile(resolve(ROOT, "frontend/app.mjs"), "utf8");
+  assert.match(mainSource, /initialLanguage: document\.documentElement\.lang/);
+  assert.match(mainSource, /languageController\.tryApply\(languageController\.language\)/);
+  assert.doesNotMatch(mainSource, /querySelectorAll\("\[data-lang\]"\)/);
+  assert.doesNotMatch(mainSource, /languageController\.apply\(/);
+
+  const smartHomeSource = await readFile(resolve(ROOT, "frontend/smarthome.mjs"), "utf8");
+  assert.match(smartHomeSource, /languageController\.tryApply\(button\.dataset\.lang\)/);
+  assert.doesNotMatch(smartHomeSource, /languageController\.apply\(/);
 });
 
 test("skill chips map to meaningful SVG icon families", () => {

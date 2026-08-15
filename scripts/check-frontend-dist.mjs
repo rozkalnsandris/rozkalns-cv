@@ -31,6 +31,27 @@ for (const language of ["en", "de", "lv"]) {
   assert.match(row.file, new RegExp(`^i18n/${language}\\.[0-9a-f]{12}\\.json$`));
 }
 
+const expectedLocalizedIdentity = Object.freeze({
+  en: "en/index.html",
+  de: "de/index.html",
+  lv: "lv/index.html",
+  sitemap: "sitemap.xml"
+});
+assert.deepEqual(
+  Object.keys(manifest._localized || {}).sort(),
+  Object.keys(expectedLocalizedIdentity).sort(),
+  "localized frontend identity set is incomplete"
+);
+for (const [name, path] of Object.entries(expectedLocalizedIdentity)) {
+  const row = manifest._localized[name];
+  assert.equal(row?.path, path, `${name} localized path mismatch`);
+  assert.match(row?.sha256 || "", /^[0-9a-f]{64}$/, `${name} localized sha256 missing`);
+  const digest = createHash("sha256")
+    .update(await readFile(resolve(htmlRoot, path)))
+    .digest("hex");
+  assert.equal(digest, row.sha256, `${name} localized file does not match manifest identity`);
+}
+
 const referenced = new Set();
 for (const row of Object.values(manifest)) {
   if (typeof row?.file === "string") referenced.add(row.file);
@@ -63,7 +84,13 @@ assert.deepEqual(
 
 const indexHtml = await readFile(resolve(htmlRoot, "index.html"), "utf8");
 const smartHtml = await readFile(resolve(htmlRoot, "smarthome.html"), "utf8");
-for (const [name, text] of [["index", indexHtml], ["smarthome", smartHtml]]) {
+const localizedHtml = Object.fromEntries(await Promise.all(
+  ["en", "de", "lv"].map(async (language) => [
+    language,
+    await readFile(resolve(htmlRoot, language, "index.html"), "utf8")
+  ])
+));
+for (const [name, text] of [["index", indexHtml], ["smarthome", smartHtml], ...Object.entries(localizedHtml)]) {
   assert.doesNotMatch(text, /(?:src|href)="\.\//, `${name} HTML still contains source-relative frontend references`);
   for (const path of text.matchAll(/(?:src|href)="\/(assets\/[^"?#]+)/g)) {
     assert.ok(referenced.has(path[1]), `${name} HTML references an asset outside the manifest: ${path[1]}`);
@@ -77,6 +104,12 @@ assert.ok(
   indexHtml.includes(`src="/${indexEntry.file}?cfg=${nginxRepresentation}"`),
   "index HTML app representation is not bound to nginx.conf"
 );
+for (const [language, text] of Object.entries(localizedHtml)) {
+  assert.ok(
+    text.includes(`src="/${indexEntry.file}?cfg=${nginxRepresentation}"`),
+    `${language} HTML app representation is not bound to nginx.conf`
+  );
+}
 assert.ok(smartHtml.includes(`/${smartEntry.file}`), "Smart Home HTML does not reference manifest entry");
 assert.doesNotMatch(smartHtml, /\?cfg=[0-9a-f]{12}/, "Smart Home HTML has an unexpected app representation key");
 
@@ -101,7 +134,8 @@ for (const source of [
   "frontend/styles/features/contact.css",
   "frontend/styles/features/smarthome.css",
   "frontend/styles/responsive.css",
-  "frontend/styles/print.css"
+  "frontend/styles/print.css",
+  "scripts/localize-frontend.mjs"
 ]) {
   const text = await readFile(resolve(root, source), "utf8");
   assert.doesNotMatch(text, /\/(?:assets|i18n)\/[^"'`\s]+\.[0-9a-f]{12}\./, `${source} contains a generated fingerprint`);
@@ -126,6 +160,9 @@ const budgets = {
   images: [await totalBytes(images), 13_000],
   translations: [await totalBytes(actualI18n), 22_000],
   indexHtml: [(await stat(resolve(htmlRoot, "index.html"))).size, 21_000],
+  englishHtml: [(await stat(resolve(htmlRoot, "en", "index.html"))).size, 32_000],
+  germanHtml: [(await stat(resolve(htmlRoot, "de", "index.html"))).size, 32_000],
+  latvianHtml: [(await stat(resolve(htmlRoot, "lv", "index.html"))).size, 32_000],
   smartHomeHtml: [(await stat(resolve(htmlRoot, "smarthome.html"))).size, 5_000]
 };
 for (const [name, [bytes, limit]] of Object.entries(budgets)) {
