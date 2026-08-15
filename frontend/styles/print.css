@@ -2,9 +2,11 @@
   body { background: #fff; color: #000; font-size: 11px; }
   .page { display: block; width: 100%; padding: 0; }
   .language-switcher, .site-nav, .actions, .chat-launcher, .dialog-backdrop { display: none !important; }
-  .sidebar { position: static; max-height: none; margin-bottom: 20px; }
-  .project-entry, .entry { break-inside: avoid; }
-  .panel, .project-entry, .demo-device { border-color: #ccc; background: #fff; }
+  .sidebar { display: block; position: static; margin-bottom: 20px; padding: 0; border: 0; box-shadow: none; }
+  .profile-photo { float: right; width: 92px; height: 112px; margin: 0 0 12px 18px; }
+  .contacts { padding: 0; border: 0; background: transparent; }
+  .project-entry, .entry, .skill-row, .education-row { break-inside: avoid; box-shadow: none; }
+  .panel, .project-entry, .entry, .skill-row, .education-row, .demo-device { border-color: #ccc; background: #fff; box-shadow: none; }
   h1, .entry h3, .project-copy h3 { color: #000; }
   .role, .section-heading h2, .stat-value, .org, .tech-tag { color: #444; }
   .contact-verify { display: none !important; }
