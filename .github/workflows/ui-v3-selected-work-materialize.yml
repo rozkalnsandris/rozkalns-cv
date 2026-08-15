@@ -1,0 +1,177 @@
+name: UI v3 selected work materializer
+
+on:
+  push:
+    branches:
+      - feat/ui-v3-selected-work-254
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact branch head
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "$GITHUB_SHA"
+          git checkout -B feat/ui-v3-selected-work-254 FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Apply selected-work source contract
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          index = Path('frontend/index.html')
+          text = index.read_text(encoding='utf-8')
+          start = text.index('        <div class="project-list">')
+          end = text.index('        </div>\n      </section>', start) + len('        </div>')
+          block = text[start:end]
+          articles = re.findall(r'<article class="project-entry(?: featured)?">.*?</article>', block, flags=re.S)
+          if len(articles) != 6:
+              raise SystemExit(f'expected 6 project articles, found {len(articles)}')
+
+          by_key = {}
+          for article in articles:
+              match = re.search(r'data-i18n="(p[1-6]_title)"', article)
+              if not match:
+                  raise SystemExit('project title binding missing')
+              by_key[match.group(1)] = article
+          if set(by_key) != {f'p{i}_title' for i in range(1, 7)}:
+              raise SystemExit(f'unexpected project keys: {sorted(by_key)}')
+
+          def clean(article: str) -> str:
+              article = article.replace('class="project-entry featured"', 'class="project-entry"')
+              article = article.replace('<span class="focus-badge">Focus</span>', '')
+              return article
+
+          def primary(key: str, number: str) -> str:
+              article = clean(by_key[key])
+              return article.replace(
+                  '<article class="project-entry">',
+                  f'<article class="project-entry primary"><span class="project-no">{number}</span>',
+                  1,
+              )
+
+          def secondary(key: str) -> str:
+              article = clean(by_key[key])
+              return article.replace(
+                  '<article class="project-entry">',
+                  '<article class="project-entry secondary">',
+                  1,
+              )
+
+          new_articles = [
+              primary('p2_title', '01'),
+              primary('p1_title', '02'),
+              primary('p4_title', '03'),
+              secondary('p3_title'),
+              secondary('p5_title'),
+              secondary('p6_title'),
+          ]
+          new_block = '        <div class="project-list">\n          ' + '\n          '.join(new_articles) + '\n        </div>'
+          text = text[:start] + new_block + text[end:]
+          index.write_text(text, encoding='utf-8')
+
+          css = Path('frontend/styles/components.css')
+          styles = css.read_text(encoding='utf-8')
+          css_start = styles.index('.project-list { gap: 14px; }')
+          css_end = styles.index('\n.skill-list {', css_start)
+          replacement = '''.project-list { display: grid; gap: 0; border-top: 1px solid var(--border); }
+          .project-entry { display: grid; min-width: 0; padding: 20px 0; border-bottom: 1px solid var(--border); }
+          .project-entry.primary { grid-template-columns: 30px 48px minmax(0,1fr); gap: 12px; }
+          .project-entry.primary:hover { background: var(--accent-soft); }
+          .project-entry.secondary { grid-template-columns: 36px minmax(0,1fr); gap: 10px; padding: 14px 0; }
+          .project-no { padding-top: 16px; color: var(--accent); font: 800 11px/1 var(--sans); letter-spacing: .12em; }
+          .project-icon { width: 48px; height: 48px; display: grid; place-items: center; border: 1px solid var(--accent-line); border-radius: var(--radius-lg); background: var(--accent-soft); color: var(--accent); }
+          .project-icon svg { width: 24px; height: 24px; }
+          .project-entry.secondary .project-icon { width: 36px; height: 36px; border-radius: var(--radius-md); }
+          .project-entry.secondary .project-icon svg { width: 18px; height: 18px; }
+          .project-copy h3 { margin: 0; color: var(--text); font: 700 19px/1.25 var(--serif); letter-spacing: -.015em; }
+          .project-copy p { max-width: 65ch; margin: 7px 0 0; color: var(--text-dim); font-size: 14.5px; line-height: 1.62; }
+          .project-entry.secondary .project-copy h3 { font-size: 16px; }
+          .tech-tags { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 13px; }
+          .project-entry.secondary .tech-tags { margin-top: 8px; gap: 5px; }
+          .tech-tag { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 5px 9px; border: 1px solid var(--border-soft); border-radius: 999px; background: var(--surface-2); color: var(--text-dim); font: 650 11px/1.35 var(--sans); }
+          .tech-tag::before { content: ""; width: 4px; height: 4px; border-radius: 50%; background: var(--accent); opacity: .75; }
+          .tech-tag.has-tech-icon::before { display: none; }
+          .tech-tag svg { width: 12px; height: 12px; flex: 0 0 12px; color: var(--accent); opacity: .9; }'''
+          replacement = '\n'.join(line.strip() for line in replacement.splitlines())
+          styles = styles[:css_start] + replacement + styles[css_end:]
+          css.write_text(styles, encoding='utf-8')
+
+          responsive = Path('frontend/styles/responsive.css')
+          r = responsive.read_text(encoding='utf-8')
+          for stale in (
+              '  .project-list { grid-template-columns: repeat(2,minmax(0,1fr)); }\n',
+              '  .project-entry { min-height: 210px; padding: 22px; }\n',
+          ):
+              if stale not in r:
+                  raise SystemExit(f'missing stale responsive rule: {stale!r}')
+              r = r.replace(stale, '', 1)
+          responsive.write_text(r, encoding='utf-8')
+
+          tests = Path('tests/test_frontend_contract.py')
+          t = tests.read_text(encoding='utf-8')
+          anchor = "        self.assertGreaterEqual(html.count('class=\"project-entry'), 6)\n"
+          if anchor not in t:
+              raise SystemExit('frontend contract insertion anchor missing')
+          addition = anchor + (
+              "        self.assertEqual(html.count('class=\"project-entry primary\"'), 3)\n"
+              "        self.assertEqual(html.count('class=\"project-entry secondary\"'), 3)\n"
+              "        for number in ('01', '02', '03'):\n"
+              "            self.assertIn(f'<span class=\"project-no\">{number}</span>', html)\n"
+              "        secondary_start = html.index('class=\"project-entry secondary\"')\n"
+              "        for key in ('p2_title', 'p1_title', 'p4_title'):\n"
+              "            self.assertLess(html.index(f'data-i18n=\"{key}\"'), secondary_start)\n"
+              "        for key in ('p3_title', 'p5_title', 'p6_title'):\n"
+              "            self.assertGreater(html.index(f'data-i18n=\"{key}\"'), secondary_start)\n"
+          )
+          t = t.replace(anchor, addition, 1)
+          tests.write_text(t, encoding='utf-8')
+          PY
+          git diff --check -- frontend/index.html frontend/styles/components.css frontend/styles/responsive.css tests/test_frontend_contract.py
+
+      - name: Build deterministic frontend
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.18.0
+          package-manager-cache: false
+          check-latest: false
+      - name: Materialize and validate dist
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build:frontend
+          npm run check:frontend
+          python3 tests/test_frontend_contract.py
+          python3 tests/test_project_tech_icons.py
+          git diff --check
+
+      - name: Commit selected-work slice
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- frontend/index.html frontend/styles/components.css frontend/styles/responsive.css tests/test_frontend_contract.py frontend-dist-manifest.json html
+          git diff --cached --check
+          git commit -m 'feat: prioritize selected engineering work'
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" push origin HEAD:refs/heads/feat/ui-v3-selected-work-254
