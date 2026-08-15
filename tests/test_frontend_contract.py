@@ -139,6 +139,11 @@ class FrontendContractTests(unittest.TestCase):
         self.assertLess(html.index('id="experience"'), html.index('id="stats"'))
         self.assertIn('grid-template-areas: "projects skills" "projects experience";', responsive)
         self.assertIn('class="profile-languages"', html)
+        stats = html[html.index('id="stats"'):html.index('id="education"')]
+        self.assertNotIn('class="panel"', stats)
+        self.assertEqual(stats.count('data-stat='), 8)
+        self.assertIn('<address class="footer-card">', html)
+        self.assertIn('href="mailto:andris@rozkalns.net"', html)
         self.assertIn('@media (min-width: 900px)', responsive)
         self.assertNotIn('@media (max-width:', responsive)
         self.assertIn('class="site-header hero-shell"', html)

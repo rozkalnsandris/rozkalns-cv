@@ -9,5 +9,7 @@
   .panel, .project-entry, .entry, .skill-row, .education-row, .demo-device { border-color: #ccc; background: #fff; box-shadow: none; }
   h1, .entry h3, .project-copy h3 { color: #000; }
   .role, .section-heading h2, .stat-value, .org, .tech-tag { color: #444; }
+  #stats { padding: 14px; background: #fff; box-shadow: none; }
+  #stats .section-heading h2, #stats .stats-head strong, #stats .stat-value { color: #000; }
   .contact-verify { display: none !important; }
 }

@@ -62,4 +62,6 @@
   #skills { grid-area: skills; }
   #experience { grid-area: experience; }
   #skills .section-heading, #experience .section-heading { margin-block-end: 14px; }
+  .education-list { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 0 24px; }
+  .education-row { grid-template-columns: 1fr; align-content: start; }
 }
