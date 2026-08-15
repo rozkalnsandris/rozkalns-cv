@@ -1,3 +1,4 @@
+import hashlib
 import json
 import re
 import unittest
@@ -8,6 +9,12 @@ EXPECTED = {
     "en": ("Junior DevOps &amp; Linux Engineer", "Dortmund, Germany", "/cv.pdf"),
     "de": ("Junior DevOps- &amp; Linux-Engineer", "Dortmund, Deutschland", "/cv-de.pdf"),
     "lv": ("Junior DevOps un Linux inženieris", "Dortmund, Vācija", "/cv-lv.pdf"),
+}
+IDENTITY_PATHS = {
+    "en": "en/index.html",
+    "de": "de/index.html",
+    "lv": "lv/index.html",
+    "sitemap": "sitemap.xml",
 }
 
 
@@ -36,6 +43,24 @@ class LocalizedPageContractTests(unittest.TestCase):
             html = (ROOT / f"html/{language}/index.html").read_text(encoding="utf-8")
             self.assertIn(messages["tagline"].replace("&", "&amp;"), html)
             self.assertIn(messages["about_p1"].replace("&", "&amp;"), html)
+
+    def test_committed_localized_outputs_match_manifest_identity(self):
+        manifest = json.loads((ROOT / "frontend-dist-manifest.json").read_text(encoding="utf-8"))
+        localized = manifest.get("_localized")
+        self.assertIsInstance(localized, dict)
+        self.assertEqual(set(localized), set(IDENTITY_PATHS))
+        for name, relative in IDENTITY_PATHS.items():
+            row = localized[name]
+            self.assertEqual(row["path"], relative)
+            payload = (ROOT / "html" / relative).read_bytes()
+            self.assertEqual(hashlib.sha256(payload).hexdigest(), row["sha256"])
+
+    def test_nginx_static_routing_can_resolve_locale_directories(self):
+        nginx = (ROOT / "nginx.conf").read_text(encoding="utf-8")
+        self.assertIn("index index.html;", nginx)
+        self.assertIn("try_files $uri $uri/ =404;", nginx)
+        for language in EXPECTED:
+            self.assertTrue((ROOT / f"html/{language}/index.html").is_file())
 
 
 if __name__ == "__main__":
