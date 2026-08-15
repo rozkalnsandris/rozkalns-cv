@@ -4,8 +4,11 @@
   padding: 12px 0 72px;
 }
 .sidebar {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: grid;
-  grid-template-columns: 84px minmax(0,1fr);
+  grid-template-columns: 92px minmax(0,1fr);
   grid-template-areas:
     "lang lang"
     "photo name"
@@ -22,8 +25,19 @@
   padding: 18px;
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
-  background: var(--surface);
+  background: linear-gradient(145deg,var(--surface),var(--surface-2));
   box-shadow: var(--shadow-md);
+}
+.sidebar::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -86px;
+  right: -74px;
+  width: 210px;
+  height: 210px;
+  border-radius: 50%;
+  background: var(--accent-soft);
 }
 main {
   min-width: 0;
