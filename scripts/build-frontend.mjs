@@ -73,7 +73,7 @@ async function bindLocalizedIdentity() {
     Object.entries(localizedIdentityFiles).map(async ([name, relative]) => [
       name,
       {
-        file: relative,
+        path: relative,
         sha256: createHash("sha256").update(await readFile(resolve(html, relative))).digest("hex")
       }
     ])
