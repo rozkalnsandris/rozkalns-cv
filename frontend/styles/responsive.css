@@ -27,10 +27,11 @@
     grid-template-columns: minmax(0,1.25fr) 220px minmax(260px,.9fr);
     grid-template-areas:
       "nav nav lang"
-      "name photo langs"
-      "role photo langs"
+      "name photo contacts"
+      "role photo contacts"
       "tagline photo contacts"
-      "focus photo contacts"
+      "focus photo verify"
+      "langs photo verify"
       "actions photo verify";
     gap: 12px 28px;
     padding: 26px;
@@ -45,7 +46,7 @@
   .role { margin-top: 2px; }
   .tagline { max-width: 43ch; margin-top: 8px; font-size: 18px; line-height: 1.68; }
   .focus-tags { max-width: 44ch; align-self: end; }
-  .profile-languages { align-self: start; display: grid; gap: 7px; margin: 0; padding: 14px; }
+  .profile-languages { align-self: end; display: grid; gap: 7px; margin: 0; padding: 14px; }
   .profile-language { width: 100%; border-radius: var(--radius-sm); }
   .contacts { align-self: stretch; padding: 16px; }
   .contact-verify { align-self: start; }
