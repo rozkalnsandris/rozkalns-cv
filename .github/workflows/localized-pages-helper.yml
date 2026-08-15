@@ -1,0 +1,62 @@
+name: Localized pages helper
+
+on:
+  push:
+    branches:
+      - feat/crawlable-locales-251
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+      - name: Apply localized pages patch
+        run: python tools/tmp-localized-pages-patch.py
+      - name: Set up pinned Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.18.0'
+          package-manager-cache: false
+      - name: Build and validate localized frontend
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          node --check scripts/localize-frontend.mjs
+          node --check scripts/build-frontend.mjs
+          node --check frontend/app.mjs
+          node --check frontend/core/i18n.mjs
+          node --check tests/browser-smoke.mjs
+          npm run build:frontend
+          npm run check:frontend
+          node --test tests/frontend.test.mjs
+          python -m pytest -q \
+            tests/test_localized_pages.py \
+            tests/test_seo_canonical.py \
+            tests/test_person_structured_data.py \
+            tests/test_sitemap_contract.py \
+            tests/test_frontend_contract.py
+      - name: Commit materialized source and dist
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git add -- \
+            .github/workflows/ci.yml \
+            frontend/index.html frontend/app.mjs frontend/core/i18n.mjs frontend/styles/components.css \
+            scripts/build-frontend.mjs scripts/check-frontend-dist.mjs scripts/localize-frontend.mjs \
+            tests/browser-smoke.mjs tests/test_frontend_contract.py tests/test_localized_pages.py \
+            tests/test_seo_canonical.py tests/test_person_structured_data.py tests/test_sitemap_contract.py \
+            html/index.html html/en html/de html/lv html/sitemap.xml html/assets html/i18n \
+            frontend-dist-manifest.json
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat: publish crawlable localized CV pages'
+          git push origin "HEAD:${GITHUB_REF_NAME}"
