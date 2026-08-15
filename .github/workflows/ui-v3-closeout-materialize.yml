@@ -1,0 +1,198 @@
+name: UI v3 closeout materializer
+
+on:
+  push:
+    branches:
+      - test/ui-v3-closeout-254
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact branch head
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "$GITHUB_SHA"
+          git checkout -B test/ui-v3-closeout-254 FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Strengthen responsive and accessibility closeout gates
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          browser_path = Path('tests/browser-smoke.mjs')
+          browser = browser_path.read_text(encoding='utf-8')
+          start = browser.index('    const responsiveMatrix = [')
+          end_marker = '    await cdp.navigate(`${baseUrl}/smarthome.html`);'
+          end = browser.index(end_marker, start)
+          replacement = r'''    const responsiveMatrix = [
+      { width: 390, height: 844, mobile: true },
+      { width: 430, height: 932, mobile: true },
+      { width: 768, height: 1024, mobile: false },
+      { width: 1280, height: 900, mobile: false },
+      { width: 1440, height: 1000, mobile: false }
+    ];
+    const localeMatrix = [
+      { path: "/en/", language: "en", location: "Dortmund, Germany", label: "English" },
+      { path: "/de/", language: "de", location: "Dortmund, Deutschland", label: "German" },
+      { path: "/lv/", language: "lv", location: "Dortmund, Vācija", label: "Latvian" }
+    ];
+    for (const locale of localeMatrix) {
+      for (const viewport of responsiveMatrix) {
+        await cdp.send("Emulation.setDeviceMetricsOverride", {
+          ...viewport,
+          deviceScaleFactor: 1
+        });
+        await cdp.navigate(`${baseUrl}${locale.path}`);
+        await cdp.waitFor(
+          `document.documentElement.lang === ${JSON.stringify(locale.language)} && document.querySelector('#profileLocation')?.textContent === ${JSON.stringify(locale.location)}`,
+          10_000,
+          `responsive ${viewport.width}px ${locale.label} restoration`
+        );
+        const layout = await cdp.evaluate(`(() => {
+          const page = document.querySelector('#pageShell')?.getBoundingClientRect();
+          const locationRow = document.querySelector('#profileLocation')?.closest('.contact-row');
+          const primaryTargets = [...document.querySelectorAll(
+            '.language-switcher [data-lang], .actions .button, #contactReveal, #chatLauncher'
+          )].filter((element) => {
+            const rect = element.getBoundingClientRect();
+            return !element.hidden && rect.width > 0 && rect.height > 0;
+          }).map((element) => {
+            const rect = element.getBoundingClientRect();
+            return {
+              id: element.id || element.textContent.trim(),
+              width: rect.width,
+              height: rect.height
+            };
+          });
+          return {
+            innerWidth: window.innerWidth,
+            documentClientWidth: document.documentElement.clientWidth,
+            documentScrollWidth: document.documentElement.scrollWidth,
+            bodyScrollWidth: document.body.scrollWidth,
+            page: page ? { left: page.left, right: page.right, width: page.width } : null,
+            location: locationRow ? {
+              clientWidth: locationRow.clientWidth,
+              scrollWidth: locationRow.scrollWidth
+            } : null,
+            primaryTargets
+          };
+        })()`);
+        const context = `${locale.label} ${viewport.width}px`;
+        assert.equal(layout.innerWidth, viewport.width, `${context} viewport width`);
+        assert.ok(
+          layout.documentScrollWidth <= layout.documentClientWidth,
+          `${context} document overflow: ${JSON.stringify(layout)}`
+        );
+        assert.ok(
+          layout.bodyScrollWidth <= layout.documentClientWidth,
+          `${context} body overflow: ${JSON.stringify(layout)}`
+        );
+        assert.ok(layout.page, `${context} page shell missing`);
+        assert.ok(layout.page.left >= -0.5, `${context} page left overflow`);
+        assert.ok(layout.page.right <= viewport.width + 0.5, `${context} page right overflow`);
+        assert.ok(layout.location, `${context} location row missing`);
+        assert.ok(
+          layout.location.scrollWidth <= layout.location.clientWidth,
+          `${context} location overflow: ${JSON.stringify(layout.location)}`
+        );
+        assert.ok(layout.primaryTargets.length >= 7, `${context} primary targets missing`);
+        for (const target of layout.primaryTargets) {
+          assert.ok(target.height >= 48, `${context} target below 48px: ${JSON.stringify(target)}`);
+        }
+      }
+    }
+
+    await cdp.send("Emulation.setEmulatedMedia", {
+      features: [{ name: "prefers-reduced-motion", value: "reduce" }]
+    });
+    await cdp.navigate(`${baseUrl}/en/`);
+    await cdp.waitFor(
+      `document.readyState === "complete" && document.documentElement.lang === "en"`,
+      10_000,
+      "reduced-motion English restoration"
+    );
+    const reducedMotion = await cdp.evaluate(`(() => ({
+      scrollBehavior: getComputedStyle(document.documentElement).scrollBehavior,
+      transitionDurations: getComputedStyle(document.querySelector('.button')).transitionDuration
+        .split(',')
+        .map((value) => Number.parseFloat(value) || 0)
+    }))()`);
+    assert.equal(reducedMotion.scrollBehavior, "auto");
+    assert.ok(reducedMotion.transitionDurations.every((value) => value <= 0.001));
+    await cdp.send("Emulation.setEmulatedMedia", {
+      features: [{ name: "prefers-reduced-motion", value: "no-preference" }]
+    });
+
+    await cdp.navigate(`${baseUrl}/en/`);
+    await cdp.waitFor(
+      `document.readyState === "complete" && document.documentElement.lang === "en"`,
+      10_000,
+      "keyboard-order English restoration"
+    );
+    await cdp.evaluate(`document.activeElement?.blur()`);
+    await cdp.key("Tab");
+    assert.equal(await cdp.evaluate(`document.activeElement?.matches('.skip-link')`), true);
+    const expectedFocusHrefs = [
+      "#about", "#projects", "#skills", "#experience", "#stats", "#education", "/en/"
+    ];
+    for (const expectedHref of expectedFocusHrefs) {
+      await cdp.key("Tab");
+      assert.equal(
+        await cdp.evaluate(`document.activeElement?.getAttribute('href')`),
+        expectedHref,
+        `top-level keyboard order before ${expectedHref}`
+      );
+    }
+
+'''
+          browser_path.write_text(browser[:start] + replacement + browser[end:], encoding='utf-8')
+
+          contract_path = Path('tests/test_frontend_contract.py')
+          contract = contract_path.read_text(encoding='utf-8')
+          constant_anchor = 'SOURCE_LAYOUT = ROOT / "frontend" / "styles" / "layout.css"\n'
+          if contract.count(constant_anchor) != 1:
+              raise SystemExit('base CSS constant anchor mismatch')
+          contract = contract.replace(
+              constant_anchor,
+              constant_anchor + 'SOURCE_BASE = ROOT / "frontend" / "styles" / "base.css"\n',
+              1,
+          )
+          method_anchor = '    def test_cloudflare_analytics_is_not_manually_embedded(self) -> None:\n'
+          if contract.count(method_anchor) != 1:
+              raise SystemExit('accessibility method anchor mismatch')
+          closeout_test = '''    def test_v3_accessibility_closeout_contract(self) -> None:\n        base = SOURCE_BASE.read_text(encoding="utf-8")\n        responsive = SOURCE_RESPONSIVE.read_text(encoding="utf-8")\n        self.assertIn("@media (prefers-reduced-motion: reduce)", base)\n        self.assertIn(":focus-visible", base)\n        self.assertIn("outline: 3px solid var(--accent)", base)\n        self.assertIn(".skip-link:focus", base)\n        self.assertNotIn("@media (max-width:", responsive)\n\n'''
+          contract = contract.replace(method_anchor, closeout_test + method_anchor, 1)
+          contract_path.write_text(contract, encoding='utf-8')
+          PY
+          node --check tests/browser-smoke.mjs
+          python3 tests/test_frontend_contract.py
+          git diff --check -- tests/browser-smoke.mjs tests/test_frontend_contract.py
+
+      - name: Commit closeout gates
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- tests/browser-smoke.mjs tests/test_frontend_contract.py
+          git diff --cached --check
+          git commit -m 'test: close out UI v3 responsive accessibility matrix'
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" push origin HEAD:refs/heads/test/ui-v3-closeout-254
