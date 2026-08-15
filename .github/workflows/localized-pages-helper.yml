@@ -42,12 +42,11 @@ jobs:
           npm run build:frontend
           npm run check:frontend
           node --test tests/frontend.test.mjs
-          python -m pytest -q \
-            tests/test_localized_pages.py \
-            tests/test_seo_canonical.py \
-            tests/test_person_structured_data.py \
-            tests/test_sitemap_contract.py \
-            tests/test_frontend_contract.py
+          python tests/test_localized_pages.py
+          python tests/test_seo_canonical.py
+          python tests/test_person_structured_data.py
+          python tests/test_sitemap_contract.py
+          python tests/test_frontend_contract.py
       - name: Commit materialized source and dist
         shell: bash
         run: |
