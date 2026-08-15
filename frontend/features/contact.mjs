@@ -68,6 +68,12 @@ export function createContactController(languageController, {
     renderStatus();
   }
 
+  function setVerificationExpanded(expanded) {
+    const value = String(Boolean(expanded));
+    if (typeof button.setAttribute === "function") button.setAttribute("aria-expanded", value);
+    else button.ariaExpanded = value;
+  }
+
   function refreshCopy() {
     const label = button.querySelector(".contact-reveal-label");
     const phone = root.querySelector("#contactPhone");
@@ -113,6 +119,7 @@ export function createContactController(languageController, {
     const whatsappUrl = `https://wa.me/${whatsappNumber}`;
     button.hidden = true;
     mount.hidden = true;
+    setVerificationExpanded(false);
     verificationPending = false;
     setContactStatus("contact_success", "success");
     if (purpose === "whatsapp") {
@@ -136,6 +143,7 @@ export function createContactController(languageController, {
       }
       const turnstile = await loadTurnstile(root, windowLike);
       mount.hidden = false;
+      setVerificationExpanded(true);
       widgetRenderer = createLocalizedTurnstileRenderer(
         turnstile,
         mount,
@@ -153,6 +161,8 @@ export function createContactController(languageController, {
       );
       widgetRenderer.render();
     } catch {
+      mount.hidden = true;
+      setVerificationExpanded(false);
       setContactStatus("contact_unavailable", "error");
       button.disabled = false;
       delete button.dataset.locked;
@@ -160,6 +170,7 @@ export function createContactController(languageController, {
     }
   }
 
+  setVerificationExpanded(!mount.hidden);
   refreshCopy();
   button.addEventListener("click", start);
   const observer = new MutationObserver(refreshCopy);
