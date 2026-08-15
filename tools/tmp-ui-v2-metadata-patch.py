@@ -1,3 +1,5 @@
+import json
+import re
 from pathlib import Path
 
 DESCRIPTION = (
@@ -28,6 +30,16 @@ for old, new in replacements.items():
     if old not in html:
         raise SystemExit(f"expected metadata source fragment missing: {old}")
     html = html.replace(old, new, 1)
+
+script_re = re.compile(
+    r'(<script type="application/ld\+json">)\s*(.*?)\s*(</script>)', re.DOTALL
+)
+match = script_re.search(html)
+if not match:
+    raise SystemExit("expected JSON-LD script missing")
+profile = json.loads(match.group(2))
+compact_profile = json.dumps(profile, ensure_ascii=False, separators=(",", ":"))
+html = html[:match.start()] + match.group(1) + compact_profile + match.group(3) + html[match.end():]
 index.write_text(html, encoding="utf-8")
 
 Path("tests/test_seo_canonical.py").write_text(
