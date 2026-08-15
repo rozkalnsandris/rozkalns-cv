@@ -67,10 +67,12 @@
 .skill-chip { display: inline-flex; align-items: center; gap: 5px; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--text-dim); font-size: 12.5px; line-height: 1.5; }
 .skill-chip svg { width: 13px; height: 13px; flex: 0 0 13px; color: var(--accent); opacity: .9; }
 .skill-chip:hover { color: var(--text); }
-.education-list { gap: 10px; }
-.education-row { display: grid; grid-template-columns: 1fr; gap: 4px; padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); }
-.education-row time { color: var(--text-faint); font: 650 11px/1.4 var(--sans); }
-.education-row h3 { margin: 0; color: var(--text); font-size: 15px; }
-.education-row p { margin: 3px 0 0; color: var(--text-faint); font-size: 12px; line-height: 1.4; }
-.footer-card { display: flex; align-items: center; gap: 11px; margin-top: 0; padding: 18px 20px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); color: var(--text-dim); font-size: 12px; line-height: 1.6; box-shadow: var(--shadow-sm); }
-.footer-card::before { content: ""; width: 8px; height: 8px; flex: 0 0 auto; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 4px rgba(36,122,82,.12); }
+.education-list { gap: 0; border-top: 1px solid var(--border); }
+.education-row { display: grid; grid-template-columns: 1fr; gap: 4px; padding: 14px 0; border-bottom: 1px solid var(--border); }
+.education-row time { color: var(--text-faint); font: 700 10.5px/1.4 var(--sans); letter-spacing: .035em; }
+.education-row h3 { margin: 0; color: var(--text); font-size: 15px; line-height: 1.35; }
+.education-row p { margin: 3px 0 0; color: var(--text-faint); font-size: 12px; line-height: 1.45; }
+.footer-card { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin: 0; padding-block-start: 18px; border-top: 1px solid var(--border); color: var(--text-dim); font-style: normal; font-size: 12px; line-height: 1.5; }
+.footer-card::before { content: ""; width: 7px; height: 7px; flex: 0 0 auto; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 4px rgba(36,122,82,.12); }
+.footer-card a { color: var(--accent-strong); font-weight: 750; text-decoration: none; }
+.footer-card a:hover { color: var(--accent); text-decoration: underline; }
