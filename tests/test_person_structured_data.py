@@ -9,7 +9,7 @@ SCRIPT_RE = re.compile(
 )
 
 
-def load_person(relative):
+def load_profile_page(relative):
     html = (ROOT / relative).read_text(encoding="utf-8")
     matches = SCRIPT_RE.findall(html)
     if len(matches) != 1:
@@ -19,22 +19,28 @@ def load_person(relative):
     return json.loads(matches[0])
 
 
-class PersonStructuredDataContractTest(unittest.TestCase):
-    def test_source_and_generated_person_data_match(self):
-        source = load_person("frontend/index.html")
-        generated = load_person("html/index.html")
+class ProfilePageStructuredDataContractTest(unittest.TestCase):
+    def test_source_and_generated_profile_data_match(self):
+        source = load_profile_page("frontend/index.html")
+        generated = load_profile_page("html/index.html")
         self.assertEqual(source, generated)
         self.assertEqual(source["@context"], "https://schema.org")
-        self.assertEqual(source["@type"], "Person")
-        self.assertEqual(source["@id"], "https://rozkalns.net/#person")
-        self.assertEqual(source["name"], "Andris Rožkalns")
+        self.assertEqual(source["@type"], "ProfilePage")
+        self.assertEqual(source["@id"], "https://rozkalns.net/#profile")
         self.assertEqual(source["url"], "https://rozkalns.net/")
-        self.assertEqual(source["image"], "https://rozkalns.net/photo.jpg")
-        self.assertEqual(source["jobTitle"], "Junior DevOps & Linux Engineer")
-        self.assertEqual(source["sameAs"], ["https://github.com/rozkalnsandris"])
+
+        person = source["mainEntity"]
+        self.assertEqual(person["@type"], "Person")
+        self.assertEqual(person["@id"], "https://rozkalns.net/#person")
+        self.assertEqual(person["name"], "Andris Rožkalns")
+        self.assertEqual(person["url"], "https://rozkalns.net/")
+        self.assertEqual(person["image"], "https://rozkalns.net/photo.jpg")
+        self.assertEqual(person["jobTitle"], "Junior DevOps & Linux Engineer")
+        self.assertEqual(person["sameAs"], ["https://github.com/rozkalnsandris"])
 
     def test_location_languages_and_privacy_boundary(self):
-        person = load_person("frontend/index.html")
+        profile = load_profile_page("frontend/index.html")
+        person = profile["mainEntity"]
         address = person["homeLocation"]["address"]
         self.assertEqual(address["addressLocality"], "Dortmund")
         self.assertEqual(address["addressCountry"], "DE")
@@ -42,7 +48,7 @@ class PersonStructuredDataContractTest(unittest.TestCase):
             [language["alternateName"] for language in person["knowsLanguage"]],
             ["lv", "en", "de"],
         )
-        serialized = json.dumps(person, sort_keys=True)
+        serialized = json.dumps(profile, sort_keys=True)
         for forbidden in (
             "telephone",
             "streetAddress",
