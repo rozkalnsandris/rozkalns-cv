@@ -77,5 +77,23 @@
     "imports": [
       "_i18n.b64a3b2806f7.mjs"
     ]
+  },
+  "_localized": {
+    "en": {
+      "path": "en/index.html",
+      "sha256": "efe84cacf14398cdaf8f056aef5157f43d749610cb69cba05e7dcb6e16be7b37"
+    },
+    "de": {
+      "path": "de/index.html",
+      "sha256": "72f3cb0c2264b9afa6b23fee4b435ec7185a0c498aa4f8a1648e3603083c1914"
+    },
+    "lv": {
+      "path": "lv/index.html",
+      "sha256": "681c764360bf621eff2040cc7901120d214848fca5c6238b4ecbee58921769dc"
+    },
+    "sitemap": {
+      "path": "sitemap.xml",
+      "sha256": "c8f653bc56730b9aef539b46f25d02966669c7b564ffbdc1618d1d85dd782c37"
+    }
   }
 }
