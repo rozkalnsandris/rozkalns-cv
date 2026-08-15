@@ -97,10 +97,21 @@ function replaceMetaContent(html, keyAttribute, key, value) {
   return html.replace(pattern, `$1${escapeHtml(value)}$2`);
 }
 
+function alternateLinks() {
+  return [
+    ["en", `${ORIGIN}/en/`],
+    ["de", `${ORIGIN}/de/`],
+    ["lv", `${ORIGIN}/lv/`],
+    ["x-default", DEFAULT_URL]
+  ].map(([language, href]) =>
+    `<link rel="alternate" hreflang="${language}" href="${href}">`
+  ).join("\n");
+}
+
 function replaceCanonical(html, url) {
   const pattern = /<link rel="canonical" href="[^"]+">/;
   if (!pattern.test(html)) throw new Error("missing canonical link");
-  return html.replace(pattern, `<link rel="canonical" href="${url}">`);
+  return html.replace(pattern, `<link rel="canonical" href="${url}">\n${alternateLinks()}`);
 }
 
 function replaceStructuredData(html, url, description, title) {
