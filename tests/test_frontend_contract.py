@@ -54,11 +54,7 @@ class Parser(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         values = dict(attrs)
-        if (
-            tag == "script"
-            and not values.get("src")
-            and values.get("type", "").lower() not in NON_EXECUTABLE_DATA_SCRIPT_TYPES
-        ):
+        if tag == "script" and not values.get("src") and values.get("type", "").lower() not in NON_EXECUTABLE_DATA_SCRIPT_TYPES:
             self.scripts_without_src += 1
         for name, _ in attrs:
             if name.startswith("on"):
@@ -86,15 +82,10 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn("add_header_inherit merge;", nginx)
         self.assertIn("'nonce-$request_id'", nginx)
         self.assertIn("script-src-attr 'none'", nginx)
-        self.assertIn(
-            "https://static.cloudflareinsights.com/beacon.min.js",
-            nginx,
-        )
+        self.assertIn("https://static.cloudflareinsights.com/beacon.min.js", nginx)
         self.assertIn("connect-src 'self';", nginx)
         self.assertNotIn("cloudflareinsights.com;", nginx)
-        self.assertIn(
-            'Cache-Control "public, max-age=31536000, immutable"', nginx
-        )
+        self.assertIn('Cache-Control "public, max-age=31536000, immutable"', nginx)
         self.assertIn("text/javascript mjs;", nginx)
         self.assertIn("default_type text/javascript;", nginx)
         self.assertIn("text/javascript application/javascript", nginx)
@@ -111,37 +102,32 @@ class FrontendContractTests(unittest.TestCase):
     def test_compose_recreate_identity_tracks_nginx_config(self) -> None:
         nginx_digest = hashlib.sha256(NGINX.read_bytes()).hexdigest()
         compose = COMPOSE.read_text(encoding="utf-8")
-        self.assertIn(
-            f'net.rozkalns.cv.nginx-config-sha256: "{nginx_digest}"',
-            compose,
-        )
+        self.assertIn(f'net.rozkalns.cv.nginx-config-sha256: "{nginx_digest}"', compose)
 
     def test_module_cache_key_tracks_nginx_config(self) -> None:
         nginx_digest = hashlib.sha256(NGINX.read_bytes()).hexdigest()
         app_file = load_manifest()["index.html"]["file"]
         self.assertRegex(app_file, r"^assets/app\.[0-9a-f]{12}\.mjs$")
         text = INDEX.read_text(encoding="utf-8")
-        self.assertIn(
-            f'src="/{app_file}?cfg={nginx_digest[:12]}"',
-            text,
-        )
+        self.assertIn(f'src="/{app_file}?cfg={nginx_digest[:12]}"', text)
 
     def test_rich_layout_and_sections_are_not_simplified_away(self) -> None:
         html = INDEX.read_text(encoding="utf-8")
         layout = SOURCE_LAYOUT.read_text(encoding="utf-8")
         responsive = SOURCE_RESPONSIVE.read_text(encoding="utf-8")
-        for section_id in (
-            "about", "stats", "experience", "projects", "skills", "education"
-        ):
+        for section_id in ("about", "stats", "experience", "projects", "skills", "education"):
             self.assertIn(f'id="{section_id}"', html)
         self.assertGreaterEqual(html.count('class="project-entry'), 6)
         self.assertGreaterEqual(html.count('class="project-icon"'), 6)
         self.assertGreaterEqual(html.count('class="tech-tag"'), 25)
         self.assertGreaterEqual(html.count('class="skill-chip"'), 20)
         self.assertIn('class="profile-languages"', html)
-        self.assertIn('@media (max-width: 760px)', responsive)
-        self.assertNotIn('@media (max-width: 850px)', responsive)
-        self.assertIn('grid-template-columns: 340px minmax(0,1fr)', layout)
+        self.assertIn('@media (min-width: 900px)', responsive)
+        self.assertNotIn('@media (max-width:', responsive)
+        self.assertIn('grid-template-columns: 84px minmax(0,1fr)', layout)
+        self.assertIn('"photo name"', layout)
+        self.assertIn('grid-template-columns: minmax(0,1.25fr) 220px minmax(260px,.9fr)', responsive)
+        self.assertIn('"name photo contacts"', responsive)
 
     def test_cloudflare_analytics_is_not_manually_embedded(self) -> None:
         text = INDEX.read_text(encoding="utf-8")
@@ -151,31 +137,18 @@ class FrontendContractTests(unittest.TestCase):
     def test_favicon_is_declared_and_present(self) -> None:
         text = INDEX.read_text(encoding="utf-8")
         self.assertTrue(FAVICON.is_file())
-        self.assertIn(
-            '<link rel="icon" href="/favicon.svg" type="image/svg+xml">',
-            text,
-        )
+        self.assertIn('<link rel="icon" href="/favicon.svg" type="image/svg+xml">', text)
 
     def test_accessible_dialog_contract(self) -> None:
         text = INDEX.read_text(encoding="utf-8")
         for marker in (
-            'role="dialog"',
-            'aria-modal="true"',
-            'aria-labelledby="chatTitle"',
-            'aria-describedby="chatPrivacy"',
-            'role="log"',
-            'aria-live="polite"',
-            'aria-busy="false"',
-            'aria-pressed="true"',
+            'role="dialog"', 'aria-modal="true"', 'aria-labelledby="chatTitle"',
+            'aria-describedby="chatPrivacy"', 'role="log"', 'aria-live="polite"',
+            'aria-busy="false"', 'aria-pressed="true"',
         ):
             self.assertIn(marker, text)
         chat = SOURCE_CHAT.read_text(encoding="utf-8")
-        for marker in (
-            'event.key === "Escape"',
-            'event.key !== "Tab"',
-            "shell.inert = true",
-            "returnFocus?.focus()",
-        ):
+        for marker in ('event.key === "Escape"', 'event.key !== "Tab"', "shell.inert = true", "returnFocus?.focus()"):
             self.assertIn(marker, chat)
 
     def test_shared_i18n_is_used_by_both_entry_points(self) -> None:
@@ -198,29 +171,15 @@ class FrontendContractTests(unittest.TestCase):
             self.assertIn("ip", notice)
 
     def test_translation_keys_match(self) -> None:
-        documents = [
-            json.loads(path.read_text(encoding="utf-8"))
-            for path in TRANSLATIONS
-        ]
+        documents = [json.loads(path.read_text(encoding="utf-8")) for path in TRANSLATIONS]
         self.assertEqual(set(documents[0]), set(documents[1]))
         self.assertEqual(set(documents[0]), set(documents[2]))
 
     def test_frontend_size_budget(self) -> None:
         assets = generated_assets()
-        js_bytes = sum(
-            (ROOT / "html" / path).stat().st_size
-            for path in assets
-            if path.endswith((".mjs", ".js"))
-        )
-        css_bytes = sum(
-            (ROOT / "html" / path).stat().st_size
-            for path in assets
-            if path.endswith(".css")
-        )
-        limits = {
-            INDEX: 21_000,
-            SMART: 5_000,
-        }
+        js_bytes = sum((ROOT / "html" / path).stat().st_size for path in assets if path.endswith((".mjs", ".js")))
+        css_bytes = sum((ROOT / "html" / path).stat().st_size for path in assets if path.endswith(".css"))
+        limits = {INDEX: 21_000, SMART: 5_000}
         for path, limit in limits.items():
             self.assertLess(path.stat().st_size, limit, path)
         self.assertLess(js_bytes, 25_000)

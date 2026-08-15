@@ -41,45 +41,39 @@ class CssSourceContractTests(unittest.TestCase):
             "--bg:", "--surface:", "--surface-2:", "--border:",
             "--border-soft:", "--text:", "--text-dim:", "--text-faint:",
             "--accent:", "--accent-soft:", "--accent-line:", "--ok:",
-            "--warn:", "--err:", "--sans:", "--mono:", "--maxw:",
+            "--warn:", "--err:", "--sans:", "--serif:", "--mono:", "--maxw:",
             "--section-gap:", "--space-1:", "--space-6:",
             "--radius-sm:", "--radius-xl:", "--breakpoint-layout:",
             "--breakpoint-compact:", "--breakpoint-contact:",
         ):
             self.assertIn(token, tokens)
+        self.assertIn("color-scheme: light", tokens)
         for path in STYLES.rglob("*.css"):
             if path.name in {"tokens.css", "index.css"}:
                 continue
             self.assertNotIn(":root", path.read_text(encoding="utf-8"), path)
 
-    def test_breakpoint_tokens_match_the_single_responsive_owner(self) -> None:
+    def test_breakpoint_tokens_match_the_mobile_first_responsive_owner(self) -> None:
         tokens = (STYLES / "tokens.css").read_text(encoding="utf-8")
         responsive = (STYLES / "responsive.css").read_text(encoding="utf-8")
-        values = dict(
-            re.findall(r"--(breakpoint-[a-z-]+):\s*([0-9]+px);", tokens)
-        )
+        values = dict(re.findall(r"--(breakpoint-[a-z-]+):\s*([0-9]+px);", tokens))
         self.assertEqual(
             values,
             {
-                "breakpoint-layout": "760px",
-                "breakpoint-compact": "560px",
-                "breakpoint-contact": "620px",
+                "breakpoint-layout": "900px",
+                "breakpoint-compact": "640px",
+                "breakpoint-contact": "720px",
             },
         )
         self.assertEqual(
-            re.findall(r"@media \(max-width: ([0-9]+px)\)", responsive),
-            [
-                values["breakpoint-layout"],
-                values["breakpoint-compact"],
-                values["breakpoint-contact"],
-            ],
+            re.findall(r"@media \(min-width: ([0-9]+px)\)", responsive),
+            [values["breakpoint-compact"], values["breakpoint-contact"], values["breakpoint-layout"]],
         )
+        self.assertNotIn("@media (max-width:", responsive)
         for path in STYLES.rglob("*.css"):
             if path.name == "responsive.css":
                 continue
-            self.assertNotRegex(
-                path.read_text(encoding="utf-8"), r"@media \(max-width:", path
-            )
+            self.assertNotRegex(path.read_text(encoding="utf-8"), r"@media \((?:min|max)-width:", path)
 
     def test_print_and_reduced_motion_have_single_owners(self) -> None:
         print_css = (STYLES / "print.css").read_text(encoding="utf-8")
@@ -97,20 +91,14 @@ class CssSourceContractTests(unittest.TestCase):
                 self.assertNotIn("prefers-reduced-motion", text, path)
 
     def test_components_have_no_historical_patch_or_new_specificity_shortcuts(self) -> None:
-        combined = "\n".join(
-            path.read_text(encoding="utf-8")
-            for path in sorted(STYLES.rglob("*.css"))
-        )
+        combined = "\n".join(path.read_text(encoding="utf-8") for path in sorted(STYLES.rglob("*.css")))
         self.assertNotIn(".skill-chip::before", combined)
         self.assertIn(".skill-chip svg", combined)
         for relative in (
             "layout.css", "components.css", "features/stats.css",
-            "features/chat.css", "features/contact.css",
-            "features/smarthome.css", "responsive.css",
+            "features/chat.css", "features/contact.css", "features/smarthome.css", "responsive.css",
         ):
-            self.assertNotIn(
-                "!important", (STYLES / relative).read_text(encoding="utf-8"), relative
-            )
+            self.assertNotIn("!important", (STYLES / relative).read_text(encoding="utf-8"), relative)
 
 
 if __name__ == "__main__":

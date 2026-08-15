@@ -9,15 +9,17 @@ body {
   min-width: 320px;
   background: var(--bg);
   color: var(--text);
-  font: 15px/1.6 var(--sans);
+  font: 16px/1.65 var(--sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
-a { color: var(--accent); text-underline-offset: 3px; }
-a:hover { text-decoration-thickness: 1px; }
+img { max-width: 100%; }
+a { color: var(--accent); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+a:hover { color: var(--accent-strong); }
 button, input { font: inherit; }
 button { touch-action: manipulation; }
+::selection { background: var(--accent-soft); color: var(--text); }
 :focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 [hidden] { display: none !important; }
-.skip-link { position: fixed; z-index: 1000; top: 1rem; left: 1rem; transform: translateY(-180%); padding: .7rem 1rem; border-radius: .5rem; background: var(--text); color: var(--bg); }
+.skip-link { position: fixed; z-index: 1000; top: 1rem; left: 1rem; transform: translateY(-180%); padding: .75rem 1rem; border-radius: var(--radius-sm); background: var(--text); color: #fff; box-shadow: var(--shadow-sm); }
 .skip-link:focus { transform: none; }
