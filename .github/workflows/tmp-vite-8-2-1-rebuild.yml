@@ -45,12 +45,12 @@ jobs:
           second="${RUNNER_TEMP}/frontend-second.sha256"
           {
             find html/assets html/i18n -type f -print0
-            printf '%s\0' html/index.html html/smarthome.html frontend-dist-manifest.json
+            printf '%s\0' html/index.html html/smarthome.html html/en/index.html html/de/index.html html/lv/index.html frontend-dist-manifest.json
           } | sort -z | xargs -0 sha256sum > "$first"
           npm run build:frontend
           {
             find html/assets html/i18n -type f -print0
-            printf '%s\0' html/index.html html/smarthome.html frontend-dist-manifest.json
+            printf '%s\0' html/index.html html/smarthome.html html/en/index.html html/de/index.html html/lv/index.html frontend-dist-manifest.json
           } | sort -z | xargs -0 sha256sum > "$second"
           cmp "$first" "$second"
           npm run check:frontend
@@ -62,10 +62,10 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          allowed='^(package\.json|package-lock\.json|frontend-dist-manifest\.json|html/(assets|i18n)/|html/(index|smarthome)\.html)'
+          allowed='^(package\.json|package-lock\.json|frontend-dist-manifest\.json|html/(assets|i18n)/|html/(index|smarthome)\.html|html/(en|de|lv)/index\.html)'
           unexpected="$(git status --porcelain | sed -E 's/^.. //' | grep -Ev "$allowed" || true)"
           test -z "$unexpected" || { printf 'Unexpected changed paths:\n%s\n' "$unexpected" >&2; exit 1; }
-          git add -- package.json package-lock.json frontend-dist-manifest.json html/assets html/i18n html/index.html html/smarthome.html
+          git add -- package.json package-lock.json frontend-dist-manifest.json html/assets html/i18n html/index.html html/smarthome.html html/en/index.html html/de/index.html html/lv/index.html
           git diff --cached --quiet && { echo 'No controlled changes to commit'; exit 1; }
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
