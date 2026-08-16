@@ -36,7 +36,7 @@ jobs:
           node-version: '24.18.0'
           package-manager-cache: false
 
-      - name: Validate source, budgets and deterministic frontend
+      - name: Validate budgets and deterministic frontend
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -45,7 +45,6 @@ jobs:
           npm run check:frontend
           node --check scripts/build-frontend.mjs
           node --test tests/frontend.test.mjs
-          bash scripts/validate-source.sh "$PWD"
           first="${RUNNER_TEMP}/frontend-first.sha256"
           second="${RUNNER_TEMP}/frontend-second.sha256"
           {
@@ -74,12 +73,14 @@ jobs:
           test -n "$chrome_bin"
           CHROME_BIN="$chrome_bin" node tests/browser-smoke.mjs
 
-      - name: Commit verified final tree
+      - name: Revalidate clean source and commit final tree
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -Eeuo pipefail
+          rm -rf node_modules
+          bash scripts/validate-source.sh "$PWD"
           rm .github/workflows/tmp-295-github-overflow.yml scripts/tmp-295-finalize.py
           git add -A
           git diff --cached --check
