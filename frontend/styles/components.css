@@ -31,7 +31,7 @@
 .site-nav a { min-height: 44px; display: inline-flex; align-items: center; flex: 0 0 auto; padding: 8px 12px; border-radius: 999px; color: var(--text-faint); text-decoration: none; font: 700 12px/1.2 var(--sans); }
 .site-nav a:hover, .site-nav a[aria-current="true"] { background: var(--accent-soft); color: var(--accent-strong); }
 .panel, .card { overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-sm); }
-.timeline, .project-list, .skill-list, .education-list { display: grid; }
+.timeline, .project-list, .skill-list, .education-list, #github-projects dd, #github-projects details { display: grid; }
 .timeline { margin: 0; padding: 0; list-style: none; border-top: 1px solid var(--border); }
 .entry { display: grid; grid-template-columns: 1fr; gap: 5px; padding: 14px 0; border-bottom: 1px solid var(--border); }
 .entry time { color: var(--text-faint); font: 700 10.5px/1.4 var(--sans); letter-spacing: .035em; }

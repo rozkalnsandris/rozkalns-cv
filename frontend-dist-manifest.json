@@ -11,11 +11,11 @@
     "file": "i18n/lv.45a3749d6c5b.json",
     "src": "../content/translations/lv.json"
   },
-  "_i18n.537e40bbd0cf.mjs": {
-    "file": "assets/i18n.537e40bbd0cf.mjs",
+  "_i18n.67bd62a99516.mjs": {
+    "file": "assets/i18n.67bd62a99516.mjs",
     "name": "i18n",
     "css": [
-      "assets/i18n.842fdad95b29.css"
+      "assets/i18n.912e176619ee.css"
     ],
     "assets": [
       "i18n/en.97e0ab9cb07e.json",
@@ -23,9 +23,9 @@
       "i18n/lv.45a3749d6c5b.json"
     ]
   },
-  "_i18n.842fdad95b29.css": {
-    "file": "assets/i18n.842fdad95b29.css",
-    "src": "_i18n.842fdad95b29.css"
+  "_i18n.912e176619ee.css": {
+    "file": "assets/i18n.912e176619ee.css",
+    "src": "_i18n.912e176619ee.css"
   },
   "_turnstile.ca86c68bc37a.mjs": {
     "file": "assets/turnstile.ca86c68bc37a.mjs",
@@ -50,12 +50,12 @@
     ]
   },
   "index.html": {
-    "file": "assets/app.5ba51be13b37.mjs",
+    "file": "assets/app.87b6539148d1.mjs",
     "name": "app",
     "src": "index.html",
     "isEntry": true,
     "imports": [
-      "_i18n.537e40bbd0cf.mjs"
+      "_i18n.67bd62a99516.mjs"
     ],
     "dynamicImports": [
       "features/chat.mjs",
@@ -70,26 +70,26 @@
     "src": "photo.webp"
   },
   "smarthome.html": {
-    "file": "assets/smarthome.ac8ecda19944.mjs",
+    "file": "assets/smarthome.fc0d7e9690c1.mjs",
     "name": "smarthome",
     "src": "smarthome.html",
     "isEntry": true,
     "imports": [
-      "_i18n.537e40bbd0cf.mjs"
+      "_i18n.67bd62a99516.mjs"
     ]
   },
   "_localized": {
     "en": {
       "path": "en/index.html",
-      "sha256": "600ccda369909cab057170bc3aa8cebe778c88fcc0fa51734afb01f1120e7372"
+      "sha256": "eebf9b2ecc11e776f6bd37d7a2ff5b3e34af55326485ce8832d8775165345fe9"
     },
     "de": {
       "path": "de/index.html",
-      "sha256": "578087ecced59bb0199d8c9ab5d3171df78d2ac1942223922d55f1e034eefd06"
+      "sha256": "3de7fee8da551e16a00b8bd54d51754885a8e04c6ba416ca5e83d4fa3e35d56e"
     },
     "lv": {
       "path": "lv/index.html",
-      "sha256": "d3fb3a926fe8d997ed33e3f0e5695ae4889afa23d3166f4fa8aa98686483d329"
+      "sha256": "578c17f08fb6c002d9dbcc55163e3a8fd76da3ec8ee930df7ca84b49a38e5641"
     },
     "sitemap": {
       "path": "sitemap.xml",
