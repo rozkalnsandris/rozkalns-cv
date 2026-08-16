@@ -19,6 +19,21 @@
 }
 @media (min-width: 900px) {
   .page { padding-block: 28px 78px; }
+  .v3-main { margin-block-start: 34px; }
+  #about { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 28px; padding-block: 4px; padding-inline: 18px; }
+  #about .section-heading { grid-column: 1 / -1; margin-block-end: -2px; }
+  #about .lead + .lead { margin-block-start: 0; }
+  #projects .section-heading, #skills .section-heading, #experience .section-heading { margin-block-end: 24px; }
+  .work-layout { grid-template-columns: minmax(0,1.55fr) minmax(280px,.78fr); grid-template-areas: "projects skills" "experience experience"; gap: clamp(30px,4vw,46px) clamp(30px,4vw,52px); align-items: start; }
+  #projects { grid-area: projects; }
+  #skills { grid-area: skills; }
+  #experience { grid-area: experience; }
+  #skills .section-heading, #experience .section-heading { margin-block-end: 14px; }
+  #experience .timeline { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 30px; }
+  .chat-launcher { right: 18px; bottom: 18px; }
+}
+
+@media (min-width: 1120px) {
   .hero-shell {
     grid-template-columns: auto minmax(0,1fr) 260px;
     grid-template-areas:
@@ -47,17 +62,5 @@
   .contacts { display: flex; flex-wrap: wrap; gap: 2px 18px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
   .contact-row { min-height: 30px; }
   .focus-tags { max-width: 52ch; }
-  .v3-main { margin-block-start: 34px; }
-  #about { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 28px; padding-block: 4px; padding-inline: 18px; }
-  #about .section-heading { grid-column: 1 / -1; margin-block-end: -2px; }
-  #about .lead + .lead { margin-block-start: 0; }
-  #projects .section-heading, #skills .section-heading, #experience .section-heading { margin-block-end: 24px; }
-  .work-layout { grid-template-columns: minmax(0,1.55fr) minmax(280px,.78fr); grid-template-areas: "projects skills" "experience experience"; gap: clamp(30px,4vw,46px) clamp(30px,4vw,52px); align-items: start; }
-  #projects { grid-area: projects; }
-  #skills { grid-area: skills; }
-  #experience { grid-area: experience; }
-  #skills .section-heading, #experience .section-heading { margin-block-end: 14px; }
-  #experience .timeline { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 30px; }
-  .chat-launcher { right: 18px; bottom: 18px; }
   .education-list { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 0 24px; }
 }

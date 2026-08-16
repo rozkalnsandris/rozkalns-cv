@@ -44,7 +44,7 @@ class CssSourceContractTests(unittest.TestCase):
             "--warn:", "--err:", "--sans:", "--serif:", "--mono:", "--maxw:",
             "--section-gap:", "--space-1:", "--space-6:",
             "--radius-sm:", "--radius-xl:", "--breakpoint-layout:",
-            "--breakpoint-compact:", "--breakpoint-contact:",
+            "--breakpoint-compact:", "--breakpoint-contact:", "--breakpoint-wide:",
         ):
             self.assertIn(token, tokens)
         self.assertIn("color-scheme: light", tokens)
@@ -63,11 +63,17 @@ class CssSourceContractTests(unittest.TestCase):
                 "breakpoint-layout": "900px",
                 "breakpoint-compact": "640px",
                 "breakpoint-contact": "720px",
+                "breakpoint-wide": "1120px",
             },
         )
         self.assertEqual(
             re.findall(r"@media \(min-width: ([0-9]+px)\)", responsive),
-            [values["breakpoint-compact"], values["breakpoint-contact"], values["breakpoint-layout"]],
+            [
+                values["breakpoint-compact"],
+                values["breakpoint-contact"],
+                values["breakpoint-layout"],
+                values["breakpoint-wide"],
+            ],
         )
         self.assertNotIn("@media (max-width:", responsive)
         for path in STYLES.rglob("*.css"):
