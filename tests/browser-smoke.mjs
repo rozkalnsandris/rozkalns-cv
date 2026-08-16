@@ -799,19 +799,23 @@ async function runBrowserSmoke(baseUrl, state) {
         );
         const githubProof = await cdp.evaluate(`(() => ({
           profile: document.querySelector('a[rel="me"]')?.textContent.trim(),
-          selected: [...document.querySelectorAll('#github-projects > dd > .skill-list a')].map((link) => link.textContent.trim()),
+          selected: [...document.querySelectorAll('#github-projects > dd > a.github-row')].map((link) => link.textContent.trim()),
           remaining: document.querySelector('#github-projects details')?.textContent || '',
           collapsed: document.querySelector('#github-projects details')?.open === false,
           iconSizes: [...document.querySelectorAll('#github-projects a svg')].map((icon) => {
             const rect = icon.getBoundingClientRect();
             return { width: rect.width, height: rect.height };
           }),
-          rowSizes: [...document.querySelectorAll('#github-projects > dd > .skill-list .github-row')].map((row) => {
+          rowSizes: [...document.querySelectorAll('#github-projects > dd > a.github-row')].map((row) => {
             const rect = row.getBoundingClientRect();
             return { width: rect.width, height: rect.height };
           }),
           proofParent: document.querySelector('#github-projects')?.closest('section')?.id,
-          proofTag: document.querySelector('#github-projects')?.tagName
+          proofTag: document.querySelector('#github-projects')?.tagName,
+          nestedFeaturedList: Boolean(document.querySelector('#github-projects > dd > .skill-list')),
+          proofDisplay: getComputedStyle(document.querySelector('#github-projects > dd')).display,
+          disclosureDisplay: getComputedStyle(document.querySelector('#github-projects > dd > details')).display,
+          disclosureUsesProjectList: document.querySelector('#github-projects > dd > details')?.classList.contains('project-list') || false
         }))()`);
         assert.equal(githubProof.profile, "GitHub", `responsive ${viewport.width}px ${locale.label} GitHub profile link`);
         assert.deepEqual(githubProof.selected, ["hermes-tech", "RPi5_main", "hermes-deals", "rozkalns-control-center", "dashboard_RPi5"]);
@@ -820,7 +824,7 @@ async function runBrowserSmoke(baseUrl, state) {
         const proofHierarchy = await cdp.evaluate(`(() => {
           const skillsHeading = document.querySelector('#skills h2');
           const proofHeading = document.querySelector('#github-projects > dt');
-          const firstRow = document.querySelector('#github-projects > dd > .skill-list .github-row');
+          const firstRow = document.querySelector('#github-projects > dd > a.github-row');
           const summary = document.querySelector('#github-projects > dd > details > summary');
           const firstRect = firstRow?.getBoundingClientRect();
           const summaryRect = summary?.getBoundingClientRect();
@@ -857,6 +861,10 @@ async function runBrowserSmoke(baseUrl, state) {
         );
         assert.equal(githubProof.proofParent, 'skills', `responsive ${viewport.width}px ${locale.label} GitHub proof parent`);
         assert.equal(githubProof.proofTag, 'DIV', `responsive ${viewport.width}px ${locale.label} GitHub proof row tag`);
+        assert.equal(githubProof.nestedFeaturedList, false, `responsive ${viewport.width}px ${locale.label} nested GitHub list seam`);
+        assert.equal(githubProof.proofDisplay, 'grid', `responsive ${viewport.width}px ${locale.label} GitHub proof grid`);
+        assert.equal(githubProof.disclosureDisplay, 'grid', `responsive ${viewport.width}px ${locale.label} GitHub disclosure grid`);
+        assert.equal(githubProof.disclosureUsesProjectList, false, `responsive ${viewport.width}px ${locale.label} disclosure section seam`);
         const layout = await cdp.evaluate(`(() => {
           const page = document.querySelector('#pageShell')?.getBoundingClientRect();
           const launcherElement = document.querySelector('#chatLauncher');

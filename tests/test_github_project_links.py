@@ -16,7 +16,9 @@ class GitHubProjectLinksTest(unittest.TestCase):
             self.assertIn(f"//github.com/rozkalnsandris/{repo}", INDEX)
         for repo in remaining:
             self.assertIn(repo, INDEX)
-        self.assertIn('<details class=project-list>', INDEX)
+        self.assertIn('<details>', INDEX)
+        self.assertNotIn('<details class=project-list>', INDEX)
+        self.assertNotIn('<dd><div class=skill-list><a class="tech-tag has-tech-icon github-row"', INDEX)
         self.assertIn('<dt>GitHub <span data-i18n=projects_title>Projects</span></dt>', INDEX)
         self.assertIn('<summary class="tech-tag">+ 4 <span data-i18n=projects_title>Projects</span></summary>', INDEX)
         self.assertNotIn("YouTube_Marcim", INDEX)
