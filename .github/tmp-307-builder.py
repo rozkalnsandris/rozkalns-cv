@@ -72,7 +72,9 @@ new_featured = '  const featured = proof.match(/<dd><div class=skill-list>([\\s\
 if text.count(old_featured) != 1:
     raise SystemExit("expected one featured GitHub list contract")
 text = text.replace(old_featured, new_featured)
-text = text.replace("section.match", "proof.match").replace("section.includes", "proof.includes")
+text = text.replace("(section.match", "(proof.match")
+text = text.replace("assert.match(section,", "assert.match(proof,")
+text = text.replace("section.includes(", "proof.includes(")
 frontend_test.write_text(text, encoding="utf-8")
 
 # Update real Chromium geometry/semantics contracts.
