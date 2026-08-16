@@ -15,8 +15,7 @@ class AccessibleLabelI18nTests(unittest.TestCase):
             'class="language-switcher" role="group" data-i18n-label="profile_languages_label" aria-label="Language"',
             html,
         )
-        self.assertIn('<div class="focus-tags">', html)
-        self.assertNotIn('class="focus-tags" aria-label=', html)
+        self.assertNotIn('class="focus-tags"', html)
         self.assertIn('<nav class="site-nav" aria-label="CV">', html)
         self.assertIn(
             'class="profile-languages" role="list" data-i18n-label="profile_languages_label" aria-label="Languages"',
