@@ -766,6 +766,9 @@ async function runBrowserSmoke(baseUrl, state) {
       { width: 390, height: 844, mobile: true },
       { width: 430, height: 932, mobile: true },
       { width: 768, height: 1024, mobile: false },
+      { width: 900, height: 900, mobile: false },
+      { width: 1024, height: 900, mobile: false },
+      { width: 1100, height: 900, mobile: false },
       { width: 1280, height: 900, mobile: false },
       { width: 1365, height: 900, mobile: false },
       { width: 1440, height: 1000, mobile: false },
@@ -799,6 +802,12 @@ async function runBrowserSmoke(baseUrl, state) {
           const launcherElement = document.querySelector('#chatLauncher');
           const launcherRect = launcherElement?.getBoundingClientRect();
           const locationRow = document.querySelector('#profileLocation')?.closest('.contact-row');
+          const headerElement = document.querySelector('.hero-shell');
+          const headerRect = headerElement?.getBoundingClientRect();
+          const navigationElement = document.querySelector('.site-nav');
+          const navigationRect = navigationElement?.getBoundingClientRect();
+          const languageElement = document.querySelector('.language-switcher');
+          const languageRect = languageElement?.getBoundingClientRect();
           const primaryTargets = [...document.querySelectorAll(
             '.language-switcher [data-lang], .actions .button, #contactReveal, #chatLauncher'
           )].filter((element) => {
@@ -817,7 +826,34 @@ async function runBrowserSmoke(baseUrl, state) {
             documentClientWidth: document.documentElement.clientWidth,
             documentScrollWidth: document.documentElement.scrollWidth,
             bodyScrollWidth: document.body.scrollWidth,
+            overflowingElements: [...document.querySelectorAll('body *')].map((element) => {
+              const rect = element.getBoundingClientRect();
+              return {
+                tag: element.tagName,
+                id: element.id || '',
+                className: typeof element.className === 'string' ? element.className : '',
+                left: rect.left,
+                right: rect.right,
+                width: rect.width
+              };
+            }).filter((item) => item.left < -1 || item.right > document.documentElement.clientWidth + 1).slice(0, 12),
+            internalOverflow: [...document.querySelectorAll('body *')].filter((element) => element.scrollWidth > element.clientWidth + 1).map((element) => ({
+              tag: element.tagName,
+              id: element.id || '',
+              className: typeof element.className === 'string' ? element.className : '',
+              clientWidth: element.clientWidth,
+              scrollWidth: element.scrollWidth,
+              text: (element.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 160)
+            })).slice(0, 16),
             page: page ? { left: page.left, right: page.right, width: page.width } : null,
+            header: headerRect ? { left: headerRect.left, right: headerRect.right } : null,
+            navigation: navigationElement && navigationRect ? {
+              left: navigationRect.left,
+              right: navigationRect.right,
+              clientWidth: navigationElement.clientWidth,
+              scrollWidth: navigationElement.scrollWidth
+            } : null,
+            languageSwitcher: languageRect ? { left: languageRect.left, right: languageRect.right } : null,
             launcher: launcherElement && launcherRect ? {
     placement: launcherElement.dataset.placement,
     position: getComputedStyle(launcherElement).position,
@@ -847,6 +883,23 @@ async function runBrowserSmoke(baseUrl, state) {
         assert.ok(layout.page, `${context} page shell missing`);
         assert.ok(layout.page.left >= -0.5, `${context} page left overflow`);
         assert.ok(layout.page.right <= viewport.width + 0.5, `${context} page right overflow`);
+        if (viewport.width >= 900) {
+          assert.ok(layout.header, `${context} hero header missing`);
+          assert.ok(layout.navigation, `${context} navigation missing`);
+          assert.ok(layout.languageSwitcher, `${context} language switcher missing`);
+          assert.ok(
+            layout.navigation.left >= layout.header.left - 0.5 && layout.navigation.right <= layout.header.right + 0.5,
+            `${context} navigation outside hero: ${JSON.stringify(layout)}`
+          );
+          assert.ok(
+            layout.navigation.scrollWidth <= layout.navigation.clientWidth + 1,
+            `${context} navigation overflow: ${JSON.stringify(layout.navigation)}`
+          );
+          assert.ok(
+            layout.languageSwitcher.left >= layout.header.left - 0.5 && layout.languageSwitcher.right <= layout.header.right + 0.5,
+            `${context} language switcher outside hero: ${JSON.stringify(layout.languageSwitcher)}`
+          );
+        }
         assert.ok(layout.launcher, `${context} chat launcher missing`);
 assert.notEqual(layout.launcher.text, "AI", `${context} ambiguous launcher label`);
 if (layout.launcher.placement === "rail") {
