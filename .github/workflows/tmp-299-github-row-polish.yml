@@ -22,62 +22,44 @@ jobs:
 
           html_path = Path('frontend/index.html')
           html = html_path.read_text(encoding='utf-8')
-          repos = [
-              'hermes-tech', 'RPi5_main', 'hermes-deals', 'rozkalns-control-center', 'dashboard_RPi5',
-              'home-assistant-config', 'balcony-irrigation-esp32', 'rozkalns-cv', 'ops-workflows'
-          ]
+          repos = ['hermes-tech','RPi5_main','hermes-deals','rozkalns-control-center','dashboard_RPi5','home-assistant-config','balcony-irrigation-esp32','rozkalns-cv','ops-workflows']
           def row(repo):
-              return (f'<a class="project-entry secondary github-row" href=//github.com/rozkalnsandris/{repo}>'
-                      f'<span class=project-icon data-icon={repo}></span><span class=project-copy><h3>'
-                      f'<span class=github-name>{repo}</span> <small aria-hidden=true>↗</small></h3></span></a>')
+              return f'<a class="tech-tag has-tech-icon github-row" href=//github.com/rozkalnsandris/{repo}>{repo}</a>'
           featured = ''.join(row(repo) for repo in repos[:5])
           overflow = ''.join(row(repo) for repo in repos[5:])
           replacement = (f'<section id="github-projects"><div class=section-heading><h2>GitHub projects</h2></div>'
-                         f'<div class=project-list>{featured}</div><details><summary class=org>4 more projects</summary>'
-                         f'<div class=project-list>{overflow}</div></details></section>')
+                         f'<div class=skill-list>{featured}</div><details><summary class=org>4 more projects</summary>'
+                         f'<div class=skill-list>{overflow}</div></details></section>')
           html, count = re.subn(r'<section id="github-projects">[\s\S]*?</section>', replacement, html, count=1)
-          if count != 1:
-              raise SystemExit('GitHub projects section replacement failed')
+          if count != 1: raise SystemExit('GitHub projects section replacement failed')
           html_path.write_text(html, encoding='utf-8')
-
-          icons_path = Path('frontend/ui/icons.mjs')
-          icons = icons_path.read_text(encoding='utf-8')
-          icons = icons.replace('skillIconName(element.textContent)', 'skillIconName(element.dataset.icon || element.textContent)', 1)
-          icons = icons.replace('root.querySelectorAll(".skill-chip, #github-projects a")', 'root.querySelectorAll(".skill-chip, #github-projects .project-icon")', 1)
-          icons_path.write_text(icons, encoding='utf-8')
 
           css_path = Path('frontend/styles/components.css')
           css = css_path.read_text(encoding='utf-8')
           css = css.replace('.project-list { display: grid; gap: 0; border-top: 1px solid var(--border); }', '.project-list { gap: 0; border-top: 1px solid var(--border); }', 1)
-          anchor = '.project-entry.secondary { grid-template-columns: 36px minmax(0,1fr); gap: 10px; padding: 14px 0; }'
-          addition = anchor + '\n.github-row { padding: 4px 0; text-decoration: none; }\n.github-row:hover { background: var(--surface-2); }'
-          if anchor not in css:
-              raise SystemExit('secondary project CSS anchor missing')
+          css = css.replace('min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent;', 'min-height: 0;', 1)
+          anchor = '.tech-tag svg { width: 12px; height: 12px; flex: 0 0 12px; color: var(--accent); opacity: .9; }'
+          addition = anchor + '\n.github-row { width: 100%; text-decoration: none; }\n.github-row::after { content: "↗"; margin-left: auto; }\n.github-row svg { border-radius: 3px; box-shadow: 0 0 0 4px var(--accent-soft); margin: 0 4px; }'
+          if anchor not in css: raise SystemExit('tech-tag SVG CSS anchor missing')
           css = css.replace(anchor, addition, 1)
           css_path.write_text(css, encoding='utf-8')
 
           test_path = Path('tests/frontend.test.mjs')
           tests = test_path.read_text(encoding='utf-8')
-          tests = tests.replace('selector === ".skill-chip, #github-projects a"', 'selector === ".skill-chip, #github-projects .project-icon"')
-          tests = tests.replace('const featured = section.match(/<div class=skill-list>([\\s\\S]*?)<\\/div>/)?.[1] || "";', 'const featured = section.match(/<div class=project-list>([\\s\\S]*?)<\\/div>/)?.[1] || "";')
-          tests = tests.replace('assert.match(section, /<details><summary class=org>\\+4<\\/summary><div class=skill-list>/);', 'assert.match(section, /<details><summary class=org>4 more projects<\\/summary><div class=project-list>/);')
-          tests = tests.replace('assert.ok(section.includes(`href=//github.com/rozkalnsandris/${repo}>${repo}</a>`), repo);', 'assert.ok(section.includes(`href=//github.com/rozkalnsandris/${repo}>`), repo);')
+          tests = tests.replace('assert.match(section, /<details><summary class=org>\\+4<\\/summary><div class=skill-list>/);', 'assert.match(section, /<details><summary class=org>4 more projects<\\/summary><div class=skill-list>/);')
           marker = 'assert.equal((section.match(/href=\\/\\/github\\.com\\/rozkalnsandris\\//g) || []).length, 9);'
-          tests = tests.replace(marker, marker + '\n  assert.equal((section.match(/class="project-entry secondary github-row"/g) || []).length, 9);', 1)
+          tests = tests.replace(marker, marker + '\n  assert.equal((section.match(/class="tech-tag has-tech-icon github-row"/g) || []).length, 9);', 1)
           test_path.write_text(tests, encoding='utf-8')
 
           smoke_path = Path('tests/browser-smoke.mjs')
           smoke = smoke_path.read_text(encoding='utf-8')
-          smoke = smoke.replace("selected: [...document.querySelectorAll('#github-projects > .skill-list a')].map((link) => link.textContent.trim()),", "selected: [...document.querySelectorAll('#github-projects > .project-list .github-name')].map((label) => label.textContent.trim()),")
           old = '''          iconSizes: [...document.querySelectorAll('#github-projects a svg')].map((icon) => {\n            const rect = icon.getBoundingClientRect();\n            return { width: rect.width, height: rect.height };\n          })'''
-          new = '''          iconSizes: [...document.querySelectorAll('#github-projects a svg')].map((icon) => {\n            const rect = icon.getBoundingClientRect();\n            return { width: rect.width, height: rect.height };\n          }),\n          rowSizes: [...document.querySelectorAll('#github-projects > .project-list .github-row')].map((row) => {\n            const rect = row.getBoundingClientRect();\n            return { width: rect.width, height: rect.height };\n          })'''
-          if old not in smoke:
-              raise SystemExit('browser GitHub geometry block missing')
+          new = '''          iconSizes: [...document.querySelectorAll('#github-projects a svg')].map((icon) => {\n            const rect = icon.getBoundingClientRect();\n            return { width: rect.width, height: rect.height };\n          }),\n          rowSizes: [...document.querySelectorAll('#github-projects > .skill-list .github-row')].map((row) => {\n            const rect = row.getBoundingClientRect();\n            return { width: rect.width, height: rect.height };\n          })'''
+          if old not in smoke: raise SystemExit('browser GitHub geometry block missing')
           smoke = smoke.replace(old, new, 1)
           old_assert = '''        assert.ok(\n          githubProof.iconSizes.every(({ width, height }) => width >= 12 && width <= 14 && height >= 12 && height <= 14),\n          `responsive ${viewport.width}px ${locale.label} GitHub icons must stay compact: ${JSON.stringify(githubProof.iconSizes)}`\n        );'''
-          new_assert = '''        assert.ok(\n          githubProof.iconSizes.every(({ width, height }) => width >= 17 && width <= 19 && height >= 17 && height <= 19),\n          `responsive ${viewport.width}px ${locale.label} GitHub icons must stay compact: ${JSON.stringify(githubProof.iconSizes)}`\n        );\n        assert.equal(githubProof.rowSizes.length, 5);\n        assert.ok(\n          githubProof.rowSizes.every(({ height }) => height >= 40 && height <= 50),\n          `responsive ${viewport.width}px ${locale.label} GitHub rows must stay compact: ${JSON.stringify(githubProof.rowSizes)}`\n        );'''
-          if old_assert not in smoke:
-              raise SystemExit('browser GitHub icon assertion missing')
+          new_assert = old_assert + '''\n        assert.equal(githubProof.rowSizes.length, 5);\n        assert.ok(\n          githubProof.rowSizes.every(({ width, height }) => width >= 120 && height >= 28 && height <= 34),\n          `responsive ${viewport.width}px ${locale.label} GitHub rows must stay compact: ${JSON.stringify(githubProof.rowSizes)}`\n        );'''
+          if old_assert not in smoke: raise SystemExit('browser GitHub icon assertion missing')
           smoke = smoke.replace(old_assert, new_assert, 1)
           smoke_path.write_text(smoke, encoding='utf-8')
           PY
@@ -103,7 +85,7 @@ jobs:
           rm -f .github/workflows/tmp-299-github-row-polish.yml
           bash scripts/validate-source.sh "$PWD"
           git status --short
-          git add frontend/index.html frontend/ui/icons.mjs frontend/styles/components.css tests/frontend.test.mjs tests/browser-smoke.mjs html frontend-dist-manifest.json .github/workflows/tmp-299-github-row-polish.yml
+          git add frontend/index.html frontend/styles/components.css tests/frontend.test.mjs tests/browser-smoke.mjs html frontend-dist-manifest.json .github/workflows/tmp-299-github-row-polish.yml
           git diff --cached --check
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
