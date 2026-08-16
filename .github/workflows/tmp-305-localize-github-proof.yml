@@ -2,115 +2,59 @@ name: tmp-305-localize-github-proof
 
 on:
   push:
-    branches:
-      - fix/305-localize-github-proof
+    branches: [fix/305-localize-github-proof]
 
 permissions:
   contents: write
 
 jobs:
   build:
-    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - name: Check out exact branch SHA
+      - name: Check out branch
         env:
           GH_TOKEN: ${{ github.token }}
-        shell: bash
         run: |
           set -Eeuo pipefail
           auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
           git init .
           git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
-          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "$GITHUB_SHA"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin fix/305-localize-github-proof
           git checkout -B fix/305-localize-github-proof FETCH_HEAD
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
 
-      - name: Patch localized GitHub proof contracts
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-
-          index = Path('frontend/index.html')
-          text = index.read_text(encoding='utf-8')
-          replacements = {
-              '<h2 class=org>SELECTED GITHUB PROJECTS</h2>': '<h2 class=org>GitHub · <span data-i18n="projects_title">Projects</span></h2>',
-              '<summary class="tech-tag">+ 4 more projects</summary>': '<summary class="tech-tag">+ 4 <span data-i18n="projects_title">Projects</span></summary>',
-          }
-          for old, new in replacements.items():
-              if text.count(old) != 1:
-                  raise SystemExit(f'expected exactly one HTML contract: {old!r}')
-              text = text.replace(old, new)
-          index.write_text(text, encoding='utf-8')
-
-          contract = Path('tests/test_github_project_links.py')
-          text = contract.read_text(encoding='utf-8')
-          old = '        self.assertIn(\'<summary class="tech-tag">+ 4 more projects</summary>\', INDEX)'
-          new = '\n'.join([
-              '        self.assertIn(\'<h2 class=org>GitHub · <span data-i18n="projects_title">Projects</span></h2>\', INDEX)',
-              '        self.assertIn(\'<summary class="tech-tag">+ 4 <span data-i18n="projects_title">Projects</span></summary>\', INDEX)',
-          ])
-          if text.count(old) != 1:
-              raise SystemExit('expected one GitHub disclosure unit-test contract')
-          contract.write_text(text.replace(old, new), encoding='utf-8')
-
-          browser = Path('tests/browser-smoke.mjs')
-          text = browser.read_text(encoding='utf-8')
-          old = """        assert.equal(proofHierarchy.proofText, 'SELECTED GITHUB PROJECTS');
-        assert.equal(proofHierarchy.summaryText, '+ 4 more projects');"""
-          new = """        const proofLabels = {
-          en: { heading: 'GitHub · Projects', summary: '+ 4 Projects' },
-          de: { heading: 'GitHub · Projekte', summary: '+ 4 Projekte' },
-          lv: { heading: 'GitHub · Projekti', summary: '+ 4 Projekti' }
-        }[locale.language];
-        assert.equal(proofHierarchy.proofText, proofLabels.heading);
-        assert.equal(proofHierarchy.summaryText, proofLabels.summary);"""
-          if text.count(old) != 1:
-              raise SystemExit('expected one Chromium GitHub proof label contract')
-          browser.write_text(text.replace(old, new), encoding='utf-8')
-          PY
-
-      - name: Set up pinned Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: '24.18.0'
           package-manager-cache: false
 
-      - name: Build and validate focused change
+      - name: Patch, build and validate
         env:
           PYTHONPYCACHEPREFIX: ${{ runner.temp }}/rozkalns-cv-pycache
-        shell: bash
         run: |
           set -Eeuo pipefail
+          python3 .github/tmp-305-builder.py
           npm ci --ignore-scripts --no-audit --no-fund
           npm run build:frontend
           npm run check:frontend
           python3 -m unittest tests.test_github_project_links
           node --test tests/frontend.test.mjs
           node --check tests/browser-smoke.mjs
-          chrome_bin=''
-          for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
-            if command -v "$candidate" >/dev/null 2>&1; then chrome_bin="$(command -v "$candidate")"; break; fi
-          done
+          chrome_bin="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)"
           test -n "$chrome_bin"
           CHROME_BIN="$chrome_bin" node tests/browser-smoke.mjs
           rm -rf node_modules
           bash scripts/validate-source.sh "$PWD"
 
-      - name: Commit final source-only diff and remove helper
+      - name: Commit final diff
         env:
           GH_TOKEN: ${{ github.token }}
-        shell: bash
         run: |
           set -Eeuo pipefail
-          git rm .github/workflows/tmp-305-localize-github-proof.yml
+          git rm .github/tmp-305-builder.py .github/workflows/tmp-305-localize-github-proof.yml
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
-          git diff --cached --quiet && { echo 'no changes'; exit 1; }
           git commit -m 'fix: localize GitHub proof labels'
           auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
           git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" push origin HEAD:fix/305-localize-github-proof
