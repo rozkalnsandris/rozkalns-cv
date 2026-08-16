@@ -43,7 +43,7 @@
 .project-list { display: grid; gap: 0; border-top: 1px solid var(--border); }
 .project-entry { display: grid; min-width: 0; padding: 20px 0; border-bottom: 1px solid var(--border); }
 .project-entry.primary { grid-template-columns: 30px 48px minmax(0,1fr); gap: 12px; }
-.project-entry.primary:hover { background: var(--accent-soft); }
+.project-entry.primary:hover { background: var(--surface-2); }
 .project-entry.secondary { grid-template-columns: 36px minmax(0,1fr); gap: 10px; padding: 14px 0; }
 .project-no { padding-top: 16px; color: var(--accent); font: 800 11px/1 var(--sans); letter-spacing: .12em; }
 .project-icon { width: 48px; height: 48px; display: grid; place-items: center; border: 1px solid var(--accent-line); border-radius: var(--radius-lg); background: var(--accent-soft); color: var(--accent); }
