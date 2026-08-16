@@ -75,4 +75,3 @@ section { margin: 0; scroll-margin-top: 118px; }
 .lead + .lead { margin-block-start: 12px; }
 #about { padding-block: 2px; padding-inline: 4px; }
 .work-layout { min-width: 0; display: grid; gap: clamp(24px,4vw,42px); }
-.work-rail { display: contents; }
