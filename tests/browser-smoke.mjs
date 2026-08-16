@@ -836,8 +836,13 @@ async function runBrowserSmoke(baseUrl, state) {
         })()`);
         assert.ok(proofHierarchy.skillsFont >= 24, `responsive ${viewport.width}px ${locale.label} Skills heading hierarchy: ${proofHierarchy.skillsFont}`);
         assert.ok(proofHierarchy.proofFont <= 14, `responsive ${viewport.width}px ${locale.label} GitHub proof heading hierarchy: ${proofHierarchy.proofFont}`);
-        assert.equal(proofHierarchy.proofText, 'SELECTED GITHUB PROJECTS');
-        assert.equal(proofHierarchy.summaryText, '+ 4 more projects');
+        const proofLabels = {
+          en: { heading: 'GitHub Projects', summary: '+ 4 Projects' },
+          de: { heading: 'GitHub Projekte', summary: '+ 4 Projekte' },
+          lv: { heading: 'GitHub Projekti', summary: '+ 4 Projekti' }
+        }[locale.language];
+        assert.equal(proofHierarchy.proofText, proofLabels.heading);
+        assert.equal(proofHierarchy.summaryText, proofLabels.summary);
         assert.ok(Math.abs(proofHierarchy.summaryWidth - proofHierarchy.rowWidth) <= 2, `responsive ${viewport.width}px ${locale.label} GitHub disclosure width: ${JSON.stringify(proofHierarchy)}`);
         assert.ok(proofHierarchy.summaryHeight >= 28 && proofHierarchy.summaryHeight <= 36, `responsive ${viewport.width}px ${locale.label} GitHub disclosure height: ${JSON.stringify(proofHierarchy)}`);
         assert.equal(githubProof.iconSizes.length, 9, `responsive ${viewport.width}px ${locale.label} GitHub icon count`);
