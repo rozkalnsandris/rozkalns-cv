@@ -797,6 +797,11 @@ async function runBrowserSmoke(baseUrl, state) {
           10_000,
           `responsive ${viewport.width}px ${locale.label} launcher placement`
         );
+        assert.equal(
+          await cdp.evaluate(`document.querySelector('a[rel="me"]')?.textContent`),
+          "GitHub · hermes-tech · RPi5_main · hermes-deals · control-center",
+          `responsive ${viewport.width}px ${locale.label} GitHub projects proof`
+        );
         const layout = await cdp.evaluate(`(() => {
           const page = document.querySelector('#pageShell')?.getBoundingClientRect();
           const launcherElement = document.querySelector('#chatLauncher');
