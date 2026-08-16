@@ -16,6 +16,34 @@ const localizedIdentityFiles = Object.freeze({
   sitemap: "sitemap.xml"
 });
 
+const translationSources = Object.freeze(LOCALIZED_LANGUAGES.map((language) =>
+  resolve(root, "content", "translations", `${language}.json`)
+));
+
+async function withMinifiedTranslationSources(buildFrontend) {
+  const originals = await Promise.all(translationSources.map((path) => readFile(path, "utf8")));
+  try {
+    await Promise.all(translationSources.map((path, index) =>
+      writeFile(path, JSON.stringify(JSON.parse(originals[index])))
+    ));
+    await buildFrontend();
+  } finally {
+    await Promise.all(translationSources.map((path, index) => writeFile(path, originals[index])));
+  }
+}
+
+async function compactGeneratedHtml() {
+  const paths = [
+    resolve(html, "index.html"),
+    resolve(html, "smarthome.html"),
+    ...LOCALIZED_LANGUAGES.map((language) => resolve(html, language, "index.html"))
+  ];
+  await Promise.all(paths.map(async (path) => {
+    const source = await readFile(path, "utf8");
+    await writeFile(path, source.replace(/^[ \t]+/gm, ""));
+  }));
+}
+
 async function removeGeneratedFrontend() {
   await Promise.all([
     rm(resolve(html, "assets"), { recursive: true, force: true }),
@@ -82,8 +110,9 @@ async function bindLocalizedIdentity() {
 }
 
 await removeGeneratedFrontend();
-await build({ configFile: resolve(root, "vite.config.mjs") });
+await withMinifiedTranslationSources(() => build({ configFile: resolve(root, "vite.config.mjs") }));
 await verifyGeneratedShape();
 await renderLocalizedPages({ root, htmlRoot: html });
+await compactGeneratedHtml();
 await bindLocalizedIdentity();
 console.log("FRONTEND_BUILD=PASS");
