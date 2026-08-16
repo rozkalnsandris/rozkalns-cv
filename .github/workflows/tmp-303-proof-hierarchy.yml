@@ -1,0 +1,100 @@
+name: tmp-303-proof-hierarchy
+
+on:
+  push:
+    branches: [fix/303-integrate-github-proof]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact head
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "$GITHUB_SHA"
+          git checkout --detach FETCH_HEAD
+          git switch -c fix/303-integrate-github-proof
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.18.0'
+          package-manager-cache: false
+      - name: Patch hierarchy and regression tests
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              if text.count(old) != 1:
+                  raise SystemExit(f'{path}: expected one match, got {text.count(old)}')
+              p.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          replace_once(
+              'frontend/index.html',
+              '<section id="github-projects"><div class=section-heading><h2>GitHub projects</h2></div>',
+              '<section id="github-projects"><h2 class=org>SELECTED GITHUB PROJECTS</h2>'
+          )
+          replace_once(
+              'frontend/index.html',
+              '<details><summary class=org>4 more projects</summary><div class=skill-list>',
+              '<details class=project-list><summary class="tech-tag">+ 4 more projects</summary><div class=skill-list>'
+          )
+          replace_once(
+              'tests/frontend.test.mjs',
+              'assert.match(section, /<details><summary class=org>4 more projects<\\/summary><div class=skill-list>/);',
+              'assert.match(section, /<h2 class=org>SELECTED GITHUB PROJECTS<\\/h2>/);\n  assert.match(section, /<details class=project-list><summary class="tech-tag">\\+ 4 more projects<\\/summary><div class=skill-list>/);'
+          )
+          replace_once(
+              'tests/browser-smoke.mjs',
+              "          skillBottom: document.querySelector('#skills')?.getBoundingClientRect().bottom,\n          githubTop: document.querySelector('#github-projects')?.getBoundingClientRect().top",
+              "          skillBottom: document.querySelector('#skills')?.getBoundingClientRect().bottom,\n          githubTop: document.querySelector('#github-projects')?.getBoundingClientRect().top,\n          headingFont: parseFloat(getComputedStyle(document.querySelector('#github-projects h2')).fontSize),\n          skillsHeadingFont: parseFloat(getComputedStyle(document.querySelector('#skills h2')).fontSize),\n          overflowText: document.querySelector('#github-projects > details > summary')?.textContent.trim(),\n          overflowSize: (() => { const rect = document.querySelector('#github-projects > details > summary')?.getBoundingClientRect(); return rect ? { width: rect.width, height: rect.height } : null; })()"
+          )
+          replace_once(
+              'tests/browser-smoke.mjs',
+              "        assert.equal(githubProof.rowSizes.length, 5);\n        assert.ok(\n          githubProof.rowSizes.every(({ width, height }) => width >= 120 && height >= 28 && height <= 34),\n          `responsive ${viewport.width}px ${locale.label} GitHub rows must stay compact: ${JSON.stringify(githubProof.rowSizes)}`\n        );",
+              "        assert.equal(githubProof.rowSizes.length, 5);\n        assert.ok(\n          githubProof.rowSizes.every(({ width, height }) => width >= 120 && height >= 28 && height <= 34),\n          `responsive ${viewport.width}px ${locale.label} GitHub rows must stay compact: ${JSON.stringify(githubProof.rowSizes)}`\n        );\n        assert.ok(githubProof.skillsHeadingFont >= 24, `responsive ${viewport.width}px ${locale.label} Skills heading hierarchy: ${githubProof.skillsHeadingFont}`);\n        assert.ok(githubProof.headingFont <= 14, `responsive ${viewport.width}px ${locale.label} GitHub proof heading hierarchy: ${githubProof.headingFont}`);\n        assert.equal(githubProof.overflowText, '+ 4 more projects');\n        assert.ok(githubProof.overflowSize && Math.abs(githubProof.overflowSize.width - githubProof.rowSizes[0].width) <= 2, `responsive ${viewport.width}px ${locale.label} GitHub disclosure width: ${JSON.stringify(githubProof.overflowSize)}`);\n        assert.ok(githubProof.overflowSize.height >= 28 && githubProof.overflowSize.height <= 36, `responsive ${viewport.width}px ${locale.label} GitHub disclosure height: ${JSON.stringify(githubProof.overflowSize)}`);"
+          )
+          PY
+      - name: Validate
+        run: |
+          set -Eeuo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build:frontend
+          npm run check:frontend
+          node --check tests/browser-smoke.mjs
+          node --test tests/frontend.test.mjs
+          PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests.test_frontend_contract
+          chrome_bin=''
+          for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
+            if command -v "$candidate" >/dev/null 2>&1; then chrome_bin="$(command -v "$candidate")"; break; fi
+          done
+          test -n "$chrome_bin"
+          CHROME_BIN="$chrome_bin" node tests/browser-smoke.mjs
+          npm run build:frontend
+          npm run check:frontend
+          rm -rf node_modules
+          find . -type d -name __pycache__ -prune -exec rm -rf {} +
+          bash scripts/validate-source.sh "$PWD"
+      - name: Commit final branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -Eeuo pipefail
+          rm .github/workflows/tmp-303-proof-hierarchy.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'fix: integrate GitHub proof into Skills hierarchy'
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" push origin HEAD:fix/303-integrate-github-proof
