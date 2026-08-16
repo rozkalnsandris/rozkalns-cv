@@ -57,18 +57,17 @@ jobs:
               raise SystemExit('unexpected github-row svg marker count')
           css.write_text(css_text.replace(marker, marker + rule, 1), encoding='utf-8')
 
-          for path in Path('tests').glob('*'):
-              if path.suffix not in {'.py', '.mjs'}:
-                  continue
-              source = path.read_text(encoding='utf-8')
-              updated = source.replace('#github-projects > dd > .skill-list', '#github-projects > dd')
-              updated = updated.replace('<details class=project-list>', '<details>')
-              updated = updated.replace('<dd><div class=skill-list>([\\s\\S]*?)<\\/div><details', '<dd>([\\s\\S]*?)<details')
-              if updated != source:
-                  path.write_text(updated, encoding='utf-8')
-
           browser = Path('tests/browser-smoke.mjs')
           browser_text = browser.read_text(encoding='utf-8')
+          selector_replacements = {
+              "document.querySelectorAll('#github-projects > dd > .skill-list a')": "document.querySelectorAll('#github-projects > dd > a.github-row')",
+              "document.querySelectorAll('#github-projects > dd > .skill-list .github-row')": "document.querySelectorAll('#github-projects > dd > a.github-row')",
+              "document.querySelector('#github-projects > dd > .skill-list .github-row')": "document.querySelector('#github-projects > dd > a.github-row')",
+          }
+          for old, new in selector_replacements.items():
+              if old not in browser_text:
+                  raise SystemExit(f'missing browser selector: {old}')
+              browser_text = browser_text.replace(old, new)
           old = """          proofParent: document.querySelector('#github-projects')?.closest('section')?.id,\n          proofTag: document.querySelector('#github-projects')?.tagName\n"""
           new = """          proofParent: document.querySelector('#github-projects')?.closest('section')?.id,\n          proofTag: document.querySelector('#github-projects')?.tagName,\n          nestedFeaturedList: Boolean(document.querySelector('#github-projects > dd > .skill-list')),\n          proofDisplay: getComputedStyle(document.querySelector('#github-projects > dd')).display,\n          disclosureUsesProjectList: document.querySelector('#github-projects > dd > details')?.classList.contains('project-list') || false\n"""
           if browser_text.count(old) != 1:
@@ -80,8 +79,21 @@ jobs:
               raise SystemExit('browser proof assertion marker not found exactly once')
           browser.write_text(browser_text.replace(old_assert, new_assert, 1), encoding='utf-8')
 
+          frontend_test = Path('tests/frontend.test.mjs')
+          frontend_text = frontend_test.read_text(encoding='utf-8')
+          old_featured = r'<dd><div class=skill-list>([\s\S]*?)<\/div><details'
+          new_featured = r'<dd>([\s\S]*?)<details'
+          if frontend_text.count(old_featured) != 1:
+              raise SystemExit(f'expected one Node featured wrapper contract, got {frontend_text.count(old_featured)}')
+          frontend_text = frontend_text.replace(old_featured, new_featured, 1)
+          frontend_text = frontend_text.replace('<details class=project-list>', '<details>')
+          frontend_test.write_text(frontend_text, encoding='utf-8')
+
           contract = Path('tests/test_github_project_links.py')
           contract_text = contract.read_text(encoding='utf-8')
+          if contract_text.count("self.assertIn('<details class=project-list>', INDEX)") != 1:
+              raise SystemExit('expected one GitHub details source contract')
+          contract_text = contract_text.replace("self.assertIn('<details class=project-list>', INDEX)", "self.assertIn('<details>', INDEX)", 1)
           anchor = "        self.assertIn('<details>', INDEX)\n"
           addition = anchor + "        self.assertNotIn('<details class=project-list>', INDEX)\n        self.assertNotIn('<dd><div class=skill-list><a class=\"tech-tag has-tech-icon github-row\"', INDEX)\n"
           if contract_text.count(anchor) != 1:
