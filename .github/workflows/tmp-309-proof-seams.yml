@@ -63,6 +63,7 @@ jobs:
               source = path.read_text(encoding='utf-8')
               updated = source.replace('#github-projects > dd > .skill-list', '#github-projects > dd')
               updated = updated.replace('<details class=project-list>', '<details>')
+              updated = updated.replace('<dd><div class=skill-list>([\\s\\S]*?)<\\/div><details', '<dd>([\\s\\S]*?)<details')
               if updated != source:
                   path.write_text(updated, encoding='utf-8')
 
