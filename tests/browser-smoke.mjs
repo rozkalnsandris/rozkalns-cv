@@ -767,7 +767,10 @@ async function runBrowserSmoke(baseUrl, state) {
       { width: 430, height: 932, mobile: true },
       { width: 768, height: 1024, mobile: false },
       { width: 1280, height: 900, mobile: false },
-      { width: 1440, height: 1000, mobile: false }
+      { width: 1365, height: 900, mobile: false },
+      { width: 1440, height: 1000, mobile: false },
+      { width: 1600, height: 1000, mobile: false },
+      { width: 1720, height: 1000, mobile: false }
     ];
     const localeMatrix = [
       { path: "/en/", language: "en", location: "Dortmund, Germany", label: "English" },
@@ -788,6 +791,8 @@ async function runBrowserSmoke(baseUrl, state) {
         );
         const layout = await cdp.evaluate(`(() => {
           const page = document.querySelector('#pageShell')?.getBoundingClientRect();
+          const launcherElement = document.querySelector('#chatLauncher');
+          const launcherRect = launcherElement?.getBoundingClientRect();
           const locationRow = document.querySelector('#profileLocation')?.closest('.contact-row');
           const primaryTargets = [...document.querySelectorAll(
             '.language-switcher [data-lang], .actions .button, #contactReveal, #chatLauncher'
@@ -808,6 +813,15 @@ async function runBrowserSmoke(baseUrl, state) {
             documentScrollWidth: document.documentElement.scrollWidth,
             bodyScrollWidth: document.body.scrollWidth,
             page: page ? { left: page.left, right: page.right, width: page.width } : null,
+            launcher: launcherElement && launcherRect ? {
+    placement: launcherElement.dataset.placement,
+    position: getComputedStyle(launcherElement).position,
+    parentClass: launcherElement.parentElement?.className || '',
+    text: launcherElement.textContent.trim(),
+    left: launcherRect.left,
+    right: launcherRect.right,
+    width: launcherRect.width
+  } : null,
             location: locationRow ? {
               clientWidth: locationRow.clientWidth,
               scrollWidth: locationRow.scrollWidth
@@ -828,6 +842,23 @@ async function runBrowserSmoke(baseUrl, state) {
         assert.ok(layout.page, `${context} page shell missing`);
         assert.ok(layout.page.left >= -0.5, `${context} page left overflow`);
         assert.ok(layout.page.right <= viewport.width + 0.5, `${context} page right overflow`);
+        assert.ok(layout.launcher, `${context} chat launcher missing`);
+assert.notEqual(layout.launcher.text, "AI", `${context} ambiguous launcher label`);
+if (layout.launcher.placement === "rail") {
+  assert.equal(layout.launcher.position, "fixed", `${context} rail launcher position`);
+  assert.ok(
+    layout.launcher.left >= layout.page.right - 0.5,
+    `${context} rail launcher overlaps page: ${JSON.stringify(layout.launcher)}`
+  );
+} else {
+  assert.equal(layout.launcher.placement, "inline", `${context} launcher placement`);
+  assert.equal(layout.launcher.position, "static", `${context} inline launcher position`);
+  assert.match(layout.launcher.parentClass, /(^|\s)actions(\s|$)/, `${context} inline launcher parent`);
+  assert.ok(
+    layout.launcher.left >= layout.page.left - 0.5 && layout.launcher.right <= layout.page.right + 0.5,
+    `${context} inline launcher outside page: ${JSON.stringify(layout.launcher)}`
+  );
+}
         assert.ok(layout.location, `${context} location row missing`);
         assert.ok(
           layout.location.scrollWidth <= layout.location.clientWidth,
