@@ -22,6 +22,14 @@ if text.count(old) != 1:
     raise SystemExit("expected one GitHub disclosure unit-test contract")
 contract.write_text(text.replace(old, new), encoding="utf-8")
 
+frontend_tests = Path("tests/frontend.test.mjs")
+text = frontend_tests.read_text(encoding="utf-8")
+old = 'assert.match(section, /<details class=project-list><summary class="tech-tag">\\+ 4 more projects<\\/summary><div class=skill-list>/);'
+new = 'assert.match(section, /<details class=project-list><summary class="tech-tag">\\+ 4 <span data-i18n=projects_title>Projects<\\/span><\\/summary><div class=skill-list>/);'
+if text.count(old) != 2:
+    raise SystemExit(f"expected two stale frontend disclosure contracts, found {text.count(old)}")
+frontend_tests.write_text(text.replace(old, new), encoding="utf-8")
+
 browser = Path("tests/browser-smoke.mjs")
 text = browser.read_text(encoding="utf-8")
 old = """        assert.equal(proofHierarchy.proofText, 'SELECTED GITHUB PROJECTS');
