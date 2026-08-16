@@ -41,35 +41,36 @@ jobs:
 
           responsive = Path('frontend/styles/responsive.css')
           css = responsive.read_text()
-          desktop_header = '''  .hero-shell {
-    grid-template-columns: auto minmax(0,1fr) 260px;
-    grid-template-areas:
-      "brand nav lang"
-      "name name photo"
-      "role role photo"
-      "tagline tagline photo"
-      "contacts contacts photo"
-      "focus focus photo"
-      "langs langs photo"
-      "actions actions photo"
-      "verify verify photo";
-    gap: 7px 28px;
-    padding-block: 20px 21px;
-    padding-inline: 26px;
-  }
-  .hero-shell::before { width: 320px; height: 320px; inset-block-start: -156px; inset-inline-end: -90px; }
-  .brand { font-size: 24px; }
-  .site-nav { justify-content: center; overflow: visible; }
-  .site-nav a { padding-inline: 13px; }
-  .language-switcher { align-self: center; }
-  .profile-photo { width: 100%; height: 100%; min-height: 286px; max-height: 330px; border-radius: 24px; }
-  .hero-shell h1 { align-self: end; max-width: 12ch; font-size: clamp(56px,5.2vw,74px); }
-  .role { font-size: 15px; }
-  .tagline { max-width: 48ch; font-size: 18px; line-height: 1.55; }
-  .contacts { display: flex; flex-wrap: wrap; gap: 2px 18px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
-  .contact-row { min-height: 30px; }
-  .focus-tags { max-width: 52ch; }
-'''
+          desktop_header = ''.join((
+              '  .hero-shell {\n',
+              '    grid-template-columns: auto minmax(0,1fr) 260px;\n',
+              '    grid-template-areas:\n',
+              '      "brand nav lang"\n',
+              '      "name name photo"\n',
+              '      "role role photo"\n',
+              '      "tagline tagline photo"\n',
+              '      "contacts contacts photo"\n',
+              '      "focus focus photo"\n',
+              '      "langs langs photo"\n',
+              '      "actions actions photo"\n',
+              '      "verify verify photo";\n',
+              '    gap: 7px 28px;\n',
+              '    padding-block: 20px 21px;\n',
+              '    padding-inline: 26px;\n',
+              '  }\n',
+              '  .hero-shell::before { width: 320px; height: 320px; inset-block-start: -156px; inset-inline-end: -90px; }\n',
+              '  .brand { font-size: 24px; }\n',
+              '  .site-nav { justify-content: center; overflow: visible; }\n',
+              '  .site-nav a { padding-inline: 13px; }\n',
+              '  .language-switcher { align-self: center; }\n',
+              '  .profile-photo { width: 100%; height: 100%; min-height: 286px; max-height: 330px; border-radius: 24px; }\n',
+              '  .hero-shell h1 { align-self: end; max-width: 12ch; font-size: clamp(56px,5.2vw,74px); }\n',
+              '  .role { font-size: 15px; }\n',
+              '  .tagline { max-width: 48ch; font-size: 18px; line-height: 1.55; }\n',
+              '  .contacts { display: flex; flex-wrap: wrap; gap: 2px 18px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }\n',
+              '  .contact-row { min-height: 30px; }\n',
+              '  .focus-tags { max-width: 52ch; }\n',
+          ))
           css = replace_once(css, desktop_header, '', '900px desktop hero rules')
           css += '\n@media (min-width: 1120px) {\n' + desktop_header + '}\n'
           responsive.write_text(css)
