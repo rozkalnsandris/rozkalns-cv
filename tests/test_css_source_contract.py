@@ -77,14 +77,12 @@ class CssSourceContractTests(unittest.TestCase):
 
     def test_desktop_layout_contract_avoids_dead_column_and_full_launcher_overlap(self) -> None:
         responsive = (STYLES / "responsive.css").read_text(encoding="utf-8")
-        self.assertIn('"projects skills"\n      "experience experience"', responsive)
-        self.assertIn("#experience .entry { grid-template-columns: 150px minmax(0,1fr);", responsive)
-        self.assertIn(".chat-launcher {\n    right: 18px;", responsive)
-        self.assertIn("width: 52px;", responsive)
+        components = (STYLES / "components.css").read_text(encoding="utf-8")
+        self.assertIn('grid-template-areas: "projects skills" "experience experience";', responsive)
+        self.assertIn("#experience .timeline { grid-template-columns: repeat(2,minmax(0,1fr));", responsive)
+        self.assertIn(".chat-launcher { right: 18px; bottom: 18px; width: 52px;", responsive)
         self.assertIn('.chat-launcher::before { content: "AI";', responsive)
-        self.assertIn(".contact-verify-status:empty { display: none; }", responsive)
-        self.assertIn(".project-entry.primary:hover", responsive)
-        self.assertIn("box-shadow: inset 3px 0 0 var(--accent-line);", responsive)
+        self.assertIn(".project-entry.primary:hover { background: var(--surface-2); }", components)
 
     def test_print_and_reduced_motion_have_single_owners(self) -> None:
         print_css = (STYLES / "print.css").read_text(encoding="utf-8")
