@@ -1,0 +1,63 @@
+name: tmp-307-integrate-github-skill-row
+
+on:
+  push:
+    branches:
+      - fix/307-integrate-github-skill-row
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin fix/307-integrate-github-skill-row
+          git checkout -B fix/307-integrate-github-skill-row FETCH_HEAD
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.18.0'
+          package-manager-cache: false
+      - name: Patch, build and validate
+        env:
+          PYTHONPYCACHEPREFIX: ${{ runner.temp }}/rozkalns-cv-pycache
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 .github/tmp-307-builder.py
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build:frontend
+          npm run check:frontend
+          python3 -m unittest tests.test_github_project_links
+          node --test tests/frontend.test.mjs
+          node --check tests/browser-smoke.mjs
+          chrome_bin="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)"
+          test -n "$chrome_bin"
+          CHROME_BIN="$chrome_bin" node tests/browser-smoke.mjs
+          rm -rf node_modules
+          bash scripts/validate-source.sh "$PWD"
+      - name: Commit final diff
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git rm .github/tmp-307-builder.py .github/workflows/tmp-307-integrate-github-skill-row.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --quiet && { echo 'no changes'; exit 1; }
+          git commit -m 'fix: integrate GitHub proof into Skills list'
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" push origin HEAD:fix/307-integrate-github-skill-row
