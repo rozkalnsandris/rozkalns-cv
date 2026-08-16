@@ -6,10 +6,16 @@ INDEX = (ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
 
 
 class GitHubProjectLinksTest(unittest.TestCase):
-    def test_compact_public_repo_proof_uses_existing_profile_link(self) -> None:
-        self.assertIn("https://github.com/rozkalnsandris", INDEX)
-        for repo in ("hermes-tech", "RPi5_main", "hermes-deals", "control-center"):
+    def test_public_repo_proof_uses_sidebar_and_excludes_private_repos(self) -> None:
+        self.assertIn('<section id="github-projects">', INDEX)
+        self.assertIn('rel=me>GitHub</a>', INDEX)
+        selected = ("hermes-tech", "RPi5_main", "hermes-deals", "rozkalns-control-center", "dashboard_RPi5")
+        remaining = ("home-assistant-config", "balcony-irrigation-esp32", "rozkalns-cv", "ops-workflows")
+        for repo in selected:
+            self.assertIn(f"//github.com/rozkalnsandris/{repo}", INDEX)
+        for repo in remaining:
             self.assertIn(repo, INDEX)
+        self.assertIn('<details>', INDEX)
         self.assertNotIn("YouTube_Marcim", INDEX)
         self.assertNotIn("hermes-email-skill", INDEX)
         self.assertNotIn("api.github.com", INDEX)
