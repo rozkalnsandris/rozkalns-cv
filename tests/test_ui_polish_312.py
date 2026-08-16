@@ -2,6 +2,8 @@ from pathlib import Path
 import re
 import unittest
 
+# Issue #312 locks the deliberate recruiter/mobile hierarchy without coupling
+# the regression to generated asset fingerprints or browser-only implementation details.
 ROOT = Path(__file__).resolve().parents[1]
 INDEX = (ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
 LAYOUT = (ROOT / "frontend" / "styles" / "layout.css").read_text(encoding="utf-8")
