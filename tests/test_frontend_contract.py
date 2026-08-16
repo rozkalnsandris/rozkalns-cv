@@ -116,7 +116,7 @@ class FrontendContractTests(unittest.TestCase):
         html = INDEX.read_text(encoding="utf-8")
         layout = SOURCE_LAYOUT.read_text(encoding="utf-8")
         responsive = SOURCE_RESPONSIVE.read_text(encoding="utf-8")
-        for section_id in ("about", "stats", "experience", "projects", "skills", "education"):
+        for section_id in ("about", "stats", "experience", "projects", "skills", "github-projects", "education"):
             self.assertIn(f'id="{section_id}"', html)
         self.assertGreaterEqual(html.count('class="project-entry'), 6)
         self.assertEqual(html.count('class="project-entry primary"'), 3)
@@ -136,9 +136,11 @@ class FrontendContractTests(unittest.TestCase):
         self.assertEqual(html.count('class="entry"'), 4)
         self.assertEqual(html.count('class="skill-row"'), 4)
         self.assertLess(html.index('id="projects"'), html.index('id="skills"'))
-        self.assertLess(html.index('id="skills"'), html.index('id="experience"'))
+        self.assertLess(html.index('id="skills"'), html.index('id="github-projects"'))
+        self.assertLess(html.index('id="github-projects"'), html.index('id="experience"'))
         self.assertLess(html.index('id="experience"'), html.index('id="stats"'))
-        self.assertIn('grid-template-areas: "projects skills" "experience experience";', responsive)
+        self.assertIn('grid-template-areas: "projects skills" "projects github" "experience experience";', responsive)
+        self.assertIn("#github-projects { grid-area: github; }", responsive)
         self.assertIn('class="profile-languages"', html)
         stats = html[html.index('id="stats"'):html.index('id="education"')]
         self.assertNotIn('class="panel"', stats)

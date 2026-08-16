@@ -29,80 +29,22 @@
   <div id="pageShell" class="page">
     <header class="site-header hero-shell">
       <span class="brand" aria-hidden="true">AR</span>
-      <nav class="site-nav" aria-label="CV">
-        <a href="#about" data-i18n="nav_about">About</a>
-        <a href="#projects" data-i18n="nav_projects">Projects</a>
-        <a href="#skills" data-i18n="nav_skills">Skills</a>
-        <a href="#experience" data-i18n="nav_exp">Experience</a>
-        <a href="#stats" data-i18n="nav_stats">Live homelab</a>
-        <a href="#education" data-i18n="nav_edu">Education</a>
-      </nav>
-
-      <div class="language-switcher" role="group" data-i18n-label="profile_languages_label" aria-label="Language">
-        <a href="/en/" data-lang="en" aria-label="English" aria-current="page">EN</a>
-        <a href="/de/" data-lang="de" aria-label="Deutsch">DE</a>
-        <a href="/lv/" data-lang="lv" aria-label="Latviešu">LV</a>
-      </div>
-
+      <nav class="site-nav" aria-label="CV"><a href="#about" data-i18n="nav_about">About</a><a href="#projects" data-i18n="nav_projects">Projects</a><a href="#skills" data-i18n="nav_skills">Skills</a><a href="#experience" data-i18n="nav_exp">Experience</a><a href="#stats" data-i18n="nav_stats">Live homelab</a><a href="#education" data-i18n="nav_edu">Education</a></nav>
+      <div class="language-switcher" role="group" data-i18n-label="profile_languages_label" aria-label="Language"><a href="/en/" data-lang="en" aria-label="English" aria-current="page">EN</a><a href="/de/" data-lang="de" aria-label="Deutsch">DE</a><a href="/lv/" data-lang="lv" aria-label="Latviešu">LV</a></div>
       <img class="profile-photo" src="./photo.webp" alt="" width="118" height="118">
       <h1>Andris Rožkalns</h1>
       <p class="role" data-i18n="role">Junior DevOps &amp; Linux Engineer</p>
       <p class="tagline" data-i18n="tagline">I build and automate reliable Linux infrastructure, increasingly with AI agents in the loop. This page runs on it.</p>
 
-      <div class="focus-tags">
-        <span class="pill" data-i18n="focus_ai">AI-augmented operations</span>
-        <span class="pill" data-i18n="focus_auto">Automation</span>
-        <span class="pill" data-i18n="focus_home">Home Assistant</span>
-      </div>
-
-      <div class="profile-languages" role="list" data-i18n-label="profile_languages_label" aria-label="Languages">
-        <span class="profile-language" role="listitem"><span class="flag" aria-hidden="true">🇱🇻</span><span data-i18n="profile_lang_latvian">Latvian</span> <small data-i18n="profile_level_native">native</small></span>
-        <span class="profile-language" role="listitem"><span class="flag" aria-hidden="true">🇬🇧</span><span data-i18n="profile_lang_english">English</span> <small data-i18n="profile_level_fluent">fluent</small></span>
-        <span class="profile-language" role="listitem"><span class="flag" aria-hidden="true">🇩🇪</span><span data-i18n="profile_lang_german">German</span> <small>B1</small></span>
-      </div>
-
-      <div class="contacts">
-        <div class="contact-row">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 1 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-          <span id="profileLocation" data-city="Dortmund" data-region-code="DE">Dortmund, Germany</span>
-        </div>
-        <div class="contact-row">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
-          <a id="contactEmail" href="mailto:andris@rozkalns.net">andris@rozkalns.net</a>
-        </div>
-        <div class="contact-row">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.63a2 2 0 0 1-.45 2.11L8 9.73a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.85.29 1.73.5 2.63.62A2 2 0 0 1 22 16.92Z"/></svg>
-          <span id="contactPhone" class="contact-masked" data-i18n-label="contact_phone_hidden" aria-label="Phone number hidden until verification">+49 ••• •••• ••••</span>
-        </div>
-        <div class="contact-row">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>
-          <a href=https://github.com/rozkalnsandris rel=me>GitHub · hermes-tech · RPi5_main · hermes-deals · control-center</a>
-        </div>
-      </div>
-
-      <div class="contact-verify">
-        <button id="contactReveal" class="contact-reveal" type="button" aria-expanded="false" aria-controls="turnstileMount">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v2"/></svg>
-          <span class="contact-reveal-label" data-i18n="contact_reveal">Verify to show phone / WhatsApp</span>
-        </button>
-        <div id="turnstileMount" class="turnstile-mount" hidden></div>
-        <div id="contactVerifyStatus" class="contact-verify-status" role="status" aria-live="polite"></div>
-      </div>
-
-      <div class="actions">
-        <a class="button" id="pdfLink" href="/cv.pdf" download><svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 19h14"/></svg><span data-i18n="download_pdf">Download PDF</span></a>
-        <a class="button" href="/smarthome.html"><svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m3 11 9-7 9 7v9H3z"/><path d="M9 20v-6h6v6"/></svg><span data-i18n="smart_demo">Smart-home demo</span></a>
-      </div>
-
+      <div class="focus-tags"><span class="pill" data-i18n="focus_ai">AI-augmented operations</span><span class="pill" data-i18n="focus_auto">Automation</span><span class="pill" data-i18n="focus_home">Home Assistant</span></div>
+      <div class="profile-languages" role="list" data-i18n-label="profile_languages_label" aria-label="Languages"><span class="profile-language" role="listitem"><span class="flag" aria-hidden="true">🇱🇻</span><span data-i18n="profile_lang_latvian">Latvian</span> <small data-i18n="profile_level_native">native</small></span><span class="profile-language" role="listitem"><span class="flag" aria-hidden="true">🇬🇧</span><span data-i18n="profile_lang_english">English</span> <small data-i18n="profile_level_fluent">fluent</small></span><span class="profile-language" role="listitem"><span class="flag" aria-hidden="true">🇩🇪</span><span data-i18n="profile_lang_german">German</span> <small>B1</small></span></div>
+      <div class="contacts"><div class="contact-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 1 1 18 0Z"/><circle cx="12" cy="10" r="3"/></svg><span id="profileLocation" data-city="Dortmund" data-region-code="DE">Dortmund, Germany</span></div><div class="contact-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg><a id="contactEmail" href="mailto:andris@rozkalns.net">andris@rozkalns.net</a></div><div class="contact-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.33 1.78.62 2.63a2 2 0 0 1-.45 2.11L8 9.73a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.85.29 1.73.5 2.63.62A2 2 0 0 1 22 16.92Z"/></svg><span id="contactPhone" class="contact-masked" data-i18n-label="contact_phone_hidden" aria-label="Phone number hidden until verification">+49 ••• •••• ••••</span></div><div class="contact-row"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg><a href=https://github.com/rozkalnsandris rel=me>GitHub</a></div></div>
+      <div class="contact-verify"><button id="contactReveal" class="contact-reveal" type="button" aria-expanded="false" aria-controls="turnstileMount"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v2"/></svg><span class="contact-reveal-label" data-i18n="contact_reveal">Verify to show phone / WhatsApp</span></button><div id="turnstileMount" class="turnstile-mount" hidden></div><div id="contactVerifyStatus" class="contact-verify-status" role="status" aria-live="polite"></div></div>
+      <div class="actions"><a class="button" id="pdfLink" href="/cv.pdf" download><svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 19h14"/></svg><span data-i18n="download_pdf">Download PDF</span></a><a class="button" href="/smarthome.html"><svg class="action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m3 11 9-7 9 7v9H3z"/><path d="M9 20v-6h6v6"/></svg><span data-i18n="smart_demo">Smart-home demo</span></a></div>
     </header>
 
     <main id="main" class="v3-main">
-      <section id="about">
-        <div class="section-heading"><h2 data-i18n="about_title">About</h2></div>
-        <p class="lead" data-i18n="about_p1">I am a self-taught Linux and DevOps engineer based in Dortmund, deliberately returning to IT after a long logistics career.</p>
-        <p class="lead" data-i18n="about_p2">Today I design, deploy and operate a production Raspberry Pi 5 homelab.</p>
-      </section>
-
+      <section id="about"><div class="section-heading"><h2 data-i18n="about_title">About</h2></div><p class="lead" data-i18n="about_p1">I am a self-taught Linux and DevOps engineer based in Dortmund, deliberately returning to IT after a long logistics career.</p><p class="lead" data-i18n="about_p2">Today I design, deploy and operate a production Raspberry Pi 5 homelab.</p></section>
       <div class="work-layout">
       <section id="projects">
         <div class="section-heading"><h2 data-i18n="projects_title">Projects</h2></div>
@@ -116,15 +58,8 @@
         </div>
       </section>
 
-      <section id="skills">
-        <div class="section-heading"><h2 data-i18n="skills_title">Skills</h2></div>
-        <dl class="skill-list">
-          <div class="skill-row"><dt data-i18n="skills_core">Core</dt><dd><div class="skill-chips"><span class="skill-chip">Linux administration</span><span class="skill-chip">Docker</span><span class="skill-chip">Docker Compose</span><span class="skill-chip">Bash</span><span class="skill-chip">Nginx</span><span class="skill-chip">DNS</span><span class="skill-chip">SSL/TLS</span><span class="skill-chip">Prometheus</span><span class="skill-chip">Grafana</span><span class="skill-chip">systemd</span><span class="skill-chip">Git</span></div></dd></div>
-          <div class="skill-row"><dt data-i18n="skills_working">Working knowledge</dt><dd><div class="skill-chips"><span class="skill-chip">Python</span><span class="skill-chip">REST APIs</span><span class="skill-chip">Home Assistant</span><span class="skill-chip">ESP32 / IoT</span><span class="skill-chip">YAML</span></div></dd></div>
-          <div class="skill-row"><dt data-i18n="skills_learning">Learning</dt><dd><div class="skill-chips"><span class="skill-chip">Ansible</span><span class="skill-chip">Terraform</span><span class="skill-chip">AWS Cloud</span></div></dd></div>
-          <div class="skill-row"><dt data-i18n="skills_foundations">Foundations</dt><dd><div class="skill-chips"><span class="skill-chip">Networking</span><span class="skill-chip">SSH/FTP</span><span class="skill-chip">PHP/IPB</span><span class="skill-chip">HTML/CSS</span></div></dd></div>
-        </dl>
-      </section>
+      <section id="skills"><div class="section-heading"><h2 data-i18n="skills_title">Skills</h2></div><dl class="skill-list"><div class="skill-row"><dt data-i18n="skills_core">Core</dt><dd><div class="skill-chips"><span class="skill-chip">Linux administration</span><span class="skill-chip">Docker</span><span class="skill-chip">Docker Compose</span><span class="skill-chip">Bash</span><span class="skill-chip">Nginx</span><span class="skill-chip">DNS</span><span class="skill-chip">SSL/TLS</span><span class="skill-chip">Prometheus</span><span class="skill-chip">Grafana</span><span class="skill-chip">systemd</span><span class="skill-chip">Git</span></div></dd></div><div class="skill-row"><dt data-i18n="skills_working">Working knowledge</dt><dd><div class="skill-chips"><span class="skill-chip">Python</span><span class="skill-chip">REST APIs</span><span class="skill-chip">Home Assistant</span><span class="skill-chip">ESP32 / IoT</span><span class="skill-chip">YAML</span></div></dd></div><div class="skill-row"><dt data-i18n="skills_learning">Learning</dt><dd><div class="skill-chips"><span class="skill-chip">Ansible</span><span class="skill-chip">Terraform</span><span class="skill-chip">AWS Cloud</span></div></dd></div><div class="skill-row"><dt data-i18n="skills_foundations">Foundations</dt><dd><div class="skill-chips"><span class="skill-chip">Networking</span><span class="skill-chip">SSH/FTP</span><span class="skill-chip">PHP/IPB</span><span class="skill-chip">HTML/CSS</span></div></dd></div></dl></section>
+      <section id="github-projects"><div class=section-heading><h2>GitHub projects</h2></div><div class=skill-chips><a href=//github.com/rozkalnsandris/hermes-tech>hermes-tech</a><a href=//github.com/rozkalnsandris/RPi5_main>RPi5_main</a><a href=//github.com/rozkalnsandris/hermes-deals>hermes-deals</a><a href=//github.com/rozkalnsandris/rozkalns-control-center>rozkalns-control-center</a><a href=//github.com/rozkalnsandris/dashboard_RPi5>dashboard_RPi5</a></div><details><summary class=org>+4</summary>home-assistant-config · balcony-irrigation-esp32 · rozkalns-cv · ops-workflows</details></section>
 
       <section id="experience">
         <div class="section-heading"><h2 data-i18n="experience_title">Experience</h2></div>

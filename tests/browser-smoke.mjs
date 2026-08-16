@@ -797,11 +797,16 @@ async function runBrowserSmoke(baseUrl, state) {
           10_000,
           `responsive ${viewport.width}px ${locale.label} launcher placement`
         );
-        assert.equal(
-          await cdp.evaluate(`document.querySelector('a[rel="me"]')?.textContent`),
-          "GitHub · hermes-tech · RPi5_main · hermes-deals · control-center",
-          `responsive ${viewport.width}px ${locale.label} GitHub projects proof`
-        );
+        const githubProof = await cdp.evaluate(`(() => ({
+          profile: document.querySelector('a[rel="me"]')?.textContent.trim(),
+          selected: [...document.querySelectorAll('#github-projects > .skill-chips a')].map((link) => link.textContent.trim()),
+          remaining: document.querySelector('#github-projects details')?.textContent || '',
+          collapsed: document.querySelector('#github-projects details')?.open === false
+        }))()`);
+        assert.equal(githubProof.profile, "GitHub", `responsive ${viewport.width}px ${locale.label} GitHub profile link`);
+        assert.deepEqual(githubProof.selected, ["hermes-tech", "RPi5_main", "hermes-deals", "rozkalns-control-center", "dashboard_RPi5"]);
+        for (const repo of ["home-assistant-config", "balcony-irrigation-esp32", "rozkalns-cv", "ops-workflows"]) assert.match(githubProof.remaining, new RegExp(repo));
+        assert.equal(githubProof.collapsed, true);
         const layout = await cdp.evaluate(`(() => {
           const page = document.querySelector('#pageShell')?.getBoundingClientRect();
           const launcherElement = document.querySelector('#chatLauncher');
