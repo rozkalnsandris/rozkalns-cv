@@ -38,7 +38,7 @@ jobs:
           npm run check:frontend
           node --check tests/browser-smoke.mjs
           node --test tests/frontend.test.mjs
-          python3 -m unittest tests.test_css_source_contract tests.test_frontend_contract
+          PYTHONDONTWRITEBYTECODE=1 python3 -m unittest tests.test_css_source_contract tests.test_frontend_contract
           chrome_bin=''
           for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
             if command -v "$candidate" >/dev/null 2>&1; then chrome_bin="$(command -v "$candidate")"; break; fi
@@ -48,6 +48,7 @@ jobs:
           npm run build:frontend
           npm run check:frontend
           rm -rf node_modules
+          find . -type d -name __pycache__ -prune -exec rm -rf {} +
           bash scripts/validate-source.sh "$PWD"
       - name: Commit final branch
         run: |
