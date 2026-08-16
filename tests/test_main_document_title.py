@@ -23,10 +23,10 @@ class MainDocumentTitleTests(unittest.TestCase):
         self.assertIn('documentLike.title = `Andris Rožkalns · ${titleRole}`;', source)
         self.assertIn("onApplied(state) {", source)
         self.assertIn("updateMainDocumentTitle(state);", source)
-        self.assertIn("updateChatLauncherLabel(state);", source)
+        self.assertIn("syncChatLauncher(state.messages);", source)
         self.assertLess(
             source.index("updateMainDocumentTitle(state);"),
-            source.index("updateChatLauncherLabel(state);"),
+            source.index("syncChatLauncher(state.messages);"),
         )
         self.assertIn("initialLanguage: document.documentElement.lang", source)
         self.assertIn("await languageController.tryApply(languageController.language);", source)

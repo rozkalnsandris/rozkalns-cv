@@ -38,6 +38,36 @@ export function updateChatLauncherLabel({ messages }, {
   return true;
 }
 
+export function updateChatLauncherPlacement({
+  documentLike = globalThis.document,
+  viewportWidth = globalThis.innerWidth,
+  rightInset = 14
+} = {}) {
+  const launcher = documentLike?.querySelector?.("#chatLauncher");
+  const page = documentLike?.querySelector?.("#pageShell");
+  const actions = documentLike?.querySelector?.(".actions");
+  const body = documentLike?.body;
+  const width = Number(documentLike?.documentElement?.clientWidth) || Number(viewportWidth);
+  const pageRect = page?.getBoundingClientRect?.();
+  const launcherRect = launcher?.getBoundingClientRect?.();
+  if (!launcher || !actions || !body || !pageRect || !launcherRect || !Number.isFinite(width)) return false;
+  const launcherWidth = Math.max(launcherRect.width, Number(launcher.scrollWidth) || 0);
+  const rail = width - pageRect.right >= launcherWidth + rightInset;
+  launcher.classList.toggle("chat-launcher-inline", !rail);
+  launcher.dataset.placement = rail ? "rail" : "inline";
+  if (rail && launcher.parentElement !== body) {
+    body.insertBefore(launcher, documentLike.querySelector?.("#chatBackdrop") || null);
+  } else if (!rail && launcher.parentElement !== actions) {
+    actions.append(launcher);
+  }
+  return true;
+}
+
+function syncChatLauncher(messages) {
+  updateChatLauncherLabel({ messages });
+  updateChatLauncherPlacement();
+}
+
 export function installPreloadErrorRecovery(windowLike = globalThis.window) {
   if (
     typeof windowLike?.addEventListener !== "function" ||
@@ -146,7 +176,7 @@ async function init() {
     pdfs: PDFS,
     onApplied(state) {
       updateMainDocumentTitle(state);
-      updateChatLauncherLabel(state);
+      syncChatLauncher(state.messages);
     },
     initialLanguage: document.documentElement.lang
   });
@@ -159,10 +189,7 @@ async function init() {
   if (requestedWhatsAppContact()) await activateContact?.();
 
   installLazyChat(languageController);
-  window.addEventListener("resize", () => updateChatLauncherLabel(
-    { messages: languageController.messages },
-    { viewportWidth: window.innerWidth }
-  ), { passive: true });
+  window.addEventListener("resize", () => syncChatLauncher(languageController.messages), { passive: true });
   createNavigationObserver();
 }
 
