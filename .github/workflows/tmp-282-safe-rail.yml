@@ -51,7 +51,8 @@ jobs:
             const pageRect = page?.getBoundingClientRect?.();
             const launcherRect = launcher?.getBoundingClientRect?.();
             if (!launcher || !actions || !body || !pageRect || !launcherRect || !Number.isFinite(width)) return false;
-            const rail = width - pageRect.right >= launcherRect.width + rightInset;
+            const launcherWidth = Math.max(launcherRect.width, Number(launcher.scrollWidth) || 0);
+            const rail = width - pageRect.right >= launcherWidth + rightInset;
             launcher.classList.toggle("chat-launcher-inline", !rail);
             launcher.dataset.placement = rail ? "rail" : "inline";
             if (rail && launcher.parentElement !== body) {
@@ -93,7 +94,7 @@ jobs:
           line = '      { width: 1440, height: 1000, mobile: false }'
           if text.count(line) != 1:
               raise SystemExit('browser viewport anchor mismatch')
-          text = text.replace(line, '      { width: 1365, height: 900, mobile: false },\n      { width: 1440, height: 1000, mobile: false },\n      { width: 1600, height: 1000, mobile: false }')
+          text = text.replace(line, '      { width: 1365, height: 900, mobile: false },\n      { width: 1440, height: 1000, mobile: false },\n      { width: 1600, height: 1000, mobile: false },\n      { width: 1720, height: 1000, mobile: false }')
           line = "          const page = document.querySelector('#pageShell')?.getBoundingClientRect();\n"
           if text.count(line) != 1:
               raise SystemExit('browser layout anchor mismatch')
