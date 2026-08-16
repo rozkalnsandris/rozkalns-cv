@@ -1,3 +1,16 @@
+@media (max-width: 639px) {
+  .hero-shell { gap: 9px 12px; padding-block: 14px; padding-inline: 14px; }
+  .site-nav { gap: 2px; overflow: visible; }
+  .site-nav a:nth-child(1), .site-nav a:nth-child(6) { display: none; }
+  .site-nav a { min-width: 0; flex: 1 1 0; justify-content: center; padding-inline: 5px; font-size: 10.5px; }
+  .focus-tags { display: none; }
+  .contacts { padding: 10px 12px; }
+  .profile-languages { gap: 5px; }
+  .actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); width: 100%; }
+  .actions .button { width: 100%; padding-inline: 10px; }
+  .actions .chat-launcher-inline { grid-column: 1 / -1; width: 100%; }
+}
+
 @media (min-width: 640px) {
   .page { width: min(calc(100% - 40px),var(--maxw)); padding-block-start: 20px; }
   .hero-shell { grid-template-columns: 116px minmax(0,1fr); padding-block: 22px; padding-inline: 22px; gap: 13px 18px; }
@@ -29,7 +42,8 @@
   #skills { grid-area: rail; }
   #experience { grid-area: experience; }
   #skills .section-heading, #experience .section-heading { margin-block-end: 14px; }
-  #experience .timeline { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 30px; }
+  #experience .timeline { grid-template-columns: 1fr; }
+  #experience .entry { grid-template-columns: 150px minmax(0,1fr); gap: 24px; }
   .chat-launcher { right: 18px; bottom: 18px; }
 }
 
@@ -62,5 +76,6 @@
   .contacts { display: flex; flex-wrap: wrap; gap: 2px 18px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
   .contact-row { min-height: 30px; }
   .focus-tags { max-width: 52ch; }
+  #experience .entry { grid-template-columns: 170px minmax(0,1fr); gap: 30px; }
   .education-list { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 0 24px; }
 }
