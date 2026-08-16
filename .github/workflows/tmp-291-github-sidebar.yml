@@ -1,0 +1,114 @@
+name: Temporary 291 GitHub sidebar builder
+
+on:
+  push:
+    branches:
+      - feat/291-github-projects-sidebar
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "$GITHUB_SHA"
+          git checkout -B "$GITHUB_REF_NAME" FETCH_HEAD
+
+      - name: Patch source and regression tests
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          index = Path('frontend/index.html')
+          text = index.read_text(encoding='utf-8')
+          old = '<a href=https://github.com/rozkalnsandris rel=me>GitHub · hermes-tech · RPi5_main · hermes-deals · control-center</a>'
+          new = '<a href=https://github.com/rozkalnsandris rel=me>GitHub</a>'
+          assert text.count(old) == 1
+          text = text.replace(old, new, 1)
+          marker = '      <section id="experience">'
+          assert text.count(marker) == 1
+          block = '''      <section id="github-projects">
+        <div class="section-heading"><h2>GitHub</h2></div>
+        <div class="skill-list">
+          <div class="skill-row"><div class="skill-chips"><a class=skill-chip href=https://github.com/rozkalnsandris/hermes-tech>hermes-tech</a><a class=skill-chip href=https://github.com/rozkalnsandris/RPi5_main>RPi5_main</a><a class=skill-chip href=https://github.com/rozkalnsandris/hermes-deals>hermes-deals</a><a class=skill-chip href=https://github.com/rozkalnsandris/rozkalns-control-center>rozkalns-control-center</a><a class=skill-chip href=https://github.com/rozkalnsandris/dashboard_RPi5>dashboard_RPi5</a></div></div>
+          <details class="skill-row"><summary class=org aria-label="4 more GitHub projects">+ 4</summary><div class="skill-chips"><a class=skill-chip href=https://github.com/rozkalnsandris/home-assistant-config>home-assistant-config</a><a class=skill-chip href=https://github.com/rozkalnsandris/balcony-irrigation-esp32>balcony-irrigation-esp32</a><a class=skill-chip href=https://github.com/rozkalnsandris/rozkalns-cv>rozkalns-cv</a><a class=skill-chip href=https://github.com/rozkalnsandris/ops-workflows>ops-workflows</a></div></details>
+          <div class="skill-row"><a href=https://github.com/rozkalnsandris>github.com/rozkalnsandris ↗</a></div>
+        </div>
+      </section>'''
+          text = text.replace(marker, block + '\n\n' + marker, 1)
+          index.write_text(text, encoding='utf-8')
+
+          responsive = Path('frontend/styles/responsive.css')
+          css = responsive.read_text(encoding='utf-8')
+          old_area = 'grid-template-areas: "projects skills" "experience experience";'
+          new_area = 'grid-template-areas: "projects skills" "projects github" "experience experience";'
+          assert css.count(old_area) == 1
+          css = css.replace(old_area, new_area, 1)
+          old_skills = '  #skills { grid-area: skills; }\n'
+          assert css.count(old_skills) == 1
+          css = css.replace(old_skills, old_skills + '  #github-projects { grid-area: github; }\n', 1)
+          responsive.write_text(css, encoding='utf-8')
+
+          test = Path('tests/test_github_project_links.py')
+          test.write_text('''from pathlib import Path\nimport unittest\n\nROOT = Path(__file__).resolve().parents[1]\nINDEX = (ROOT / "frontend" / "index.html").read_text(encoding="utf-8")\n\n\nclass GitHubProjectLinksTest(unittest.TestCase):\n    def test_public_repo_proof_uses_sidebar_and_excludes_private_repos(self) -> None:\n        self.assertIn('<section id="github-projects">', INDEX)\n        self.assertIn('rel=me>GitHub</a>', INDEX)\n        selected = ("hermes-tech", "RPi5_main", "hermes-deals", "rozkalns-control-center", "dashboard_RPi5")\n        remaining = ("home-assistant-config", "balcony-irrigation-esp32", "rozkalns-cv", "ops-workflows")\n        for repo in (*selected, *remaining):\n            self.assertIn(f"https://github.com/rozkalnsandris/{repo}", INDEX)\n        self.assertIn('<details class="skill-row">', INDEX)\n        self.assertNotIn("YouTube_Marcim", INDEX)\n        self.assertNotIn("hermes-email-skill", INDEX)\n        self.assertNotIn("api.github.com", INDEX)\n\n\nif __name__ == "__main__":\n    unittest.main()\n''', encoding='utf-8')
+
+          browser = Path('tests/browser-smoke.mjs')
+          smoke = browser.read_text(encoding='utf-8')
+          old_assert = '''        assert.equal(\n          await cdp.evaluate(`document.querySelector('a[rel="me"]')?.textContent`),\n          "GitHub · hermes-tech · RPi5_main · hermes-deals · control-center",\n          `responsive ${viewport.width}px ${locale.label} GitHub projects proof`\n        );'''
+          new_assert = '''        const githubProof = await cdp.evaluate(`(() => ({\n          profile: document.querySelector('a[rel="me"]')?.textContent.trim(),\n          selected: [...document.querySelectorAll('#github-projects > .skill-list > .skill-row:first-child a')].map((link) => link.textContent.trim()),\n          remaining: [...document.querySelectorAll('#github-projects details a')].map((link) => link.textContent.trim()),\n          collapsed: document.querySelector('#github-projects details')?.open === false\n        }))()`);\n        assert.equal(githubProof.profile, "GitHub", `responsive ${viewport.width}px ${locale.label} GitHub profile link`);\n        assert.deepEqual(githubProof.selected, ["hermes-tech", "RPi5_main", "hermes-deals", "rozkalns-control-center", "dashboard_RPi5"]);\n        assert.deepEqual(githubProof.remaining, ["home-assistant-config", "balcony-irrigation-esp32", "rozkalns-cv", "ops-workflows"]);\n        assert.equal(githubProof.collapsed, true);'''
+          assert smoke.count(old_assert) == 1
+          smoke = smoke.replace(old_assert, new_assert, 1)
+          browser.write_text(smoke, encoding='utf-8')
+          PY
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.18.0'
+          package-manager-cache: false
+
+      - name: Build and validate
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build:frontend
+          npm run check:frontend
+          python3 -m unittest tests.test_github_project_links
+          node --test tests/frontend.test.mjs
+          chrome_bin=''
+          for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
+            if command -v "$candidate" >/dev/null 2>&1; then chrome_bin="$(command -v "$candidate")"; break; fi
+          done
+          test -n "$chrome_bin"
+          CHROME_BIN="$chrome_bin" node tests/browser-smoke.mjs
+          npm run build:frontend
+          npm run check:frontend
+
+      - name: Commit validated result
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A frontend html frontend-dist-manifest.json tests
+          git diff --cached --quiet && exit 0
+          git commit -m 'feat: move GitHub projects into sidebar'
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" push origin "HEAD:${GITHUB_REF_NAME}"
