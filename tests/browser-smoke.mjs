@@ -801,12 +801,21 @@ async function runBrowserSmoke(baseUrl, state) {
           profile: document.querySelector('a[rel="me"]')?.textContent.trim(),
           selected: [...document.querySelectorAll('#github-projects > .skill-list a')].map((link) => link.textContent.trim()),
           remaining: document.querySelector('#github-projects details')?.textContent || '',
-          collapsed: document.querySelector('#github-projects details')?.open === false
+          collapsed: document.querySelector('#github-projects details')?.open === false,
+          iconSizes: [...document.querySelectorAll('#github-projects a svg')].map((icon) => {
+            const rect = icon.getBoundingClientRect();
+            return { width: rect.width, height: rect.height };
+          })
         }))()`);
         assert.equal(githubProof.profile, "GitHub", `responsive ${viewport.width}px ${locale.label} GitHub profile link`);
         assert.deepEqual(githubProof.selected, ["hermes-tech", "RPi5_main", "hermes-deals", "rozkalns-control-center", "dashboard_RPi5"]);
         for (const repo of ["home-assistant-config", "balcony-irrigation-esp32", "rozkalns-cv", "ops-workflows"]) assert.match(githubProof.remaining, new RegExp(repo));
         assert.equal(githubProof.collapsed, true);
+        assert.equal(githubProof.iconSizes.length, 9, `responsive ${viewport.width}px ${locale.label} GitHub icon count`);
+        assert.ok(
+          githubProof.iconSizes.every(({ width, height }) => width >= 12 && width <= 14 && height >= 12 && height <= 14),
+          `responsive ${viewport.width}px ${locale.label} GitHub icons must stay compact: ${JSON.stringify(githubProof.iconSizes)}`
+        );
         const layout = await cdp.evaluate(`(() => {
           const page = document.querySelector('#pageShell')?.getBoundingClientRect();
           const launcherElement = document.querySelector('#chatLauncher');
