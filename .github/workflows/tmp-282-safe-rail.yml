@@ -47,7 +47,7 @@ jobs:
             const page = documentLike?.querySelector?.("#pageShell");
             const actions = documentLike?.querySelector?.(".actions");
             const body = documentLike?.body;
-            const width = Number(viewportWidth);
+            const width = Number(documentLike?.documentElement?.clientWidth) || Number(viewportWidth);
             const pageRect = page?.getBoundingClientRect?.();
             const launcherRect = launcher?.getBoundingClientRect?.();
             if (!launcher || !actions || !body || !pageRect || !launcherRect || !Number.isFinite(width)) return false;
