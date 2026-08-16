@@ -84,8 +84,8 @@ class CssSourceContractTests(unittest.TestCase):
     def test_desktop_layout_contract_avoids_dead_column_and_full_launcher_overlap(self) -> None:
         responsive = (STYLES / "responsive.css").read_text(encoding="utf-8")
         components = (STYLES / "components.css").read_text(encoding="utf-8")
-        self.assertIn('grid-template-areas: "projects skills" "projects github" "experience experience";', responsive)
-        self.assertIn("#github-projects { grid-area: github; }", responsive)
+        self.assertIn('grid-template-areas: "projects rail" "experience experience";', responsive)
+        self.assertIn(".work-rail { grid-area: rail; display: grid; gap: 28px; }", responsive)
         self.assertIn("#experience .timeline { grid-template-columns: repeat(2,minmax(0,1fr));", responsive)
         self.assertIn(".chat-launcher { right: 18px; bottom: 18px; }", responsive)
         self.assertNotIn('content: "AI"', responsive)

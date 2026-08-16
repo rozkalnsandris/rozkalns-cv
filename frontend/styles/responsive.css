@@ -24,12 +24,11 @@
   #about .section-heading { grid-column: 1 / -1; margin-block-end: -2px; }
   #about .lead + .lead { margin-block-start: 0; }
   #projects .section-heading, #skills .section-heading, #experience .section-heading { margin-block-end: 24px; }
-  .work-layout { grid-template-columns: minmax(0,1.55fr) minmax(280px,.78fr); grid-template-areas: "projects skills" "projects github" "experience experience"; gap: clamp(30px,4vw,46px) clamp(30px,4vw,52px); align-items: start; }
+  .work-layout { grid-template-columns: minmax(0,1.55fr) minmax(280px,.78fr); grid-template-areas: "projects rail" "experience experience"; gap: clamp(30px,4vw,46px) clamp(30px,4vw,52px); align-items: start; }
   #projects { grid-area: projects; }
-  #skills { grid-area: skills; }
-  #github-projects { grid-area: github; }
+  .work-rail { grid-area: rail; display: grid; gap: 28px; }
   #experience { grid-area: experience; }
-  #skills .section-heading, #experience .section-heading { margin-block-end: 14px; }
+  .work-rail .section-heading, #experience .section-heading { margin-block-end: 14px; }
   #experience .timeline { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 30px; }
   .chat-launcher { right: 18px; bottom: 18px; }
 }
