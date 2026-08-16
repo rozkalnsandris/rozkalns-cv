@@ -98,10 +98,10 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
+          bash scripts/validate-source.sh "$PWD"
           npm ci --ignore-scripts --no-audit --no-fund
           npm run build:frontend
           npm run check:frontend
-          bash scripts/validate-source.sh "$PWD"
           python3 -m unittest tests.test_github_project_links tests.test_frontend_contract
           node --test tests/frontend.test.mjs
           chrome_bin=''
@@ -114,6 +114,7 @@ jobs:
           css_bytes="$(find html/assets -type f -name '*.css' -print0 | xargs -0 stat -c %s | awk '{s+=$1} END {print s+0}')"
           test "$css_bytes" -lt 22000
           printf 'ROOT_HTML_BYTES=%s\nCSS_BYTES=%s\n' "$(stat -c %s html/index.html)" "$css_bytes"
+          rm -rf node_modules
 
       - name: Commit final focused diff and remove helper
         env:
