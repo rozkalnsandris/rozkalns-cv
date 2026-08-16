@@ -1,0 +1,93 @@
+name: Temporary 284 launcher readiness
+
+on:
+  push:
+    branches:
+      - test/284-wait-launcher-placement
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-smoke:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact branch head
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "$GITHUB_SHA"
+          git checkout -b test/284-wait-launcher-placement FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Add bounded launcher placement readiness wait
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('tests/browser-smoke.mjs')
+          text = path.read_text()
+          anchor = '''        await cdp.waitFor(
+          `document.documentElement.lang === ${JSON.stringify(locale.language)} && document.querySelector('#profileLocation')?.textContent === ${JSON.stringify(locale.location)}`,
+          10_000,
+          `responsive ${viewport.width}px ${locale.label} restoration`
+        );
+        const layout = await cdp.evaluate(`(() => {
+'''
+          replacement = '''        await cdp.waitFor(
+          `document.documentElement.lang === ${JSON.stringify(locale.language)} && document.querySelector('#profileLocation')?.textContent === ${JSON.stringify(locale.location)}`,
+          10_000,
+          `responsive ${viewport.width}px ${locale.label} restoration`
+        );
+        await cdp.waitFor(
+          `["rail", "inline"].includes(document.querySelector('#chatLauncher')?.dataset.placement)`,
+          10_000,
+          `responsive ${viewport.width}px ${locale.label} launcher placement`
+        );
+        const layout = await cdp.evaluate(`(() => {
+'''
+          if text.count(anchor) != 1:
+              raise SystemExit(f'browser readiness anchor mismatch: {text.count(anchor)}')
+          path.write_text(text.replace(anchor, replacement))
+          PY
+
+      - name: Set up pinned Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.18.0'
+          package-manager-cache: false
+
+      - name: Validate browser smoke
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          node --check tests/browser-smoke.mjs
+          chrome_bin=''
+          for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
+            if command -v "$candidate" >/dev/null 2>&1; then chrome_bin="$(command -v "$candidate")"; break; fi
+          done
+          test -n "$chrome_bin"
+          CHROME_BIN="$chrome_bin" node tests/browser-smoke.mjs
+
+      - name: Commit test-only fix
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tests/browser-smoke.mjs
+          git diff --cached --quiet && exit 0
+          git commit -m 'test: wait for launcher placement before geometry checks'
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" push origin HEAD:test/284-wait-launcher-placement
