@@ -22,7 +22,7 @@ def patch_index() -> None:
         marker = '      <section id="experience">'
         if text.count(marker) != 1:
             raise SystemExit("experience insertion marker mismatch")
-        block = '      <section id="github-projects"><div class="section-heading"><h2>GitHub</h2></div><div class="skill-chips"><a href=//github.com/rozkalnsandris/hermes-tech>hermes-tech</a><a href=//github.com/rozkalnsandris/RPi5_main>RPi5_main</a><a href=//github.com/rozkalnsandris/hermes-deals>hermes-deals</a><a href=//github.com/rozkalnsandris/rozkalns-control-center>rozkalns-control-center</a><a href=//github.com/rozkalnsandris/dashboard_RPi5>dashboard_RPi5</a></div><details><summary class=org aria-label="4 more GitHub projects">+ 4</summary><div>home-assistant-config · balcony-irrigation-esp32 · rozkalns-cv · ops-workflows</div></details></section>'
+        block = '      <section id="github-projects"><div class=section-heading><h2>GitHub projects</h2></div><div class=skill-chips><a href=//github.com/rozkalnsandris/hermes-tech>hermes-tech</a><a href=//github.com/rozkalnsandris/RPi5_main>RPi5_main</a><a href=//github.com/rozkalnsandris/hermes-deals>hermes-deals</a><a href=//github.com/rozkalnsandris/rozkalns-control-center>rozkalns-control-center</a><a href=//github.com/rozkalnsandris/dashboard_RPi5>dashboard_RPi5</a></div><details><summary class=org>+4</summary>home-assistant-config · balcony-irrigation-esp32 · rozkalns-cv · ops-workflows</details></section>'
         text = text.replace(marker, block + "\n\n" + marker, 1)
 
     for start, end in (
@@ -33,6 +33,8 @@ def patch_index() -> None:
         ('      <div class="contacts">', '      <div class="contact-verify">'),
         ('      <div class="contact-verify">', '      <div class="actions">'),
         ('      <div class="actions">', '    </header>'),
+        ('      <section id="about">', '      <div class="work-layout">'),
+        ('      <section id="skills">', '      <section id="github-projects">'),
     ):
         text = compact_between(text, start, end)
 
