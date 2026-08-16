@@ -1762,9 +1762,10 @@ test("skill chips map to meaningful SVG icon families", () => {
 test("GitHub projects use a compact vertical icon list", async () => {
   const source = await readFile(resolve(ROOT, "frontend/index.html"), "utf8");
   const section = source.match(/<section id="github-projects">([\s\S]*?)<\/section>/)?.[1] || "";
-  assert.match(section, /class=skill-list/);
-  assert.equal((section.match(/href=\/\/github\.com\/rozkalnsandris\//g) || []).length, 5);
-  assert.match(section, /<details><summary class=org>\+4<\/summary>/);
+  const featured = section.match(/<div class=skill-list>([\s\S]*?)<\/div>/)?.[1] || "";
+  assert.equal((featured.match(/href=\/\/github\.com\/rozkalnsandris\//g) || []).length, 5);
+  assert.equal((section.match(/href=\/\/github\.com\/rozkalnsandris\//g) || []).length, 9);
+  assert.match(section, /<details><summary class=org>\+4<\/summary><div class=skill-list>/);
 });
 
 test("skill icons initialize before translation network work", async () => {
@@ -1870,4 +1871,14 @@ test("contact reveal payload must contain bounded contact shapes", () => {
     contactPurpose({ location: { href: "https://rozkalns.net/?contact=whatsapp" } }),
     "whatsapp"
   );
+});
+
+
+test("GitHub project overflow exposes direct repository links", async () => {
+  const source = await readFile(resolve(ROOT, "frontend/index.html"), "utf8");
+  const section = source.match(/<section id="github-projects">([\s\S]*?)<\/section>/)?.[1] || "";
+  assert.match(section, /<details><summary class=org>\+4<\/summary><div class=skill-list>/);
+  for (const repo of ["home-assistant-config", "balcony-irrigation-esp32", "rozkalns-cv", "ops-workflows"]) {
+    assert.ok(section.includes(`href=//github.com/rozkalnsandris/${repo}>${repo}</a>`), repo);
+  }
 });

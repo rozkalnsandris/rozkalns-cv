@@ -1,30 +1,30 @@
 {
   "../content/translations/de.json": {
-    "file": "i18n/de.f38cdfdacbde.json",
+    "file": "i18n/de.cd09e13d8c22.json",
     "src": "../content/translations/de.json"
   },
   "../content/translations/en.json": {
-    "file": "i18n/en.bd72f3006e10.json",
+    "file": "i18n/en.97e0ab9cb07e.json",
     "src": "../content/translations/en.json"
   },
   "../content/translations/lv.json": {
-    "file": "i18n/lv.ec478d74ab86.json",
+    "file": "i18n/lv.45a3749d6c5b.json",
     "src": "../content/translations/lv.json"
   },
   "_i18n.3e521fbecd0c.css": {
     "file": "assets/i18n.3e521fbecd0c.css",
     "src": "_i18n.3e521fbecd0c.css"
   },
-  "_i18n.c0eadf233587.mjs": {
-    "file": "assets/i18n.c0eadf233587.mjs",
+  "_i18n.5ea7808eff05.mjs": {
+    "file": "assets/i18n.5ea7808eff05.mjs",
     "name": "i18n",
     "css": [
       "assets/i18n.3e521fbecd0c.css"
     ],
     "assets": [
-      "i18n/en.bd72f3006e10.json",
-      "i18n/de.f38cdfdacbde.json",
-      "i18n/lv.ec478d74ab86.json"
+      "i18n/en.97e0ab9cb07e.json",
+      "i18n/de.cd09e13d8c22.json",
+      "i18n/lv.45a3749d6c5b.json"
     ]
   },
   "_turnstile.ca86c68bc37a.mjs": {
@@ -50,12 +50,12 @@
     ]
   },
   "index.html": {
-    "file": "assets/app.6ad2c49c8c36.mjs",
+    "file": "assets/app.c78ba77c0490.mjs",
     "name": "app",
     "src": "index.html",
     "isEntry": true,
     "imports": [
-      "_i18n.c0eadf233587.mjs"
+      "_i18n.5ea7808eff05.mjs"
     ],
     "dynamicImports": [
       "features/chat.mjs",
@@ -70,26 +70,26 @@
     "src": "photo.webp"
   },
   "smarthome.html": {
-    "file": "assets/smarthome.6ef8fa38e32a.mjs",
+    "file": "assets/smarthome.b7c9d52c5793.mjs",
     "name": "smarthome",
     "src": "smarthome.html",
     "isEntry": true,
     "imports": [
-      "_i18n.c0eadf233587.mjs"
+      "_i18n.5ea7808eff05.mjs"
     ]
   },
   "_localized": {
     "en": {
       "path": "en/index.html",
-      "sha256": "06a12f30e6dbc5cde882023f46d4f5723f7199c0b02bc482359a64f2f6830d5e"
+      "sha256": "bac14ba381ae84c4f59e9ceccebff78617243183738a5683c3a85a1435468bd6"
     },
     "de": {
       "path": "de/index.html",
-      "sha256": "c219ed40bcbd107c3b6e9016831ba95ccfb03accb24e8a2ac71abe6d44f8919f"
+      "sha256": "0fdd4b9e35c0d81b187f00cc835487944b6aacbee60256b7e0b8c7b34f628127"
     },
     "lv": {
       "path": "lv/index.html",
-      "sha256": "6abdcf93ec2b928aa41e42afb8f4d04ca12d4cd9a94759badc4e30a503581558"
+      "sha256": "01b8b09f69ded3c8c437039e1bd4c19e487f12c6b81a1ee4a225bafc2f491d5d"
     },
     "sitemap": {
       "path": "sitemap.xml",
