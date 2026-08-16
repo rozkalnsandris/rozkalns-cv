@@ -18,17 +18,17 @@ const ICONS = Object.freeze({
 export function skillIconName(label) {
   const value = String(label || "").toLowerCase();
   if (/docker|compose/.test(value)) return "container";
-  if (/chromadb|database|sqlite|postgres|mysql/.test(value)) return "database";
+  if (/chromadb|database|sqlite|postgres|mysql|deals/.test(value)) return "database";
   if (/telegram/.test(value)) return "send";
   if (/adguard|safety|health check|ssl|tls|ssh|ftp/.test(value)) return "shield";
-  if (/prometheus|grafana|node exporter|live metrics|energy/.test(value)) return "chart";
-  if (/systemd|apt/.test(value)) return "gear";
+  if (/prometheus|grafana|node exporter|live metrics|energy|dashboard/.test(value)) return "chart";
+  if (/systemd|apt|control-center/.test(value)) return "gear";
   if (/git/.test(value)) return "branch";
   if (/python|php|html|css|yaml|bash|linux/.test(value)) {
     return value.includes("bash") || value.includes("linux") ? "terminal" : "code";
   }
   if (/home assistant/.test(value)) return "home";
-  if (/raspberry pi|esp32|iot|matter|sensor|relay|multiplexer/.test(value)) return "chip";
+  if (/raspberry pi|esp32|iot|matter|sensor|relay|multiplexer|rpi5/.test(value)) return "chip";
   if (/ansible|terraform|aws|cloudflare|cloud/.test(value)) return "cloud";
   if (/dns|network|rest api|nginx|llm routing|mqtt/.test(value)) return "network";
   return "globe";
@@ -60,7 +60,7 @@ function enhanceIconPill(element, root, { hideFallback = false } = {}) {
 }
 
 export function enhanceSkillIcons(root = globalThis.document) {
-  root.querySelectorAll(".skill-chip").forEach((chip) => {
+  root.querySelectorAll(".skill-chip, #github-projects a").forEach((chip) => {
     enhanceIconPill(chip, root);
   });
   root.querySelectorAll(".tech-tag").forEach((tag) => {

@@ -799,7 +799,7 @@ async function runBrowserSmoke(baseUrl, state) {
         );
         const githubProof = await cdp.evaluate(`(() => ({
           profile: document.querySelector('a[rel="me"]')?.textContent.trim(),
-          selected: [...document.querySelectorAll('#github-projects > .skill-chips a')].map((link) => link.textContent.trim()),
+          selected: [...document.querySelectorAll('#github-projects > .skill-list a')].map((link) => link.textContent.trim()),
           remaining: document.querySelector('#github-projects details')?.textContent || '',
           collapsed: document.querySelector('#github-projects details')?.open === false
         }))()`);

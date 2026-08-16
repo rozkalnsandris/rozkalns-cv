@@ -1753,6 +1753,18 @@ test("skill chips map to meaningful SVG icon families", () => {
   assert.equal(skillIconName("Home Assistant"), "home");
   assert.equal(skillIconName("ESP32 / IoT"), "chip");
   assert.equal(skillIconName("Terraform"), "cloud");
+  assert.equal(skillIconName("RPi5_main"), "chip");
+  assert.equal(skillIconName("hermes-deals"), "database");
+  assert.equal(skillIconName("rozkalns-control-center"), "gear");
+  assert.equal(skillIconName("dashboard_RPi5"), "chart");
+});
+
+test("GitHub projects use a compact vertical icon list", async () => {
+  const source = await readFile(resolve(ROOT, "frontend/index.html"), "utf8");
+  const section = source.match(/<section id="github-projects">([\s\S]*?)<\/section>/)?.[1] || "";
+  assert.match(section, /class=skill-list/);
+  assert.equal((section.match(/href=\/\/github\.com\/rozkalnsandris\//g) || []).length, 5);
+  assert.match(section, /<details><summary class=org>\+4<\/summary>/);
 });
 
 test("skill icons initialize before translation network work", async () => {
@@ -1802,7 +1814,7 @@ test("skill icon enhancement is idempotent and repaired families use complete pa
       prepend(node) { this.icon = node; this.prepends += 1; }
     };
     const root = {
-      querySelectorAll(selector) { return selector === ".skill-chip" ? [chip] : []; },
+      querySelectorAll(selector) { return selector === ".skill-chip, #github-projects a" ? [chip] : []; },
       createElementNS(_namespace, tagName) {
         return {
           tagName,
