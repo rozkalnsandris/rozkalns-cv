@@ -1766,7 +1766,7 @@ test("GitHub projects use a compact vertical icon list", async () => {
   assert.equal((featured.match(/href=\/\/github\.com\/rozkalnsandris\//g) || []).length, 5);
   assert.equal((section.match(/href=\/\/github\.com\/rozkalnsandris\//g) || []).length, 9);
   assert.equal((section.match(/class="tech-tag has-tech-icon github-row"/g) || []).length, 9);
-  assert.match(section, /<details><summary class=org>4 more projects<\/summary><div class=skill-list>/);
+  assert.match(section, /<details class=project-list><summary class="tech-tag">\+ 4 more projects<\/summary><div class=skill-list>/);
 });
 
 test("skill icons initialize before translation network work", async () => {
@@ -1878,7 +1878,7 @@ test("contact reveal payload must contain bounded contact shapes", () => {
 test("GitHub project overflow exposes direct repository links", async () => {
   const source = await readFile(resolve(ROOT, "frontend/index.html"), "utf8");
   const section = source.match(/<section id="github-projects">([\s\S]*?)<\/section>/)?.[1] || "";
-  assert.match(section, /<details><summary class=org>4 more projects<\/summary><div class=skill-list>/);
+  assert.match(section, /<details class=project-list><summary class="tech-tag">\+ 4 more projects<\/summary><div class=skill-list>/);
   for (const repo of ["home-assistant-config", "balcony-irrigation-esp32", "rozkalns-cv", "ops-workflows"]) {
     assert.ok(section.includes(`href=//github.com/rozkalnsandris/${repo}>${repo}</a>`), repo);
   }
