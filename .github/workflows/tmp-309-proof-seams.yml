@@ -1,0 +1,131 @@
+name: Temporary #309 GitHub proof seam builder
+
+on:
+  push:
+    branches:
+      - fix/309-github-proof-seams
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact branch SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "$GITHUB_SHA"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Apply focused #309 source and test patch
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          index = Path('frontend/index.html')
+          text = index.read_text(encoding='utf-8')
+          old_open = '<dd><div class=skill-list><a class="tech-tag has-tech-icon github-row"'
+          new_open = '<dd><a class="tech-tag has-tech-icon github-row"'
+          if text.count(old_open) != 1:
+              raise SystemExit(f'expected one featured GitHub wrapper start, got {text.count(old_open)}')
+          text = text.replace(old_open, new_open, 1)
+          old_close = '>dashboard_RPi5</a></div><details class=project-list>'
+          new_close = '>dashboard_RPi5</a><details>'
+          if text.count(old_close) != 1:
+              raise SystemExit(f'expected one featured GitHub wrapper end, got {text.count(old_close)}')
+          text = text.replace(old_close, new_close, 1)
+          index.write_text(text, encoding='utf-8')
+
+          css = Path('frontend/styles/components.css')
+          css_text = css.read_text(encoding='utf-8')
+          marker = '.github-row svg { box-shadow: 0 0 0 4px var(--accent-soft); }\n'
+          rule = '#github-projects dd { display: grid; }\n'
+          if rule in css_text:
+              raise SystemExit('GitHub proof dd grid rule already exists')
+          if css_text.count(marker) != 1:
+              raise SystemExit('unexpected github-row svg marker count')
+          css.write_text(css_text.replace(marker, marker + rule, 1), encoding='utf-8')
+
+          for path in Path('tests').glob('*'):
+              if path.suffix not in {'.py', '.mjs'}:
+                  continue
+              source = path.read_text(encoding='utf-8')
+              updated = source.replace('#github-projects > dd > .skill-list', '#github-projects > dd')
+              updated = updated.replace('<details class=project-list>', '<details>')
+              if updated != source:
+                  path.write_text(updated, encoding='utf-8')
+
+          browser = Path('tests/browser-smoke.mjs')
+          browser_text = browser.read_text(encoding='utf-8')
+          old = """          proofParent: document.querySelector('#github-projects')?.closest('section')?.id,\n          proofTag: document.querySelector('#github-projects')?.tagName\n"""
+          new = """          proofParent: document.querySelector('#github-projects')?.closest('section')?.id,\n          proofTag: document.querySelector('#github-projects')?.tagName,\n          nestedFeaturedList: Boolean(document.querySelector('#github-projects > dd > .skill-list')),\n          proofDisplay: getComputedStyle(document.querySelector('#github-projects > dd')).display,\n          disclosureUsesProjectList: document.querySelector('#github-projects > dd > details')?.classList.contains('project-list') || false\n"""
+          if browser_text.count(old) != 1:
+              raise SystemExit('browser proof contract marker not found exactly once')
+          browser_text = browser_text.replace(old, new, 1)
+          old_assert = """        assert.equal(githubProof.proofParent, 'skills', `responsive ${viewport.width}px ${locale.label} GitHub proof parent`);\n        assert.equal(githubProof.proofTag, 'DIV', `responsive ${viewport.width}px ${locale.label} GitHub proof row tag`);\n"""
+          new_assert = old_assert + """        assert.equal(githubProof.nestedFeaturedList, false, `responsive ${viewport.width}px ${locale.label} nested GitHub list seam`);\n        assert.equal(githubProof.proofDisplay, 'grid', `responsive ${viewport.width}px ${locale.label} GitHub proof grid`);\n        assert.equal(githubProof.disclosureUsesProjectList, false, `responsive ${viewport.width}px ${locale.label} disclosure section seam`);\n"""
+          if browser_text.count(old_assert) != 1:
+              raise SystemExit('browser proof assertion marker not found exactly once')
+          browser.write_text(browser_text.replace(old_assert, new_assert, 1), encoding='utf-8')
+
+          contract = Path('tests/test_github_project_links.py')
+          contract_text = contract.read_text(encoding='utf-8')
+          anchor = "        self.assertIn('<details>', INDEX)\n"
+          addition = anchor + "        self.assertNotIn('<details class=project-list>', INDEX)\n        self.assertNotIn('<dd><div class=skill-list><a class=\"tech-tag has-tech-icon github-row\"', INDEX)\n"
+          if contract_text.count(anchor) != 1:
+              raise SystemExit('GitHub source contract details marker not found exactly once')
+          contract.write_text(contract_text.replace(anchor, addition, 1), encoding='utf-8')
+          PY
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.18.0'
+          package-manager-cache: false
+
+      - name: Build and validate focused frontend
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build:frontend
+          npm run check:frontend
+          bash scripts/validate-source.sh "$PWD"
+          python3 -m unittest tests.test_github_project_links tests.test_frontend_contract
+          node --test tests/frontend.test.mjs
+          chrome_bin=''
+          for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
+            if command -v "$candidate" >/dev/null 2>&1; then chrome_bin="$(command -v "$candidate")"; break; fi
+          done
+          test -n "$chrome_bin"
+          CHROME_BIN="$chrome_bin" node tests/browser-smoke.mjs
+          test "$(stat -c %s html/index.html)" -lt 21000
+          css_bytes="$(find html/assets -type f -name '*.css' -print0 | xargs -0 stat -c %s | awk '{s+=$1} END {print s+0}')"
+          test "$css_bytes" -lt 22000
+          printf 'ROOT_HTML_BYTES=%s\nCSS_BYTES=%s\n' "$(stat -c %s html/index.html)" "$css_bytes"
+
+      - name: Commit final focused diff and remove helper
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git rm .github/workflows/tmp-309-proof-seams.yml
+          test -z "$(git status --porcelain | awk '$2 ~ /^content\/translations\// || $2 ~ /\.pdf$/ || $2 ~ /^scripts\/.*deploy/ {print}')"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'fix: remove nested GitHub proof seams'
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" push origin HEAD:refs/heads/fix/309-github-proof-seams
