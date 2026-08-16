@@ -23,9 +23,10 @@
 .actions .button:first-child { border-color: var(--accent); background: var(--accent); color: #fff; }
 .actions .button:first-child:hover { background: var(--accent-strong); color: #fff; }
 .action-icon { width: 16px; height: 16px; flex: 0 0 16px; }
-.site-nav { grid-area: nav; display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 0; scrollbar-width: none; }
+.site-nav { grid-area: nav; display: flex; gap: 2px; overflow: visible; padding: 2px 0 0; scrollbar-width: none; }
 .site-nav::-webkit-scrollbar { display: none; }
-.site-nav a { min-height: 44px; display: inline-flex; align-items: center; flex: 0 0 auto; padding: 8px 12px; border-radius: 999px; color: var(--text-faint); text-decoration: none; font: 700 12px/1.2 var(--sans); }
+.site-nav a { min-width: 0; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; flex: 1 1 0; padding: 8px 5px; border-radius: 999px; color: var(--text-faint); text-decoration: none; font: 700 10.5px/1.2 var(--sans); }
+.site-nav a:first-child, .site-nav a:last-child { display: none; }
 .site-nav a:hover, .site-nav a[aria-current="true"] { background: var(--accent-soft); color: var(--accent-strong); }
 .panel, .card { overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); box-shadow: var(--shadow-sm); }
 .timeline, .project-list, .skill-list, .education-list, #github-projects dd, #github-projects details { display: grid; }
