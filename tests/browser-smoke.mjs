@@ -817,6 +817,29 @@ async function runBrowserSmoke(baseUrl, state) {
         assert.deepEqual(githubProof.selected, ["hermes-tech", "RPi5_main", "hermes-deals", "rozkalns-control-center", "dashboard_RPi5"]);
         for (const repo of ["home-assistant-config", "balcony-irrigation-esp32", "rozkalns-cv", "ops-workflows"]) assert.match(githubProof.remaining, new RegExp(repo));
         assert.equal(githubProof.collapsed, true);
+        const proofHierarchy = await cdp.evaluate(`(() => {
+          const skillsHeading = document.querySelector('#skills h2');
+          const proofHeading = document.querySelector('#github-projects h2');
+          const firstRow = document.querySelector('#github-projects > .skill-list .github-row');
+          const summary = document.querySelector('#github-projects > details > summary');
+          const firstRect = firstRow?.getBoundingClientRect();
+          const summaryRect = summary?.getBoundingClientRect();
+          return {
+            skillsFont: skillsHeading ? parseFloat(getComputedStyle(skillsHeading).fontSize) : 0,
+            proofFont: proofHeading ? parseFloat(getComputedStyle(proofHeading).fontSize) : 0,
+            proofText: proofHeading?.textContent.trim(),
+            summaryText: summary?.textContent.trim(),
+            rowWidth: firstRect?.width || 0,
+            summaryWidth: summaryRect?.width || 0,
+            summaryHeight: summaryRect?.height || 0
+          };
+        })()`);
+        assert.ok(proofHierarchy.skillsFont >= 24, `responsive ${viewport.width}px ${locale.label} Skills heading hierarchy: ${proofHierarchy.skillsFont}`);
+        assert.ok(proofHierarchy.proofFont <= 14, `responsive ${viewport.width}px ${locale.label} GitHub proof heading hierarchy: ${proofHierarchy.proofFont}`);
+        assert.equal(proofHierarchy.proofText, 'SELECTED GITHUB PROJECTS');
+        assert.equal(proofHierarchy.summaryText, '+ 4 more projects');
+        assert.ok(Math.abs(proofHierarchy.summaryWidth - proofHierarchy.rowWidth) <= 2, `responsive ${viewport.width}px ${locale.label} GitHub disclosure width: ${JSON.stringify(proofHierarchy)}`);
+        assert.ok(proofHierarchy.summaryHeight >= 28 && proofHierarchy.summaryHeight <= 36, `responsive ${viewport.width}px ${locale.label} GitHub disclosure height: ${JSON.stringify(proofHierarchy)}`);
         assert.equal(githubProof.iconSizes.length, 9, `responsive ${viewport.width}px ${locale.label} GitHub icon count`);
         assert.ok(
           githubProof.iconSizes.every(({ width, height }) => width >= 12 && width <= 14 && height >= 12 && height <= 14),
