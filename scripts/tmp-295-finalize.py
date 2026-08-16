@@ -1,5 +1,4 @@
 from pathlib import Path
-import json
 
 
 def replace_once(path, old, new):
@@ -12,26 +11,8 @@ def replace_once(path, old, new):
 
 index = Path("frontend/index.html")
 old_section = '<section id="github-projects"><div class=section-heading><h2>GitHub projects</h2></div><div class=skill-list><a href=//github.com/rozkalnsandris/hermes-tech>hermes-tech</a><a href=//github.com/rozkalnsandris/RPi5_main>RPi5_main</a><a href=//github.com/rozkalnsandris/hermes-deals>hermes-deals</a><a href=//github.com/rozkalnsandris/rozkalns-control-center>rozkalns-control-center</a><a href=//github.com/rozkalnsandris/dashboard_RPi5>dashboard_RPi5</a></div><details><summary class=org>+4</summary>home-assistant-config · balcony-irrigation-esp32 · rozkalns-cv · ops-workflows</details></section>'
-new_section = '<section id="github-projects"><div class=section-heading><h2 data-i18n=github_projects_title>GitHub projects</h2></div><div class=skill-list><a href=//github.com/rozkalnsandris/hermes-tech>hermes-tech</a><a href=//github.com/rozkalnsandris/RPi5_main>RPi5_main</a><a href=//github.com/rozkalnsandris/hermes-deals>hermes-deals</a><a href=//github.com/rozkalnsandris/rozkalns-control-center>rozkalns-control-center</a><a href=//github.com/rozkalnsandris/dashboard_RPi5>dashboard_RPi5</a></div><details><summary class=org data-i18n=github_projects_more>4 more projects</summary><div class=skill-list><a href=//github.com/rozkalnsandris/home-assistant-config>home-assistant-config</a><a href=//github.com/rozkalnsandris/balcony-irrigation-esp32>balcony-irrigation-esp32</a><a href=//github.com/rozkalnsandris/rozkalns-cv>rozkalns-cv</a><a href=//github.com/rozkalnsandris/ops-workflows>ops-workflows</a></div></details></section>'
+new_section = '<section id="github-projects"><div class=section-heading><h2>GitHub projects</h2></div><div class=skill-list><a href=//github.com/rozkalnsandris/hermes-tech>hermes-tech</a><a href=//github.com/rozkalnsandris/RPi5_main>RPi5_main</a><a href=//github.com/rozkalnsandris/hermes-deals>hermes-deals</a><a href=//github.com/rozkalnsandris/rozkalns-control-center>rozkalns-control-center</a><a href=//github.com/rozkalnsandris/dashboard_RPi5>dashboard_RPi5</a></div><details><summary class=org>+4</summary><div class=skill-list><a href=//github.com/rozkalnsandris/home-assistant-config>home-assistant-config</a><a href=//github.com/rozkalnsandris/balcony-irrigation-esp32>balcony-irrigation-esp32</a><a href=//github.com/rozkalnsandris/rozkalns-cv>rozkalns-cv</a><a href=//github.com/rozkalnsandris/ops-workflows>ops-workflows</a></div></details></section>'
 replace_once(index, old_section, new_section)
-
-translations = {
-    "en": ("GitHub projects", "4 more projects"),
-    "de": ("GitHub-Projekte", "4 weitere Projekte"),
-    "lv": ("GitHub projekti", "Vēl 4 projekti"),
-}
-for language, (title, more) in translations.items():
-    path = Path(f"content/translations/{language}.json")
-    data = json.loads(path.read_text(encoding="utf-8"))
-    if "github_projects_title" in data or "github_projects_more" in data:
-        raise SystemExit(f"{path}: #295 translation keys already exist")
-    updated = {}
-    for key, value in data.items():
-        updated[key] = value
-        if key == "projects_title":
-            updated["github_projects_title"] = title
-            updated["github_projects_more"] = more
-    path.write_text(json.dumps(updated, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 build = Path("scripts/build-frontend.mjs")
 marker = "async function removeGeneratedFrontend() {"
@@ -91,28 +72,18 @@ old_contract = '''  assert.match(section, /class=skill-list/);
 new_contract = '''  const featured = section.match(/<div class=skill-list>([\\s\\S]*?)<\\/div>/)?.[1] || "";
   assert.equal((featured.match(/href=\\/\\/github\\.com\\/rozkalnsandris\\//g) || []).length, 5);
   assert.equal((section.match(/href=\\/\\/github\\.com\\/rozkalnsandris\\//g) || []).length, 9);
-  assert.match(section, /<details><summary class=org data-i18n=github_projects_more>4 more projects<\\/summary>/);'''
+  assert.match(section, /<details><summary class=org>\\+4<\\/summary><div class=skill-list>/);'''
 if test_text.count(old_contract) != 1:
     raise SystemExit(f"frontend test contract target mismatch: {test_text.count(old_contract)}")
 test_text = test_text.replace(old_contract, new_contract)
-if "GitHub project overflow is localized and directly actionable" in test_text:
+if "GitHub project overflow exposes direct repository links" in test_text:
     raise SystemExit("frontend #295 test already exists")
-test_text += '''\n\ntest("GitHub project overflow is localized and directly actionable", async () => {
+test_text += '''\n\ntest("GitHub project overflow exposes direct repository links", async () => {
   const source = await readFile(resolve(ROOT, "frontend/index.html"), "utf8");
-  assert.match(source, /<h2 data-i18n=github_projects_title>GitHub projects<\\/h2>/);
-  assert.match(source, /<summary class=org data-i18n=github_projects_more>4 more projects<\\/summary>/);
+  const section = source.match(/<section id="github-projects">([\\s\\S]*?)<\\/section>/)?.[1] || "";
+  assert.match(section, /<details><summary class=org>\\+4<\\/summary><div class=skill-list>/);
   for (const repo of ["home-assistant-config", "balcony-irrigation-esp32", "rozkalns-cv", "ops-workflows"]) {
-    assert.ok(source.includes(`href=//github.com/rozkalnsandris/${repo}>${repo}</a>`), repo);
-  }
-  const expected = {
-    en: ["GitHub projects", "4 more projects"],
-    de: ["GitHub-Projekte", "4 weitere Projekte"],
-    lv: ["GitHub projekti", "Vēl 4 projekti"]
-  };
-  for (const [language, values] of Object.entries(expected)) {
-    const messages = JSON.parse(await readFile(resolve(ROOT, `content/translations/${language}.json`), "utf8"));
-    assert.equal(messages.github_projects_title, values[0]);
-    assert.equal(messages.github_projects_more, values[1]);
+    assert.ok(section.includes(`href=//github.com/rozkalnsandris/${repo}>${repo}</a>`), repo);
   }
 });
 '''
