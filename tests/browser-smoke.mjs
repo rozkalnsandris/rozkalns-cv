@@ -789,6 +789,11 @@ async function runBrowserSmoke(baseUrl, state) {
           10_000,
           `responsive ${viewport.width}px ${locale.label} restoration`
         );
+        await cdp.waitFor(
+          `["rail", "inline"].includes(document.querySelector('#chatLauncher')?.dataset.placement)`,
+          10_000,
+          `responsive ${viewport.width}px ${locale.label} launcher placement`
+        );
         const layout = await cdp.evaluate(`(() => {
           const page = document.querySelector('#pageShell')?.getBoundingClientRect();
           const launcherElement = document.querySelector('#chatLauncher');
