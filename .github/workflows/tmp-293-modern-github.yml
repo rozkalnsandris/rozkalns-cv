@@ -77,6 +77,14 @@ jobs:
               raise SystemExit('GitHub project source-test insertion marker mismatch')
           text = text.replace(next_test, source_test + next_test, 1)
           tests.write_text(text, encoding='utf-8')
+
+          browser = Path('tests/browser-smoke.mjs')
+          text = browser.read_text(encoding='utf-8')
+          before = "#github-projects > .skill-chips a"
+          after = "#github-projects > .skill-list a"
+          if text.count(before) != 1:
+              raise SystemExit(f'Chromium GitHub selector marker mismatch: {text.count(before)}')
+          browser.write_text(text.replace(before, after, 1), encoding='utf-8')
           PY
 
       - name: Build and validate frontend
@@ -88,6 +96,7 @@ jobs:
           npm run build:frontend
           npm run check:frontend
           node --check frontend/ui/icons.mjs
+          node --check tests/browser-smoke.mjs
           node --test tests/frontend.test.mjs
           chrome_bin=''
           for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
@@ -116,7 +125,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           git rm .github/workflows/tmp-293-modern-github.yml
-          git add frontend/index.html frontend/ui/icons.mjs tests/frontend.test.mjs frontend-dist-manifest.json html
+          git add frontend/index.html frontend/ui/icons.mjs tests/frontend.test.mjs tests/browser-smoke.mjs frontend-dist-manifest.json html
           git diff --cached --check
           git commit -m 'feat: modernize GitHub projects sidebar list'
           auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
