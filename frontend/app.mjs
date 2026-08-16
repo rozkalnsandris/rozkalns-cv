@@ -13,12 +13,6 @@ const PDFS = Object.freeze({
   lv: "/cv-lv.pdf"
 });
 
-const PRIMARY_PROJECT_PROOF = Object.freeze([
-  "https://github.com/rozkalnsandris/hermes-tech",
-  "https://github.com/rozkalnsandris/RPi5_main",
-  "https://github.com/rozkalnsandris/home-assistant-config"
-]);
-
 export { REQUIRED_STATS, validateStats };
 
 export function updateMainDocumentTitle({ messages }, { documentLike = globalThis.document } = {}) {
@@ -67,63 +61,6 @@ export function updateChatLauncherPlacement({
     actions.append(launcher);
   }
   return true;
-}
-
-export function installRecruiterProofLinks({ documentLike = globalThis.document } = {}) {
-  if (typeof documentLike?.querySelector !== "function" || typeof documentLike?.createElement !== "function") {
-    return false;
-  }
-
-  const actions = documentLike.querySelector(".actions");
-  const projects = [...(documentLike.querySelectorAll?.(".project-entry.primary") || [])];
-  if (!actions || projects.length < PRIMARY_PROJECT_PROOF.length) return false;
-
-  let changed = false;
-
-  for (const [index, href] of PRIMARY_PROJECT_PROOF.entries()) {
-    const project = projects[index];
-    let proofLinks = project.querySelector?.(".project-proof-links");
-    if (!proofLinks) {
-      proofLinks = documentLike.createElement("div");
-      proofLinks.className = "project-proof-links";
-      project.querySelector?.(".project-copy")?.append(proofLinks);
-      changed = true;
-    }
-
-    if (proofLinks && !proofLinks.querySelector?.(`a[href="${href}"]`)) {
-      const link = documentLike.createElement("a");
-      const title = project.querySelector?.("h3")?.textContent?.trim() || "Project";
-      link.className = "project-proof-link";
-      link.href = href;
-      link.rel = "me";
-      link.setAttribute("aria-label", `${title} on GitHub`);
-      link.textContent = "GitHub ↗";
-      proofLinks.append(link);
-      changed = true;
-    }
-  }
-
-  const smartDemo = actions.querySelector?.('a[href="/smarthome.html"]');
-  const homeProofLinks = projects[2]?.querySelector?.(".project-proof-links");
-  if (smartDemo && homeProofLinks && smartDemo.parentElement !== homeProofLinks) {
-    smartDemo.classList.remove("button");
-    smartDemo.classList.add("project-proof-link", "project-demo-link");
-    homeProofLinks.append(smartDemo);
-    changed = true;
-  }
-
-  if (!documentLike.querySelector("#githubCta")) {
-    const githubCta = documentLike.createElement("a");
-    githubCta.id = "githubCta";
-    githubCta.className = "button recruiter-github-cta";
-    githubCta.href = "https://github.com/rozkalnsandris";
-    githubCta.rel = "me";
-    githubCta.textContent = "GitHub";
-    actions.append(githubCta);
-    changed = true;
-  }
-
-  return changed;
 }
 
 function syncChatLauncher(messages) {
@@ -234,7 +171,6 @@ function requestedWhatsAppContact() {
 }
 
 async function init() {
-  installRecruiterProofLinks();
   enhanceSkillIcons();
   const languageController = createLanguageController({
     pdfs: PDFS,
