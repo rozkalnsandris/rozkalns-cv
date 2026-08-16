@@ -138,7 +138,7 @@ class FrontendContractTests(unittest.TestCase):
         self.assertLess(html.index('id="projects"'), html.index('id="skills"'))
         self.assertLess(html.index('id="skills"'), html.index('id="experience"'))
         self.assertLess(html.index('id="experience"'), html.index('id="stats"'))
-        self.assertIn('grid-template-areas: "projects skills" "projects experience";', responsive)
+        self.assertIn('grid-template-areas: "projects skills" "experience experience";', responsive)
         self.assertIn('class="profile-languages"', html)
         stats = html[html.index('id="stats"'):html.index('id="education"')]
         self.assertNotIn('class="panel"', stats)
