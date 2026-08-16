@@ -809,7 +809,9 @@ async function runBrowserSmoke(baseUrl, state) {
           rowSizes: [...document.querySelectorAll('#github-projects > .skill-list .github-row')].map((row) => {
             const rect = row.getBoundingClientRect();
             return { width: rect.width, height: rect.height };
-          })
+          }),
+          skillBottom: document.querySelector('#skills')?.getBoundingClientRect().bottom,
+          githubTop: document.querySelector('#github-projects')?.getBoundingClientRect().top
         }))()`);
         assert.equal(githubProof.profile, "GitHub", `responsive ${viewport.width}px ${locale.label} GitHub profile link`);
         assert.deepEqual(githubProof.selected, ["hermes-tech", "RPi5_main", "hermes-deals", "rozkalns-control-center", "dashboard_RPi5"]);
@@ -825,6 +827,10 @@ async function runBrowserSmoke(baseUrl, state) {
           githubProof.rowSizes.every(({ width, height }) => width >= 120 && height >= 28 && height <= 34),
           `responsive ${viewport.width}px ${locale.label} GitHub rows must stay compact: ${JSON.stringify(githubProof.rowSizes)}`
         );
+        if (viewport.width >= 900) {
+          const railGap = githubProof.githubTop - githubProof.skillBottom;
+          assert.ok(railGap >= 20 && railGap <= 36, `responsive ${viewport.width}px ${locale.label} Skills/GitHub rail gap: ${railGap}`);
+        }
         const layout = await cdp.evaluate(`(() => {
           const page = document.querySelector('#pageShell')?.getBoundingClientRect();
           const launcherElement = document.querySelector('#chatLauncher');
