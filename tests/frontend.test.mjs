@@ -1761,12 +1761,12 @@ test("skill chips map to meaningful SVG icon families", () => {
 
 test("GitHub projects use a compact vertical icon list", async () => {
   const source = await readFile(resolve(ROOT, "frontend/index.html"), "utf8");
-  const section = source.match(/<section id="github-projects">([\s\S]*?)<\/section>/)?.[1] || "";
-  const featured = section.match(/<div class=skill-list>([\s\S]*?)<\/div>/)?.[1] || "";
+  const proof = source.match(/<div class=skill-row id=github-projects>([\s\S]*?)<\/div><\/dl>/)?.[1] || "";
+  const featured = proof.match(/<dd><div class=skill-list>([\s\S]*?)<\/div><details/)?.[1] || "";
   assert.equal((featured.match(/href=\/\/github\.com\/rozkalnsandris\//g) || []).length, 5);
-  assert.equal((section.match(/href=\/\/github\.com\/rozkalnsandris\//g) || []).length, 9);
-  assert.equal((section.match(/class="tech-tag has-tech-icon github-row"/g) || []).length, 9);
-  assert.match(section, /<details class=project-list><summary class="tech-tag">\+ 4 <span data-i18n=projects_title>Projects<\/span><\/summary><div class=skill-list>/);
+  assert.equal((proof.match(/href=\/\/github\.com\/rozkalnsandris\//g) || []).length, 9);
+  assert.equal((proof.match(/class="tech-tag has-tech-icon github-row"/g) || []).length, 9);
+  assert.match(proof, /<details class=project-list><summary class="tech-tag">\+ 4 <span data-i18n=projects_title>Projects<\/span><\/summary><div class=skill-list>/);
 });
 
 test("skill icons initialize before translation network work", async () => {
@@ -1877,9 +1877,9 @@ test("contact reveal payload must contain bounded contact shapes", () => {
 
 test("GitHub project overflow exposes direct repository links", async () => {
   const source = await readFile(resolve(ROOT, "frontend/index.html"), "utf8");
-  const section = source.match(/<section id="github-projects">([\s\S]*?)<\/section>/)?.[1] || "";
-  assert.match(section, /<details class=project-list><summary class="tech-tag">\+ 4 <span data-i18n=projects_title>Projects<\/span><\/summary><div class=skill-list>/);
+  const proof = source.match(/<div class=skill-row id=github-projects>([\s\S]*?)<\/div><\/dl>/)?.[1] || "";
+  assert.match(proof, /<details class=project-list><summary class="tech-tag">\+ 4 <span data-i18n=projects_title>Projects<\/span><\/summary><div class=skill-list>/);
   for (const repo of ["home-assistant-config", "balcony-irrigation-esp32", "rozkalns-cv", "ops-workflows"]) {
-    assert.ok(section.includes(`href=//github.com/rozkalnsandris/${repo}>${repo}</a>`), repo);
+    assert.ok(proof.includes(`href=//github.com/rozkalnsandris/${repo}>${repo}</a>`), repo);
   }
 });

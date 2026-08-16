@@ -82,10 +82,13 @@ class CssSourceContractTests(unittest.TestCase):
             self.assertNotRegex(path.read_text(encoding="utf-8"), r"@media \((?:min|max)-width:", path)
 
     def test_desktop_layout_contract_avoids_dead_column_and_full_launcher_overlap(self) -> None:
+        layout = (STYLES / "layout.css").read_text(encoding="utf-8")
         responsive = (STYLES / "responsive.css").read_text(encoding="utf-8")
         components = (STYLES / "components.css").read_text(encoding="utf-8")
         self.assertIn('grid-template-areas: "projects rail" "experience experience";', responsive)
-        self.assertIn(".work-rail { grid-area: rail; display: grid; gap: 28px; }", responsive)
+        self.assertIn("#skills { grid-area: rail; }", responsive)
+        self.assertNotIn(".work-rail", layout)
+        self.assertNotIn(".work-rail", responsive)
         self.assertIn("#experience .timeline { grid-template-columns: repeat(2,minmax(0,1fr));", responsive)
         self.assertIn(".chat-launcher { right: 18px; bottom: 18px; }", responsive)
         self.assertNotIn('content: "AI"', responsive)

@@ -7,7 +7,8 @@ INDEX = (ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
 
 class GitHubProjectLinksTest(unittest.TestCase):
     def test_public_repo_proof_uses_sidebar_and_excludes_private_repos(self) -> None:
-        self.assertIn('<section id="github-projects">', INDEX)
+        self.assertIn('<div class=skill-row id=github-projects>', INDEX)
+        self.assertNotIn('<section id="github-projects">', INDEX)
         self.assertIn('rel=me>GitHub</a>', INDEX)
         selected = ("hermes-tech", "RPi5_main", "hermes-deals", "rozkalns-control-center", "dashboard_RPi5")
         remaining = ("home-assistant-config", "balcony-irrigation-esp32", "rozkalns-cv", "ops-workflows")
@@ -16,7 +17,7 @@ class GitHubProjectLinksTest(unittest.TestCase):
         for repo in remaining:
             self.assertIn(repo, INDEX)
         self.assertIn('<details class=project-list>', INDEX)
-        self.assertIn('<h2 class=org>GitHub <span data-i18n=projects_title>Projects</span></h2>', INDEX)
+        self.assertIn('<dt>GitHub <span data-i18n=projects_title>Projects</span></dt>', INDEX)
         self.assertIn('<summary class="tech-tag">+ 4 <span data-i18n=projects_title>Projects</span></summary>', INDEX)
         self.assertNotIn("YouTube_Marcim", INDEX)
         self.assertNotIn("hermes-email-skill", INDEX)
