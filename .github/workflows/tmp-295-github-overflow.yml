@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  patch-build-verify:
+  finalize:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -27,63 +27,8 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
-      - name: Patch localized actionable GitHub overflow and build compaction
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import json
-
-          def replace_once(path, old, new):
-              text = path.read_text(encoding='utf-8')
-              if text.count(old) != 1:
-                  raise SystemExit(f'{path}: expected one replacement target, got {text.count(old)}')
-              path.write_text(text.replace(old, new), encoding='utf-8')
-
-          index = Path('frontend/index.html')
-          old = '<section id="github-projects"><div class=section-heading><h2>GitHub projects</h2></div><div class=skill-list><a href=//github.com/rozkalnsandris/hermes-tech>hermes-tech</a><a href=//github.com/rozkalnsandris/RPi5_main>RPi5_main</a><a href=//github.com/rozkalnsandris/hermes-deals>hermes-deals</a><a href=//github.com/rozkalnsandris/rozkalns-control-center>rozkalns-control-center</a><a href=//github.com/rozkalnsandris/dashboard_RPi5>dashboard_RPi5</a></div><details><summary class=org>+4</summary>home-assistant-config · balcony-irrigation-esp32 · rozkalns-cv · ops-workflows</details></section>'
-          new = '<section id="github-projects"><div class=section-heading><h2 data-i18n=github_projects_title>GitHub projects</h2></div><div class=skill-list><a href=//github.com/rozkalnsandris/hermes-tech>hermes-tech</a><a href=//github.com/rozkalnsandris/RPi5_main>RPi5_main</a><a href=//github.com/rozkalnsandris/hermes-deals>hermes-deals</a><a href=//github.com/rozkalnsandris/rozkalns-control-center>rozkalns-control-center</a><a href=//github.com/rozkalnsandris/dashboard_RPi5>dashboard_RPi5</a></div><details><summary class=org data-i18n=github_projects_more>4 more projects</summary><div class=skill-list><a href=//github.com/rozkalnsandris/home-assistant-config>home-assistant-config</a><a href=//github.com/rozkalnsandris/balcony-irrigation-esp32>balcony-irrigation-esp32</a><a href=//github.com/rozkalnsandris/rozkalns-cv>rozkalns-cv</a><a href=//github.com/rozkalnsandris/ops-workflows>ops-workflows</a></div></details></section>'
-          replace_once(index, old, new)
-
-          translations = {
-              'en': ('GitHub projects', '4 more projects'),
-              'de': ('GitHub-Projekte', '4 weitere Projekte'),
-              'lv': ('GitHub projekti', 'Vēl 4 projekti'),
-          }
-          for language, (title, more) in translations.items():
-              path = Path(f'content/translations/{language}.json')
-              data = json.loads(path.read_text(encoding='utf-8'))
-              if 'github_projects_title' in data or 'github_projects_more' in data:
-                  raise SystemExit(f'{path}: #295 translation keys already exist')
-              updated = {}
-              for key, value in data.items():
-                  updated[key] = value
-                  if key == 'projects_title':
-                      updated['github_projects_title'] = title
-                      updated['github_projects_more'] = more
-              path.write_text(json.dumps(updated, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
-
-          build = Path('scripts/build-frontend.mjs')
-          marker = 'async function removeGeneratedFrontend() {'
-          helpers = '''const translationSources = Object.freeze(LOCALIZED_LANGUAGES.map((language) =>\n  resolve(root, "content", "translations", `${language}.json`)\n));\n\nasync function withMinifiedTranslationSources(buildFrontend) {\n  const originals = await Promise.all(translationSources.map((path) => readFile(path, "utf8")));\n  try {\n    await Promise.all(translationSources.map((path, index) =>\n      writeFile(path, JSON.stringify(JSON.parse(originals[index])))\n    ));\n    await buildFrontend();\n  } finally {\n    await Promise.all(translationSources.map((path, index) => writeFile(path, originals[index])));\n  }\n}\n\nasync function compactGeneratedHtml() {\n  const paths = [\n    resolve(html, "index.html"),\n    resolve(html, "smarthome.html"),\n    ...LOCALIZED_LANGUAGES.map((language) => resolve(html, language, "index.html"))\n  ];\n  await Promise.all(paths.map(async (path) => {\n    const source = await readFile(path, "utf8");\n    await writeFile(path, source.replace(/^[ \\t]+/gm, ""));\n  }));\n}\n\n'''
-          text = build.read_text(encoding='utf-8')
-          if text.count(marker) != 1:
-              raise SystemExit('build-frontend helper insertion marker mismatch')
-          text = text.replace(marker, helpers + marker)
-          old_tail = '''await removeGeneratedFrontend();\nawait build({ configFile: resolve(root, "vite.config.mjs") });\nawait verifyGeneratedShape();\nawait renderLocalizedPages({ root, htmlRoot: html });\nawait bindLocalizedIdentity();'''
-          new_tail = '''await removeGeneratedFrontend();\nawait withMinifiedTranslationSources(() => build({ configFile: resolve(root, "vite.config.mjs") }));\nawait verifyGeneratedShape();\nawait renderLocalizedPages({ root, htmlRoot: html });\nawait compactGeneratedHtml();\nawait bindLocalizedIdentity();'''
-          if text.count(old_tail) != 1:
-              raise SystemExit('build-frontend tail mismatch')
-          build.write_text(text.replace(old_tail, new_tail), encoding='utf-8')
-
-          test_path = Path('tests/frontend.test.mjs')
-          test_text = test_path.read_text(encoding='utf-8')
-          if 'GitHub project overflow is localized and directly actionable' in test_text:
-              raise SystemExit('frontend #295 test already exists')
-          test_text += '''\n\ntest("GitHub project overflow is localized and directly actionable", async () => {\n  const source = await readFile(resolve(ROOT, "frontend/index.html"), "utf8");\n  assert.match(source, /<h2 data-i18n=github_projects_title>GitHub projects<\\/h2>/);\n  assert.match(source, /<summary class=org data-i18n=github_projects_more>4 more projects<\\/summary>/);\n  for (const repo of ["home-assistant-config", "balcony-irrigation-esp32", "rozkalns-cv", "ops-workflows"]) {\n    assert.ok(source.includes(`href=//github.com/rozkalnsandris/${repo}>${repo}</a>`), repo);\n  }\n  const expected = {\n    en: ["GitHub projects", "4 more projects"],\n    de: ["GitHub-Projekte", "4 weitere Projekte"],\n    lv: ["GitHub projekti", "Vēl 4 projekti"]\n  };\n  for (const [language, values] of Object.entries(expected)) {\n    const messages = JSON.parse(await readFile(resolve(ROOT, `content/translations/${language}.json`), "utf8"));\n    assert.equal(messages.github_projects_title, values[0]);\n    assert.equal(messages.github_projects_more, values[1]);\n  }\n});\n'''
-          test_path.write_text(test_text, encoding='utf-8')
-          PY
+      - name: Apply focused #295 patch
+        run: python3 scripts/tmp-295-finalize.py
 
       - name: Set up pinned Node.js frontend toolchain
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
@@ -91,7 +36,7 @@ jobs:
           node-version: '24.18.0'
           package-manager-cache: false
 
-      - name: Build and validate exact patched tree
+      - name: Validate source, budgets and deterministic frontend
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -115,13 +60,27 @@ jobs:
           cmp "$first" "$second"
           npm run check:frontend
 
-      - name: Commit verified source and deterministic output
+      - name: Run real Chromium frontend smoke
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          chrome_bin=''
+          for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
+            if command -v "$candidate" >/dev/null 2>&1; then
+              chrome_bin="$(command -v "$candidate")"
+              break
+            fi
+          done
+          test -n "$chrome_bin"
+          CHROME_BIN="$chrome_bin" node tests/browser-smoke.mjs
+
+      - name: Commit verified final tree
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -Eeuo pipefail
-          rm .github/workflows/tmp-295-github-overflow.yml
+          rm .github/workflows/tmp-295-github-overflow.yml scripts/tmp-295-finalize.py
           git add -A
           git diff --cached --check
           git commit -m 'feat: localize and link GitHub project overflow'
