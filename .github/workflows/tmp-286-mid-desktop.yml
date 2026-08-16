@@ -71,8 +71,10 @@ jobs:
               '  .contact-row { min-height: 30px; }\n',
               '  .focus-tags { max-width: 52ch; }\n',
           ))
+          education_grid = '  .education-list { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 0 24px; }\n'
           css = replace_once(css, desktop_header, '', '900px desktop hero rules')
-          css += '\n@media (min-width: 1120px) {\n' + desktop_header + '}\n'
+          css = replace_once(css, education_grid, '', '900px education grid')
+          css += '\n@media (min-width: 1120px) {\n' + desktop_header + education_grid + '}\n'
           responsive.write_text(css)
 
           smoke = Path('tests/browser-smoke.mjs')
@@ -145,6 +147,6 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add frontend/styles/responsive.css tests/browser-smoke.mjs frontend-dist-manifest.json html
           git diff --cached --quiet && exit 1
-          git commit -m 'fix: stabilize mid-desktop header navigation'
+          git commit -m 'fix: stabilize mid-desktop responsive layout'
           auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
           git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" push origin HEAD:fix/286-mid-desktop-header
