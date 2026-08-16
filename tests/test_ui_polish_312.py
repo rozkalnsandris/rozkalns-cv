@@ -4,6 +4,8 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 INDEX = (ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
+LAYOUT = (ROOT / "frontend" / "styles" / "layout.css").read_text(encoding="utf-8")
+COMPONENTS = (ROOT / "frontend" / "styles" / "components.css").read_text(encoding="utf-8")
 RESPONSIVE = (ROOT / "frontend" / "styles" / "responsive.css").read_text(encoding="utf-8")
 TOKENS = (ROOT / "frontend" / "styles" / "tokens.css").read_text(encoding="utf-8")
 
@@ -23,6 +25,8 @@ def contrast_ratio(foreground: str, background: str) -> float:
 class RecruiterUiPolishTest(unittest.TestCase):
     def test_hero_promotes_pdf_and_github_without_focus_pill_duplication(self) -> None:
         self.assertNotIn('class="focus-tags"', INDEX)
+        self.assertNotIn('"focus focus"', LAYOUT)
+        self.assertNotIn('"focus focus photo"', RESPONSIVE)
         actions = re.search(r'<div class="actions">(.*?)</div>', INDEX, re.S)
         self.assertIsNotNone(actions)
         markup = actions.group(1)
@@ -40,9 +44,10 @@ class RecruiterUiPolishTest(unittest.TestCase):
         self.assertIn('href=/smarthome.html', projects[2])
         self.assertIn('data-i18n=smart_demo', projects[2])
 
-    def test_compact_nav_and_desktop_experience_are_linear(self) -> None:
-        self.assertIn('@media (max-width: 639px)', RESPONSIVE)
-        self.assertIn('.site-nav a:first-child, .site-nav a:last-child { display: none; }', RESPONSIVE)
+    def test_compact_nav_is_mobile_first_and_desktop_experience_is_linear(self) -> None:
+        self.assertNotIn('@media (max-width:', RESPONSIVE)
+        self.assertIn('.site-nav a:first-child, .site-nav a:last-child { display: none; }', COMPONENTS)
+        self.assertIn('.site-nav a:first-child, .site-nav a:last-child { display: inline-flex; }', RESPONSIVE)
         self.assertIn('#experience .timeline { grid-template-columns: 1fr; }', RESPONSIVE)
         self.assertNotIn('#experience .timeline { grid-template-columns: repeat(2,minmax(0,1fr));', RESPONSIVE)
 
