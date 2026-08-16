@@ -49,13 +49,11 @@ jobs:
 
           css = Path('frontend/styles/components.css')
           css_text = css.read_text(encoding='utf-8')
-          marker = '.github-row svg { box-shadow: 0 0 0 4px var(--accent-soft); }\n'
-          rule = '#github-projects dd { display: grid; }\n'
-          if rule in css_text:
-              raise SystemExit('GitHub proof dd grid rule already exists')
-          if css_text.count(marker) != 1:
-              raise SystemExit('unexpected github-row svg marker count')
-          css.write_text(css_text.replace(marker, marker + rule, 1), encoding='utf-8')
+          old_grid = '.timeline, .project-list, .skill-list, .education-list { display: grid; }'
+          new_grid = '.timeline, .project-list, .skill-list, .education-list, #github-projects dd, #github-projects details { display: grid; }'
+          if css_text.count(old_grid) != 1:
+              raise SystemExit(f'expected one shared grid selector, got {css_text.count(old_grid)}')
+          css.write_text(css_text.replace(old_grid, new_grid, 1), encoding='utf-8')
 
           browser = Path('tests/browser-smoke.mjs')
           browser_text = browser.read_text(encoding='utf-8')
@@ -69,12 +67,12 @@ jobs:
                   raise SystemExit(f'missing browser selector: {old}')
               browser_text = browser_text.replace(old, new)
           old = """          proofParent: document.querySelector('#github-projects')?.closest('section')?.id,\n          proofTag: document.querySelector('#github-projects')?.tagName\n"""
-          new = """          proofParent: document.querySelector('#github-projects')?.closest('section')?.id,\n          proofTag: document.querySelector('#github-projects')?.tagName,\n          nestedFeaturedList: Boolean(document.querySelector('#github-projects > dd > .skill-list')),\n          proofDisplay: getComputedStyle(document.querySelector('#github-projects > dd')).display,\n          disclosureUsesProjectList: document.querySelector('#github-projects > dd > details')?.classList.contains('project-list') || false\n"""
+          new = """          proofParent: document.querySelector('#github-projects')?.closest('section')?.id,\n          proofTag: document.querySelector('#github-projects')?.tagName,\n          nestedFeaturedList: Boolean(document.querySelector('#github-projects > dd > .skill-list')),\n          proofDisplay: getComputedStyle(document.querySelector('#github-projects > dd')).display,\n          disclosureDisplay: getComputedStyle(document.querySelector('#github-projects > dd > details')).display,\n          disclosureUsesProjectList: document.querySelector('#github-projects > dd > details')?.classList.contains('project-list') || false\n"""
           if browser_text.count(old) != 1:
               raise SystemExit('browser proof contract marker not found exactly once')
           browser_text = browser_text.replace(old, new, 1)
           old_assert = """        assert.equal(githubProof.proofParent, 'skills', `responsive ${viewport.width}px ${locale.label} GitHub proof parent`);\n        assert.equal(githubProof.proofTag, 'DIV', `responsive ${viewport.width}px ${locale.label} GitHub proof row tag`);\n"""
-          new_assert = old_assert + """        assert.equal(githubProof.nestedFeaturedList, false, `responsive ${viewport.width}px ${locale.label} nested GitHub list seam`);\n        assert.equal(githubProof.proofDisplay, 'grid', `responsive ${viewport.width}px ${locale.label} GitHub proof grid`);\n        assert.equal(githubProof.disclosureUsesProjectList, false, `responsive ${viewport.width}px ${locale.label} disclosure section seam`);\n"""
+          new_assert = old_assert + """        assert.equal(githubProof.nestedFeaturedList, false, `responsive ${viewport.width}px ${locale.label} nested GitHub list seam`);\n        assert.equal(githubProof.proofDisplay, 'grid', `responsive ${viewport.width}px ${locale.label} GitHub proof grid`);\n        assert.equal(githubProof.disclosureDisplay, 'grid', `responsive ${viewport.width}px ${locale.label} GitHub disclosure grid`);\n        assert.equal(githubProof.disclosureUsesProjectList, false, `responsive ${viewport.width}px ${locale.label} disclosure section seam`);\n"""
           if browser_text.count(old_assert) != 1:
               raise SystemExit('browser proof assertion marker not found exactly once')
           browser.write_text(browser_text.replace(old_assert, new_assert, 1), encoding='utf-8')
