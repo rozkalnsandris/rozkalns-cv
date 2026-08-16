@@ -1,0 +1,206 @@
+name: Temporary 282 safe rail
+
+on:
+  push:
+    branches:
+      - fix/282-chat-launcher-safe-rail
+
+permissions:
+  contents: write
+
+jobs:
+  patch-build:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact branch head
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "$GITHUB_SHA"
+          git checkout -b fix/282-chat-launcher-safe-rail FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Patch launcher placement and browser contract
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          app = Path('frontend/app.mjs')
+          text = app.read_text()
+          anchor = '''export function installPreloadErrorRecovery(windowLike = globalThis.window) {'''
+          addition = '''export function updateChatLauncherPlacement({
+            documentLike = globalThis.document,
+            viewportWidth = globalThis.innerWidth,
+            rightInset = 14
+          } = {}) {
+            const launcher = documentLike?.querySelector?.("#chatLauncher");
+            const page = documentLike?.querySelector?.("#pageShell");
+            const actions = documentLike?.querySelector?.(".actions");
+            const body = documentLike?.body;
+            const width = Number(viewportWidth);
+            const pageRect = page?.getBoundingClientRect?.();
+            const launcherRect = launcher?.getBoundingClientRect?.();
+            if (!launcher || !actions || !body || !pageRect || !launcherRect || !Number.isFinite(width)) return false;
+            const rail = width - pageRect.right >= launcherRect.width + rightInset;
+            launcher.classList.toggle("chat-launcher-inline", !rail);
+            launcher.dataset.placement = rail ? "rail" : "inline";
+            if (rail && launcher.parentElement !== body) {
+              body.insertBefore(launcher, documentLike.querySelector?.("#chatBackdrop") || null);
+            } else if (!rail && launcher.parentElement !== actions) {
+              actions.append(launcher);
+            }
+            return true;
+          }
+
+          function syncChatLauncher(messages) {
+            updateChatLauncherLabel({ messages });
+            updateChatLauncherPlacement();
+          }
+
+          '''
+          if text.count(anchor) != 1:
+              raise SystemExit('app placement anchor mismatch')
+          text = text.replace(anchor, addition + anchor)
+          old = '''    onApplied(state) {
+                updateMainDocumentTitle(state);
+                updateChatLauncherLabel(state);
+              },'''
+          new = '''    onApplied(state) {
+                updateMainDocumentTitle(state);
+                syncChatLauncher(state.messages);
+              },'''
+          if text.count(old) != 1:
+              raise SystemExit('app onApplied anchor mismatch')
+          text = text.replace(old, new)
+          old = '''  window.addEventListener("resize", () => updateChatLauncherLabel(
+            { messages: languageController.messages },
+            { viewportWidth: window.innerWidth }
+          ), { passive: true });'''
+          new = '''  window.addEventListener("resize", () => syncChatLauncher(languageController.messages), { passive: true });'''
+          if text.count(old) != 1:
+              raise SystemExit('app resize anchor mismatch')
+          text = text.replace(old, new)
+          app.write_text(text)
+
+          css = Path('frontend/styles/features/chat.css')
+          text = css.read_text()
+          anchor = '.chat-launcher:hover { transform: translateY(-2px); background: var(--accent-strong); }\n'
+          if text.count(anchor) != 1:
+              raise SystemExit('chat css anchor mismatch')
+          text = text.replace(anchor, anchor + '.chat-launcher-inline { position: static; }\n')
+          css.write_text(text)
+
+          smoke = Path('tests/browser-smoke.mjs')
+          text = smoke.read_text()
+          old = '''      { width: 768, height: 1024, mobile: false },
+                { width: 1280, height: 900, mobile: false },
+                { width: 1440, height: 1000, mobile: false }'''
+          new = '''      { width: 768, height: 1024, mobile: false },
+                { width: 1280, height: 900, mobile: false },
+                { width: 1365, height: 900, mobile: false },
+                { width: 1440, height: 1000, mobile: false },
+                { width: 1600, height: 1000, mobile: false }'''
+          if text.count(old) != 1:
+              raise SystemExit('browser viewport anchor mismatch')
+          text = text.replace(old, new)
+          old = '''          const page = document.querySelector('#pageShell')?.getBoundingClientRect();
+                    const locationRow = document.querySelector('#profileLocation')?.closest('.contact-row');
+                    const primaryTargets = [...document.querySelectorAll('''
+          new = '''          const page = document.querySelector('#pageShell')?.getBoundingClientRect();
+                    const launcherElement = document.querySelector('#chatLauncher');
+                    const launcherRect = launcherElement?.getBoundingClientRect();
+                    const locationRow = document.querySelector('#profileLocation')?.closest('.contact-row');
+                    const primaryTargets = [...document.querySelectorAll('''
+          if text.count(old) != 1:
+              raise SystemExit('browser layout anchor mismatch')
+          text = text.replace(old, new)
+          old = '''            page: page ? { left: page.left, right: page.right, width: page.width } : null,
+                    location: locationRow ? {'''
+          new = '''            page: page ? { left: page.left, right: page.right, width: page.width } : null,
+                    launcher: launcherElement && launcherRect ? {
+                      placement: launcherElement.dataset.placement,
+                      position: getComputedStyle(launcherElement).position,
+                      parentClass: launcherElement.parentElement?.className || '',
+                      text: launcherElement.textContent.trim(),
+                      left: launcherRect.left,
+                      right: launcherRect.right,
+                      width: launcherRect.width
+                    } : null,
+                    location: locationRow ? {'''
+          if text.count(old) != 1:
+              raise SystemExit('browser return anchor mismatch')
+          text = text.replace(old, new)
+          old = '''        assert.ok(layout.location, `${context} location row missing`);
+                assert.ok(
+                  layout.location.scrollWidth <= layout.location.clientWidth,'''
+          new = '''        assert.ok(layout.launcher, `${context} chat launcher missing`);
+                assert.notEqual(layout.launcher.text, "AI", `${context} ambiguous launcher label`);
+                if (layout.launcher.placement === "rail") {
+                  assert.equal(layout.launcher.position, "fixed", `${context} rail launcher position`);
+                  assert.ok(
+                    layout.launcher.left >= layout.page.right - 0.5,
+                    `${context} rail launcher overlaps page: ${JSON.stringify(layout.launcher)}`
+                  );
+                } else {
+                  assert.equal(layout.launcher.placement, "inline", `${context} launcher placement`);
+                  assert.equal(layout.launcher.position, "static", `${context} inline launcher position`);
+                  assert.match(layout.launcher.parentClass, /(^|\\s)actions(\\s|$)/, `${context} inline launcher parent`);
+                  assert.ok(
+                    layout.launcher.left >= layout.page.left - 0.5 && layout.launcher.right <= layout.page.right + 0.5,
+                    `${context} inline launcher outside page: ${JSON.stringify(layout.launcher)}`
+                  );
+                }
+                assert.ok(layout.location, `${context} location row missing`);
+                assert.ok(
+                  layout.location.scrollWidth <= layout.location.clientWidth,'''
+          if text.count(old) != 1:
+              raise SystemExit('browser assertion anchor mismatch')
+          text = text.replace(old, new)
+          smoke.write_text(text)
+          PY
+
+      - name: Set up pinned Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '24.18.0'
+          package-manager-cache: false
+
+      - name: Build and verify
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build:frontend
+          npm run check:frontend
+          node --check frontend/app.mjs
+          node --check tests/browser-smoke.mjs
+          node --test tests/frontend.test.mjs
+          chrome_bin=''
+          for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
+            if command -v "$candidate" >/dev/null 2>&1; then chrome_bin="$(command -v "$candidate")"; break; fi
+          done
+          test -n "$chrome_bin"
+          CHROME_BIN="$chrome_bin" node tests/browser-smoke.mjs
+
+      - name: Commit focused source and deterministic output
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add frontend/app.mjs frontend/styles/features/chat.css tests/browser-smoke.mjs frontend-dist-manifest.json html
+          git diff --cached --quiet && exit 0
+          git commit -m 'fix: keep CV assistant launcher out of content'
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" push origin HEAD:fix/282-chat-launcher-safe-rail
