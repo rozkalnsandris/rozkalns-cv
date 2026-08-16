@@ -51,6 +51,8 @@ jobs:
           find . -type d -name __pycache__ -prune -exec rm -rf {} +
           bash scripts/validate-source.sh "$PWD"
       - name: Commit final branch
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -Eeuo pipefail
           rm .github/workflows/tmp-301-unified-work-rail.yml scripts/tmp-301-finalize.py
@@ -58,4 +60,5 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -A
           git commit -m 'fix: unify Skills and GitHub right rail'
-          git push origin HEAD:fix/301-unified-work-rail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" push origin HEAD:fix/301-unified-work-rail
