@@ -39,7 +39,7 @@ jobs:
           css = css.replace('.project-list { display: grid; gap: 0; border-top: 1px solid var(--border); }', '.project-list { gap: 0; border-top: 1px solid var(--border); }', 1)
           css = css.replace('min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent;', 'min-height: 0;', 1)
           anchor = '.tech-tag svg { width: 12px; height: 12px; flex: 0 0 12px; color: var(--accent); opacity: .9; }'
-          addition = anchor + '\n.github-row { width: 100%; text-decoration: none; }\n.github-row::after { content: "↗"; margin-left: auto; }\n.github-row svg { border-radius: 3px; box-shadow: 0 0 0 4px var(--accent-soft); margin: 0 4px; }'
+          addition = anchor + '\n.github-row { text-decoration: none; }\n.github-row:after { content: "↗"; margin-left: auto; }\n.github-row svg { box-shadow: 0 0 0 4px var(--accent-soft); }'
           if anchor not in css: raise SystemExit('tech-tag SVG CSS anchor missing')
           css = css.replace(anchor, addition, 1)
           css_path.write_text(css, encoding='utf-8')
