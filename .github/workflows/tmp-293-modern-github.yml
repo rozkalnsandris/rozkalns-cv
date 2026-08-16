@@ -1,0 +1,124 @@
+name: tmp-293-modern-github
+
+on:
+  push:
+    branches:
+      - feat/293-modern-github-project-list
+
+permissions:
+  contents: write
+
+jobs:
+  patch-build-verify:
+    if: startsWith(github.event.head_commit.message, 'ci: add temporary #293')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact branch head
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin feat/293-modern-github-project-list
+          git checkout -B feat/293-modern-github-project-list FETCH_HEAD
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+
+      - name: Patch GitHub project list and icon contracts
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          index = Path('frontend/index.html')
+          text = index.read_text(encoding='utf-8')
+          old = '<section id="github-projects"><div class=section-heading><h2>GitHub projects</h2></div><div class=skill-chips><a href=//github.com/rozkalnsandris/hermes-tech>hermes-tech</a><a href=//github.com/rozkalnsandris/RPi5_main>RPi5_main</a><a href=//github.com/rozkalnsandris/hermes-deals>hermes-deals</a><a href=//github.com/rozkalnsandris/rozkalns-control-center>rozkalns-control-center</a><a href=//github.com/rozkalnsandris/dashboard_RPi5>dashboard_RPi5</a></div><details><summary class=org>+4</summary>home-assistant-config · balcony-irrigation-esp32 · rozkalns-cv · ops-workflows</details></section>'
+          new = old.replace('class=skill-chips', 'class=skill-list', 1)
+          if text.count(old) != 1:
+              raise SystemExit(f'expected one GitHub project section, found {text.count(old)}')
+          index.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          icons = Path('frontend/ui/icons.mjs')
+          text = icons.read_text(encoding='utf-8')
+          replacements = {
+              '/chromadb|database|sqlite|postgres|mysql/': '/chromadb|database|sqlite|postgres|mysql|deals/',
+              '/prometheus|grafana|node exporter|live metrics|energy/': '/prometheus|grafana|node exporter|live metrics|energy|dashboard/',
+              '/systemd|apt/': '/systemd|apt|control-center/',
+              '/raspberry pi|esp32|iot|matter|sensor|relay|multiplexer/': '/raspberry pi|esp32|iot|matter|sensor|relay|multiplexer|rpi5/',
+              'root.querySelectorAll(".skill-chip").forEach((chip) => {': 'root.querySelectorAll(".skill-chip, #github-projects a").forEach((chip) => {'
+          }
+          for before, after in replacements.items():
+              if text.count(before) != 1:
+                  raise SystemExit(f'icon patch contract mismatch for {before!r}: {text.count(before)}')
+              text = text.replace(before, after, 1)
+          icons.write_text(text, encoding='utf-8')
+
+          tests = Path('tests/frontend.test.mjs')
+          text = tests.read_text(encoding='utf-8')
+          marker = '  assert.equal(skillIconName("Terraform"), "cloud");\n'
+          addition = marker + '  assert.equal(skillIconName("RPi5_main"), "chip");\n  assert.equal(skillIconName("hermes-deals"), "database");\n  assert.equal(skillIconName("rozkalns-control-center"), "gear");\n  assert.equal(skillIconName("dashboard_RPi5"), "chart");\n'
+          if text.count(marker) != 1:
+              raise SystemExit('skill icon mapping test marker mismatch')
+          text = text.replace(marker, addition, 1)
+
+          old_root = '    const root = {\n      querySelectorAll(selector) { return selector === ".skill-chip" ? [chip] : []; },\n      createElementNS(_namespace, tagName) {'
+          new_root = '    const root = {\n      querySelectorAll(selector) { return selector === ".skill-chip, #github-projects a" ? [chip] : []; },\n      createElementNS(_namespace, tagName) {'
+          if text.count(old_root) != 1:
+              raise SystemExit(f'icon idempotence root marker mismatch: {text.count(old_root)}')
+          text = text.replace(old_root, new_root, 1)
+
+          next_test = 'test("skill icons initialize before translation network work", async () => {'
+          source_test = '''test("GitHub projects use a compact vertical icon list", async () => {\n  const source = await readFile(resolve(ROOT, "frontend/index.html"), "utf8");\n  const section = source.match(/<section id="github-projects">([\\s\\S]*?)<\\/section>/)?.[1] || "";\n  assert.match(section, /class=skill-list/);\n  assert.equal((section.match(/href=\\/\\/github\\.com\\/rozkalnsandris\\//g) || []).length, 5);\n  assert.match(section, /<details><summary class=org>\\+4<\\/summary>/);\n});\n\n'''
+          if text.count(next_test) != 1:
+              raise SystemExit('GitHub project source-test insertion marker mismatch')
+          text = text.replace(next_test, source_test + next_test, 1)
+          tests.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Build and validate frontend
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash scripts/validate-source.sh "$PWD"
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build:frontend
+          npm run check:frontend
+          node --check frontend/ui/icons.mjs
+          node --test tests/frontend.test.mjs
+          chrome_bin=''
+          for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
+            if command -v "$candidate" >/dev/null 2>&1; then chrome_bin="$(command -v "$candidate")"; break; fi
+          done
+          test -n "$chrome_bin"
+          CHROME_BIN="$chrome_bin" node tests/browser-smoke.mjs
+          first="${RUNNER_TEMP}/frontend-first.sha256"
+          second="${RUNNER_TEMP}/frontend-second.sha256"
+          {
+            find html/assets html/i18n -type f -print0
+            printf '%s\0' html/index.html html/smarthome.html frontend-dist-manifest.json
+          } | sort -z | xargs -0 sha256sum > "$first"
+          npm run build:frontend
+          {
+            find html/assets html/i18n -type f -print0
+            printf '%s\0' html/index.html html/smarthome.html frontend-dist-manifest.json
+          } | sort -z | xargs -0 sha256sum > "$second"
+          cmp "$first" "$second"
+          npm run check:frontend
+
+      - name: Commit verified source and deterministic output
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git rm .github/workflows/tmp-293-modern-github.yml
+          git add frontend/index.html frontend/ui/icons.mjs tests/frontend.test.mjs frontend-dist-manifest.json html
+          git diff --cached --check
+          git commit -m 'feat: modernize GitHub projects sidebar list'
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" push origin HEAD:feat/293-modern-github-project-list
