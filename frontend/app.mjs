@@ -24,6 +24,20 @@ export function updateMainDocumentTitle({ messages }, { documentLike = globalThi
   return true;
 }
 
+export function updateChatLauncherLabel({ messages }, {
+  documentLike = globalThis.document,
+  viewportWidth = globalThis.innerWidth
+} = {}) {
+  const launcher = documentLike?.querySelector?.("#chatLauncher");
+  const width = Number(viewportWidth);
+  if (!launcher || !Number.isFinite(width)) return false;
+  const key = width >= 720 && width < 1560 ? "chat_title" : "chat_open";
+  const label = messages?.[key];
+  if (typeof label !== "string" || !label.trim()) return false;
+  launcher.textContent = label;
+  return true;
+}
+
 export function installPreloadErrorRecovery(windowLike = globalThis.window) {
   if (
     typeof windowLike?.addEventListener !== "function" ||
@@ -130,7 +144,10 @@ async function init() {
   enhanceSkillIcons();
   const languageController = createLanguageController({
     pdfs: PDFS,
-    onApplied: updateMainDocumentTitle,
+    onApplied(state) {
+      updateMainDocumentTitle(state);
+      updateChatLauncherLabel(state);
+    },
     initialLanguage: document.documentElement.lang
   });
   await languageController.tryApply(languageController.language);
@@ -142,6 +159,10 @@ async function init() {
   if (requestedWhatsAppContact()) await activateContact?.();
 
   installLazyChat(languageController);
+  window.addEventListener("resize", () => updateChatLauncherLabel(
+    { messages: languageController.messages },
+    { viewportWidth: window.innerWidth }
+  ), { passive: true });
   createNavigationObserver();
 }
 
