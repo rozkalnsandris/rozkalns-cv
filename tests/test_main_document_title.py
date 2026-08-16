@@ -21,7 +21,13 @@ class MainDocumentTitleTests(unittest.TestCase):
         self.assertIn("const role = messages?.role;", source)
         self.assertIn('role.startsWith("Junior ")', source)
         self.assertIn('documentLike.title = `Andris Rožkalns · ${titleRole}`;', source)
-        self.assertIn("onApplied: updateMainDocumentTitle,", source)
+        self.assertIn("onApplied(state) {", source)
+        self.assertIn("updateMainDocumentTitle(state);", source)
+        self.assertIn("updateChatLauncherLabel(state);", source)
+        self.assertLess(
+            source.index("updateMainDocumentTitle(state);"),
+            source.index("updateChatLauncherLabel(state);"),
+        )
         self.assertIn("initialLanguage: document.documentElement.lang", source)
         self.assertIn("await languageController.tryApply(languageController.language);", source)
 
