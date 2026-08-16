@@ -1,0 +1,173 @@
+name: Temporary assistant label rebuild
+
+on:
+  push:
+    branches:
+      - fix/280-responsive-cv-assistant-labels
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact branch head
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            fetch --no-tags origin "$GITHUB_SHA"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Apply focused responsive launcher change
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              p = Path(path)
+              text = p.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one replacement target, found {count}")
+              p.write_text(text.replace(old, new), encoding="utf-8")
+
+          replace_once(
+              "frontend/index.html",
+              '<button id="chatLauncher" class="chat-launcher" type="button" data-i18n="chat_open">Ask the CV assistant</button>',
+              '<button id="chatLauncher" class="chat-launcher" type="button" data-i18n-label="chat_open" aria-label="Ask the CV assistant"><span class="chat-launcher-label-long" data-i18n="chat_open">Ask the CV assistant</span><span class="chat-launcher-label-short" data-i18n="chat_title">CV assistant</span></button>',
+          )
+
+          replace_once(
+              "frontend/styles/features/chat.css",
+              '.chat-launcher { position: fixed; z-index: 40; right: 14px; bottom: 14px; min-height: 50px; padding: 13px 18px; border: 1px solid rgba(255,255,255,.32); border-radius: 999px; background: var(--accent); color: #fff; cursor: pointer; font-weight: 800; box-shadow: 0 12px 30px rgba(36,87,214,.28); transition: transform .14s ease, background .14s ease; }\n',
+              '.chat-launcher { position: fixed; z-index: 40; right: 14px; bottom: 14px; min-height: 50px; padding: 13px 18px; border: 1px solid rgba(255,255,255,.32); border-radius: 999px; background: var(--accent); color: #fff; cursor: pointer; font-weight: 800; box-shadow: 0 12px 30px rgba(36,87,214,.28); transition: transform .14s ease, background .14s ease; }\n.chat-launcher-label-short { display: none; }\n',
+          )
+
+          replace_once(
+              "frontend/styles/tokens.css",
+              '  --breakpoint-contact: 720px;\n',
+              '  --breakpoint-contact: 720px;\n  --breakpoint-wide: 1560px;\n',
+          )
+
+          replace_once(
+              "frontend/styles/responsive.css",
+              '  .chat-launcher { right: 22px; bottom: 22px; }\n',
+              '  .chat-launcher { right: 22px; bottom: 22px; }\n  .chat-launcher-label-long { display: none; }\n  .chat-launcher-label-short { display: inline; }\n',
+          )
+          replace_once(
+              "frontend/styles/responsive.css",
+              '  .chat-launcher { right: 18px; bottom: 18px; width: 52px; min-width: 52px; height: 52px; padding: 0; font-size: 0; }\n  .chat-launcher::before { content: "AI"; font-size: 12px; line-height: 52px; }\n',
+              '  .chat-launcher { right: 18px; bottom: 18px; }\n',
+          )
+          responsive = Path("frontend/styles/responsive.css")
+          text = responsive.read_text(encoding="utf-8")
+          wide = '\n@media (min-width: 1560px) {\n  .chat-launcher-label-long { display: inline; }\n  .chat-launcher-label-short { display: none; }\n}\n'
+          if "@media (min-width: 1560px)" in text:
+              raise SystemExit("wide launcher breakpoint already exists")
+          responsive.write_text(text.rstrip() + wide, encoding="utf-8")
+
+          replace_once(
+              "tests/test_css_source_contract.py",
+              '            "--breakpoint-compact:", "--breakpoint-contact:",\n',
+              '            "--breakpoint-compact:", "--breakpoint-contact:", "--breakpoint-wide:",\n',
+          )
+          replace_once(
+              "tests/test_css_source_contract.py",
+              '                "breakpoint-contact": "720px",\n',
+              '                "breakpoint-contact": "720px",\n                "breakpoint-wide": "1560px",\n',
+          )
+          replace_once(
+              "tests/test_css_source_contract.py",
+              '            [values["breakpoint-compact"], values["breakpoint-contact"], values["breakpoint-layout"]],\n',
+              '            [values["breakpoint-compact"], values["breakpoint-contact"], values["breakpoint-layout"], values["breakpoint-wide"]],\n',
+          )
+          replace_once(
+              "tests/test_css_source_contract.py",
+              '        self.assertIn(".chat-launcher { right: 18px; bottom: 18px; width: 52px;", responsive)\n        self.assertIn(\'.chat-launcher::before { content: "AI";\', responsive)\n',
+              '        html = (ROOT / "frontend" / "index.html").read_text(encoding="utf-8")\n        self.assertIn(\'data-i18n-label="chat_open"\', html)\n        self.assertIn(\'data-i18n="chat_title">CV assistant</span>\', html)\n        self.assertNotIn(\'content: "AI"\', responsive)\n        self.assertIn(".chat-launcher-label-short { display: inline; }", responsive)\n        self.assertIn("@media (min-width: 1560px)", responsive)\n',
+          )
+          PY
+          python3 -m unittest tests.test_css_source_contract
+
+      - name: Set up pinned Node.js frontend toolchain
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.18.0'
+          package-manager-cache: false
+
+      - name: Rebuild deterministic frontend
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build:frontend
+          first="${RUNNER_TEMP}/first.sha256"
+          second="${RUNNER_TEMP}/second.sha256"
+          {
+            find html/assets html/i18n -type f -print0
+            printf '%s\0' html/index.html html/smarthome.html html/en/index.html html/de/index.html html/lv/index.html frontend-dist-manifest.json
+          } | sort -z | xargs -0 sha256sum > "$first"
+          npm run build:frontend
+          {
+            find html/assets html/i18n -type f -print0
+            printf '%s\0' html/index.html html/smarthome.html html/en/index.html html/de/index.html html/lv/index.html frontend-dist-manifest.json
+          } | sort -z | xargs -0 sha256sum > "$second"
+          cmp "$first" "$second"
+          npm run check:frontend
+
+      - name: Commit only focused source and generated output
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import subprocess
+          allowed = {
+              "frontend/index.html",
+              "frontend/styles/features/chat.css",
+              "frontend/styles/responsive.css",
+              "frontend/styles/tokens.css",
+              "tests/test_css_source_contract.py",
+              "frontend-dist-manifest.json",
+              "html/index.html",
+              "html/smarthome.html",
+              "html/en/index.html",
+              "html/de/index.html",
+              "html/lv/index.html",
+          }
+          changed = set(subprocess.check_output(["git", "status", "--porcelain"], text=True).splitlines())
+          paths = {line[3:] for line in changed}
+          unexpected = {p for p in paths if p not in allowed and not p.startswith("html/assets/") and not p.startswith("html/i18n/")}
+          if unexpected:
+              raise SystemExit(f"unexpected changed paths: {sorted(unexpected)}")
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- \
+            frontend/index.html \
+            frontend/styles/features/chat.css \
+            frontend/styles/responsive.css \
+            frontend/styles/tokens.css \
+            tests/test_css_source_contract.py \
+            frontend-dist-manifest.json \
+            html/assets html/i18n \
+            html/index.html html/smarthome.html \
+            html/en/index.html html/de/index.html html/lv/index.html
+          git diff --cached --quiet && { echo 'no changes to commit'; exit 1; }
+          git commit -m 'fix: restore descriptive CV assistant launcher labels'
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            push origin HEAD:refs/heads/fix/280-responsive-cv-assistant-labels
