@@ -91,6 +91,12 @@ jobs:
           )
           js = replace_once(
               js,
+              '''            bodyScrollWidth: document.body.scrollWidth,\n            page:''',
+              '''            bodyScrollWidth: document.body.scrollWidth,\n            overflowingElements: [...document.querySelectorAll('body *')].map((element) => {\n              const rect = element.getBoundingClientRect();\n              return {\n                tag: element.tagName,\n                id: element.id || '',\n                className: typeof element.className === 'string' ? element.className : '',\n                left: rect.left,\n                right: rect.right,\n                width: rect.width\n              };\n            }).filter((item) => item.left < -1 || item.right > document.documentElement.clientWidth + 1).slice(0, 12),\n            page:''',
+              'overflow diagnostics'
+          )
+          js = replace_once(
+              js,
               '''            page: page ? { left: page.left, right: page.right, width: page.width } : null,\n            launcher:''',
               '''            page: page ? { left: page.left, right: page.right, width: page.width } : null,\n            header: headerRect ? { left: headerRect.left, right: headerRect.right } : null,\n            navigation: navigationElement && navigationRect ? {\n              left: navigationRect.left,\n              right: navigationRect.right,\n              clientWidth: navigationElement.clientWidth,\n              scrollWidth: navigationElement.scrollWidth\n            } : null,\n            languageSwitcher: languageRect ? { left: languageRect.left, right: languageRect.right } : null,\n            launcher:''',
               'header geometry result'
