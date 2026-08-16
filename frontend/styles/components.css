@@ -40,7 +40,7 @@
 .entry ul { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 7px 0 0; padding: 0; list-style: none; }
 .entry li { position: relative; padding-inline-start: 11px; color: var(--text-dim); font-size: 12.5px; line-height: 1.5; }
 .entry li::before { content: ""; position: absolute; inset-inline-start: 0; top: .62em; width: 4px; height: 4px; border-radius: 50%; background: var(--accent); opacity: .5; }
-.project-list { display: grid; gap: 0; border-top: 1px solid var(--border); }
+.project-list { gap: 0; border-top: 1px solid var(--border); }
 .project-entry { display: grid; min-width: 0; padding: 20px 0; border-bottom: 1px solid var(--border); }
 .project-entry.primary { grid-template-columns: 30px 48px minmax(0,1fr); gap: 12px; }
 .project-entry.primary:hover { background: var(--surface-2); }
@@ -59,12 +59,15 @@
 .tech-tag::before { content: ""; width: 4px; height: 4px; border-radius: 50%; background: var(--accent); opacity: .75; }
 .tech-tag.has-tech-icon::before { display: none; }
 .tech-tag svg { width: 12px; height: 12px; flex: 0 0 12px; color: var(--accent); opacity: .9; }
+.github-row { text-decoration: none; }
+.github-row:after { content: "↗"; margin-left: auto; }
+.github-row svg { box-shadow: 0 0 0 4px var(--accent-soft); }
 .skill-list { margin: 0; gap: 0; border-top: 1px solid var(--border); }
 .skill-row { display: grid; grid-template-columns: 1fr; gap: 7px; padding: 13px 0; border-bottom: 1px solid var(--border); }
 .skill-row dt { color: var(--accent-strong); font: 800 10.5px/1.4 var(--sans); letter-spacing: .08em; text-transform: uppercase; }
 .skill-row dd { margin: 0; }
 .skill-chips { display: flex; flex-wrap: wrap; gap: 6px 12px; }
-.skill-chip { display: inline-flex; align-items: center; gap: 5px; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--text-dim); font-size: 12.5px; line-height: 1.5; }
+.skill-chip { display: inline-flex; align-items: center; gap: 5px; min-height: 0; color: var(--text-dim); font-size: 12.5px; line-height: 1.5; }
 .skill-chip svg { width: 13px; height: 13px; flex: 0 0 13px; color: var(--accent); opacity: .9; }
 .skill-chip:hover { color: var(--text); }
 .education-list { gap: 0; border-top: 1px solid var(--border); }

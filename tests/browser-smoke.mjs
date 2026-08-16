@@ -805,6 +805,10 @@ async function runBrowserSmoke(baseUrl, state) {
           iconSizes: [...document.querySelectorAll('#github-projects a svg')].map((icon) => {
             const rect = icon.getBoundingClientRect();
             return { width: rect.width, height: rect.height };
+          }),
+          rowSizes: [...document.querySelectorAll('#github-projects > .skill-list .github-row')].map((row) => {
+            const rect = row.getBoundingClientRect();
+            return { width: rect.width, height: rect.height };
           })
         }))()`);
         assert.equal(githubProof.profile, "GitHub", `responsive ${viewport.width}px ${locale.label} GitHub profile link`);
@@ -815,6 +819,11 @@ async function runBrowserSmoke(baseUrl, state) {
         assert.ok(
           githubProof.iconSizes.every(({ width, height }) => width >= 12 && width <= 14 && height >= 12 && height <= 14),
           `responsive ${viewport.width}px ${locale.label} GitHub icons must stay compact: ${JSON.stringify(githubProof.iconSizes)}`
+        );
+        assert.equal(githubProof.rowSizes.length, 5);
+        assert.ok(
+          githubProof.rowSizes.every(({ width, height }) => width >= 120 && height >= 28 && height <= 34),
+          `responsive ${viewport.width}px ${locale.label} GitHub rows must stay compact: ${JSON.stringify(githubProof.rowSizes)}`
         );
         const layout = await cdp.evaluate(`(() => {
           const page = document.querySelector('#pageShell')?.getBoundingClientRect();
