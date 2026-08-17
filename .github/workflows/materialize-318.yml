@@ -1,0 +1,50 @@
+name: Materialize 318
+
+on:
+  push:
+    branches:
+      - fix/cvbot-318-provider-capacity
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Materialize focused change
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$(git branch --show-current)" = "fix/cvbot-318-provider-capacity"
+          python3 scripts/materialize-318.py
+          python3 -m py_compile bot/app.py bot/config.py bot/provider_capacity.py tests/test_provider_capacity.py tests/test_settings.py
+
+      - name: Run focused regression tests
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          venv="${RUNNER_TEMP}/phase318-venv"
+          python3 -m venv "$venv"
+          "$venv/bin/python" -m pip install --disable-pip-version-check --require-hashes --no-deps -r bot/requirements.lock
+          "$venv/bin/python" -m unittest discover -s tests -p 'test_provider_capacity.py' -v
+          "$venv/bin/python" -m unittest discover -s tests -p 'test_settings.py' -v
+          PYTHONPYCACHEPREFIX="${RUNNER_TEMP}/phase318-pycache" bash scripts/validate-source.sh "$PWD"
+
+      - name: Commit materialized source only
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          rm -f scripts/materialize-318.py .github/workflows/materialize-318.yml
+          git config user.name "Andris Rozkalns"
+          git config user.email "277435981+rozkalnsandris@users.noreply.github.com"
+          git add -A
+          test -n "$(git status --porcelain)"
+          git commit -m "fix: bound concurrent provider streams (#318)"
+          git push origin HEAD:fix/cvbot-318-provider-capacity
