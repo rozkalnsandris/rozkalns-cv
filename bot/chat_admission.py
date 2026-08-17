@@ -3,13 +3,18 @@ from __future__ import annotations
 from dataclasses import dataclass
 import hashlib
 import hmac
-import ipaddress
 import time
 from typing import Callable
 
 import requests
 
-from contact import MAX_TOKEN_CHARS, SITEVERIFY_URL
+from turnstile import (
+    MAX_TOKEN_CHARS,
+    SiteverifyError,
+    normalize_siteverify_token,
+    verify_siteverify,
+)
+
 
 CHAT_ADMISSION_ACTION = "chat_admission"
 SESSION_TTL_SECONDS = 15 * 60
@@ -40,25 +45,21 @@ def verify_chat_turnstile(
 ) -> bool:
     if not config.configured:
         raise ChatAdmissionError("Chat verification is not configured.")
-    if not isinstance(token, str):
+    token = normalize_siteverify_token(token)
+    if token is None:
         return False
-    token = token.strip()
-    if not token or len(token) > MAX_TOKEN_CHARS:
-        return False
-    data = {"secret": config.secret_key, "response": token}
     try:
-        data["remoteip"] = ipaddress.ip_address(remote_ip).compressed
-    except ValueError:
-        pass
-    try:
-        response = post(SITEVERIFY_URL, data=data, timeout=timeout)
-        response.raise_for_status()
-        payload = response.json()
-    except requests.RequestException as error:
+        payload = verify_siteverify(
+            token,
+            remote_ip,
+            config.secret_key,
+            post=post,
+            timeout=timeout,
+        )
+    except SiteverifyError as error:
         raise ChatAdmissionError("Chat verification is unavailable.") from error
-    except ValueError as error:
-        raise ChatAdmissionError("Chat verification returned invalid JSON.") from error
-    if not isinstance(payload, dict) or payload.get("success") is not True:
+
+    if payload.get("success") is not True:
         return False
     if payload.get("action") != CHAT_ADMISSION_ACTION:
         return False
