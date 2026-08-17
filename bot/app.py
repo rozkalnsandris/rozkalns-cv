@@ -36,6 +36,7 @@ from contact import (
 )
 from notifier import TelegramNotifier
 from provider import DeepSeekProvider
+from provider_capacity import ProviderStreamCapacity
 from provider_stream import ProviderStreamError, ProviderStreamParser
 from readiness import check_local_readiness
 from storage import AssistantStore, RateDecision
@@ -274,6 +275,7 @@ def create_app(
         read_timeout=active.llm_read_timeout,
         http=requests,
     )
+    provider_capacity = ProviderStreamCapacity(active.llm_max_concurrent_streams)
     active_notifier = notifier or TelegramNotifier(
         token=active.telegram_token,
         chat_id=active.telegram_chat_id,
@@ -295,6 +297,7 @@ def create_app(
         "settings": active,
         "store": active_store,
         "provider": active_provider,
+        "provider_capacity": provider_capacity,
         "notifier": active_notifier,
         "contact_config": contacts,
         "system_prompt": prompt,
@@ -489,6 +492,21 @@ def create_app(
 
         messages = _build_messages(user_msg, history, prompt)
         request_id = uuid.uuid4().hex[:16]
+        stream_lease = provider_capacity.try_acquire()
+        if stream_lease is None:
+            return (
+                jsonify(
+                    reply=(
+                        "The assistant is busy right now. "
+                        "Please try again shortly."
+                    )
+                ),
+                503,
+                {
+                    "Retry-After": "1",
+                    **_rate_headers(decision, active.rate_per_ip_hour),
+                },
+            )
 
         def generate():
             full_reply: list[str] = []
@@ -566,6 +584,7 @@ def create_app(
                 flask_app.logger.error("LLM stream failed: %s", type(error).__name__)
                 yield _provider_notice(status)
             finally:
+                stream_lease.release()
                 answer_text = "".join(full_reply).strip()
                 if persist_answer and answer_text:
                     try:
@@ -585,7 +604,7 @@ def create_app(
                     decision=decision,
                 )
 
-        return Response(
+        response = Response(
             stream_with_context(generate()),
             mimetype="text/plain; charset=utf-8",
             headers={
@@ -595,6 +614,8 @@ def create_app(
                 **_rate_headers(decision, active.rate_per_ip_hour),
             },
         )
+        response.call_on_close(stream_lease.release)
+        return response
 
     return flask_app
 
@@ -649,6 +670,7 @@ def __getattr__(name: str):
         "DAILY_GLOBAL_CAP": settings.daily_global_cap,
         "LLM_CONNECT_TIMEOUT": settings.llm_connect_timeout,
         "LLM_READ_TIMEOUT": settings.llm_read_timeout,
+        "LLM_MAX_CONCURRENT_STREAMS": settings.llm_max_concurrent_streams,
         "CHAT_RETENTION_DAYS": settings.chat_retention_days,
         "DB_PATH": settings.db_path,
         "CLIENT_KEY_SECRET": settings.client_key_secret,
