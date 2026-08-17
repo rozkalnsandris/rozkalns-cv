@@ -25,6 +25,21 @@ jobs:
           test "$(git branch --show-current)" = "fix/cvbot-318-provider-capacity"
           sed -i '$d' scripts/materialize-318.py
           python3 scripts/materialize-318.py
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('tests/test_provider_capacity.py')
+          text = path.read_text(encoding='utf-8')
+          text = text.replace('from pathlib import Path\n', 'import importlib.util\nfrom pathlib import Path\n', 1)
+          text = text.replace('from app import close_app_services, create_app  # noqa: E402\n', '')
+          anchor = 'from provider_capacity import ProviderStreamCapacity  # noqa: E402\n\n\n'
+          injected = '''from provider_capacity import ProviderStreamCapacity  # noqa: E402\n\nAPP_SPEC = importlib.util.spec_from_file_location("cv_app_capacity_test", BOT / "app.py")\nif APP_SPEC is None or APP_SPEC.loader is None:\n    raise RuntimeError("could not load app.py")\nAPP = importlib.util.module_from_spec(APP_SPEC)\nAPP_SPEC.loader.exec_module(APP)\n\n\n'''
+          if text.count(anchor) != 1:
+              raise SystemExit('provider capacity import anchor mismatch')
+          text = text.replace(anchor, injected, 1)
+          text = text.replace('        flask_app = create_app(\n', '        flask_app = APP.create_app(\n')
+          text = text.replace('        self.addCleanup(close_app_services, flask_app)\n', '        self.addCleanup(APP.close_app_services, flask_app)\n')
+          path.write_text(text, encoding='utf-8')
+          PY
           python3 -m py_compile bot/app.py bot/config.py bot/provider_capacity.py tests/test_provider_capacity.py tests/test_settings.py
 
       - name: Run focused regression tests
