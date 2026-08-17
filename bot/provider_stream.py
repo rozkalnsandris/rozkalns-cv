@@ -77,6 +77,8 @@ class ProviderStreamParser:
             return []
         if not line:
             return []
+        if line.startswith(":"):
+            return []
         if not line.startswith("data:"):
             raise ProviderStreamError("unexpected non-data SSE field")
 
