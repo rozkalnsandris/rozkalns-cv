@@ -1,16 +1,21 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import ipaddress
 import os
 from typing import Callable
 
 import requests
 
+from turnstile import (
+    MAX_TOKEN_CHARS,
+    SITEVERIFY_URL,
+    SiteverifyError,
+    normalize_siteverify_token,
+    verify_siteverify,
+)
 
-SITEVERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+
 TURNSTILE_ACTION = "contact_reveal"
-MAX_TOKEN_CHARS = 2048
 
 
 class ContactVerificationError(RuntimeError):
@@ -57,8 +62,8 @@ def load_contact_config() -> ContactConfig:
 def normalize_token(value: object) -> str:
     if not isinstance(value, str):
         raise ContactVerificationError("Turnstile token must be text.")
-    token = value.strip()
-    if not token or len(token) > MAX_TOKEN_CHARS:
+    token = normalize_siteverify_token(value)
+    if token is None:
         raise ContactVerificationError("Turnstile token is invalid.")
     return token
 
@@ -74,24 +79,18 @@ def verify_turnstile(
     if not config.configured:
         raise ContactVerificationError("Contact verification is not configured.")
     token = normalize_token(token)
-    data = {
-        "secret": config.secret_key,
-        "response": token,
-    }
     try:
-        data["remoteip"] = ipaddress.ip_address(remote_ip).compressed
-    except ValueError:
-        pass
-    try:
-        response = post(SITEVERIFY_URL, data=data, timeout=timeout)
-        response.raise_for_status()
-        payload = response.json()
-    except requests.RequestException as error:
+        payload = verify_siteverify(
+            token,
+            remote_ip,
+            config.secret_key,
+            post=post,
+            timeout=timeout,
+        )
+    except SiteverifyError as error:
         raise ContactVerificationError("Turnstile verification is unavailable.") from error
-    except ValueError as error:
-        raise ContactVerificationError("Turnstile returned invalid JSON.") from error
 
-    if not isinstance(payload, dict) or payload.get("success") is not True:
+    if payload.get("success") is not True:
         return False
     if payload.get("action") != TURNSTILE_ACTION:
         return False
