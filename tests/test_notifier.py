@@ -102,6 +102,8 @@ class TelegramNotifierTests(unittest.TestCase):
         self.assertTrue(active.submit("client-1", question, answer))
         self.assertEqual(len(executor.calls), 1)
         _fn, args, kwargs = executor.calls[0]
+        self.assertIs(_fn.__self__, active)
+        self.assertIs(_fn.__func__, notifier.TelegramNotifier._send_text)
         self.assertEqual(kwargs, {})
         self.assertEqual(args, ("CV assistant interaction\nClient: client-1",))
         self.assertNotIn(question, repr(args))
