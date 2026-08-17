@@ -75,6 +75,29 @@ class ProviderStreamParserTests(unittest.TestCase):
         self.assertTrue(parser.done)
         self.assertEqual(parser.usage.total_tokens, 19)
 
+    def test_documented_keep_alive_comments_are_ignored_across_stream_states(self) -> None:
+        parser = ProviderStreamParser()
+        self.assertEqual(parser.feed_line(": keep-alive"), [])
+        self.assertEqual(parser.feed_line(":keep-alive"), [])
+
+        events = parser.feed_line(chunk("Hello"))
+        self.assertEqual(events[0].kind, "content")
+        self.assertEqual(parser.feed_line(": keep-alive"), [])
+
+        terminal = parser.feed_line(chunk("", finish_reason="stop"))
+        self.assertEqual(terminal[0].finish_reason, "stop")
+        self.assertEqual(parser.feed_line(": keep-alive"), [])
+
+        usage = parser.feed_line(usage_chunk())[0]
+        self.assertEqual(usage.kind, "usage")
+        self.assertEqual(parser.feed_line(": keep-alive"), [])
+
+        parser.feed_line("data: [DONE]")
+        parser.finish_eof()
+        self.assertTrue(parser.done)
+        self.assertEqual(parser.finish_reason, "stop")
+        self.assertEqual(parser.usage.total_tokens, 19)
+
     def test_all_documented_terminal_reasons_are_classified(self) -> None:
         for reason in (
             "stop",
@@ -102,6 +125,10 @@ class ProviderStreamParserTests(unittest.TestCase):
     def test_non_data_sse_field_fails_closed(self) -> None:
         with self.assertRaises(ProviderStreamError):
             ProviderStreamParser().feed_line("event: message")
+
+    def test_arbitrary_non_comment_line_fails_closed(self) -> None:
+        with self.assertRaises(ProviderStreamError):
+            ProviderStreamParser().feed_line("keep-alive")
 
     def test_invalid_choice_shape_fails_closed(self) -> None:
         with self.assertRaises(ProviderStreamError):
