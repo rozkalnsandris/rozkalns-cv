@@ -109,6 +109,7 @@ class TelegramNotifierTests(unittest.TestCase):
         active.close()
 
     def test_pending_work_is_bounded_and_saturation_drops_without_submit(self) -> None:
+        # The permit counts both running and executor-queued notification work.
         executor = FakeExecutor()
         with mock.patch.object(notifier, "ThreadPoolExecutor", return_value=executor):
             active = notifier.TelegramNotifier(
