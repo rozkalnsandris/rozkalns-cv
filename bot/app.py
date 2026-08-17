@@ -293,6 +293,7 @@ def create_app(
 
     flask_app = Flask(__name__)
     flask_app.config["MAX_CONTENT_LENGTH"] = 32 * 1024
+    flask_app.config["TRUSTED_HOSTS"] = list(active.trusted_hosts)
     flask_app.extensions["cvbot"] = {
         "settings": active,
         "store": active_store,
@@ -678,6 +679,7 @@ def __getattr__(name: str):
         "TELEGRAM_CHAT_ID": settings.telegram_chat_id,
         "TELEGRAM_INCLUDE_CONTENT": settings.telegram_include_content,
         "TRUSTED_PROXY_CIDRS": settings.trusted_proxy_cidrs,
+        "TRUSTED_HOSTS": settings.trusted_hosts,
     }
     if name in mapping:
         return mapping[name]
