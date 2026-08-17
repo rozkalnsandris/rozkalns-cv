@@ -21,7 +21,11 @@ class TelegramNotifier:
         max_pending: int = DEFAULT_MAX_PENDING,
         logger: logging.Logger | None = None,
     ) -> None:
-        if not isinstance(max_pending, int) or isinstance(max_pending, bool) or max_pending < 1:
+        if (
+            not isinstance(max_pending, int)
+            or isinstance(max_pending, bool)
+            or max_pending < 1
+        ):
             raise ValueError("max_pending must be a positive integer")
         self._token = token
         self._chat_id = chat_id
@@ -62,6 +66,10 @@ class TelegramNotifier:
 
     def _release_pending(self, _future: Future[object]) -> None:
         self._pending.release()
+
+    def _send(self, client_key: str, question: str, answer: str) -> None:
+        """Synchronous compatibility path; async submit queues only redacted text."""
+        self._send_text(self._message_text(client_key, question, answer))
 
     def _send_text(self, text: str) -> None:
         try:
