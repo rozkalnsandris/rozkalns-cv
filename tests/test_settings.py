@@ -27,6 +27,10 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(settings.rate_per_ip_hour, 8)
         self.assertEqual(settings.llm_max_concurrent_streams, 3)
         self.assertEqual(settings.trusted_proxy_cidrs[0].compressed, "172.19.0.10/32")
+        self.assertEqual(
+            settings.trusted_hosts,
+            ("rozkalns.net", "localhost", "cvbot", "127.0.0.1"),
+        )
 
     def test_invalid_integer_is_sanitized(self) -> None:
         env = {**BASE, "RATE_PER_IP_HOUR": "not-a-number"}
@@ -62,6 +66,24 @@ class SettingsTests(unittest.TestCase):
     def test_proxy_cidrs_are_validated(self) -> None:
         with self.assertRaisesRegex(SettingsError, "TRUSTED_PROXY_CIDRS"):
             Settings.from_env({**BASE, "TRUSTED_PROXY_CIDRS": "not-a-cidr"})
+
+    def test_trusted_hosts_are_normalized_deduplicated_and_validated(self) -> None:
+        settings = Settings.from_env(
+            {**BASE, "TRUSTED_HOSTS": "Example.COM, localhost,example.com"}
+        )
+        self.assertEqual(settings.trusted_hosts, ("example.com", "localhost"))
+        for value in (
+            "",
+            ".example.com",
+            "*.example.com",
+            "https://example.com",
+            "example.com:443",
+            "bad host",
+            "::1",
+        ):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(SettingsError, "TRUSTED_HOSTS"):
+                    Settings.from_env({**BASE, "TRUSTED_HOSTS": value})
 
     def test_unsupported_model_fails_closed(self) -> None:
         with self.assertRaisesRegex(SettingsError, "LLM_MODEL"):
