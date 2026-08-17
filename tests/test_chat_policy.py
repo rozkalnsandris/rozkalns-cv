@@ -27,10 +27,15 @@ class ProtectedContactPolicyTests(unittest.TestCase):
             "+49 170 1234567",
             "+49-170-1234567",
             "+49 (170) 1234567",
+            "+49.170.1234567",
+            "+49\n170\n1234567",
+            "+49\u00a0170\u00a01234567",
+            "+49–170–1234567",
             "491701234567",
             "tel:+491701234567",
             "https://wa.me/491701234567",
             "wa.me/+491701234567",
+            "wa . me / 491701234567",
         )
         for value in blocked:
             with self.subTest(value=value):
@@ -41,12 +46,13 @@ class ProtectedContactPolicyTests(unittest.TestCase):
             self.policy.contains_protected_contact("Call me on +49 151 7654321")
         )
 
-    def test_allows_public_email_years_and_versions(self) -> None:
+    def test_allows_public_email_years_versions_and_dates(self) -> None:
         allowed = (
             "Email Andris at andris@rozkalns.net.",
             "Available from 2027-01.",
             "Python 3.13 and Docker 29.1.2 are relevant examples.",
             "The audit date is 2026-08-08.",
+            "The audit date is 17.08.2026.",
         )
         for value in allowed:
             with self.subTest(value=value):
@@ -62,6 +68,26 @@ class ProtectedContactPolicyTests(unittest.TestCase):
         self.assertEqual(emitted, [BLOCKED_CONTACT_REPLY])
         self.assertNotIn("1234567", "".join(emitted))
 
+    def test_large_separator_span_never_leaks_before_block(self) -> None:
+        guard = ProtectedContactStreamGuard(self.policy)
+        emitted: list[str] = []
+        emitted.extend(guard.feed("Call +4"))
+        emitted.extend(guard.feed(" " * 260))
+        emitted.extend(guard.feed("9 170 1234567"))
+        emitted.extend(guard.finish())
+        self.assertEqual(emitted[-1], BLOCKED_CONTACT_REPLY)
+        leaked = "".join(emitted[:-1])
+        self.assertEqual(leaked, "Call")
+        self.assertNotIn("+4", leaked)
+
+    def test_every_digit_chunk_split_is_blocked(self) -> None:
+        guard = ProtectedContactStreamGuard(self.policy)
+        emitted: list[str] = []
+        for character in "+49.170.1234567":
+            emitted.extend(guard.feed(character))
+        emitted.extend(guard.finish())
+        self.assertEqual(emitted, [BLOCKED_CONTACT_REPLY])
+
     def test_safe_long_stream_still_streams_before_finish(self) -> None:
         guard = ProtectedContactStreamGuard(self.policy)
         first = guard.feed("A" * 140)
@@ -72,9 +98,20 @@ class ProtectedContactPolicyTests(unittest.TestCase):
     def test_direct_whatsapp_target_split_across_chunks_is_blocked(self) -> None:
         guard = ProtectedContactStreamGuard(self.policy)
         emitted: list[str] = []
-        emitted.extend(guard.feed("Open https://wa."))
+        emitted.extend(guard.feed("Open https://wa"))
+        emitted.extend(guard.feed(" . "))
         emitted.extend(guard.feed("me/49170"))
         emitted.extend(guard.feed("1234567"))
+        emitted.extend(guard.finish())
+        self.assertEqual(emitted, [BLOCKED_CONTACT_REPLY])
+
+    def test_unresolved_candidate_over_safety_cap_fails_closed(self) -> None:
+        guard = ProtectedContactStreamGuard(
+            self.policy,
+            max_unresolved_phone_chars=96,
+        )
+        emitted: list[str] = []
+        emitted.extend(guard.feed("+4" + (" " * 100)))
         emitted.extend(guard.finish())
         self.assertEqual(emitted, [BLOCKED_CONTACT_REPLY])
 
