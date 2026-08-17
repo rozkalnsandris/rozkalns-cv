@@ -23,6 +23,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           test "$(git branch --show-current)" = "fix/cvbot-318-provider-capacity"
+          sed -i '$d' scripts/materialize-318.py
           python3 scripts/materialize-318.py
           python3 -m py_compile bot/app.py bot/config.py bot/provider_capacity.py tests/test_provider_capacity.py tests/test_settings.py
 
