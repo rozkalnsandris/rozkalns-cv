@@ -86,7 +86,7 @@ class TelegramNotifierTests(unittest.TestCase):
             time.sleep(0.01)
         self.fail("notification capacity was not released")
 
-    def test_redacted_mode_never_queues_raw_content_arguments(self) -> None:
+    def test_redacted_mode_queues_only_materialized_text_without_raw_content(self) -> None:
         executor = FakeExecutor()
         with mock.patch.object(notifier, "ThreadPoolExecutor", return_value=executor):
             active = notifier.TelegramNotifier(
