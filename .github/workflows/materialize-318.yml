@@ -22,6 +22,7 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
+          export PYTHONPYCACHEPREFIX="${RUNNER_TEMP}/phase318-pycache"
           test "$(git branch --show-current)" = "fix/cvbot-318-provider-capacity"
           sed -i '$d' scripts/materialize-318.py
           python3 scripts/materialize-318.py
@@ -46,12 +47,13 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
+          export PYTHONPYCACHEPREFIX="${RUNNER_TEMP}/phase318-pycache"
           venv="${RUNNER_TEMP}/phase318-venv"
           python3 -m venv "$venv"
           "$venv/bin/python" -m pip install --disable-pip-version-check --require-hashes --no-deps -r bot/requirements.lock
           "$venv/bin/python" -m unittest discover -s tests -p 'test_provider_capacity.py' -v
           "$venv/bin/python" -m unittest discover -s tests -p 'test_settings.py' -v
-          PYTHONPYCACHEPREFIX="${RUNNER_TEMP}/phase318-pycache" bash scripts/validate-source.sh "$PWD"
+          bash scripts/validate-source.sh "$PWD"
 
       - name: Commit materialized source only
         shell: bash
