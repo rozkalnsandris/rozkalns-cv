@@ -37,10 +37,16 @@ class FakeUpstreamResponse:
             payload = {
                 "choices": [
                     {"delta": {"content": chunk}, "finish_reason": None}
-                ]
+                ],
+                "usage": None,
             }
             rows.append(f"data: {json.dumps(payload)}")
-        rows.append('data: {"choices":[{"delta":{},"finish_reason":"stop"}]}')
+        rows.append(
+            'data: {"choices":[{"delta":{},"finish_reason":"stop"}],"usage":null}'
+        )
+        rows.append(
+            'data: {"choices":[],"usage":{"prompt_tokens":8,"completion_tokens":4,"total_tokens":12}}'
+        )
         rows.append("data: [DONE]")
         return iter(rows)
 

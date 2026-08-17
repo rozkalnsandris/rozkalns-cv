@@ -35,6 +35,7 @@ class FakeUpstreamResponse:
                 'data: {"choices":[{"delta":{"content":"Hello"},"finish_reason":null}]}',
                 'data: {"choices":[{"delta":{"content":" world"},"finish_reason":null}]}',
                 'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}',
+                'data: {"choices":[],"usage":{"prompt_tokens":10,"completion_tokens":2,"total_tokens":12}}',
                 "data: [DONE]",
             ]
         )
@@ -147,6 +148,7 @@ class BotBehaviorTests(unittest.TestCase):
         self.assertEqual(payload["model"], "deepseek-v4-flash")
         self.assertEqual(payload["thinking"], {"type": "disabled"})
         self.assertTrue(payload["stream"])
+        self.assertEqual(payload["stream_options"], {"include_usage": True})
         self.assertEqual(payload["max_tokens"], self.module.MAX_RESPONSE_TOKENS)
         self.assertEqual(payload["temperature"], 0.4)
         self.assertNotIn("reasoning_effort", payload)
