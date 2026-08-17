@@ -25,6 +25,7 @@ class SettingsTests(unittest.TestCase):
         settings = Settings.from_env(BASE)
         self.assertEqual(settings.llm_model, "deepseek-v4-flash")
         self.assertEqual(settings.rate_per_ip_hour, 8)
+        self.assertEqual(settings.llm_max_concurrent_streams, 3)
         self.assertEqual(settings.trusted_proxy_cidrs[0].compressed, "172.19.0.10/32")
 
     def test_invalid_integer_is_sanitized(self) -> None:
@@ -37,6 +38,16 @@ class SettingsTests(unittest.TestCase):
     def test_out_of_range_value_fails_closed(self) -> None:
         with self.assertRaisesRegex(SettingsError, "MAX_HISTORY_TURNS"):
             Settings.from_env({**BASE, "MAX_HISTORY_TURNS": "999"})
+
+    def test_provider_stream_limit_is_bounded(self) -> None:
+        self.assertEqual(
+            Settings.from_env({**BASE, "LLM_MAX_CONCURRENT_STREAMS": "1"}).llm_max_concurrent_streams,
+            1,
+        )
+        with self.assertRaisesRegex(SettingsError, "LLM_MAX_CONCURRENT_STREAMS"):
+            Settings.from_env({**BASE, "LLM_MAX_CONCURRENT_STREAMS": "0"})
+        with self.assertRaisesRegex(SettingsError, "LLM_MAX_CONCURRENT_STREAMS"):
+            Settings.from_env({**BASE, "LLM_MAX_CONCURRENT_STREAMS": "33"})
 
     def test_base_url_requires_clean_https_origin(self) -> None:
         for value in (

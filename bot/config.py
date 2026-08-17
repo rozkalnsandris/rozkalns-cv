@@ -110,6 +110,7 @@ class Settings:
     telegram_chat_id: str
     telegram_include_content: bool
     trusted_proxy_cidrs: tuple[ipaddress._BaseNetwork, ...]
+    llm_max_concurrent_streams: int = 3
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> "Settings":
@@ -142,4 +143,11 @@ class Settings:
             telegram_chat_id=source.get("CHAT_ID", "").strip(),
             telegram_include_content=source.get("TELEGRAM_INCLUDE_CONTENT", "false").lower() in {"1", "true", "yes"},
             trusted_proxy_cidrs=_trusted_proxy_cidrs(source),
+            llm_max_concurrent_streams=_integer(
+                source,
+                "LLM_MAX_CONCURRENT_STREAMS",
+                3,
+                minimum=1,
+                maximum=32,
+            ),
         )

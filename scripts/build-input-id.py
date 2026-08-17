@@ -16,6 +16,7 @@ CVBOT_DOCKER_COPY_INPUTS = (
     "bot/contact.py",
     "bot/notifier.py",
     "bot/provider.py",
+    "bot/provider_capacity.py",
     "bot/provider_notices.json",
     "bot/provider_stream.py",
     "bot/readiness.py",
