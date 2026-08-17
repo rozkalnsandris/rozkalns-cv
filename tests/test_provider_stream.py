@@ -75,6 +75,32 @@ class ProviderStreamParserTests(unittest.TestCase):
         self.assertTrue(parser.done)
         self.assertEqual(parser.usage.total_tokens, 19)
 
+    def test_terminal_choice_with_usage_then_done_is_complete(self) -> None:
+        parser = ProviderStreamParser()
+        events = parser.feed_line(chunk("Hello"))
+        self.assertEqual(events[0].kind, "content")
+
+        terminal = parser.feed_line(
+            chunk(
+                "",
+                finish_reason="stop",
+                usage={
+                    "prompt_tokens": 12,
+                    "completion_tokens": 7,
+                    "total_tokens": 19,
+                },
+            )
+        )
+        self.assertEqual([event.kind for event in terminal], ["terminal", "usage"])
+        self.assertEqual(terminal[0].finish_reason, "stop")
+        self.assertEqual(terminal[1].usage.total_tokens, 19)
+
+        parser.feed_line("data: [DONE]")
+        parser.finish_eof()
+        self.assertTrue(parser.done)
+        self.assertEqual(parser.finish_reason, "stop")
+        self.assertEqual(parser.usage.total_tokens, 19)
+
     def test_documented_keep_alive_comments_are_ignored_across_stream_states(self) -> None:
         parser = ProviderStreamParser()
         self.assertEqual(parser.feed_line(": keep-alive"), [])
@@ -191,11 +217,42 @@ class ProviderStreamParserTests(unittest.TestCase):
         with self.assertRaises(ProviderStreamError):
             parser.feed_line(usage_chunk())
 
+    def test_separate_usage_after_terminal_usage_fails_closed(self) -> None:
+        parser = ProviderStreamParser()
+        parser.feed_line(
+            chunk(
+                "",
+                finish_reason="stop",
+                usage={
+                    "prompt_tokens": 12,
+                    "completion_tokens": 7,
+                    "total_tokens": 19,
+                },
+            )
+        )
+        with self.assertRaises(ProviderStreamError):
+            parser.feed_line(usage_chunk())
+
     def test_malformed_usage_fails_closed(self) -> None:
         parser = ProviderStreamParser()
         parser.feed_line(chunk("", finish_reason="stop"))
         with self.assertRaises(ProviderStreamError):
             parser.feed_line(usage_chunk(total_tokens=None))
+
+    def test_malformed_terminal_usage_fails_closed(self) -> None:
+        parser = ProviderStreamParser()
+        with self.assertRaises(ProviderStreamError):
+            parser.feed_line(
+                chunk(
+                    "",
+                    finish_reason="stop",
+                    usage={
+                        "prompt_tokens": 12,
+                        "completion_tokens": 7,
+                        "total_tokens": None,
+                    },
+                )
+            )
 
 
 if __name__ == "__main__":

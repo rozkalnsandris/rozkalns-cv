@@ -127,8 +127,6 @@ class ProviderStreamParser:
 
         if not isinstance(choices, list) or len(choices) != 1:
             raise ProviderStreamError("provider chunk must contain one choice")
-        if usage_payload is not None:
-            raise ProviderStreamError("ordinary choice chunk must have null usage")
 
         choice = choices[0]
         if not isinstance(choice, dict) or choice.get("index") not in {None, 0}:
@@ -141,11 +139,14 @@ class ProviderStreamParser:
         if content is not None and not isinstance(content, str):
             raise ProviderStreamError("provider content must be text or null")
 
+        finish_reason = choice.get("finish_reason")
+        if finish_reason is None and usage_payload is not None:
+            raise ProviderStreamError("ordinary choice chunk must have null usage")
+
         events: list[ProviderStreamEvent] = []
         if content:
             events.append(ProviderStreamEvent(kind="content", content=content))
 
-        finish_reason = choice.get("finish_reason")
         if finish_reason is not None:
             if not isinstance(finish_reason, str):
                 raise ProviderStreamError("finish_reason must be text or null")
@@ -159,6 +160,11 @@ class ProviderStreamParser:
                     finish_reason=finish_reason,
                 )
             )
+            if usage_payload is not None:
+                usage = self._parse_usage(usage_payload)
+                self.usage = usage
+                self._state = _STATE_USAGE
+                events.append(ProviderStreamEvent(kind="usage", usage=usage))
 
         return events
 
