@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -51,9 +52,14 @@ _log_provider_result(
     decision=decision,
 )
 '''
+        env = os.environ.copy()
+        env["CLIENT_KEY_SECRET"] = "A" * 43
+        env.pop("LLM_API_KEY", None)
+
         result = subprocess.run(
             [sys.executable, "-c", script],
             cwd=BOT,
+            env=env,
             text=True,
             capture_output=True,
             check=False,
