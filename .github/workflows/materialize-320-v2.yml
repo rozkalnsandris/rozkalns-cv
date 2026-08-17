@@ -1,0 +1,290 @@
+name: materialize-320-trusted-hosts-v2
+
+on:
+  push:
+    branches:
+      - fix/cvbot-320-trusted-hosts
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          ref: fix/cvbot-320-trusted-hosts
+          fetch-depth: 0
+
+      - name: Materialize trusted-host contract
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          from textwrap import dedent
+
+          def replace_once(path: Path, old: str, new: str) -> None:
+              text = path.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one anchor, found {count}")
+              path.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          config = Path("bot/config.py")
+          replace_once(
+              config,
+              "import os\nfrom typing import Mapping\n",
+              "import os\nimport re\nfrom typing import Mapping\n",
+          )
+          replace_once(
+              config,
+              'SUPPORTED_LLM_MODELS = frozenset({"deepseek-v4-flash", "deepseek-v4-pro"})\n',
+              'SUPPORTED_LLM_MODELS = frozenset({"deepseek-v4-flash", "deepseek-v4-pro"})\n'
+              'DEFAULT_TRUSTED_HOSTS = ("rozkalns.net", "localhost", "cvbot", "127.0.0.1")\n'
+              '_HOST_LABEL = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")\n',
+          )
+          proxy_block = '''def _trusted_proxy_cidrs(env: Mapping[str, str]) -> tuple[ipaddress._BaseNetwork, ...]:
+              raw = env.get("TRUSTED_PROXY_CIDRS", "172.19.0.10/32")
+              networks: list[ipaddress._BaseNetwork] = []
+              for entry in raw.split(","):
+                  entry = entry.strip()
+                  if not entry:
+                      continue
+                  try:
+                      networks.append(ipaddress.ip_network(entry, strict=False))
+                  except ValueError as error:
+                      raise SettingsError("TRUSTED_PROXY_CIDRS contains an invalid CIDR") from error
+              if not networks:
+                  raise SettingsError("TRUSTED_PROXY_CIDRS must contain at least one CIDR")
+              return tuple(networks)
+          '''
+          replace_once(
+              config,
+              proxy_block,
+              proxy_block + '''
+
+          def _trusted_hosts(env: Mapping[str, str]) -> tuple[str, ...]:
+              raw = env.get("TRUSTED_HOSTS", ",".join(DEFAULT_TRUSTED_HOSTS))
+              hosts: list[str] = []
+              for entry in raw.split(","):
+                  host = entry.strip().lower()
+                  if not host:
+                      continue
+                  if (
+                      host.startswith(".")
+                      or "*" in host
+                      or "://" in host
+                      or "/" in host
+                      or "@" in host
+                      or ":" in host
+                  ):
+                      raise SettingsError("TRUSTED_HOSTS contains an invalid host")
+                  try:
+                      address = ipaddress.ip_address(host)
+                  except ValueError:
+                      labels = host.split(".")
+                      if (
+                          len(host) > 253
+                          or any(not _HOST_LABEL.fullmatch(label) for label in labels)
+                      ):
+                          raise SettingsError("TRUSTED_HOSTS contains an invalid host")
+                  else:
+                      if address.version != 4:
+                          raise SettingsError("TRUSTED_HOSTS contains an unsupported host")
+                  if host not in hosts:
+                      hosts.append(host)
+              if not hosts:
+                  raise SettingsError("TRUSTED_HOSTS must contain at least one host")
+              return tuple(hosts)
+          ''',
+          )
+          replace_once(
+              config,
+              "    llm_max_concurrent_streams: int = 3\n",
+              "    llm_max_concurrent_streams: int = 3\n"
+              "    trusted_hosts: tuple[str, ...] = DEFAULT_TRUSTED_HOSTS\n",
+          )
+          replace_once(
+              config,
+              "                maximum=32,\n"
+              "            ),\n"
+              "        )\n",
+              "                maximum=32,\n"
+              "            ),\n"
+              "            trusted_hosts=_trusted_hosts(source),\n"
+              "        )\n",
+          )
+
+          app = Path("bot/app.py")
+          replace_once(
+              app,
+              '    flask_app.config["MAX_CONTENT_LENGTH"] = 32 * 1024\n',
+              '    flask_app.config["MAX_CONTENT_LENGTH"] = 32 * 1024\n'
+              '    flask_app.config["TRUSTED_HOSTS"] = list(active.trusted_hosts)\n',
+          )
+          replace_once(
+              app,
+              '        "TRUSTED_PROXY_CIDRS": settings.trusted_proxy_cidrs,\n',
+              '        "TRUSTED_PROXY_CIDRS": settings.trusted_proxy_cidrs,\n'
+              '        "TRUSTED_HOSTS": settings.trusted_hosts,\n',
+          )
+
+          env_example = Path("bot/.env.example")
+          replace_once(
+              env_example,
+              "TRUSTED_PROXY_CIDRS=172.19.0.10/32\n",
+              "TRUSTED_PROXY_CIDRS=172.19.0.10/32\n"
+              "TRUSTED_HOSTS=rozkalns.net,localhost,cvbot,127.0.0.1\n",
+          )
+
+          settings_test = Path("tests/test_settings.py")
+          replace_once(
+              settings_test,
+              '        self.assertEqual(settings.trusted_proxy_cidrs[0].compressed, "172.19.0.10/32")\n',
+              '        self.assertEqual(settings.trusted_proxy_cidrs[0].compressed, "172.19.0.10/32")\n'
+              '        self.assertEqual(\n'
+              '            settings.trusted_hosts,\n'
+              '            ("rozkalns.net", "localhost", "cvbot", "127.0.0.1"),\n'
+              '        )\n',
+          )
+          replace_once(
+              settings_test,
+              "    def test_unsupported_model_fails_closed(self) -> None:\n",
+              '''    def test_trusted_hosts_are_normalized_deduplicated_and_validated(self) -> None:
+                  settings = Settings.from_env(
+                      {**BASE, "TRUSTED_HOSTS": "Example.COM, localhost,example.com"}
+                  )
+                  self.assertEqual(settings.trusted_hosts, ("example.com", "localhost"))
+                  for value in (
+                      "",
+                      ".example.com",
+                      "*.example.com",
+                      "https://example.com",
+                      "example.com:443",
+                      "bad host",
+                      "::1",
+                  ):
+                      with self.subTest(value=value):
+                          with self.assertRaisesRegex(SettingsError, "TRUSTED_HOSTS"):
+                              Settings.from_env({**BASE, "TRUSTED_HOSTS": value})
+
+              def test_unsupported_model_fails_closed(self) -> None:
+          ''',
+          )
+
+          trusted_test = dedent('''\
+          from __future__ import annotations
+
+          from pathlib import Path
+          import sys
+          import tempfile
+          import unittest
+
+          ROOT = Path(__file__).resolve().parents[1]
+          BOT = ROOT / "bot"
+          sys.path.insert(0, str(BOT))
+
+          import app as app_module  # noqa: E402
+          from config import Settings  # noqa: E402
+          from contact import ContactConfig  # noqa: E402
+
+
+          EMPTY_CONTACT = ContactConfig(
+              site_key="",
+              secret_key="",
+              email="",
+              phone_display="",
+              phone_uri="",
+              hostnames=frozenset({"rozkalns.net"}),
+          )
+
+
+          class TrustedHostsTests(unittest.TestCase):
+              def setUp(self) -> None:
+                  self.temp = tempfile.TemporaryDirectory()
+                  self.addCleanup(self.temp.cleanup)
+                  settings = Settings.from_env(
+                      {
+                          "LLM_API_KEY": "test-provider-key",
+                          "CLIENT_KEY_SECRET": "A" * 43,
+                          "ASSISTANT_DB_PATH": str(Path(self.temp.name) / "assistant.sqlite3"),
+                          "CHAT_RETENTION_DAYS": "0",
+                          "TELEGRAM_TOKEN": "",
+                          "CHAT_ID": "",
+                      }
+                  )
+                  self.app = app_module.create_app(
+                      settings,
+                      contact_config=EMPTY_CONTACT,
+                      system_prompt="test prompt",
+                      start_maintenance=False,
+                  )
+                  self.addCleanup(app_module.close_app_services, self.app)
+                  self.client = self.app.test_client()
+
+              def test_factory_configures_exact_trusted_hosts(self) -> None:
+                  self.assertEqual(
+                      self.app.config["TRUSTED_HOSTS"],
+                      ["rozkalns.net", "localhost", "cvbot", "127.0.0.1"],
+                  )
+
+              def test_public_local_and_container_hosts_are_accepted(self) -> None:
+                  for host in (
+                      "rozkalns.net",
+                      "localhost",
+                      "localhost:5000",
+                      "cvbot",
+                      "cvbot:5000",
+                      "127.0.0.1",
+                      "127.0.0.1:5000",
+                  ):
+                      with self.subTest(host=host):
+                          response = self.client.get("/health", headers={"Host": host})
+                          self.assertEqual(response.status_code, 200)
+
+              def test_docker_readiness_host_remains_accepted(self) -> None:
+                  response = self.client.get(
+                      "/health/ready", headers={"Host": "localhost:5000"}
+                  )
+                  self.assertEqual(response.status_code, 200)
+
+              def test_unknown_host_fails_before_route_logic(self) -> None:
+                  response = self.client.post(
+                      "/chat",
+                      headers={"Host": "attacker.example"},
+                      json={"message": "hello"},
+                  )
+                  self.assertEqual(response.status_code, 400)
+
+
+          if __name__ == "__main__":
+              unittest.main()
+          ''')
+          Path("tests/test_trusted_hosts.py").write_text(trusted_test, encoding="utf-8")
+          PY
+
+      - name: Run focused regression tests
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          export PYTHONPYCACHEPREFIX="${RUNNER_TEMP}/rozkalns-cv-pycache"
+          python3 -m venv "${RUNNER_TEMP}/venv"
+          "${RUNNER_TEMP}/venv/bin/python" -m pip install --disable-pip-version-check --require-hashes --no-deps -r bot/requirements.lock
+          PYTHONPATH=bot "${RUNNER_TEMP}/venv/bin/python" -m unittest discover -s tests -p 'test_settings.py' -v
+          PYTHONPATH=bot "${RUNNER_TEMP}/venv/bin/python" -m unittest discover -s tests -p 'test_trusted_hosts.py' -v
+          bash scripts/validate-source.sh "$PWD"
+
+      - name: Commit materialized source only
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- bot/config.py bot/app.py bot/.env.example tests/test_settings.py tests/test_trusted_hosts.py
+          git rm -- .github/workflows/materialize-320.yml .github/workflows/materialize-320-v2.yml
+          git diff --cached --check
+          git commit -m 'fix: enforce trusted Flask hosts (#320)'
+          git push origin HEAD:fix/cvbot-320-trusted-hosts
