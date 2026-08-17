@@ -546,10 +546,13 @@ async function runBrowserSmoke(baseUrl, state) {
       await cdp.evaluate(`[...document.querySelectorAll('.language-switcher [data-lang]')].map((control) => [control.dataset.lang, control.getAttribute('aria-current')])`),
       [["en", null], ["de", null], ["lv", "page"]]
     );
-    assert.deepEqual(
+    assert.equal(
+    await cdp.evaluate(`document.querySelector('.focus-tags')`),
+    null
+  );
+  assert.deepEqual(
     await cdp.evaluate(`(() => ({
       language: document.querySelector('.language-switcher')?.getAttribute('aria-label'),
-      focus: document.querySelector('.focus-tags')?.getAttribute('aria-label'),
       navigation: document.querySelector('.site-nav')?.getAttribute('aria-label'),
       profileListRole: document.querySelector('.profile-languages')?.getAttribute('role'),
       profileListLabel: document.querySelector('.profile-languages')?.getAttribute('aria-label'),
@@ -557,7 +560,6 @@ async function runBrowserSmoke(baseUrl, state) {
     }))()`),
     {
       language: "Valodas",
-      focus: null,
       navigation: "CV",
       profileListRole: "list",
       profileListLabel: "Valodas",

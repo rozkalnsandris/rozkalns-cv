@@ -2,6 +2,9 @@
   .page { width: min(calc(100% - 40px),var(--maxw)); padding-block-start: 20px; }
   .hero-shell { grid-template-columns: 116px minmax(0,1fr); padding-block: 22px; padding-inline: 22px; gap: 13px 18px; }
   .profile-photo { width: 116px; height: 146px; }
+  .site-nav { gap: 6px; overflow-x: auto; }
+  .site-nav a { display: inline-flex; flex: 0 0 auto; justify-content: flex-start; padding-inline: 12px; font-size: 12px; }
+  .site-nav a:first-child, .site-nav a:last-child { display: inline-flex; }
   .education-row { grid-template-columns: 135px minmax(0,1fr); gap: 18px; }
   .demo-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .stats-grid { grid-template-columns: repeat(4,minmax(0,1fr)); }
@@ -29,7 +32,8 @@
   #skills { grid-area: rail; }
   #experience { grid-area: experience; }
   #skills .section-heading, #experience .section-heading { margin-block-end: 14px; }
-  #experience .timeline { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 30px; }
+  #experience .timeline { grid-template-columns: 1fr; }
+  #experience .entry { grid-template-columns: 150px minmax(0,1fr); gap: 24px; }
   .chat-launcher { right: 18px; bottom: 18px; }
 }
 
@@ -42,7 +46,6 @@
       "role role photo"
       "tagline tagline photo"
       "contacts contacts photo"
-      "focus focus photo"
       "langs langs photo"
       "actions actions photo"
       "verify verify photo";
@@ -61,6 +64,6 @@
   .tagline { max-width: 48ch; font-size: 18px; line-height: 1.55; }
   .contacts { display: flex; flex-wrap: wrap; gap: 2px 18px; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
   .contact-row { min-height: 30px; }
-  .focus-tags { max-width: 52ch; }
+  #experience .entry { grid-template-columns: 170px minmax(0,1fr); gap: 30px; }
   .education-list { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 0 24px; }
 }
