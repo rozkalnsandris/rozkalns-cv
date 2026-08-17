@@ -3,12 +3,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 import ipaddress
 import os
+import re
 from typing import Mapping
 from urllib.parse import urlparse
 
 from storage import validate_client_key_secret
 
 SUPPORTED_LLM_MODELS = frozenset({"deepseek-v4-flash", "deepseek-v4-pro"})
+DEFAULT_TRUSTED_HOSTS = ("rozkalns.net", "localhost", "cvbot", "127.0.0.1")
+_HOST_LABEL = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
 
 
 class SettingsError(ValueError):
@@ -63,6 +66,41 @@ def _trusted_proxy_cidrs(env: Mapping[str, str]) -> tuple[ipaddress._BaseNetwork
     return tuple(networks)
 
 
+def _trusted_hosts(env: Mapping[str, str]) -> tuple[str, ...]:
+    raw = env.get("TRUSTED_HOSTS", ",".join(DEFAULT_TRUSTED_HOSTS))
+    hosts: list[str] = []
+    for entry in raw.split(","):
+        host = entry.strip().lower()
+        if not host:
+            continue
+        if (
+            host.startswith(".")
+            or "*" in host
+            or "://" in host
+            or "/" in host
+            or "@" in host
+            or ":" in host
+        ):
+            raise SettingsError("TRUSTED_HOSTS contains an invalid host")
+        try:
+            address = ipaddress.ip_address(host)
+        except ValueError:
+            labels = host.split(".")
+            if (
+                len(host) > 253
+                or any(not _HOST_LABEL.fullmatch(label) for label in labels)
+            ):
+                raise SettingsError("TRUSTED_HOSTS contains an invalid host")
+        else:
+            if address.version != 4:
+                raise SettingsError("TRUSTED_HOSTS contains an unsupported host")
+        if host not in hosts:
+            hosts.append(host)
+    if not hosts:
+        raise SettingsError("TRUSTED_HOSTS must contain at least one host")
+    return tuple(hosts)
+
+
 @dataclass(frozen=True, slots=True)
 class VerificationRateConfig:
     per_client_hour: int
@@ -111,6 +149,7 @@ class Settings:
     telegram_include_content: bool
     trusted_proxy_cidrs: tuple[ipaddress._BaseNetwork, ...]
     llm_max_concurrent_streams: int = 3
+    trusted_hosts: tuple[str, ...] = DEFAULT_TRUSTED_HOSTS
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> "Settings":
@@ -150,4 +189,5 @@ class Settings:
                 minimum=1,
                 maximum=32,
             ),
+            trusted_hosts=_trusted_hosts(source),
         )
