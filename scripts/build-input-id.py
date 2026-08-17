@@ -22,6 +22,7 @@ CVBOT_DOCKER_COPY_INPUTS = (
     "bot/storage.py",
     "bot/system_prompt.py",
     "bot/system_prompt.txt",
+    "bot/turnstile.py",
 )
 
 INPUTS = (
