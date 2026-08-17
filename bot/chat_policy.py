@@ -9,18 +9,19 @@ BLOCKED_CONTACT_REPLY = (
     "Please use the verified contact section on the CV page."
 )
 
-# Keep enough un-emitted trailing context to detect a phone/contact target that
-# is split across provider chunks before any protected fragment reaches the
-# browser. Phone-like candidates are intentionally bounded well below this.
+# This small tail is only for short URI-like targets such as tel:/wa.me.
+# Phone-shaped suffixes are retained from their actual candidate start, so
+# safety does not depend on this fixed tail length.
 STREAM_HOLD_CHARS = 96
+MAX_UNRESOLVED_PHONE_CHARS = 4096
 
 _TEL_URI_RE = re.compile(r"(?i)\btel\s*:")
-_WA_ME_RE = re.compile(r"(?i)\b(?:https?://)?(?:www\.)?wa\.me\s*/\s*\+?[0-9]")
+_WA_ME_RE = re.compile(r"(?i)\b(?:https?://)?(?:www\.)?wa\s*\.\s*me\s*/\s*\+?[0-9]")
 _PHONE_CANDIDATE_RE = re.compile(
-    r"(?<![\w@])\+?\d(?:[\t ()/\-]*\d){6,14}(?!\d)"
+    r"(?<![\w@])\+?\d(?:[^\w@]*\d){6,14}(?!\d)"
 )
 _DATE_LIKE_RE = re.compile(
-    r"^(?:\d{4}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[-/]\d{1,2}[-/]\d{4})$"
+    r"^(?:\d{4}[-/.]\d{1,2}[-/.]\d{1,2}|\d{1,2}[-/.]\d{1,2}[-/.]\d{4})$"
 )
 
 
@@ -37,6 +38,22 @@ def _runtime_phone_digits(values: Iterable[str]) -> frozenset[str]:
         if 7 <= len(digits) <= 15:
             normalized.add(digits)
     return frozenset(normalized)
+
+
+def _is_phone_candidate_char(character: str) -> bool:
+    return character.isdigit() or (
+        not character.isalnum() and character not in {"_", "@"}
+    )
+
+
+def _trailing_phone_candidate_start(text: str) -> int:
+    """Return the start of an unresolved trailing phone-shaped suffix."""
+
+    index = len(text)
+    while index > 0 and _is_phone_candidate_char(text[index - 1]):
+        index -= 1
+    suffix = text[index:]
+    return index if any(character.isdigit() for character in suffix) else len(text)
 
 
 class ProtectedContactPolicy:
@@ -65,42 +82,59 @@ class ProtectedContactPolicy:
 
 
 class ProtectedContactStreamGuard:
-    """Stream safe text while retaining enough tail for cross-chunk checks."""
+    """Stream safe text while retaining unresolved phone/contact context."""
 
     def __init__(
         self,
         policy: ProtectedContactPolicy,
         *,
         hold_chars: int = STREAM_HOLD_CHARS,
+        max_unresolved_phone_chars: int = MAX_UNRESOLVED_PHONE_CHARS,
     ) -> None:
         if hold_chars < 32:
             raise ValueError("hold_chars is too small for contact safety")
+        if max_unresolved_phone_chars < hold_chars:
+            raise ValueError("max_unresolved_phone_chars is too small")
         self.policy = policy
         self.hold_chars = hold_chars
+        self.max_unresolved_phone_chars = max_unresolved_phone_chars
         self.pending = ""
         self.blocked = False
+
+    def _block(self) -> list[str]:
+        self.pending = ""
+        self.blocked = True
+        return [BLOCKED_CONTACT_REPLY]
 
     def feed(self, chunk: str) -> list[str]:
         if self.blocked or not chunk:
             return []
         self.pending += chunk
         if self.policy.contains_protected_contact(self.pending):
-            self.pending = ""
-            self.blocked = True
-            return [BLOCKED_CONTACT_REPLY]
-        if len(self.pending) <= self.hold_chars:
+            return self._block()
+
+        candidate_start = _trailing_phone_candidate_start(self.pending)
+        unresolved_length = len(self.pending) - candidate_start
+        if unresolved_length > self.max_unresolved_phone_chars:
+            # An unresolved phone-shaped suffix may not be emitted merely to
+            # satisfy streaming. Fail closed instead of introducing a leak.
+            return self._block()
+
+        keep_from = min(
+            max(0, len(self.pending) - self.hold_chars),
+            candidate_start,
+        )
+        if keep_from <= 0:
             return []
-        emit = self.pending[:-self.hold_chars]
-        self.pending = self.pending[-self.hold_chars :]
+        emit = self.pending[:keep_from]
+        self.pending = self.pending[keep_from:]
         return [emit] if emit else []
 
     def finish(self) -> list[str]:
         if self.blocked:
             return []
         if self.policy.contains_protected_contact(self.pending):
-            self.pending = ""
-            self.blocked = True
-            return [BLOCKED_CONTACT_REPLY]
+            return self._block()
         emit = self.pending
         self.pending = ""
         return [emit] if emit else []
