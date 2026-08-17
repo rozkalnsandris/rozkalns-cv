@@ -149,6 +149,25 @@ class TelegramNotifierTests(unittest.TestCase):
                     self._wait_until_submit_succeeds(active)
                 active.close()
 
+    def test_executor_submit_rejection_releases_pending_capacity(self) -> None:
+        executor = FakeExecutor()
+        with mock.patch.object(notifier, "ThreadPoolExecutor", return_value=executor):
+            active = notifier.TelegramNotifier(
+                token="token",
+                chat_id="chat",
+                include_content=False,
+                max_pending=1,
+                logger=self._logger(),
+            )
+
+        with mock.patch.object(executor, "submit", side_effect=RuntimeError("closed")):
+            self.assertFalse(active.submit("one", "question-1", "answer-1"))
+
+        self.assertTrue(active.submit("two", "question-2", "answer-2"))
+        self.assertEqual(len(executor.calls), 1)
+        executor.futures[0].complete()
+        active.close()
+
     def test_close_cancels_pending_work_releases_permits_and_is_idempotent(self) -> None:
         executor = FakeExecutor()
         with mock.patch.object(notifier, "ThreadPoolExecutor", return_value=executor):
