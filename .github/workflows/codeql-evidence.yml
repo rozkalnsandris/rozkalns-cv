@@ -1,0 +1,46 @@
+name: CodeQL Evidence
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  checks: read
+
+concurrency:
+  group: codeql-evidence-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out exact PR head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            fetch --no-tags origin "$PR_HEAD_SHA"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$PR_HEAD_SHA"
+
+      - name: Verify same-head default-setup CodeQL checks
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 scripts/check_codeql_evidence.py \
+            --repository "$GITHUB_REPOSITORY" \
+            --sha "$PR_HEAD_SHA" \
+            --attempts 30 \
+            --delay-seconds 5
