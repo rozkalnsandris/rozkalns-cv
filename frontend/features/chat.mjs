@@ -7,33 +7,19 @@ const CHAT_STATUS = Object.freeze({
   error: Object.freeze({ key: "chat_error", fallback: "Connection issue." })
 });
 
-const PRIVACY_FALLBACK = "Messages are processed by the configured LLM provider. Chat retention details are currently unavailable; raw IP addresses are not stored.";
-const PRIVACY_ZERO_FALLBACK = "Messages are processed by the configured LLM provider. Raw chat content is not retained; raw IP addresses are not stored.";
-const PRIVACY_ONE_FALLBACK = "Messages are processed by the configured LLM provider. Raw chat content may be retained for up to 1 day under a pseudonymous identifier; raw IP addresses are not stored.";
-const PRIVACY_RETAINED_FALLBACK = "Messages are processed by the configured LLM provider. Raw chat content may be retained for up to {days} days under a pseudonymous identifier; raw IP addresses are not stored.";
 const PROVIDER_FAILURE_NOTICES = Object.freeze(Object.values(providerNotices));
 
-export function normalizeChatRetentionDays(value) {
-  return Number.isInteger(value) && value >= 0 ? value : null;
-}
-
-export function renderChatPrivacyText(messages, retentionDays) {
-  const normalized = normalizeChatRetentionDays(retentionDays);
-  if (normalized === 0) {
-    const value = messages?.chat_privacy_zero;
-    return typeof value === "string" && value ? value : PRIVACY_ZERO_FALLBACK;
-  }
-  if (normalized === 1) {
-    const value = messages?.chat_privacy_one;
-    return typeof value === "string" && value ? value : PRIVACY_ONE_FALLBACK;
-  }
-  if (normalized !== null) {
-    const template = messages?.chat_privacy_retained;
-    const value = typeof template === "string" && template ? template : PRIVACY_RETAINED_FALLBACK;
-    return value.replaceAll("{days}", String(normalized));
-  }
-  const value = messages?.chat_privacy;
-  return typeof value === "string" && value ? value : PRIVACY_FALLBACK;
+export function renderChatPrivacyText(messages, days) {
+  const valid = Number.isInteger(days) && days >= 0;
+  const key = !valid
+    ? "chat_privacy"
+    : days === 0
+      ? "chat_privacy_zero"
+      : days === 1
+        ? "chat_privacy_one"
+        : "chat_privacy_retained";
+  return String(messages?.[key] || messages?.chat_privacy || "")
+    .replace("{days}", String(days));
 }
 
 export function chatStreamSucceeded(text) {
@@ -184,7 +170,8 @@ export function createChatController(languageController, {
     try {
       const response = await fetchImpl("/api/chat-config", { cache: "no-store" });
       const config = await response.json();
-      retentionDays = response.ok ? normalizeChatRetentionDays(config?.retention_days) : null;
+      const days = config?.retention_days;
+      retentionDays = response.ok && Number.isInteger(days) && days >= 0 ? days : null;
     } catch {
       retentionDays = null;
     }

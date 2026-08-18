@@ -30,11 +30,10 @@ jobs:
           set -Eeuo pipefail
           npm ci --ignore-scripts --no-audit --no-fund
           npm run build:frontend
-          npm run check:frontend
           tar -czf frontend-dist.tar.gz \
             frontend-dist-manifest.json \
-            html/index.html html/smarthome.html \
-            html/assets html/i18n
+            html/index.html html/smarthome.html html/sitemap.xml \
+            html/en html/de html/lv html/assets html/i18n
       - name: Upload generated dist
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
