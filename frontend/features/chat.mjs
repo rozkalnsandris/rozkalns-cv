@@ -7,7 +7,29 @@ const CHAT_STATUS = Object.freeze({
   error: Object.freeze({ key: "chat_error", fallback: "Connection issue." })
 });
 
+const PRIVACY_FALLBACK = "Messages are processed by the configured LLM provider. Chat retention details are currently unavailable; raw IP addresses are not stored.";
+const PRIVACY_ZERO_FALLBACK = "Messages are processed by the configured LLM provider. Raw chat content is not retained; raw IP addresses are not stored.";
+const PRIVACY_RETAINED_FALLBACK = "Messages are processed by the configured LLM provider. Raw chat content may be retained for up to {days} days under a pseudonymous identifier; raw IP addresses are not stored.";
 const PROVIDER_FAILURE_NOTICES = Object.freeze(Object.values(providerNotices));
+
+export function normalizeChatRetentionDays(value) {
+  return Number.isInteger(value) && value >= 0 ? value : null;
+}
+
+export function renderChatPrivacyText(messages, retentionDays) {
+  const normalized = normalizeChatRetentionDays(retentionDays);
+  if (normalized === 0) {
+    const value = messages?.chat_privacy_zero;
+    return typeof value === "string" && value ? value : PRIVACY_ZERO_FALLBACK;
+  }
+  if (normalized !== null) {
+    const template = messages?.chat_privacy_retained;
+    const value = typeof template === "string" && template ? template : PRIVACY_RETAINED_FALLBACK;
+    return value.replaceAll("{days}", String(normalized));
+  }
+  const value = messages?.chat_privacy;
+  return typeof value === "string" && value ? value : PRIVACY_FALLBACK;
+}
 
 export function chatStreamSucceeded(text) {
   const full = String(text ?? "");
@@ -123,6 +145,7 @@ export function createChatController(languageController, {
   const send = root.querySelector("#chatSend");
   const log = root.querySelector("#chatLog");
   const status = root.querySelector("#chatStatus");
+  const privacy = root.querySelector("#chatPrivacy");
   if (!form || !input || !send || !log || !status) return null;
   const completedHistory = [];
   let admissionSession = "";
@@ -130,6 +153,7 @@ export function createChatController(languageController, {
   let admissionWidget = null;
   let admissionVerificationPending = false;
   let currentStatus = null;
+  let retentionDays = null;
 
   function localized(key, fallback) {
     const value = languageController.messages?.[key];
@@ -144,6 +168,25 @@ export function createChatController(languageController, {
     return true;
   }
 
+  function renderPrivacy() {
+    if (!privacy) return false;
+    privacy.textContent = renderChatPrivacyText(languageController.messages, retentionDays);
+    return true;
+  }
+
+  async function loadPrivacyPolicy() {
+    renderPrivacy();
+    try {
+      const response = await fetchImpl("/api/chat-config", { cache: "no-store" });
+      const config = await response.json();
+      retentionDays = response.ok ? normalizeChatRetentionDays(config?.retention_days) : null;
+    } catch {
+      retentionDays = null;
+    }
+    renderPrivacy();
+    return retentionDays;
+  }
+
   function setStatus(nextStatus) {
     currentStatus = nextStatus;
     return renderStatus();
@@ -156,6 +199,7 @@ export function createChatController(languageController, {
 
   function refreshLanguageSensitiveState() {
     renderStatus();
+    renderPrivacy();
     if (!admissionVerificationPending) admissionWidget?.refreshLanguage();
   }
 
@@ -166,6 +210,8 @@ export function createChatController(languageController, {
       attributeFilter: ["lang"]
     });
   }
+
+  const privacyReady = privacy ? loadPrivacyPolicy() : Promise.resolve(null);
 
   async function ensureAdmission() {
     if (admissionSession) return admissionSession;
@@ -302,5 +348,5 @@ export function createChatController(languageController, {
       input.focus();
     }
   });
-  return { completedHistory, rerender: renderStatus };
+  return { completedHistory, rerender: refreshLanguageSensitiveState, privacyReady };
 }
