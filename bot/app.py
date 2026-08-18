@@ -410,6 +410,7 @@ def create_app(
             configured=admission_config.configured,
             sitekey=admission_config.site_key if admission_config.configured else "",
             action="chat_admission",
+            retention_days=active.chat_retention_days,
         )
         response.headers["Cache-Control"] = "no-store"
         return response
