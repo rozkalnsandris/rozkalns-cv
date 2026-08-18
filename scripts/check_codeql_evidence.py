@@ -14,12 +14,13 @@ from urllib.request import Request, urlopen
 
 REPOSITORY_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
-REQUIRED_CHECKS = (
+ANALYZER_CHECKS = (
     "Analyze (actions)",
     "Analyze (python)",
     "Analyze (javascript-typescript)",
-    "CodeQL",
 )
+META_CHECK = "CodeQL"
+REQUIRED_CHECKS = ANALYZER_CHECKS + (META_CHECK,)
 _ALLOWED_STATUSES = {
     "queued",
     "in_progress",
@@ -70,25 +71,52 @@ def _safe_rows(payload: Any) -> list[tuple[str, str, str | None, str]]:
     return rows
 
 
+def _one_required(
+    rows: list[tuple[str, str, str | None, str]], name: str
+) -> tuple[str, str, str | None, str] | None:
+    matches = [row for row in rows if row[0] == name]
+    if not matches:
+        return None
+    if len(matches) != 1:
+        raise EvidenceError(f"duplicate required check: {name}")
+    return matches[0]
+
+
 def evaluate_check_runs(payload: Any) -> tuple[bool, tuple[str, ...]]:
     rows = _safe_rows(payload)
     pending: list[str] = []
 
-    for required in REQUIRED_CHECKS:
-        matches = [row for row in rows if row[0] == required]
-        if not matches:
+    for required in ANALYZER_CHECKS:
+        match = _one_required(rows, required)
+        if match is None:
             pending.append(f"missing:{required}")
             continue
-        if len(matches) != 1:
-            raise EvidenceError(f"duplicate required check: {required}")
 
-        _name, status, conclusion, _app_slug = matches[0]
+        _name, status, conclusion, _app_slug = match
         if status != "completed":
             pending.append(f"pending:{required}:{status}")
             continue
         if conclusion != "success":
             raise EvidenceError(
-                f"required check did not succeed: {required}: {conclusion!r}"
+                f"required analyzer did not succeed: {required}: {conclusion!r}"
+            )
+
+    meta = _one_required(rows, META_CHECK)
+    if meta is None:
+        pending.append(f"missing:{META_CHECK}")
+    else:
+        _name, status, conclusion, _app_slug = meta
+        if status != "completed":
+            pending.append(f"pending:{META_CHECK}:{status}")
+        elif conclusion == "neutral":
+            # GitHub may publish a transient neutral PR CodeQL meta-check while
+            # the default-setup analyzer checks are still finishing. A later
+            # latest check replaces it with the final success/failure verdict.
+            # Wait boundedly; neutral is never accepted as PASS.
+            pending.append(f"pending:{META_CHECK}:neutral")
+        elif conclusion != "success":
+            raise EvidenceError(
+                f"required meta-check did not succeed: {META_CHECK}: {conclusion!r}"
             )
 
     return not pending, tuple(pending)
