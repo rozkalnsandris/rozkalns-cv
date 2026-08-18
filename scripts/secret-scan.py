@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 import re
 import sys
@@ -54,3 +56,27 @@ if findings:
     raise SystemExit(1)
 
 print("SECRET_SCAN=PASS")
+
+# Temporary branch-local probe used only to refresh the deterministic content manifest.
+def canonical_json_bytes(value) -> bytes:
+    return json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+
+profile = json.loads((ROOT / "content" / "profile.json").read_text(encoding="utf-8"))
+digest = hashlib.sha256()
+digest.update(b"profile\0")
+digest.update(canonical_json_bytes(profile))
+for language in ("en", "de", "lv"):
+    translation = json.loads(
+        (ROOT / "content" / "translations" / f"{language}.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    digest.update(b"\0translation\0" + language.encode("ascii") + b"\0")
+    digest.update(canonical_json_bytes(translation))
+print(f"TEMP_CONTENT_SOURCE_SHA256={digest.hexdigest()}")
