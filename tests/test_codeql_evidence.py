@@ -60,13 +60,30 @@ class CodeQLEvidenceEvaluationTests(unittest.TestCase):
         self.assertFalse(complete)
         self.assertEqual(pending, ("pending:Analyze (python):in_progress",))
 
+    def test_transient_neutral_meta_check_waits_but_never_passes(self) -> None:
+        payload = success_payload()
+        payload["check_runs"][-1] = check(
+            "CodeQL", conclusion="neutral", app="github-advanced-security"
+        )
+        complete, pending = evaluate_check_runs(payload)
+        self.assertFalse(complete)
+        self.assertEqual(pending, ("pending:CodeQL:neutral",))
+
+    def test_failed_meta_check_fails_closed(self) -> None:
+        payload = success_payload()
+        payload["check_runs"][-1] = check(
+            "CodeQL", conclusion="failure", app="github-advanced-security"
+        )
+        with self.assertRaises(EvidenceError):
+            evaluate_check_runs(payload)
+
     def test_duplicate_required_check_fails_closed(self) -> None:
         payload = success_payload()
         payload["check_runs"].append(check("Analyze (python)"))
         with self.assertRaises(EvidenceError):
             evaluate_check_runs(payload)
 
-    def test_non_success_terminal_states_fail_closed(self) -> None:
+    def test_non_success_analyzer_terminal_states_fail_closed(self) -> None:
         for conclusion in ("failure", "neutral", "cancelled", "timed_out", "skipped"):
             with self.subTest(conclusion=conclusion):
                 payload = success_payload()
