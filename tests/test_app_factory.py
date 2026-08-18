@@ -26,13 +26,13 @@ EMPTY_CONTACT = ContactConfig(
 )
 
 
-def make_settings(db_path: str) -> Settings:
+def make_settings(db_path: str, *, retention_days: int = 0) -> Settings:
     return Settings.from_env(
         {
             "LLM_API_KEY": "test-provider-key",
             "CLIENT_KEY_SECRET": "A" * 43,
             "ASSISTANT_DB_PATH": db_path,
-            "CHAT_RETENTION_DAYS": "0",
+            "CHAT_RETENTION_DAYS": str(retention_days),
             "TELEGRAM_TOKEN": "",
             "CHAT_ID": "",
         }
@@ -84,6 +84,36 @@ class AppFactoryTests(unittest.TestCase):
             self.assertIn(
                 "/chat-admission", {rule.rule for rule in first.url_map.iter_rules()}
             )
+
+    def test_chat_config_exposes_active_retention_policy(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            for retention_days in (0, 37):
+                with self.subTest(retention_days=retention_days):
+                    application = app_module.create_app(
+                        make_settings(
+                            str(Path(directory) / f"retention-{retention_days}.sqlite3"),
+                            retention_days=retention_days,
+                        ),
+                        contact_config=EMPTY_CONTACT,
+                        system_prompt="test prompt",
+                        start_maintenance=False,
+                    )
+                    self.addCleanup(app_module.close_app_services, application)
+                    response = application.test_client().get(
+                        "/chat-config",
+                        headers={"Host": "localhost"},
+                    )
+                    self.assertEqual(response.status_code, 200)
+                    self.assertEqual(
+                        response.get_json(),
+                        {
+                            "action": "chat_admission",
+                            "configured": False,
+                            "retention_days": retention_days,
+                            "sitekey": "",
+                        },
+                    )
+                    self.assertEqual(response.headers["Cache-Control"], "no-store")
 
 
 if __name__ == "__main__":
