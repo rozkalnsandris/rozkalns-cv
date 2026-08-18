@@ -7,7 +7,7 @@
   },
   "scripts": {
     "build:frontend": "node scripts/build-frontend.mjs",
-    "check:frontend": "node scripts/check-frontend-dist.mjs"
+    "check:frontend": "node scripts/check-frontend-dist.mjs && node scripts/check-chat-privacy.mjs"
   },
   "devDependencies": {
     "vite": "8.2.1"

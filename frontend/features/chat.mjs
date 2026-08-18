@@ -1,13 +1,13 @@
 import providerNotices from "../../bot/provider_notices.json" with { type: "json" };
 import { createLocalizedTurnstileRenderer, loadTurnstile } from "../core/turnstile.mjs";
 
-const CHAT_STATUS = Object.freeze({
-  typing: Object.freeze({ key: "chat_typing", fallback: "Preparing answer…" }),
-  complete: Object.freeze({ key: "chat_complete", fallback: "Answer complete." }),
-  error: Object.freeze({ key: "chat_error", fallback: "Connection issue." })
-});
+const CHAT_STATUS = {
+  typing: "chat_typing",
+  complete: "chat_complete",
+  error: "chat_error"
+};
 
-const PROVIDER_FAILURE_NOTICES = Object.freeze(Object.values(providerNotices));
+const PROVIDER_FAILURE_NOTICES = Object.values(providerNotices);
 
 export function chatStreamSucceeded(text) {
   const full = String(text ?? "");
@@ -123,6 +123,7 @@ export function createChatController(languageController, {
   const send = root.querySelector("#chatSend");
   const log = root.querySelector("#chatLog");
   const status = root.querySelector("#chatStatus");
+  const privacy = root.querySelector("#chatPrivacy");
   if (!form || !input || !send || !log || !status) return null;
   const completedHistory = [];
   let admissionSession = "";
@@ -130,18 +131,24 @@ export function createChatController(languageController, {
   let admissionWidget = null;
   let admissionVerificationPending = false;
   let currentStatus = null;
+  let retentionDays;
 
-  function localized(key, fallback) {
-    const value = languageController.messages?.[key];
-    return typeof value === "string" && value ? value : fallback;
+  function localized(key, fallback = "") {
+    return languageController.messages?.[key] || fallback;
   }
 
   function renderStatus() {
-    if (!currentStatus) return false;
-    const definition = CHAT_STATUS[currentStatus];
-    if (!definition) return false;
-    status.textContent = localized(definition.key, definition.fallback);
+    const key = CHAT_STATUS[currentStatus];
+    if (!key) return false;
+    status.textContent = localized(key);
     return true;
+  }
+
+  function renderPrivacy() {
+    if (!privacy || retentionDays == null) return;
+    const key = retentionDays ? "chat_privacy_retained" : "chat_privacy_zero";
+    privacy.textContent = (languageController.messages?.[key] || "")
+      .replace("{days}", retentionDays);
   }
 
   function setStatus(nextStatus) {
@@ -150,12 +157,12 @@ export function createChatController(languageController, {
   }
 
   function genericErrorText() {
-    const definition = CHAT_STATUS.error;
-    return localized(definition.key, definition.fallback);
+    return localized(CHAT_STATUS.error, "Connection issue.");
   }
 
   function refreshLanguageSensitiveState() {
     renderStatus();
+    renderPrivacy();
     if (!admissionVerificationPending) admissionWidget?.refreshLanguage();
   }
 
@@ -165,6 +172,19 @@ export function createChatController(languageController, {
       attributes: true,
       attributeFilter: ["lang"]
     });
+  }
+
+  if (privacy) {
+    (async () => {
+      try {
+        const response = await fetchImpl("/api/chat-config", { cache: "no-store" });
+        const days = (await response.json())?.retention_days;
+        if (response.ok && Number.isInteger(days) && days >= 0) {
+          retentionDays = days;
+          renderPrivacy();
+        }
+      } catch {}
+    })();
   }
 
   async function ensureAdmission() {

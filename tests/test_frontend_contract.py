@@ -211,10 +211,18 @@ class FrontendContractTests(unittest.TestCase):
     def test_privacy_notice_is_complete_in_every_language(self) -> None:
         for path in TRANSLATIONS:
             data = json.loads(path.read_text(encoding="utf-8"))
-            notice = data["chat_privacy"].lower()
-            self.assertIn("7", notice)
-            self.assertIn("llm", notice)
-            self.assertIn("ip", notice)
+            fallback = data["chat_privacy"].lower()
+            zero = data["chat_privacy_zero"].lower()
+            retained = data["chat_privacy_retained"].lower()
+            self.assertNotIn("7", fallback)
+            self.assertNotIn("{days}", fallback)
+            self.assertNotIn("{days}", zero)
+            self.assertIn("{days}", retained)
+            self.assertNotEqual(fallback, zero)
+            self.assertNotEqual(fallback, retained)
+            for notice in (fallback, zero, retained):
+                self.assertIn("llm", notice)
+                self.assertIn("ip", notice)
 
     def test_translation_keys_match(self) -> None:
         documents = [json.loads(path.read_text(encoding="utf-8")) for path in TRANSLATIONS]
