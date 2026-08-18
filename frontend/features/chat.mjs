@@ -1,26 +1,13 @@
 import providerNotices from "../../bot/provider_notices.json" with { type: "json" };
 import { createLocalizedTurnstileRenderer, loadTurnstile } from "../core/turnstile.mjs";
 
-const CHAT_STATUS = Object.freeze({
-  typing: Object.freeze({ key: "chat_typing", fallback: "Preparing answer…" }),
-  complete: Object.freeze({ key: "chat_complete", fallback: "Answer complete." }),
-  error: Object.freeze({ key: "chat_error", fallback: "Connection issue." })
-});
+const CHAT_STATUS = {
+  typing: ["chat_typing", "Preparing answer…"],
+  complete: ["chat_complete", "Answer complete."],
+  error: ["chat_error", "Connection issue."]
+};
 
-const PROVIDER_FAILURE_NOTICES = Object.freeze(Object.values(providerNotices));
-
-export function renderChatPrivacyText(messages, days) {
-  const valid = Number.isInteger(days) && days >= 0;
-  const key = !valid
-    ? "chat_privacy"
-    : days === 0
-      ? "chat_privacy_zero"
-      : days === 1
-        ? "chat_privacy_one"
-        : "chat_privacy_retained";
-  return String(messages?.[key] || messages?.chat_privacy || "")
-    .replace("{days}", String(days));
-}
+const PROVIDER_FAILURE_NOTICES = Object.values(providerNotices);
 
 export function chatStreamSucceeded(text) {
   const full = String(text ?? "");
@@ -147,36 +134,21 @@ export function createChatController(languageController, {
   let retentionDays = null;
 
   function localized(key, fallback) {
-    const value = languageController.messages?.[key];
-    return typeof value === "string" && value ? value : fallback;
+    return languageController.messages?.[key] || fallback;
   }
 
   function renderStatus() {
-    if (!currentStatus) return false;
     const definition = CHAT_STATUS[currentStatus];
     if (!definition) return false;
-    status.textContent = localized(definition.key, definition.fallback);
+    status.textContent = localized(...definition);
     return true;
   }
 
   function renderPrivacy() {
-    if (!privacy) return false;
-    privacy.textContent = renderChatPrivacyText(languageController.messages, retentionDays);
-    return true;
-  }
-
-  async function loadPrivacyPolicy() {
-    renderPrivacy();
-    try {
-      const response = await fetchImpl("/api/chat-config", { cache: "no-store" });
-      const config = await response.json();
-      const days = config?.retention_days;
-      retentionDays = response.ok && Number.isInteger(days) && days >= 0 ? days : null;
-    } catch {
-      retentionDays = null;
-    }
-    renderPrivacy();
-    return retentionDays;
+    if (!privacy || retentionDays === null) return;
+    const key = retentionDays ? "chat_privacy_retained" : "chat_privacy_zero";
+    privacy.textContent = (languageController.messages?.[key] || "")
+      .replace("{days}", String(retentionDays));
   }
 
   function setStatus(nextStatus) {
@@ -185,8 +157,7 @@ export function createChatController(languageController, {
   }
 
   function genericErrorText() {
-    const definition = CHAT_STATUS.error;
-    return localized(definition.key, definition.fallback);
+    return localized(...CHAT_STATUS.error);
   }
 
   function refreshLanguageSensitiveState() {
@@ -203,7 +174,18 @@ export function createChatController(languageController, {
     });
   }
 
-  const privacyReady = privacy ? loadPrivacyPolicy() : Promise.resolve(null);
+  if (privacy) {
+    (async () => {
+      try {
+        const response = await fetchImpl("/api/chat-config", { cache: "no-store" });
+        const days = (await response.json())?.retention_days;
+        if (response.ok && Number.isInteger(days) && days >= 0) {
+          retentionDays = days;
+          renderPrivacy();
+        }
+      } catch {}
+    })();
+  }
 
   async function ensureAdmission() {
     if (admissionSession) return admissionSession;
@@ -340,5 +322,5 @@ export function createChatController(languageController, {
       input.focus();
     }
   });
-  return { completedHistory, rerender: refreshLanguageSensitiveState, privacyReady };
+  return { completedHistory, rerender: renderStatus };
 }

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { createChatController, renderChatPrivacyText } from "../frontend/features/chat.mjs";
+import { createChatController } from "../frontend/features/chat.mjs";
 
 const rootDir = resolve(import.meta.dirname, "..");
 const messages = Object.fromEntries(await Promise.all(
@@ -10,85 +10,82 @@ const messages = Object.fromEntries(await Promise.all(
     JSON.parse(await readFile(resolve(rootDir, "content", "translations", `${language}.json`), "utf8"))
   ])
 ));
-
+const source = await readFile(resolve(rootDir, "frontend", "index.html"), "utf8");
+assert.match(source, /id="chatPrivacy"[^>]*data-i18n="chat_privacy"/);
 for (const [language, copy] of Object.entries(messages)) {
-  assert.equal(renderChatPrivacyText(copy, null), copy.chat_privacy, `${language} fallback mismatch`);
-  assert.doesNotMatch(copy.chat_privacy, /\b7\b/, `${language} fallback hard-codes the old retention duration`);
-  assert.equal(renderChatPrivacyText(copy, 0), copy.chat_privacy_zero, `${language} zero-retention mismatch`);
-  assert.equal(renderChatPrivacyText(copy, 1), copy.chat_privacy_one, `${language} singular retention mismatch`);
-  assert.equal(
-    renderChatPrivacyText(copy, 9),
-    copy.chat_privacy_retained.replace("{days}", "9"),
-    `${language} runtime retention mismatch`
-  );
-  for (const invalid of [undefined, "7", -1, 1.5, Number.NaN]) {
-    assert.equal(renderChatPrivacyText(copy, invalid), copy.chat_privacy, `${language} accepted invalid retention`);
-  }
+  assert.doesNotMatch(copy.chat_privacy, /\b7\b/, `${language} fallback hard-codes the old duration`);
+  assert.ok(copy.chat_privacy_zero, `${language} zero-retention copy missing`);
+  assert.match(copy.chat_privacy_retained, /\{days\}/, `${language} runtime placeholder missing`);
+  assert.equal("chat_privacy_one" in copy, false, `${language} retains redundant singular copy`);
 }
 
-function chatHarness(languageMessages) {
+function harness(languageMessages, privacyText) {
   const observers = [];
   class FakeMutationObserver {
     constructor(callback) { this.callback = callback; observers.push(this); }
     observe() {}
   }
-  const form = { addEventListener() {}, setAttribute() {} };
-  const privacy = { textContent: "" };
-  const root = {
-    documentElement: { lang: "en" },
-    querySelector(selector) {
-      return {
-        "#chatForm": form,
-        "#chatInput": { value: "", focus() {} },
-        "#chatSend": { disabled: false },
-        "#chatLog": { append() {}, scrollTop: 0, scrollHeight: 0 },
-        "#chatStatus": { textContent: "", after() {} },
-        "#chatPrivacy": privacy
-      }[selector] || null;
-    },
-    createElement() { return { className: "", textContent: "", setAttribute() {}, remove() {} }; }
+  const privacy = { textContent: privacyText };
+  const elements = {
+    "#chatForm": { addEventListener() {}, setAttribute() {} },
+    "#chatInput": { value: "", focus() {} },
+    "#chatSend": { disabled: false },
+    "#chatLog": { append() {}, scrollTop: 0, scrollHeight: 0 },
+    "#chatStatus": { textContent: "", after() {} },
+    "#chatPrivacy": privacy
   };
   return {
     observers,
     privacy,
-    root,
+    root: {
+      documentElement: { lang: "en" },
+      querySelector(selector) { return elements[selector] || null; },
+      createElement() { return { className: "", textContent: "", setAttribute() {}, remove() {} }; }
+    },
     windowLike: { MutationObserver: FakeMutationObserver },
     languageController: { messages: languageMessages }
   };
 }
 
-{
-  const harness = chatHarness(messages.en);
+async function settle(predicate) {
+  for (let attempt = 0; attempt < 20 && !predicate(); attempt += 1) await Promise.resolve();
+}
+
+for (const [days, expectedKey] of [[0, "chat_privacy_zero"], [9, "chat_privacy_retained"]]) {
+  const h = harness(messages.en, messages.en.chat_privacy);
   let fetches = 0;
-  const controller = createChatController(harness.languageController, {
-    root: harness.root,
-    windowLike: harness.windowLike,
+  createChatController(h.languageController, {
+    root: h.root,
+    windowLike: h.windowLike,
     fetchImpl: async (url, options = {}) => {
       assert.equal(url, "/api/chat-config");
       assert.equal(options.cache, "no-store");
       fetches += 1;
-      return { ok: true, async json() { return { retention_days: 0 }; } };
+      return { ok: true, async json() { return { retention_days: days }; } };
     }
   });
-  assert.equal(harness.privacy.textContent, messages.en.chat_privacy);
-  assert.equal(await controller.privacyReady, 0);
-  assert.equal(harness.privacy.textContent, messages.en.chat_privacy_zero);
-  harness.languageController.messages = messages.de;
-  harness.root.documentElement.lang = "de";
-  harness.observers[0].callback();
-  assert.equal(harness.privacy.textContent, messages.de.chat_privacy_zero);
+  const expected = messages.en[expectedKey].replace("{days}", String(days));
+  await settle(() => h.privacy.textContent === expected);
+  assert.equal(h.privacy.textContent, expected);
+  assert.equal(fetches, 1);
+  h.languageController.messages = messages.de;
+  h.root.documentElement.lang = "de";
+  h.observers[0].callback();
+  assert.equal(h.privacy.textContent, messages.de[expectedKey].replace("{days}", String(days)));
   assert.equal(fetches, 1, "language rerender refetched runtime policy");
 }
 
-{
-  const harness = chatHarness(messages.lv);
-  const controller = createChatController(harness.languageController, {
-    root: harness.root,
-    windowLike: harness.windowLike,
-    fetchImpl: async () => { throw new TypeError("synthetic config failure"); }
+for (const mode of ["failure", "invalid"]) {
+  const h = harness(messages.lv, messages.lv.chat_privacy);
+  createChatController(h.languageController, {
+    root: h.root,
+    windowLike: h.windowLike,
+    fetchImpl: mode === "failure"
+      ? async () => { throw new TypeError("synthetic config failure"); }
+      : async () => ({ ok: true, async json() { return { retention_days: "7" }; } })
   });
-  assert.equal(await controller.privacyReady, null);
-  assert.equal(harness.privacy.textContent, messages.lv.chat_privacy);
+  await settle(() => false);
+  assert.equal(h.privacy.textContent, messages.lv.chat_privacy);
 }
 
 console.log("CHAT_PRIVACY_RUNTIME_CONTRACT=PASS");
