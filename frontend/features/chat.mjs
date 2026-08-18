@@ -2,9 +2,9 @@ import providerNotices from "../../bot/provider_notices.json" with { type: "json
 import { createLocalizedTurnstileRenderer, loadTurnstile } from "../core/turnstile.mjs";
 
 const CHAT_STATUS = {
-  typing: ["chat_typing", "Preparing answer…"],
-  complete: ["chat_complete", "Answer complete."],
-  error: ["chat_error", "Connection issue."]
+  typing: "chat_typing",
+  complete: "chat_complete",
+  error: "chat_error"
 };
 
 const PROVIDER_FAILURE_NOTICES = Object.values(providerNotices);
@@ -131,24 +131,24 @@ export function createChatController(languageController, {
   let admissionWidget = null;
   let admissionVerificationPending = false;
   let currentStatus = null;
-  let retentionDays = null;
+  let retentionDays;
 
-  function localized(key, fallback) {
+  function localized(key, fallback = "") {
     return languageController.messages?.[key] || fallback;
   }
 
   function renderStatus() {
-    const definition = CHAT_STATUS[currentStatus];
-    if (!definition) return false;
-    status.textContent = localized(...definition);
+    const key = CHAT_STATUS[currentStatus];
+    if (!key) return false;
+    status.textContent = localized(key);
     return true;
   }
 
   function renderPrivacy() {
-    if (!privacy || retentionDays === null) return;
+    if (!privacy || retentionDays == null) return;
     const key = retentionDays ? "chat_privacy_retained" : "chat_privacy_zero";
     privacy.textContent = (languageController.messages?.[key] || "")
-      .replace("{days}", String(retentionDays));
+      .replace("{days}", retentionDays);
   }
 
   function setStatus(nextStatus) {
@@ -157,7 +157,7 @@ export function createChatController(languageController, {
   }
 
   function genericErrorText() {
-    return localized(...CHAT_STATUS.error);
+    return localized(CHAT_STATUS.error, "Connection issue.");
   }
 
   function refreshLanguageSensitiveState() {
