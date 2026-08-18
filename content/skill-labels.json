@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "labels": {
+    "Linux administration": {
+      "en": "Linux administration",
+      "de": "Linux-Administration",
+      "lv": "Linux administrēšana"
+    },
+    "Docker": {
+      "en": "Docker",
+      "de": "Docker",
+      "lv": "Docker"
+    },
+    "Docker Compose": {
+      "en": "Docker Compose",
+      "de": "Docker Compose",
+      "lv": "Docker Compose"
+    },
+    "Bash": {
+      "en": "Bash",
+      "de": "Bash",
+      "lv": "Bash"
+    },
+    "Nginx": {
+      "en": "Nginx",
+      "de": "Nginx",
+      "lv": "Nginx"
+    },
+    "DNS": {
+      "en": "DNS",
+      "de": "DNS",
+      "lv": "DNS"
+    },
+    "SSL/TLS": {
+      "en": "SSL/TLS",
+      "de": "SSL/TLS",
+      "lv": "SSL/TLS"
+    },
+    "Prometheus": {
+      "en": "Prometheus",
+      "de": "Prometheus",
+      "lv": "Prometheus"
+    },
+    "Grafana": {
+      "en": "Grafana",
+      "de": "Grafana",
+      "lv": "Grafana"
+    },
+    "systemd": {
+      "en": "systemd",
+      "de": "systemd",
+      "lv": "systemd"
+    },
+    "Git": {
+      "en": "Git",
+      "de": "Git",
+      "lv": "Git"
+    },
+    "Python": {
+      "en": "Python",
+      "de": "Python",
+      "lv": "Python"
+    },
+    "REST APIs": {
+      "en": "REST APIs",
+      "de": "REST-APIs",
+      "lv": "REST API"
+    },
+    "Home Assistant": {
+      "en": "Home Assistant",
+      "de": "Home Assistant",
+      "lv": "Home Assistant"
+    },
+    "ESP32/IoT": {
+      "en": "ESP32/IoT",
+      "de": "ESP32/IoT",
+      "lv": "ESP32/IoT"
+    },
+    "YAML": {
+      "en": "YAML",
+      "de": "YAML",
+      "lv": "YAML"
+    },
+    "Ansible": {
+      "en": "Ansible",
+      "de": "Ansible",
+      "lv": "Ansible"
+    },
+    "Terraform": {
+      "en": "Terraform",
+      "de": "Terraform",
+      "lv": "Terraform"
+    },
+    "AWS Cloud": {
+      "en": "AWS Cloud",
+      "de": "AWS Cloud",
+      "lv": "AWS Cloud"
+    },
+    "Networking": {
+      "en": "Networking",
+      "de": "Netzwerke",
+      "lv": "Tīklošana"
+    },
+    "SSH/FTP": {
+      "en": "SSH/FTP",
+      "de": "SSH/FTP",
+      "lv": "SSH/FTP"
+    },
+    "PHP/IPB forums": {
+      "en": "PHP/IPB",
+      "de": "PHP/IPB-Foren",
+      "lv": "PHP/IPB forumi"
+    },
+    "HTML/CSS": {
+      "en": "HTML/CSS",
+      "de": "HTML/CSS",
+      "lv": "HTML/CSS"
+    }
+  }
+}

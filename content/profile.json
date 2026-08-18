@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "content_version": "2026-08-08.2",
+  "content_version": "2026-08-18.1",
   "identity": {
     "name": "Andris Rožkalns",
     "role": "Junior DevOps & Linux Engineer",
@@ -140,9 +140,10 @@
       "AWS Cloud"
     ],
     "foundations": [
+      "Networking",
       "SSH/FTP",
       "PHP/IPB forums",
-      "HTML"
+      "HTML/CSS"
     ]
   },
   "projects": [
