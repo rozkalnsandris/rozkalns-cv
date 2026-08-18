@@ -9,6 +9,7 @@ const CHAT_STATUS = Object.freeze({
 
 const PRIVACY_FALLBACK = "Messages are processed by the configured LLM provider. Chat retention details are currently unavailable; raw IP addresses are not stored.";
 const PRIVACY_ZERO_FALLBACK = "Messages are processed by the configured LLM provider. Raw chat content is not retained; raw IP addresses are not stored.";
+const PRIVACY_ONE_FALLBACK = "Messages are processed by the configured LLM provider. Raw chat content may be retained for up to 1 day under a pseudonymous identifier; raw IP addresses are not stored.";
 const PRIVACY_RETAINED_FALLBACK = "Messages are processed by the configured LLM provider. Raw chat content may be retained for up to {days} days under a pseudonymous identifier; raw IP addresses are not stored.";
 const PROVIDER_FAILURE_NOTICES = Object.freeze(Object.values(providerNotices));
 
@@ -21,6 +22,10 @@ export function renderChatPrivacyText(messages, retentionDays) {
   if (normalized === 0) {
     const value = messages?.chat_privacy_zero;
     return typeof value === "string" && value ? value : PRIVACY_ZERO_FALLBACK;
+  }
+  if (normalized === 1) {
+    const value = messages?.chat_privacy_one;
+    return typeof value === "string" && value ? value : PRIVACY_ONE_FALLBACK;
   }
   if (normalized !== null) {
     const template = messages?.chat_privacy_retained;
