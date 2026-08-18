@@ -1,0 +1,44 @@
+name: Content Manifest Refresh Temp
+
+on:
+  pull_request:
+    paths:
+      - 'content/translations/**'
+      - '.github/workflows/content-manifest-refresh-temp.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out PR branch
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+      - name: Refresh manifest for unchanged reviewed PDFs
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          before_en="$(sha256sum html/cv.pdf | cut -d' ' -f1)"
+          before_de="$(sha256sum html/cv-de.pdf | cut -d' ' -f1)"
+          before_lv="$(sha256sum html/cv-lv.pdf | cut -d' ' -f1)"
+          python3 scripts/build-content.py --write --accept-pdfs
+          test "$(sha256sum html/cv.pdf | cut -d' ' -f1)" = "$before_en"
+          test "$(sha256sum html/cv-de.pdf | cut -d' ' -f1)" = "$before_de"
+          test "$(sha256sum html/cv-lv.pdf | cut -d' ' -f1)" = "$before_lv"
+          git diff --exit-code -- bot/system_prompt.txt
+          git diff --exit-code -- html/cv.pdf html/cv-de.pdf html/cv-lv.pdf
+      - name: Commit provenance-only manifest refresh
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- content/pdf-manifest.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'content: refresh PDF source provenance (#337)'
+          git push origin HEAD:${{ github.head_ref }}
