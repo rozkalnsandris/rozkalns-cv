@@ -42,7 +42,7 @@ TECHNICAL SKILLS
 - Core: Linux administration, Docker, Docker Compose, Bash, Nginx, DNS, SSL/TLS, Prometheus, Grafana, systemd, Git
 - Working knowledge: Python, REST APIs, Home Assistant, ESP32/IoT, YAML
 - Learning: Ansible, Terraform, AWS Cloud
-- Foundations: SSH/FTP, PHP/IPB forums, HTML
+- Foundations: Networking, SSH/FTP, PHP/IPB forums, HTML/CSS
 
 PROJECTS
 - Production Linux server stack: Raspberry Pi 5 with NVMe storage; Docker Compose services running 24/7; Nginx, AdGuard Home, TLS, and Cloudflare Tunnel
