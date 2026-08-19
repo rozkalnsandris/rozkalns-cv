@@ -5,7 +5,7 @@ import subprocess
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-LEGACY_HELPER = ROOT / "runner" / "release" / "rozkalns-cv-deploy-main"
+DEPLOY_LIBRARY_SOURCE = ROOT / "runner" / "release" / "rozkalns-cv-deploy-main"
 PULL_HELPER = ROOT / "runner" / "release" / "rozkalns-cv-pull-deploy-main"
 INSTALLER = ROOT / "runner" / "install-pull-deploy-main.sh"
 
@@ -13,19 +13,28 @@ INSTALLER = ROOT / "runner" / "install-pull-deploy-main.sh"
 class PullDeployTransportContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.legacy = LEGACY_HELPER.read_text(encoding="utf-8")
+        cls.deploy_library_source = DEPLOY_LIBRARY_SOURCE.read_text(encoding="utf-8")
         cls.pull = PULL_HELPER.read_text(encoding="utf-8")
         cls.installer = INSTALLER.read_text(encoding="utf-8")
-        for script in (LEGACY_HELPER, PULL_HELPER, INSTALLER):
+        for script in (DEPLOY_LIBRARY_SOURCE, PULL_HELPER, INSTALLER):
             subprocess.run(["bash", "-n", str(script)], check=True)
 
-    def test_legacy_runner_entrypoint_is_left_intact_for_canary(self) -> None:
+    def test_library_only_mode_precedes_deprecated_direct_runner_gate(self) -> None:
         for marker in (
+            '[[ "${ROZKALNS_CV_DEPLOY_LIBRARY_ONLY:-}" == 1 ]]',
             '[[ "${SUDO_USER:-}" == github-cv-runner ]]',
             "EVIDENCE_ROOT='/home/github-cv-runner/actions-runner/_work/_temp'",
             "deployment helper must be invoked by the dedicated CV runner",
         ):
-            self.assertIn(marker, self.legacy)
+            self.assertIn(marker, self.deploy_library_source)
+
+        library_only = self.deploy_library_source.index(
+            '[[ "${ROZKALNS_CV_DEPLOY_LIBRARY_ONLY:-}" == 1 ]]'
+        )
+        direct_runner_gate = self.deploy_library_source.index(
+            '[[ "${SUDO_USER:-}" == github-cv-runner ]]'
+        )
+        self.assertLess(library_only, direct_runner_gate)
 
     def test_pull_entrypoint_reuses_only_root_owned_deploy_library(self) -> None:
         for marker in (
@@ -218,7 +227,7 @@ fi
         self.assertLess(public_gate, state)
         self.assertLess(state, committed)
 
-    def test_installer_adds_parallel_transport_without_touching_legacy_rule(self) -> None:
+    def test_installer_uses_pull_transport_without_restoring_runner_bootstrap(self) -> None:
         for marker in (
             "LIBRARY_SOURCE=\"$SOURCE_WORKTREE/runner/release/"
             "rozkalns-cv-deploy-main\"",
