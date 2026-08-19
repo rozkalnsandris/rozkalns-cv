@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import subprocess
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,13 +18,33 @@ class SourceHygieneTests(unittest.TestCase):
         ):
             self.assertFalse(path.exists(), path)
 
-    def test_retired_github_runner_bootstrap_paths_are_absent(self) -> None:
+    def test_retired_github_runner_bootstrap_paths_fail_closed(self) -> None:
         for path in (
             ROOT / "runner" / "activate-github-main-deploy.sh",
             ROOT / "runner" / "install-github-main-deploy.sh",
             ROOT / "runner" / "install-github-cv-runner.sh",
         ):
-            self.assertFalse(path.exists(), path)
+            text = path.read_text(encoding="utf-8")
+            self.assertIn("LEGACY_GITHUB_RUNNER_BOOTSTRAP_RETIRED=true", text)
+            for forbidden in (
+                "gh api",
+                "./config.sh",
+                "./svc.sh",
+                "useradd",
+                "visudo",
+                "systemctl",
+                "sudo bash",
+            ):
+                self.assertNotIn(forbidden, text)
+            completed = subprocess.run(
+                ["bash", str(path)],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                check=False,
+            )
+            self.assertEqual(completed.returncode, 64, completed.stdout)
+            self.assertIn("retired", completed.stdout.lower())
 
     def test_validator_routes_bytecode_outside_source_tree(self) -> None:
         text = VALIDATOR.read_text(encoding="utf-8")
