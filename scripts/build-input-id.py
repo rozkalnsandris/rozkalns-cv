@@ -7,7 +7,7 @@ from pathlib import Path
 import sys
 
 CVBOT_DOCKER_COPY_INPUTS = (
-    "bot/requirements.lock",
+    "bot/requirements.txt",
     "bot/app.py",
     "bot/chat_admission.py",
     "bot/chat_entry.py",

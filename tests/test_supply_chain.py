@@ -10,7 +10,10 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 DOCKERFILE = ROOT / "bot" / "Dockerfile"
 COMPOSE = ROOT / "docker-compose.yml"
-LOCK = ROOT / "bot" / "requirements.lock"
+DIRECT = ROOT / "bot" / "requirements.in"
+LOCK = ROOT / "bot" / "requirements.txt"
+LEGACY_LOCK = ROOT / "bot" / "requirements.lock"
+DEPENDABOT = ROOT / ".github" / "dependabot.yml"
 SUPPLY = ROOT / "security" / "supply-chain.json"
 HELPER = ROOT / "runner" / "release" / "rozkalns-cv-deploy-main"
 CI = ROOT / ".github" / "workflows" / "ci.yml"
@@ -27,28 +30,56 @@ def load_build_module():
     return module
 
 
+def direct_requirements() -> list[tuple[str, str]]:
+    rows: list[tuple[str, str]] = []
+    for raw in DIRECT.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        match = re.fullmatch(r"([A-Za-z0-9][A-Za-z0-9_.-]*)==([^\s]+)", line)
+        if match is None:
+            raise AssertionError(f"direct dependency is not an exact pin: {line!r}")
+        rows.append((match.group(1).lower().replace("_", "-"), match.group(2)))
+    return rows
+
+
 class SupplyChainContractTests(unittest.TestCase):
-    def test_direct_dependencies_are_current_exact_versions(self) -> None:
+    def test_direct_dependencies_are_exact_and_bounded(self) -> None:
+        rows = direct_requirements()
+        self.assertEqual(len(rows), 3)
         self.assertEqual(
-            (ROOT / "bot" / "requirements.in").read_text(encoding="utf-8"),
-            "Flask==3.1.3\nrequests==2.34.2\ngunicorn==26.0.0\n",
+            {name for name, _ in rows},
+            {"flask", "requests", "gunicorn"},
         )
 
     def test_lock_is_hash_complete_and_matches_direct_dependencies(self) -> None:
+        self.assertFalse(LEGACY_LOCK.exists())
         text = LOCK.read_text(encoding="utf-8")
+        self.assertIn("--output-file=bot/requirements.txt", text)
         self.assertNotIn("--trusted-host", text)
         self.assertNotIn("-e ", text)
         rows = re.findall(r"(?m)^([a-z0-9][a-z0-9_.-]*)==([^\\\s]+)", text)
         self.assertGreaterEqual(len(rows), 10)
         packages = {name.replace("_", "-"): version for name, version in rows}
-        self.assertEqual(packages["flask"], "3.1.3")
-        self.assertEqual(packages["requests"], "2.34.2")
-        self.assertEqual(packages["gunicorn"], "26.0.0")
+        direct = dict(direct_requirements())
+        self.assertEqual({name: packages.get(name) for name in direct}, direct)
         blocks = re.split(r"(?m)(?=^[a-z0-9][a-z0-9_.-]*==)", text)
         package_blocks = [block for block in blocks if re.match(r"^[a-z0-9]", block)]
         self.assertEqual(len(package_blocks), len(rows))
         for block in package_blocks:
             self.assertRegex(block, r"--hash=sha256:[0-9a-f]{64}")
+
+    def test_python_dependabot_tracks_bot_manifest(self) -> None:
+        text = DEPENDABOT.read_text(encoding="utf-8")
+        matches = re.findall(
+            r'(?ms)^  - package-ecosystem: "pip"\n(.*?)(?=^  - package-ecosystem:|\Z)',
+            text,
+        )
+        self.assertEqual(len(matches), 1)
+        block = matches[0]
+        self.assertIn('    directory: "/bot"', block)
+        self.assertIn('      interval: "weekly"', block)
+        self.assertIn("    open-pull-requests-limit: 2", block)
 
     def test_runtime_images_are_immutable_and_audited(self) -> None:
         compose = COMPOSE.read_text(encoding="utf-8")
@@ -90,7 +121,12 @@ class SupplyChainContractTests(unittest.TestCase):
     def test_build_uses_hashes_and_traceable_labels(self) -> None:
         dockerfile = DOCKERFILE.read_text(encoding="utf-8")
         compose = COMPOSE.read_text(encoding="utf-8")
-        self.assertIn("--require-hashes --no-deps", dockerfile)
+        ci = CI.read_text(encoding="utf-8")
+        self.assertIn("COPY requirements.txt ./requirements.txt", dockerfile)
+        self.assertIn("--require-hashes --no-deps -r requirements.txt", dockerfile)
+        self.assertNotIn("requirements.lock", dockerfile)
+        self.assertIn("-r bot/requirements.txt", ci)
+        self.assertNotIn("bot/requirements.lock", ci)
         self.assertIn('org.opencontainers.image.revision="${VCS_REF}"', dockerfile)
         self.assertIn(
             'net.rozkalns.cv.build-input-sha256="${BUILD_INPUT_SHA256}"',
@@ -113,6 +149,8 @@ class SupplyChainContractTests(unittest.TestCase):
         self.assertRegex(first, r"^[0-9a-f]{64}$")
         expected_paths = set(module.INPUTS)
         self.assertEqual({path for path, _ in rows}, expected_paths)
+        self.assertIn("bot/requirements.txt", expected_paths)
+        self.assertNotIn("bot/requirements.lock", expected_paths)
         digest = hashlib.sha256()
         for relative, _ in rows:
             content = (ROOT / relative).read_bytes()
