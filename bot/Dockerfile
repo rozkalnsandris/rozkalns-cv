@@ -20,8 +20,8 @@ WORKDIR /app
 RUN addgroup -S -g "${APP_GID}" cvbot \
     && adduser -S -D -H -u "${APP_UID}" -G cvbot cvbot
 
-COPY requirements.lock ./requirements.lock
-RUN python -m pip install --require-hashes --no-deps -r requirements.lock
+COPY requirements.txt ./requirements.txt
+RUN python -m pip install --require-hashes --no-deps -r requirements.txt
 
 COPY --chown=${APP_UID}:${APP_GID} \
     app.py chat_admission.py chat_entry.py chat_policy.py config.py contact.py \
