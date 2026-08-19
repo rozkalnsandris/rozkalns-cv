@@ -47,7 +47,7 @@ jobs:
             --disable-pip-version-check \
             --require-hashes \
             --no-deps \
-            -r bot/requirements.lock
+            -r bot/requirements.txt
           echo "TEST_VENV=$test_venv" >> "$GITHUB_ENV"
           echo "PYTHONPYCACHEPREFIX=${RUNNER_TEMP}/rozkalns-cv-pycache" \
             >> "$GITHUB_ENV"
