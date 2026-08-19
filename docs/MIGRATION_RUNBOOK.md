@@ -1,107 +1,72 @@
-# Migration runbook
+# Migration runbook — archived
 
-## Phase 1 — create the sanitized repository from the current RPi5 source
+> **Status: completed historical record.** The initial repository migration and
+> the former GitHub-hosted deployment transport described by earlier revisions
+> are no longer an operator procedure. Do not reconstruct or execute that
+> retired self-hosted-runner path. For the current production model, use the
+> repository `README.md` and the RPi5-owned pull-controller documentation in
+> `RPi5_main`.
 
-Copy this whole kit to the RPi5, then run as `andris`:
+## What this document records
 
-```bash
-cd ~/rozkalns-cv-migration-kit
-bash scripts/export-current-rpi5.sh
-```
+The repository was originally created by exporting the then-current RPi5 CV
+runtime into a sanitized Git source tree. The migration:
 
-The script:
+1. copied application source and public assets from the old runtime directory;
+2. excluded secrets, backups, logs, caches and runtime-only data;
+3. preserved a historical file/hash snapshot in `MIGRATION_INVENTORY.txt`;
+4. established GitHub as the source of truth;
+5. moved production changes away from the old monolithic source writer; and
+6. initially used a dedicated self-hosted GitHub Actions release runner.
 
-1. reads `/home/andris/docker/cv`;
-2. copies all current source and public assets;
-3. excludes secrets, backups, logs, caches, runtime `stats.json`, and `.git`;
-4. sanitizes any inline tunnel-token assignment;
-5. overlays CI/CD, tests, documentation, and safe examples;
-6. runs syntax, source-contract, and secret scans;
-7. creates `/home/andris/rozkalns-cv`.
+That final deployment transport was subsequently retired. References to the old
+runner, old deployment workflow, old source writer, or old Cloudflare container
+inside historical inventories/commits are evidence of the migration, not
+current operational instructions.
 
-Review the generated inventory:
+## Current post-migration architecture
 
-```bash
-cat ~/rozkalns-cv/MIGRATION_INVENTORY.txt
-```
+- `rozkalnsandris/rozkalns-cv` is the public source repository.
+- The production checkout is `/home/andris/rozkalns-cv` and the runtime is
+  `/home/andris/docker/cv`.
+- CV Compose owns only the application services `cv` and `cvbot`.
+- The application origin is published on host loopback at
+  `http://127.0.0.1:8088/`; there is no direct LAN publish.
+- Shared Cloudflare ingress is host-wide infrastructure owned by `RPi5_main`
+  and runs through the RPi5 systemd `cloudflared.service`.
+- GitHub Actions supplies CI/security evidence. It does **not** execute the RPi5
+  production deployment.
+- The RPi5-owned `rozkalns-cv-pull-deploy.timer` runs the serial least-privilege
+  pull controller. The controller independently resolves `origin/main`,
+  requires successful exact-SHA CI, and classifies the complete
+  production-to-target range before any deployment decision.
+- Only an `AUTO_DEPLOY_SAFE` range without a control-plane change may proceed
+  automatically. Manual, database, host and control-plane outcomes stop and
+  require the corresponding explicit owner-controlled path.
+- The transactional release helper deploys only `cv` and `cvbot`, verifies
+  local/public application health, and rolls back CV application failures.
 
-## Phase 2 — create the private GitHub repository and push the baseline
+## Normal development now
 
-From the generated repository:
-
-```bash
-cd ~/rozkalns-cv
-bash scripts/bootstrap-github.sh
-```
-
-The script creates `rozkalnsandris/rozkalns-cv` as a private repository when it
-does not already exist, creates the baseline commit, and pushes `main`.
-
-The first commit is the exact current production source, sanitized for Git.
-
-## Phase 3 — install and activate the dedicated RPi5 release runner
-
-Use an isolated release-control worktree:
-
-```bash
-cd ~/rozkalns-cv
-git fetch --prune origin main
-mkdir -p ~/rozkalns-cv-worktrees
-git worktree add --detach ~/rozkalns-cv-worktrees/release-control origin/main
-cd ~/rozkalns-cv-worktrees/release-control
-bash runner/activate-github-main-deploy.sh
-```
-
-Activation:
-
-- creates the unprivileged `github-cv-runner` account;
-- installs a dedicated GitHub Actions runner with label
-  `rozkalns-cv-release`;
-- does not add the account to the Docker group;
-- installs the audited root deployment helper;
-- creates the narrow sudoers rule.
-
-## Phase 4 — verify the baseline
-
-Wait for `CI` and `Deploy merged main to RPi5` to finish, then verify:
-
-```bash
-curl -fsS http://192.168.0.180:8088/ >/dev/null
-curl -fsS https://rozkalns.net/ >/dev/null
-docker inspect cv cvbot --format '{{.Name}} {{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{end}}'
-```
-
-The baseline should normally produce either:
-
-- `PASS`, after safely recreating `cv` and `cvbot`; or
-- `NO_OP_ALREADY_CURRENT`, when the state file already binds production to the
-  same SHA.
-
-## Phase 5 — retire the old source writer
-
-After GitHub deployment is proven:
-
-1. remove or disable any cron/systemd entry that invokes the old CV
-   `/home/andris/update.sh`;
-2. do not delete the script immediately—archive it outside the Git repository;
-3. keep `/etc/cron.d/cv-stats` only if the live metrics still depend on it;
-4. update the host-wide RPi5 documentation so `rozkalns-cv` owns CV source and
-   deployment while `RPi5_main` owns host infrastructure.
-
-## Normal development after migration
-
-Use the same controlled pattern as the other projects:
+The source workflow remains:
 
 ```text
-issue -> isolated branch/worktree -> Draft PR -> CI -> ready -> squash merge
-      -> successful main CI -> serial RPi5 deployment -> evidence
+issue -> isolated branch/worktree -> Draft PR -> CI/security evidence
+      -> ready -> explicit squash merge -> exact-main verification
 ```
 
-Do not edit `/home/andris/docker/cv` directly after migration.
+A merge is not itself proof that production changed. Deployment state is
+reconciled separately by the RPi5 pull controller and its exact-SHA evidence.
+Do not edit `/home/andris/docker/cv` directly as a substitute for a reviewed
+source change.
 
-### Host-only Compose env files
+## Secrets and shared infrastructure
 
-The production Compose file references `bot/.env` and `cloudflared.env`. These
-files remain only on the RPi5 and are never committed. Export/CI validation
-creates short-lived placeholders because Docker Compose requires referenced
-`env_file` paths to exist even when only validating configuration.
+Real CV application secrets remain only on the RPi5, including `bot/.env`.
+Shared Cloudflare credentials are outside this repository's ownership boundary
+and must not be copied into CV source, CI fixtures, migration evidence, or
+operator notes.
+
+`MIGRATION_INVENTORY.txt` is intentionally immutable historical evidence. It
+may list files and deployment components that no longer exist in the current
+architecture; do not use that inventory as a current runbook.
