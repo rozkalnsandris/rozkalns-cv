@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 MIGRATION = ROOT / "docs" / "MIGRATION_RUNBOOK.md"
 KNOWLEDGE = ROOT / "docs" / "PROJECT_KNOWLEDGE.md"
 SUPPLY_CHAIN = ROOT / "docs" / "SUPPLY_CHAIN.md"
+PUBLIC_READINESS = ROOT / "docs" / "PUBLIC_READINESS.md"
 
 
 def compact_markdown(text: str) -> str:
@@ -83,6 +84,20 @@ class CurrentOperationalDocsTests(unittest.TestCase):
             "The deploy workflow additionally hashes the installed root-owned host helper",
         ):
             self.assertNotIn(stale_current_claim, text)
+
+    def test_public_readiness_final_baseline_is_explicitly_historical(self) -> None:
+        text = PUBLIC_READINESS.read_text(encoding="utf-8")
+        compact = compact_markdown(text)
+        for required in (
+            "Historical evidence snapshot",
+            "Do not use the `Final baseline` section to determine current `main`, production SHA, deploy status, or active work queue",
+            "current operational architecture, use `docs/PROJECT_KNOWLEDGE.md`",
+            "canonical issue #347 and its latest title/comments",
+            "At the start of this final readiness declaration",
+            "0d2c4f97708e509968358e56525fc0df864173d7",
+            "edea046966b8e69c14fb652b799297b9ae1df1bf",
+        ):
+            self.assertIn(required, compact)
 
 
 if __name__ == "__main__":

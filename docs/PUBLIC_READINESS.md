@@ -2,6 +2,8 @@
 
 Status: **PUBLIC — hardening complete**.
 
+> **Historical evidence snapshot.** This file preserves the completed public-readiness review and its exact acceptance baseline. Do not use the `Final baseline` section to determine current `main`, production SHA, deploy status, or active work queue. For current operational architecture, use `docs/PROJECT_KNOWLEDGE.md`. For exact live source/production/work-queue continuity, use canonical issue #347 and its latest title/comments.
+
 This document records the completed public-repository hardening posture for `rozkalns-cv`. The repository remains public and is expected to stay within the controls below. A future regression in any of these controls reopens readiness review; completion does not authorize weakening them.
 
 ## Completed public-readiness gates
