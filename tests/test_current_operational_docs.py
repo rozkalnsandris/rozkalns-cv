@@ -8,6 +8,7 @@ MIGRATION = ROOT / "docs" / "MIGRATION_RUNBOOK.md"
 KNOWLEDGE = ROOT / "docs" / "PROJECT_KNOWLEDGE.md"
 SUPPLY_CHAIN = ROOT / "docs" / "SUPPLY_CHAIN.md"
 PUBLIC_READINESS = ROOT / "docs" / "PUBLIC_READINESS.md"
+CONTENT_AUTHORING = ROOT / "docs" / "CONTENT_AUTHORING.md"
 
 
 def compact_markdown(text: str) -> str:
@@ -96,6 +97,21 @@ class CurrentOperationalDocsTests(unittest.TestCase):
             "At the start of this final readiness declaration",
             "0d2c4f97708e509968358e56525fc0df864173d7",
             "edea046966b8e69c14fb652b799297b9ae1df1bf",
+        ):
+            self.assertIn(required, compact)
+
+    def test_content_authoring_documents_skill_label_contract(self) -> None:
+        text = CONTENT_AUTHORING.read_text(encoding="utf-8")
+        compact = compact_markdown(text)
+        for required in (
+            "`content/skill-labels.json` — localized EN/DE/LV display labels keyed by canonical skill concepts",
+            "`content/skill-labels.json` is human-maintained source, not generated output",
+            "If canonical `skills` membership or a skill concept name changes",
+            "its concept set matches `content/profile.json` exactly",
+            "every concept has non-empty `en`, `de`, and `lv` labels",
+            "For `skills_*_items`, preserve canonical profile membership/order",
+            "render the localized labels from `content/skill-labels.json`",
+            "the skill-label concept set matches canonical `profile.json` skills exactly",
         ):
             self.assertIn(required, compact)
 

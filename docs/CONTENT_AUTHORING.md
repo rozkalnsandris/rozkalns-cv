@@ -6,9 +6,11 @@ are:
 
 - `content/profile.json` — public professional facts, structured records, and runtime-protected contact-channel metadata;
 - `content/profile.schema.json` — documented shape and field intent;
+- `content/skill-labels.json` — localized EN/DE/LV display labels keyed by canonical skill concepts;
 - `content/translations/en.json`, `de.json`, and `lv.json` — localized page copy.
 
 Everything else listed below is generated or validated against these sources.
+`content/skill-labels.json` is human-maintained source, not generated output.
 
 ## Editing facts
 
@@ -16,9 +18,14 @@ Everything else listed below is generated or validated against these sources.
 2. Edit `content/profile.json`; preserve stable IDs for existing experience,
    education, and project records.
 3. Change `content_version` whenever public facts change.
-4. Update all three translation files when the visible wording changes. Their
-   key sets must remain identical.
-5. Run:
+4. If canonical `skills` membership or a skill concept name changes, update
+   `content/skill-labels.json` so its concept set matches `content/profile.json`
+   exactly and every concept has non-empty `en`, `de`, and `lv` labels.
+5. Update all three translation files when the visible wording changes. Their
+   key sets must remain identical. For `skills_*_items`, preserve canonical
+   profile membership/order and render the localized labels from
+   `content/skill-labels.json`.
+6. Run:
 
    ```bash
    python3 scripts/build-content.py --write
@@ -77,6 +84,9 @@ A content pull request is ready only when:
 
 - profile validation and unique-ID checks pass;
 - EN/DE/LV keys match;
+- the skill-label concept set matches canonical `profile.json` skills exactly,
+  every concept has EN/DE/LV labels, and localized `skills_*_items` follow
+  canonical membership/order through those labels;
 - generated files are committed with no stale fingerprints;
 - the assistant prompt contains only public canonical facts and directs email/phone requests to the verified contact section;
 - the three PDFs have a current manifest and documented review/snapshot basis;
