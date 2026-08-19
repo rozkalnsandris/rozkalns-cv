@@ -8,14 +8,23 @@ MIGRATION = ROOT / "docs" / "MIGRATION_RUNBOOK.md"
 KNOWLEDGE = ROOT / "docs" / "PROJECT_KNOWLEDGE.md"
 
 
+def compact_markdown(text: str) -> str:
+    return " ".join(text.split())
+
+
 class CurrentOperationalDocsTests(unittest.TestCase):
     def test_migration_runbook_is_archival_not_retired_runner_instructions(self) -> None:
         text = MIGRATION.read_text(encoding="utf-8")
-        self.assertIn("# Migration runbook — archived", text)
-        self.assertIn("completed historical record", text)
-        self.assertIn("Do not reconstruct or execute", text)
-        self.assertIn("rozkalns-cv-pull-deploy.timer", text)
-        self.assertIn("AUTO_DEPLOY_SAFE", text)
+        compact = compact_markdown(text)
+        for required in (
+            "# Migration runbook — archived",
+            "completed historical record",
+            "Do not reconstruct or execute",
+            "rozkalns-cv-pull-deploy.timer",
+            "AUTO_DEPLOY_SAFE",
+        ):
+            self.assertIn(required, compact)
+
         for stale_instruction in (
             "bash runner/activate-github-main-deploy.sh",
             "Deploy merged main to RPi5",
@@ -28,6 +37,7 @@ class CurrentOperationalDocsTests(unittest.TestCase):
 
     def test_project_knowledge_tracks_current_pull_and_ingress_boundaries(self) -> None:
         text = KNOWLEDGE.read_text(encoding="utf-8")
+        compact = compact_markdown(text)
         for required in (
             "Application services: `cv` (nginx) and `cvbot` (Python assistant)",
             "http://127.0.0.1:8088/",
@@ -37,9 +47,9 @@ class CurrentOperationalDocsTests(unittest.TestCase):
             "GitHub Actions provides CI/security evidence only",
             "rozkalns-cv-pull-deploy.timer",
             "AUTO_DEPLOY_SAFE",
-            "deploys only\n`cv` and `cvbot`",
+            "deploys only `cv` and `cvbot`",
         ):
-            self.assertIn(required, text)
+            self.assertIn(required, compact)
 
         for stale_current_claim in (
             "Tunnel service/container: `cv-cloudflared`",
