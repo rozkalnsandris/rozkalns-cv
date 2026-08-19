@@ -17,6 +17,14 @@ class SourceHygieneTests(unittest.TestCase):
         ):
             self.assertFalse(path.exists(), path)
 
+    def test_retired_github_runner_bootstrap_paths_are_absent(self) -> None:
+        for path in (
+            ROOT / "runner" / "activate-github-main-deploy.sh",
+            ROOT / "runner" / "install-github-main-deploy.sh",
+            ROOT / "runner" / "install-github-cv-runner.sh",
+        ):
+            self.assertFalse(path.exists(), path)
+
     def test_validator_routes_bytecode_outside_source_tree(self) -> None:
         text = VALIDATOR.read_text(encoding="utf-8")
         for marker in (
