@@ -1,0 +1,20 @@
+# Fail closed: only files required by the CVBot image build enter the context.
+**
+!Dockerfile
+!requirements.txt
+!app.py
+!chat_admission.py
+!chat_entry.py
+!chat_policy.py
+!config.py
+!contact.py
+!notifier.py
+!provider.py
+!provider_capacity.py
+!provider_notices.json
+!provider_stream.py
+!readiness.py
+!storage.py
+!system_prompt.py
+!system_prompt.txt
+!turnstile.py
