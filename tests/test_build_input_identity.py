@@ -56,12 +56,30 @@ def dockerfile_copy_inputs() -> set[str]:
     return inputs
 
 
+def dockerignore_allowlist() -> set[str]:
+    dockerignore = (ROOT / "bot" / ".dockerignore").read_text(encoding="utf-8")
+    rules = [
+        raw.strip()
+        for raw in dockerignore.splitlines()
+        if raw.strip() and not raw.startswith("#")
+    ]
+    if not rules or rules[0] != "**":
+        raise AssertionError("CVBot .dockerignore must start deny-by-default with **")
+    if any(not rule.startswith("!") for rule in rules[1:]):
+        raise AssertionError("CVBot .dockerignore may only add explicit exceptions after **")
+    return {f"bot/{rule[1:].lstrip('/')}" for rule in rules[1:]}
+
+
 class BuildInputIdentityTests(unittest.TestCase):
     def test_identity_covers_exact_docker_copy_source_contract(self) -> None:
         self.assertEqual(
             set(BUILD_INPUT_ID.CVBOT_DOCKER_COPY_INPUTS),
             dockerfile_copy_inputs(),
         )
+
+    def test_docker_context_is_deny_by_default_and_matches_build_contract(self) -> None:
+        expected = {"bot/Dockerfile", *BUILD_INPUT_ID.CVBOT_DOCKER_COPY_INPUTS}
+        self.assertEqual(dockerignore_allowlist(), expected)
 
     def test_every_declared_input_exists_and_rows_are_deterministic(self) -> None:
         digest, rows = BUILD_INPUT_ID.calculate(ROOT)
