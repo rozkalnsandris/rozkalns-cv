@@ -39,6 +39,16 @@ class CvContainerHardeningTests(unittest.TestCase):
         self.assertIn("    mem_limit: 60m\n", block)
         self.assertIn("    mem_reservation: 30m\n", block)
 
+    def test_cvbot_rootfs_and_process_boundary_are_hardened(self) -> None:
+        block = _cvbot_service_block()
+
+        self.assertIn('    user: "10001:10001"\n', block)
+        self.assertIn("    read_only: true\n", block)
+        self.assertIn("    cap_drop:\n      - ALL\n", block)
+        self.assertNotRegex(block, r"(?m)^    cap_add:\s*(?:$|\[)")
+        self.assertIn("    security_opt:\n      - no-new-privileges:true\n", block)
+        self.assertIn("    pids_limit: 128\n", block)
+
     def test_cvbot_memory_boundary_remains_bounded(self) -> None:
         block = _cvbot_service_block()
 
@@ -52,6 +62,17 @@ class CvContainerHardeningTests(unittest.TestCase):
             "      - /var/cache/nginx:rw,noexec,nosuid,nodev,size=16m\n", block
         )
         self.assertIn("      - /var/run:rw,noexec,nosuid,nodev,size=1m\n", block)
+
+    def test_cvbot_runtime_writes_remain_bounded(self) -> None:
+        block = _cvbot_service_block()
+
+        self.assertIn(
+            "    tmpfs:\n      - /tmp:rw,noexec,nosuid,nodev,size=16m,mode=1777\n",
+            block,
+        )
+        self.assertIn("    volumes:\n      - ./bot/data:/app/data:rw\n", block)
+        writable_bind_mounts = re.findall(r"(?m)^      - .+:rw$", block)
+        self.assertEqual(writable_bind_mounts, ["      - ./bot/data:/app/data:rw"])
 
     def test_cv_ingress_and_content_mounts_remain_restricted(self) -> None:
         block = _cv_service_block()
