@@ -25,6 +25,12 @@ class CvContainerHardeningTests(unittest.TestCase):
         self.assertIn("    security_opt:\n      - no-new-privileges:true\n", block)
         self.assertIn("    pids_limit: 64\n", block)
 
+    def test_cv_memory_boundary_remains_bounded(self) -> None:
+        block = _cv_service_block()
+
+        self.assertIn("    mem_limit: 60m\n", block)
+        self.assertIn("    mem_reservation: 30m\n", block)
+
     def test_cv_runtime_writes_are_confined_to_bounded_tmpfs(self) -> None:
         block = _cv_service_block()
 
