@@ -64,7 +64,8 @@ class DeployImpactClassifierTests(unittest.TestCase):
 
     def test_runtime_dependencies_and_control_plane_require_manual_rollout(self) -> None:
         for path in (
-            "bot/requirements.lock",
+            "bot/requirements.in",
+            "bot/requirements.txt",
             "docker-compose.yml",
             "package-lock.json",
             ".github/workflows/ci.yml",
