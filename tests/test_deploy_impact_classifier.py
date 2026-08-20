@@ -45,10 +45,13 @@ class DeployImpactClassifierTests(unittest.TestCase):
             "bot/contact.py",
             "bot/notifier.py",
             "bot/provider.py",
+            "bot/provider_capacity.py",
+            "bot/provider_notices.json",
             "bot/provider_stream.py",
             "bot/readiness.py",
             "bot/storage.py",
             "bot/system_prompt.py",
+            "bot/turnstile.py",
         ):
             with self.subTest(path=path):
                 payload = module.classify_paths([path])
