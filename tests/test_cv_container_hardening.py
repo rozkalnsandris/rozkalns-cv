@@ -17,6 +17,14 @@ def _cv_service_block() -> str:
     return match.group(0)
 
 
+def _cvbot_service_block() -> str:
+    text = COMPOSE.read_text(encoding="utf-8")
+    match = re.search(r"(?ms)^  cvbot:\n(?P<body>.*?)(?=^networks:\n)", text)
+    if match is None:
+        raise AssertionError("cvbot service block not found")
+    return match.group(0)
+
+
 class CvContainerHardeningTests(unittest.TestCase):
     def test_cv_rootfs_and_process_boundary_are_hardened(self) -> None:
         block = _cv_service_block()
@@ -30,6 +38,11 @@ class CvContainerHardeningTests(unittest.TestCase):
 
         self.assertIn("    mem_limit: 60m\n", block)
         self.assertIn("    mem_reservation: 30m\n", block)
+
+    def test_cvbot_memory_boundary_remains_bounded(self) -> None:
+        block = _cvbot_service_block()
+
+        self.assertIn("    mem_limit: 256m\n", block)
 
     def test_cv_runtime_writes_are_confined_to_bounded_tmpfs(self) -> None:
         block = _cv_service_block()
