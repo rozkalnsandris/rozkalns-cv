@@ -10,6 +10,14 @@ COMPOSE = ROOT / "docker-compose.yml"
 README = ROOT / "README.md"
 
 
+def _cvbot_service_block() -> str:
+    text = COMPOSE.read_text(encoding="utf-8")
+    match = re.search(r"(?ms)^  cvbot:\n(?P<body>.*?)(?=^networks:\n)", text)
+    if match is None:
+        raise AssertionError("cvbot service block not found")
+    return match.group(0)
+
+
 class ComposeIngressBoundaryTests(unittest.TestCase):
     def test_cv_publish_is_loopback_only(self) -> None:
         text = COMPOSE.read_text(encoding="utf-8")
@@ -19,6 +27,12 @@ class ComposeIngressBoundaryTests(unittest.TestCase):
         self.assertNotIn("0.0.0.0:8088", text)
         self.assertNotIn("[::]:8088", text)
         self.assertNotIn("192.168.0.180:8088", text)
+
+    def test_cvbot_is_internal_only_without_host_publish(self) -> None:
+        block = _cvbot_service_block()
+
+        self.assertIn('    expose:\n      - "5000"\n', block)
+        self.assertNotRegex(block, r"(?m)^    ports:\s*(?:$|\[)")
 
     def test_cv_readme_has_no_direct_lan_publish(self) -> None:
         text = README.read_text(encoding="utf-8")
