@@ -6,13 +6,16 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 PULL_HELPER = ROOT / "runner" / "release" / "rozkalns-cv-pull-deploy-main"
+VALIDATOR = ROOT / "scripts" / "validate-source.sh"
 
 
 class PullDeployValidationTmpCapacityTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.pull = PULL_HELPER.read_text(encoding="utf-8")
+        cls.validator = VALIDATOR.read_text(encoding="utf-8")
         subprocess.run(["bash", "-n", str(PULL_HELPER)], check=True)
+        subprocess.run(["bash", "-n", str(VALIDATOR)], check=True)
 
     def test_validation_tmp_capacity_is_pinned_and_fail_closed(self) -> None:
         for marker in (
@@ -26,7 +29,7 @@ class PullDeployValidationTmpCapacityTests(unittest.TestCase):
 
     def test_validation_tmp_gate_precedes_source_validation_and_mutation(self) -> None:
         temp_gate = self.pull.index(
-            'require_capacity \\\n    "$VALIDATION_TMP_ROOT"'
+            '"$VALIDATION_TMP_ROOT" "$MIN_VALIDATION_TMP_BYTES"'
         )
         tmp_export = self.pull.index('export TMPDIR="$VALIDATION_TMP_ROOT"')
         source_validation = self.pull.index(
@@ -53,6 +56,11 @@ class PullDeployValidationTmpCapacityTests(unittest.TestCase):
             'unset TMPDIR',
         ):
             self.assertIn(marker, self.pull)
+
+        self.assertIn(
+            'mktemp -d "${TMPDIR:-/tmp}/rozkalns-cv-validate.XXXXXXXX"',
+            self.validator,
+        )
 
         tmp_export = self.pull.index('export TMPDIR="$VALIDATION_TMP_ROOT"')
         runuser = self.pull.index('runuser -u "$OWNER" -- bash -c', tmp_export)
