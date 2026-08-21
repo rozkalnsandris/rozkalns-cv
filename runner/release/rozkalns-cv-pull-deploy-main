@@ -8,6 +8,9 @@ export PATH
 DEPLOY_LIBRARY='/usr/local/libexec/rozkalns-cv/rozkalns-cv-deploy-library'
 PULL_EVIDENCE_ROOT='/home/andris/.local/state/rozkalns-cv-pull-deploy/evidence'
 PULL_CALLER='andris'
+VALIDATION_TMP_ROOT='/tmp'
+MIN_VALIDATION_TMP_BYTES=268435456
+MIN_VALIDATION_TMP_INODES=10000
 
 fail_bootstrap() {
     printf 'ERROR: %s\n' "$*" >&2
@@ -244,6 +247,9 @@ require_capacity "$RUNTIME" "$REQUIRED_RUNTIME_BYTES" "$MIN_FREE_INODES" \
     || fail 'runtime filesystem lacks required free space or inodes'
 require_capacity "$BACKUP_ROOT" "$REQUIRED_BACKUP_BYTES" "$MIN_FREE_INODES" \
     || fail 'backup filesystem lacks required free space or inodes'
+require_capacity \
+    "$VALIDATION_TMP_ROOT" "$MIN_VALIDATION_TMP_BYTES" "$MIN_VALIDATION_TMP_INODES" \
+    || fail 'validation temp filesystem lacks required free space or inodes'
 
 owner_git -C "$PRIMARY" fetch --prune origin main
 REMOTE_MAIN="$(owner_git -C "$PRIMARY" rev-parse refs/remotes/origin/main)"
@@ -275,8 +281,8 @@ CANDIDATE="$WORK/candidate"
 owner_git -C "$PRIMARY" worktree add --detach "$STAGE" "$TARGET_SHA" >/dev/null
 
 runuser -u "$OWNER" -- bash -c \
-    'cd "$1" && exec bash "$1/scripts/validate-source.sh" "$1"' \
-    bash "$STAGE" \
+    'export TMPDIR="$1"; cd "$2" && exec bash "$2/scripts/validate-source.sh" "$2"' \
+    bash "$VALIDATION_TMP_ROOT" "$STAGE" \
     >"$EVIDENCE_DIR/source-validation.log" 2>&1 \
     || fail 'source validation failed'
 prepare_candidate || fail 'candidate preparation failed'
