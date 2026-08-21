@@ -28,9 +28,9 @@ class PullDeployValidationTmpCapacityTests(unittest.TestCase):
         temp_gate = self.pull.index(
             'require_capacity \\\n    "$VALIDATION_TMP_ROOT"'
         )
+        tmp_export = self.pull.index('export TMPDIR="$VALIDATION_TMP_ROOT"')
         source_validation = self.pull.index(
-            'export TMPDIR="$1"; cd "$2" && exec bash '
-            '"$2/scripts/validate-source.sh" "$2"'
+            "'cd \"$1\" && exec bash \"$1/scripts/validate-source.sh\" \"$1\"'"
         )
         candidate = self.pull.index(
             "prepare_candidate || fail 'candidate preparation failed'"
@@ -40,18 +40,25 @@ class PullDeployValidationTmpCapacityTests(unittest.TestCase):
         )
         mutation = self.pull.index("MUTATION_STARTED=true")
 
-        self.assertLess(temp_gate, source_validation)
+        self.assertLess(temp_gate, tmp_export)
+        self.assertLess(tmp_export, source_validation)
         self.assertLess(source_validation, candidate)
         self.assertLess(candidate, backup)
         self.assertLess(backup, mutation)
 
     def test_source_validation_uses_the_capacity_checked_tmp_root(self) -> None:
         for marker in (
-            'export TMPDIR="$1"',
-            'bash "$VALIDATION_TMP_ROOT" "$STAGE"',
-            '"$2/scripts/validate-source.sh" "$2"',
+            'export TMPDIR="$VALIDATION_TMP_ROOT"',
+            'bash "$STAGE"',
+            'unset TMPDIR',
         ):
             self.assertIn(marker, self.pull)
+
+        tmp_export = self.pull.index('export TMPDIR="$VALIDATION_TMP_ROOT"')
+        runuser = self.pull.index('runuser -u "$OWNER" -- bash -c', tmp_export)
+        tmp_unset = self.pull.index("unset TMPDIR", runuser)
+        self.assertLess(tmp_export, runuser)
+        self.assertLess(runuser, tmp_unset)
 
 
 if __name__ == "__main__":
