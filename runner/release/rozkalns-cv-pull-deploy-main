@@ -280,11 +280,13 @@ STAGE="$WORK/source"
 CANDIDATE="$WORK/candidate"
 owner_git -C "$PRIMARY" worktree add --detach "$STAGE" "$TARGET_SHA" >/dev/null
 
+export TMPDIR="$VALIDATION_TMP_ROOT"
 runuser -u "$OWNER" -- bash -c \
-    'export TMPDIR="$1"; cd "$2" && exec bash "$2/scripts/validate-source.sh" "$2"' \
-    bash "$VALIDATION_TMP_ROOT" "$STAGE" \
+    'cd "$1" && exec bash "$1/scripts/validate-source.sh" "$1"' \
+    bash "$STAGE" \
     >"$EVIDENCE_DIR/source-validation.log" 2>&1 \
     || fail 'source validation failed'
+unset TMPDIR
 prepare_candidate || fail 'candidate preparation failed'
 
 if ! validate_candidate_runtime_prerequisites \
