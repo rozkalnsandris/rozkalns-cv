@@ -4,11 +4,14 @@ from pathlib import Path
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
+AGENTS = ROOT / "AGENTS.md"
 MIGRATION = ROOT / "docs" / "MIGRATION_RUNBOOK.md"
 KNOWLEDGE = ROOT / "docs" / "PROJECT_KNOWLEDGE.md"
 SUPPLY_CHAIN = ROOT / "docs" / "SUPPLY_CHAIN.md"
 PUBLIC_READINESS = ROOT / "docs" / "PUBLIC_READINESS.md"
 CONTENT_AUTHORING = ROOT / "docs" / "CONTENT_AUTHORING.md"
+FAST_LANE_V2_1 = ROOT / "docs" / "FAST_LANE_V2_1.md"
+FAST_LANE_V2_2 = ROOT / "docs" / "FAST_LANE_V2_2.md"
 
 
 def compact_markdown(text: str) -> str:
@@ -114,6 +117,34 @@ class CurrentOperationalDocsTests(unittest.TestCase):
             "the skill-label concept set matches canonical `profile.json` skills exactly",
         ):
             self.assertIn(required, compact)
+
+    def test_fast_lane_compatibility_path_defers_to_v2_2_startup_authority(self) -> None:
+        agents = AGENTS.read_text(encoding="utf-8")
+        active = FAST_LANE_V2_2.read_text(encoding="utf-8")
+        legacy = FAST_LANE_V2_1.read_text(encoding="utf-8")
+
+        self.assertIn(
+            "Read `docs/FAST_LANE_V2_2.md` as the active local startup contract.",
+            compact_markdown(agents),
+        )
+        self.assertIn(
+            "The older versioned filename is retained only for backward compatibility and is not startup authority.",
+            compact_markdown(active),
+        )
+
+        legacy_compact = compact_markdown(legacy)
+        for required in (
+            "Compatibility path only.",
+            "`AGENTS.md` points to `docs/FAST_LANE_V2_2.md`",
+            "This v2.1 filename is retained only for backward compatibility and is not startup authority.",
+        ):
+            self.assertIn(required, legacy_compact)
+
+        for stale_claim in (
+            "already points to this v2.1 filename",
+            "these are the authoritative v2.2 rules",
+        ):
+            self.assertNotIn(stale_claim, legacy)
 
 
 if __name__ == "__main__":

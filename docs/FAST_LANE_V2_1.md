@@ -1,6 +1,6 @@
 # FAST-LANE v2.2 Composite — rozkalns-cv
 
-> Compatibility path: `AGENTS.md` already points to this v2.1 filename; these are the authoritative v2.2 rules.
+> Compatibility path only. `AGENTS.md` points to `docs/FAST_LANE_V2_2.md`, which is the active local startup contract. This v2.1 filename is retained only for backward compatibility and is not startup authority.
 
 ## Core rule
 
