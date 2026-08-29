@@ -105,6 +105,16 @@ class SupplyChainContractTests(unittest.TestCase):
         self.assertNotIn(":latest", compose)
         self.assertNotIn("FROM python:3.12\n", dockerfile)
 
+    def test_cvbot_pins_alpine_openssl_security_update(self) -> None:
+        dockerfile = DOCKERFILE.read_text(encoding="utf-8")
+        self.assertIn("ARG OPENSSL_APK_VERSION=3.5.8-r0", dockerfile)
+        self.assertIn("apk add --no-cache --upgrade", dockerfile)
+        self.assertIn('"libcrypto3=${OPENSSL_APK_VERSION}"', dockerfile)
+        self.assertIn('"libssl3=${OPENSSL_APK_VERSION}"', dockerfile)
+        self.assertIn('apk info -v libcrypto3', dockerfile)
+        self.assertIn('apk info -v libssl3', dockerfile)
+        self.assertNotIn("apk upgrade", dockerfile)
+
     def test_cvbot_is_non_root_read_only_and_capability_free(self) -> None:
         dockerfile = DOCKERFILE.read_text(encoding="utf-8")
         compose = COMPOSE.read_text(encoding="utf-8")
