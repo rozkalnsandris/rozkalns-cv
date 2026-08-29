@@ -89,7 +89,7 @@ class SupplyChainContractTests(unittest.TestCase):
         images = manifest["images"]
         expected = {
             "python:3.12.13-alpine3.24",
-            "nginx:1.31.3-alpine",
+            "nginx:1.31.4-alpine",
             "aquasec/trivy:0.72.0",
             "ghcr.io/gitleaks/gitleaks:v8.30.0",
         }
@@ -99,7 +99,7 @@ class SupplyChainContractTests(unittest.TestCase):
             self.assertRegex(digest, r"^sha256:[0-9a-f]{64}$")
             if reference.startswith("python:"):
                 self.assertIn(f"FROM {reference}@{digest}", dockerfile)
-            elif reference == "nginx:1.31.3-alpine":
+            elif reference == "nginx:1.31.4-alpine":
                 self.assertIn(f"image: {reference}@{digest}", compose)
         self.assertNotIn("cloudflare/cloudflared", compose)
         self.assertNotIn(":latest", compose)
