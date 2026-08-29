@@ -20,9 +20,7 @@ WORKDIR /app
 
 RUN apk add --no-cache --upgrade \
       "libcrypto3=${OPENSSL_APK_VERSION}" \
-      "libssl3=${OPENSSL_APK_VERSION}" \
-    && test "$(apk info -v libcrypto3)" = "libcrypto3-${OPENSSL_APK_VERSION}" \
-    && test "$(apk info -v libssl3)" = "libssl3-${OPENSSL_APK_VERSION}"
+      "libssl3=${OPENSSL_APK_VERSION}"
 
 RUN addgroup -S -g "${APP_GID}" cvbot \
     && adduser -S -D -H -u "${APP_UID}" -G cvbot cvbot

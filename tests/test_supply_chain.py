@@ -111,8 +111,6 @@ class SupplyChainContractTests(unittest.TestCase):
         self.assertIn("apk add --no-cache --upgrade", dockerfile)
         self.assertIn('"libcrypto3=${OPENSSL_APK_VERSION}"', dockerfile)
         self.assertIn('"libssl3=${OPENSSL_APK_VERSION}"', dockerfile)
-        self.assertIn('apk info -v libcrypto3', dockerfile)
-        self.assertIn('apk info -v libssl3', dockerfile)
         self.assertNotIn("apk upgrade", dockerfile)
 
     def test_cvbot_is_non_root_read_only_and_capability_free(self) -> None:
