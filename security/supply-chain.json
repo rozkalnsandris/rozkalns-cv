@@ -11,12 +11,11 @@
     "charset-normalizer": {"pypi_last_serial": 38748806, "release_url": "https://pypi.org/project/charset-normalizer/3.4.9/", "version": "3.4.9"},
     "click": {"pypi_last_serial": 38356435, "release_url": "https://pypi.org/project/click/8.4.2/", "version": "8.4.2"},
     "flask": {"pypi_last_serial": 34432672, "release_url": "https://pypi.org/project/Flask/3.1.3/", "version": "3.1.3"},
-    "gunicorn": {"pypi_last_serial": 36741814, "release_url": "https://pypi.org/project/gunicorn/26.0.0/", "version": "26.0.0"},
+    "gunicorn": {"pypi_last_serial": 40336987, "release_url": "https://pypi.org/project/gunicorn/26.2.0/", "version": "26.2.0"},
     "idna": {"pypi_last_serial": 37646424, "release_url": "https://pypi.org/project/idna/3.18/", "version": "3.18"},
     "itsdangerous": {"pypi_last_serial": 22795405, "release_url": "https://pypi.org/project/itsdangerous/2.2.0/", "version": "2.2.0"},
     "jinja2": {"pypi_last_serial": 27788726, "release_url": "https://pypi.org/project/Jinja2/3.1.6/", "version": "3.1.6"},
     "markupsafe": {"pypi_last_serial": 31494714, "release_url": "https://pypi.org/project/MarkupSafe/3.0.3/", "version": "3.0.3"},
-    "packaging": {"pypi_last_serial": 39691657, "release_url": "https://pypi.org/project/packaging/26.3/", "version": "26.3"},
     "requests": {"pypi_last_serial": 37059094, "release_url": "https://pypi.org/project/requests/2.34.2/", "version": "2.34.2"},
     "urllib3": {"pypi_last_serial": 36836170, "release_url": "https://pypi.org/project/urllib3/2.7.0/", "version": "2.7.0"},
     "werkzeug": {"pypi_last_serial": 35738641, "release_url": "https://pypi.org/project/Werkzeug/3.1.8/", "version": "3.1.8"}
