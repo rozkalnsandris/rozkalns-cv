@@ -1,0 +1,52 @@
+name: Issue 396 deterministic dist materializer
+
+on:
+  push:
+    branches:
+      - fix/396-localized-chat-placeholder
+
+permissions:
+  contents: read
+
+jobs:
+  materialize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact workflow SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            fetch --no-tags origin "$GITHUB_SHA"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Set up pinned Node.js frontend toolchain
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.18.0'
+          package-manager-cache: false
+
+      - name: Build deterministic localized frontend
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          npm run build:frontend
+          tar -czf "${RUNNER_TEMP}/issue396-dist.tgz" \
+            frontend-dist-manifest.json \
+            html/en/index.html \
+            html/de/index.html \
+            html/lv/index.html \
+            html/sitemap.xml
+          printf 'ISSUE396_DIST_SHA256=%s\n' "$(sha256sum "${RUNNER_TEMP}/issue396-dist.tgz" | awk '{print $1}')"
+          echo 'ISSUE396_DIST_BEGIN'
+          base64 -w0 "${RUNNER_TEMP}/issue396-dist.tgz"
+          echo
+          echo 'ISSUE396_DIST_END'
