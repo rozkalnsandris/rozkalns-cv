@@ -33,24 +33,59 @@ jobs:
           node-version: '24.18.0'
           package-manager-cache: false
 
-      - name: Build deterministic localized frontend
+      - name: Build deterministic localized frontend and materialize smoke assertions
         shell: bash
         run: |
           set -Eeuo pipefail
           npm ci --ignore-scripts --no-audit --no-fund
           npm run build:frontend
           python3 -m unittest tests.test_localized_pages
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('tests/browser-smoke.mjs')
+          text = path.read_text(encoding='utf-8')
+
+          replacements = [
+              (
+                  '''    await cdp.send("Network.setBlockedURLs", {\n      urls: ["*://static.cloudflareinsights.com/*", "*://cloudflareinsights.com/*"]\n    });\n\n    await cdp.navigate(`${baseUrl}/en/`);''',
+                  '''    await cdp.send("Network.setBlockedURLs", {\n      urls: [\n        "*://static.cloudflareinsights.com/*",\n        "*://cloudflareinsights.com/*",\n        "*/assets/app.*.mjs"\n      ]\n    });\n    await cdp.navigate(`${baseUrl}/de/`);\n    assert.deepEqual(\n      await cdp.evaluate(`(() => ({\n        placeholder: document.querySelector('#chatInput')?.getAttribute('placeholder'),\n        binding: document.querySelector('#chatInput')?.getAttribute('data-i18n-placeholder')\n      }))()`),\n      { placeholder: "Frage zu Andris' Erfahrung", binding: "chat_input" }\n    );\n\n    await cdp.send("Network.setBlockedURLs", {\n      urls: ["*://static.cloudflareinsights.com/*", "*://cloudflareinsights.com/*"]\n    });\n    await cdp.navigate(`${baseUrl}/en/`);'''
+              ),
+              (
+                  '''    assert.match(initialContract.privacy, /raw IP addresses are not stored/i);\n    const initialLanguageState = await cdp.evaluate(`(() => ({''',
+                  '''    assert.match(initialContract.privacy, /raw IP addresses are not stored/i);\n    assert.deepEqual(\n      await cdp.evaluate(`(() => ({\n        placeholder: document.querySelector('#chatInput')?.getAttribute('placeholder'),\n        binding: document.querySelector('#chatInput')?.getAttribute('data-i18n-placeholder')\n      }))()`),\n      { placeholder: "Ask about Andris's experience", binding: "chat_input" }\n    );\n    const initialLanguageState = await cdp.evaluate(`(() => ({'''
+              ),
+              (
+                  '''    assert.equal(\n      await cdp.evaluate(`document.querySelector('#profileLocation')?.textContent`),\n      "Dortmund, Deutschland"\n    );\n\n    const latvianLoaded''',
+                  '''    assert.equal(\n      await cdp.evaluate(`document.querySelector('#profileLocation')?.textContent`),\n      "Dortmund, Deutschland"\n    );\n    assert.deepEqual(\n      await cdp.evaluate(`(() => ({\n        placeholder: document.querySelector('#chatInput')?.getAttribute('placeholder'),\n        binding: document.querySelector('#chatInput')?.getAttribute('data-i18n-placeholder')\n      }))()`),\n      { placeholder: "Frage zu Andris' Erfahrung", binding: "chat_input" }\n    );\n\n    const latvianLoaded'''
+              ),
+              (
+                  '''    assert.equal(\n      await cdp.evaluate(`document.querySelector('#profileLocation')?.textContent`),\n      "Dortmund, Vācija"\n    );\n    assert.deepEqual(''',
+                  '''    assert.equal(\n      await cdp.evaluate(`document.querySelector('#profileLocation')?.textContent`),\n      "Dortmund, Vācija"\n    );\n    assert.deepEqual(\n      await cdp.evaluate(`(() => ({\n        placeholder: document.querySelector('#chatInput')?.getAttribute('placeholder'),\n        binding: document.querySelector('#chatInput')?.getAttribute('data-i18n-placeholder')\n      }))()`),\n      { placeholder: "Jautājums par Andra pieredzi", binding: "chat_input" }\n    );\n    assert.deepEqual('''
+              ),
+          ]
+
+          for old, new in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'expected exactly one browser-smoke anchor, found {count}: {old[:80]!r}')
+              text = text.replace(old, new)
+
+          path.write_text(text, encoding='utf-8')
+          PY
+          node --check tests/browser-smoke.mjs
           sha256sum \
             frontend-dist-manifest.json \
             html/en/index.html \
             html/de/index.html \
             html/lv/index.html \
-            html/sitemap.xml
+            html/sitemap.xml \
+            tests/browser-smoke.mjs
 
-      - name: Export generated localized frontend
+      - name: Export generated localized frontend and smoke test
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: issue396-generated-dist
+          name: issue396-ready-files
           if-no-files-found: error
           retention-days: 1
           path: |
@@ -59,3 +94,4 @@ jobs:
             html/de/index.html
             html/lv/index.html
             html/sitemap.xml
+            tests/browser-smoke.mjs
