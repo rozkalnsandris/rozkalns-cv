@@ -234,6 +234,21 @@ async function main() {
       const loaded = cdp.wait('Page.loadEventFired');
       await cdp.send('Page.navigate', { url: `data:text/html;base64,${Buffer.from(html).toString('base64')}` });
       await loaded;
+      const fit = await cdp.send('Runtime.evaluate', {
+        expression: `(() => {
+          const page = document.querySelector('.page');
+          if (!page) return { ok: false, reason: 'missing-page' };
+          return {
+            ok: page.scrollHeight <= page.clientHeight + 1 && page.scrollWidth <= page.clientWidth + 1,
+            scrollHeight: page.scrollHeight,
+            clientHeight: page.clientHeight,
+            scrollWidth: page.scrollWidth,
+            clientWidth: page.clientWidth
+          };
+        })()`,
+        returnByValue: true
+      });
+      if (!fit.result?.value?.ok) throw new Error(`${language} A4 layout overflow: ${JSON.stringify(fit.result?.value)}`);
       const result = await cdp.send('Page.printToPDF', {
         displayHeaderFooter: false,
         printBackground: true,
