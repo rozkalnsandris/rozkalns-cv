@@ -1,5 +1,4 @@
 import hashlib
-import html as html_lib
 import json
 import re
 import unittest
@@ -17,6 +16,16 @@ IDENTITY_PATHS = {
     "lv": "lv/index.html",
     "sitemap": "sitemap.xml",
 }
+
+
+def escape_generated_attribute(value):
+    return (
+        str(value)
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
 
 
 class LocalizedPageContractTests(unittest.TestCase):
@@ -42,14 +51,14 @@ class LocalizedPageContractTests(unittest.TestCase):
             self.assertIsNotNone(input_match, language)
             input_tag = input_match.group(0)
             self.assertIn('data-i18n-placeholder="chat_input"', input_tag, language)
-            expected_placeholder = html_lib.escape(messages["chat_input"], quote=True)
+            expected_placeholder = escape_generated_attribute(messages["chat_input"])
             self.assertIn(f'placeholder="{expected_placeholder}"', input_tag, language)
 
             close_match = re.search(r'<button\b(?=[^>]*\bid="chatClose")[^>]*>', document)
             self.assertIsNotNone(close_match, language)
             close_tag = close_match.group(0)
             self.assertIn('data-i18n-label="chat_close"', close_tag, language)
-            expected_label = html_lib.escape(messages["chat_close"], quote=True)
+            expected_label = escape_generated_attribute(messages["chat_close"])
             self.assertIn(f'aria-label="{expected_label}"', close_tag, language)
 
     def test_root_alias_is_english_but_not_a_sitemap_canonical(self):
