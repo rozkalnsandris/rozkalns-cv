@@ -6,7 +6,7 @@ on:
       - fix/396-localized-chat-placeholder
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   materialize:
@@ -33,7 +33,9 @@ jobs:
           node-version: '24.18.0'
           package-manager-cache: false
 
-      - name: Build deterministic localized frontend and materialize smoke assertions
+      - name: Materialize exact issue 396 files and remove temporary workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -45,7 +47,6 @@ jobs:
 
           path = Path('tests/browser-smoke.mjs')
           text = path.read_text(encoding='utf-8')
-
           replacements = [
               (
                   '''    await cdp.send("Network.setBlockedURLs", {\n      urls: ["*://static.cloudflareinsights.com/*", "*://cloudflareinsights.com/*"]\n    });\n\n    await cdp.navigate(`${baseUrl}/en/`);''',
@@ -64,34 +65,43 @@ jobs:
                   '''    assert.equal(\n      await cdp.evaluate(`document.querySelector('#profileLocation')?.textContent`),\n      "Dortmund, Vācija"\n    );\n    assert.deepEqual(\n      await cdp.evaluate(`(() => ({\n        placeholder: document.querySelector('#chatInput')?.getAttribute('placeholder'),\n        binding: document.querySelector('#chatInput')?.getAttribute('data-i18n-placeholder')\n      }))()`),\n      { placeholder: "Jautājums par Andra pieredzi", binding: "chat_input" }\n    );\n    assert.deepEqual('''
               ),
           ]
-
           for old, new in replacements:
               count = text.count(old)
               if count != 1:
                   raise SystemExit(f'expected exactly one browser-smoke anchor, found {count}: {old[:80]!r}')
               text = text.replace(old, new)
-
           path.write_text(text, encoding='utf-8')
           PY
+
           node --check tests/browser-smoke.mjs
-          sha256sum \
+          git add -- \
             frontend-dist-manifest.json \
             html/en/index.html \
             html/de/index.html \
             html/lv/index.html \
             html/sitemap.xml \
             tests/browser-smoke.mjs
+          git rm -- .github/workflows/issue396-materialize.yml
 
-      - name: Export generated localized frontend and smoke test
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: issue396-ready-files
-          if-no-files-found: error
-          retention-days: 1
-          path: |
-            frontend-dist-manifest.json
-            html/en/index.html
-            html/de/index.html
-            html/lv/index.html
-            html/sitemap.xml
-            tests/browser-smoke.mjs
+          expected="$(printf '%s\n' \
+            '.github/workflows/issue396-materialize.yml' \
+            'frontend-dist-manifest.json' \
+            'html/de/index.html' \
+            'html/en/index.html' \
+            'html/lv/index.html' \
+            'tests/browser-smoke.mjs' | sort)"
+          actual="$(git diff --cached --name-only | sort)"
+          printf '%s\n' "$actual"
+          test "$actual" = "$expected"
+          git diff --cached --check
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'build: materialize localized placeholder fix (#396)'
+
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          remote_sha="$(git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            ls-remote origin refs/heads/fix/396-localized-chat-placeholder | awk '{print $1}')"
+          test "$remote_sha" = "$GITHUB_SHA"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            push origin HEAD:refs/heads/fix/396-localized-chat-placeholder
