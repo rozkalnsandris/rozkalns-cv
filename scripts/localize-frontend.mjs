@@ -49,9 +49,12 @@ function replaceBoundAttribute(html, binding, attribute, messages) {
   return html.replace(pattern, (tag, key) => {
     const value = messages[key];
     if (typeof value !== "string") throw new Error(`missing translation for ${binding}:${key}`);
-    const attributePattern = new RegExp(`\\b${attribute}="[^"]*"`, "i");
+    const attributePattern = new RegExp(`(^|\\s)${escapeRegExp(attribute)}="[^"]*"`, "i");
     if (!attributePattern.test(tag)) throw new Error(`missing ${attribute} for ${binding}:${key}`);
-    return tag.replace(attributePattern, `${attribute}="${escapeHtml(value)}"`);
+    return tag.replace(
+      attributePattern,
+      (_match, prefix) => `${prefix}${attribute}="${escapeHtml(value)}"`
+    );
   });
 }
 

@@ -18,6 +18,16 @@ IDENTITY_PATHS = {
 }
 
 
+def escape_generated_attribute(value):
+    return (
+        str(value)
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
+
+
 class LocalizedPageContractTests(unittest.TestCase):
     def test_localized_html_is_pretranslated_before_javascript(self):
         for language, (role, location, pdf) in EXPECTED.items():
@@ -29,6 +39,27 @@ class LocalizedPageContractTests(unittest.TestCase):
             self.assertIn(f'data-lang="{language}" aria-label=', html)
             current = re.findall(r'<a[^>]+data-lang="([^"]+)"[^>]+aria-current="page"', html)
             self.assertEqual(current, [language])
+
+    def test_localized_bound_attributes_keep_keys_and_pretranslated_values(self):
+        for language in EXPECTED:
+            messages = json.loads(
+                (ROOT / f"content/translations/{language}.json").read_text(encoding="utf-8")
+            )
+            document = (ROOT / f"html/{language}/index.html").read_text(encoding="utf-8")
+
+            input_match = re.search(r'<input\b(?=[^>]*\bid="chatInput")[^>]*>', document)
+            self.assertIsNotNone(input_match, language)
+            input_tag = input_match.group(0)
+            self.assertIn('data-i18n-placeholder="chat_input"', input_tag, language)
+            expected_placeholder = escape_generated_attribute(messages["chat_input"])
+            self.assertIn(f'placeholder="{expected_placeholder}"', input_tag, language)
+
+            close_match = re.search(r'<button\b(?=[^>]*\bid="chatClose")[^>]*>', document)
+            self.assertIsNotNone(close_match, language)
+            close_tag = close_match.group(0)
+            self.assertIn('data-i18n-label="chat_close"', close_tag, language)
+            expected_label = escape_generated_attribute(messages["chat_close"])
+            self.assertIn(f'aria-label="{expected_label}"', close_tag, language)
 
     def test_root_alias_is_english_but_not_a_sitemap_canonical(self):
         root_html = (ROOT / "html/index.html").read_text(encoding="utf-8")
