@@ -6,10 +6,11 @@ on:
       - fix/396-localized-chat-placeholder
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   materialize:
+    if: github.event.head_commit.message != 'build: refresh issue 396 localized dist'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -33,20 +34,42 @@ jobs:
           node-version: '24.18.0'
           package-manager-cache: false
 
-      - name: Build deterministic localized frontend
+      - name: Build and commit exact generated localized files
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -Eeuo pipefail
           npm ci --ignore-scripts --no-audit --no-fund
           npm run build:frontend
-          tar -czf "${RUNNER_TEMP}/issue396-dist.tgz" \
+
+          allowed='^(frontend-dist-manifest\.json|html/(en|de|lv)/index\.html|html/sitemap\.xml)$'
+          changed="$(git status --porcelain=v1 | sed -E 's/^.. //' | sort -u)"
+          test -n "$changed"
+          while IFS= read -r path; do
+            test -n "$path" || continue
+            if ! [[ "$path" =~ $allowed ]]; then
+              printf 'UNEXPECTED_GENERATED_PATH=%s\n' "$path" >&2
+              exit 1
+            fi
+          done <<< "$changed"
+
+          git add -- \
             frontend-dist-manifest.json \
             html/en/index.html \
             html/de/index.html \
             html/lv/index.html \
             html/sitemap.xml
-          printf 'ISSUE396_DIST_SHA256=%s\n' "$(sha256sum "${RUNNER_TEMP}/issue396-dist.tgz" | awk '{print $1}')"
-          echo 'ISSUE396_DIST_BEGIN'
-          base64 -w0 "${RUNNER_TEMP}/issue396-dist.tgz"
-          echo
-          echo 'ISSUE396_DIST_END'
+          git diff --cached --name-only
+          test -n "$(git diff --cached --name-only)"
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'build: refresh issue 396 localized dist'
+
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          remote_sha="$(git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            ls-remote origin refs/heads/fix/396-localized-chat-placeholder | awk '{print $1}')"
+          test "$remote_sha" = "$GITHUB_SHA"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            push origin HEAD:refs/heads/fix/396-localized-chat-placeholder
