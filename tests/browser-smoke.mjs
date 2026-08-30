@@ -417,9 +417,24 @@ async function runBrowserSmoke(baseUrl, state) {
     await cdp.send("Runtime.enable");
     await cdp.send("Network.enable");
     await cdp.send("Network.setBlockedURLs", {
+      urls: [
+        "*://static.cloudflareinsights.com/*",
+        "*://cloudflareinsights.com/*",
+        "*/assets/app.*.mjs"
+      ]
+    });
+    await cdp.navigate(`${baseUrl}/de/`);
+    assert.deepEqual(
+      await cdp.evaluate(`(() => ({
+        placeholder: document.querySelector('#chatInput')?.getAttribute('placeholder'),
+        binding: document.querySelector('#chatInput')?.getAttribute('data-i18n-placeholder')
+      }))()`),
+      { placeholder: "Frage zu Andris' Erfahrung", binding: "chat_input" }
+    );
+
+    await cdp.send("Network.setBlockedURLs", {
       urls: ["*://static.cloudflareinsights.com/*", "*://cloudflareinsights.com/*"]
     });
-
     await cdp.navigate(`${baseUrl}/en/`);
     const firstRenderSkillIcons = await cdp.evaluate(`(() => ({
       chips: document.querySelectorAll(".skill-chip").length,
@@ -485,6 +500,13 @@ async function runBrowserSmoke(baseUrl, state) {
     assert.equal(initialContract.pdf, "/cv.pdf");
     assert.equal(initialContract.dialogModal, "true");
     assert.match(initialContract.privacy, /raw IP addresses are not stored/i);
+    assert.deepEqual(
+      await cdp.evaluate(`(() => ({
+        placeholder: document.querySelector('#chatInput')?.getAttribute('placeholder'),
+        binding: document.querySelector('#chatInput')?.getAttribute('data-i18n-placeholder')
+      }))()`),
+      { placeholder: "Ask about Andris's experience", binding: "chat_input" }
+    );
     const initialLanguageState = await cdp.evaluate(`(() => ({
       groupRole: document.querySelector('.language-switcher')?.getAttribute('role'),
       groupLabel: document.querySelector('.language-switcher')?.getAttribute('aria-label'),
@@ -525,6 +547,13 @@ async function runBrowserSmoke(baseUrl, state) {
       await cdp.evaluate(`document.querySelector('#profileLocation')?.textContent`),
       "Dortmund, Deutschland"
     );
+    assert.deepEqual(
+      await cdp.evaluate(`(() => ({
+        placeholder: document.querySelector('#chatInput')?.getAttribute('placeholder'),
+        binding: document.querySelector('#chatInput')?.getAttribute('data-i18n-placeholder')
+      }))()`),
+      { placeholder: "Frage zu Andris' Erfahrung", binding: "chat_input" }
+    );
 
     const latvianLoaded = cdp.waitForEvent("Page.loadEventFired", 15_000);
     await cdp.evaluate(`document.querySelector('[data-lang="lv"]').click()`);
@@ -541,6 +570,13 @@ async function runBrowserSmoke(baseUrl, state) {
     assert.equal(
       await cdp.evaluate(`document.querySelector('#profileLocation')?.textContent`),
       "Dortmund, Vācija"
+    );
+    assert.deepEqual(
+      await cdp.evaluate(`(() => ({
+        placeholder: document.querySelector('#chatInput')?.getAttribute('placeholder'),
+        binding: document.querySelector('#chatInput')?.getAttribute('data-i18n-placeholder')
+      }))()`),
+      { placeholder: "Jautājums par Andra pieredzi", binding: "chat_input" }
     );
     assert.deepEqual(
       await cdp.evaluate(`[...document.querySelectorAll('.language-switcher [data-lang]')].map((control) => [control.dataset.lang, control.getAttribute('aria-current')])`),

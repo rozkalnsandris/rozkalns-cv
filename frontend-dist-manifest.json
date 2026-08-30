@@ -81,15 +81,15 @@
   "_localized": {
     "en": {
       "path": "en/index.html",
-      "sha256": "b07eec93e25a45312bf809784ffaf66cb8f4011854d2707a12feb0571add647a"
+      "sha256": "c5ded89be55cab889f9dbcc1bf07100a873ae6d3705a46fbb32ec29b5e910043"
     },
     "de": {
       "path": "de/index.html",
-      "sha256": "a31d16567ee3e6b86917a0f56b36f89770d4d92f382aabecdddf96476375b48d"
+      "sha256": "aca0e5e7ecc917a9cd7be446738004963aca1235a6fab3219a7a2d5334d23eab"
     },
     "lv": {
       "path": "lv/index.html",
-      "sha256": "45dfbcd168418b32d2ceb7f63d8eeafb253195bd6c91aa7cbf4bc484931e9a4a"
+      "sha256": "d276eafa5ae1dc0331be609142988499fc6700ca282bc58711b9cf5dd75519bb"
     },
     "sitemap": {
       "path": "sitemap.xml",
