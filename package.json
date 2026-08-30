@@ -10,6 +10,6 @@
     "check:frontend": "node scripts/check-frontend-dist.mjs && node scripts/check-chat-privacy.mjs"
   },
   "devDependencies": {
-    "vite": "8.2.1"
+    "vite": "8.2.2"
   }
 }
