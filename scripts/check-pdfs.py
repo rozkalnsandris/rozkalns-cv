@@ -157,9 +157,11 @@ def normalize_text(text: str) -> str:
 
 
 def assert_in_order(text: str, values: list[str], language: str) -> None:
+    searchable = normalize_text(text).casefold()
     position = -1
     for value in values:
-        next_position = text.find(value, position + 1)
+        needle = normalize_text(value).casefold()
+        next_position = searchable.find(needle, position + 1)
         if next_position < 0:
             raise PdfCheckError(f"{language} PDF missing ordered text: {value!r}")
         position = next_position
