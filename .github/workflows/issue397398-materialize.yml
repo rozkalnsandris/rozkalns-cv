@@ -32,6 +32,15 @@ jobs:
           node-version: '24.18.0'
           package-manager-cache: false
 
+      - name: Install PDF inspection tools
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends poppler-utils
+          command -v pdfinfo
+          command -v pdftotext
+
       - name: Build source and generate canonical PDFs
         shell: bash
         run: |
