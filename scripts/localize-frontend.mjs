@@ -6,6 +6,11 @@ const ORIGIN = "https://rozkalns.net";
 const DEFAULT_URL = `${ORIGIN}/en/`;
 const PDFS = Object.freeze({ en: "/cv.pdf", de: "/cv-de.pdf", lv: "/cv-lv.pdf" });
 const LOCALES = Object.freeze({ en: "en-GB", de: "de-DE", lv: "lv-LV" });
+const IMAGE_ALTS = Object.freeze({
+  en: "Portrait of Andris Rožkalns",
+  de: "Porträt von Andris Rožkalns",
+  lv: "Andra Rožkalna portrets"
+});
 const SKILL_GROUP_KEYS = Object.freeze([
   "skills_core_items",
   "skills_working_items",
@@ -117,13 +122,14 @@ function replaceCanonical(html, url) {
   return html.replace(pattern, `<link rel="canonical" href="${url}">\n${alternateLinks()}`);
 }
 
-function replaceStructuredData(html, url, description, title) {
+function replaceStructuredData(html, url, description, title, language) {
   const pattern = /<script type="application\/ld\+json">([\s\S]*?)<\/script>/;
   const match = pattern.exec(html);
   if (!match) throw new Error("missing ProfilePage JSON-LD");
   const profile = JSON.parse(match[1]);
   profile["@id"] = `${url}#profile`;
   profile.url = url;
+  profile.inLanguage = language;
   profile.mainEntity.url = DEFAULT_URL;
   profile.mainEntity.jobTitle = title;
   profile.mainEntity.description = description;
@@ -187,10 +193,12 @@ function renderPage(template, language, messages) {
   html = replaceMetaContent(html, "property", "og:title", title);
   html = replaceMetaContent(html, "property", "og:description", description);
   html = replaceMetaContent(html, "property", "og:url", url);
+  html = replaceMetaContent(html, "property", "og:image:alt", IMAGE_ALTS[language]);
   html = replaceMetaContent(html, "name", "twitter:title", title);
   html = replaceMetaContent(html, "name", "twitter:description", description);
+  html = replaceMetaContent(html, "name", "twitter:image:alt", IMAGE_ALTS[language]);
   html = replaceCanonical(html, url);
-  html = replaceStructuredData(html, url, description, String(messages.role || ""));
+  html = replaceStructuredData(html, url, description, String(messages.role || ""), language);
   return html;
 }
 
