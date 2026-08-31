@@ -80,14 +80,18 @@ class LocalizedPageContractTests(unittest.TestCase):
         localized = manifest.get("_localized")
         self.assertIsInstance(localized, dict)
         self.assertEqual(set(localized), set(IDENTITY_PATHS))
-        for key, relative in IDENTITY_PATHS.items():
-            expected = hashlib.sha256((ROOT / "html" / relative).read_bytes()).hexdigest()
-            self.assertEqual(localized[key], expected, key)
+        for name, relative in IDENTITY_PATHS.items():
+            row = localized[name]
+            self.assertEqual(row["path"], relative)
+            payload = (ROOT / "html" / relative).read_bytes()
+            self.assertEqual(hashlib.sha256(payload).hexdigest(), row["sha256"])
 
     def test_nginx_static_routing_can_resolve_locale_directories(self):
-        nginx = (ROOT / "nginx/default.conf").read_text(encoding="utf-8")
+        nginx = (ROOT / "nginx.conf").read_text(encoding="utf-8")
+        self.assertIn("index index.html;", nginx)
         self.assertIn("try_files $uri $uri/ =404;", nginx)
-        self.assertNotIn("try_files $uri =404;", nginx)
+        for language in EXPECTED:
+            self.assertTrue((ROOT / f"html/{language}/index.html").is_file())
 
 
 if __name__ == "__main__":
