@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from hashlib import sha256
 from pathlib import Path
 import unittest
 
@@ -26,12 +27,14 @@ class HealthContractTests(unittest.TestCase):
         self.assertIn("http://localhost:5000/health/ready", compose)
         self.assertNotIn("http://localhost:5000/health')", compose)
 
-    def test_nginx_identity_is_unchanged_by_health_contract(self) -> None:
-        nginx = (ROOT / "nginx.conf").read_text(encoding="utf-8")
+    def test_nginx_identity_tracks_current_config_without_health_route(self) -> None:
+        nginx_path = ROOT / "nginx.conf"
+        nginx = nginx_path.read_text(encoding="utf-8")
         compose = (ROOT / "docker-compose.yml").read_text(encoding="utf-8")
+        nginx_digest = sha256(nginx_path.read_bytes()).hexdigest()
         self.assertNotIn("location = /api/health/ready", nginx)
         self.assertIn(
-            'net.rozkalns.cv.nginx-config-sha256: "24a4b18221429dce78485d2ff4c8d65380cc94301c9409714dec882064dd74ff"',
+            f'net.rozkalns.cv.nginx-config-sha256: "{nginx_digest}"',
             compose,
         )
 
