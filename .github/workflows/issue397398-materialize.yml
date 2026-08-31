@@ -72,6 +72,7 @@ jobs:
 
           grep -Fq 'Paint Shop Supervisor / Lead Sprayer' "${RUNNER_TEMP}/inspection/en-text.txt"
           grep -Fq 'Self-hosted Linux server environment' "${RUNNER_TEMP}/inspection/en-text.txt"
+          grep -Fq 'Junior DevOps Engineer / Linux-Systemadministrator' "${RUNNER_TEMP}/inspection/de-text.txt"
           grep -Fq 'Leiter der Lackiererei / Hauptlackierer' "${RUNNER_TEMP}/inspection/de-text.txt"
           grep -Fq 'Selbst gehostete Linux-Serverumgebung' "${RUNNER_TEMP}/inspection/de-text.txt"
           grep -Fq 'Sonepar Deutschland · Dortmund' "${RUNNER_TEMP}/inspection/lv-text.txt"
@@ -85,14 +86,16 @@ jobs:
 
           python3 scripts/build-content.py --write --accept-pdfs
           python3 scripts/sync-system-prompt.py --write
+          python3 scripts/check-pdfs.py --write
           python3 scripts/build-content.py --check
+          python3 scripts/check-pdfs.py
           git diff --check
 
       - name: Export candidate and inspection evidence
         shell: bash
         run: |
           set -Eeuo pipefail
-          out="${RUNNER_TEMP}/issue397398-candidate-v2"
+          out="${RUNNER_TEMP}/issue397398-candidate-v3"
           mkdir -p "$out/baseline" "$out/candidate/html/en" "$out/candidate/html/de" "$out/candidate/html/lv" "$out/candidate/content" "$out/candidate/bot" "$out/inspection"
           cp "${RUNNER_TEMP}/baseline/"*.pdf "$out/baseline/"
           cp html/cv.pdf html/cv-de.pdf html/cv-lv.pdf "$out/candidate/html/"
@@ -101,6 +104,7 @@ jobs:
           cp html/lv/index.html "$out/candidate/html/lv/index.html"
           cp frontend-dist-manifest.json "$out/candidate/frontend-dist-manifest.json"
           cp content/pdf-manifest.json "$out/candidate/content/pdf-manifest.json"
+          cp content/pdf-provenance.json "$out/candidate/content/pdf-provenance.json"
           cp bot/system_prompt.txt "$out/candidate/bot/system_prompt.txt"
           cp "${RUNNER_TEMP}/inspection/"* "$out/inspection/"
           git status --porcelain=v1 > "$out/git-status.txt"
@@ -110,7 +114,7 @@ jobs:
       - name: Upload audited candidate
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: issue397398-candidate-v2
+          name: issue397398-candidate-v3
           if-no-files-found: error
           retention-days: 1
-          path: ${{ runner.temp }}/issue397398-candidate-v2
+          path: ${{ runner.temp }}/issue397398-candidate-v3
