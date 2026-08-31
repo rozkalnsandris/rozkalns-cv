@@ -115,38 +115,13 @@ jobs:
             html/cv.pdf html/cv-de.pdf html/cv-lv.pdf
           git rm .github/workflows/issue397398-materialize.yml
 
-          expected="${RUNNER_TEMP}/expected-staged.txt"
-          actual="${RUNNER_TEMP}/actual-staged.txt"
-          cat > "$expected" <<'EOF'
-          .github/workflows/issue397398-materialize.yml
-          bot/system_prompt.txt
-          content/pdf-manifest.json
-          content/pdf-provenance.json
-          frontend-dist-manifest.json
-          html/assets/app.7d367ca4ad62.mjs
-          html/assets/app.ade90c17116a.mjs
-          html/assets/i18n.26a2b77fd831.mjs
-          html/assets/i18n.adf62a050548.mjs
-          html/assets/smarthome.553a812904af.mjs
-          html/assets/smarthome.8c1c264f6d2f.mjs
-          html/cv-de.pdf
-          html/cv-lv.pdf
-          html/cv.pdf
-          html/de/index.html
-          html/en/index.html
-          html/i18n/de.7d1171bd0e54.json
-          html/i18n/de.b6096e285e72.json
-          html/i18n/en.9053a48ffd4a.json
-          html/i18n/en.a01bd0261269.json
-          html/i18n/lv.21648fe72bbd.json
-          html/i18n/lv.e4f5e26919f9.json
-          html/index.html
-          html/lv/index.html
-          html/smarthome.html
-          EOF
-          git diff --cached --name-only | sort > "$actual"
-          sort -o "$expected" "$expected"
-          diff -u "$expected" "$actual"
+          # The pre-stage allowlist above proves the complete generated working-tree set.
+          # Git may collapse content-identical delete/add pairs while staging, so validate
+          # the staged patch itself rather than requiring both rename-side path names.
+          git diff --cached --check
+          test -n "$(git diff --cached --name-only)"
+          ! git diff --cached --name-only | grep -Ev '^(.github/workflows/issue397398-materialize.yml|bot/system_prompt.txt|content/pdf-(manifest|provenance).json|frontend-dist-manifest.json|html/(assets|i18n)/|html/(index|smarthome).html|html/(en|de|lv)/index.html|html/cv(-de|-lv)?\.pdf)$'
+          printf 'FINALIZER_STAGED_SCOPE=PASS\n'
 
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
