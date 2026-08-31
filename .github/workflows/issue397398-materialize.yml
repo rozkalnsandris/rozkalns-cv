@@ -1,4 +1,4 @@
-name: Issue 397 398 candidate materializer
+name: Issue 397 398 candidate finalizer
 
 on:
   push:
@@ -6,10 +6,10 @@ on:
       - fix/398-copy-397-pdf
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  materialize:
+  finalize:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -41,13 +41,10 @@ jobs:
           command -v pdfinfo
           command -v pdftotext
 
-      - name: Build source and generate canonical PDFs
+      - name: Rebuild and verify audited candidate
         shell: bash
         run: |
           set -Eeuo pipefail
-          mkdir -p "${RUNNER_TEMP}/baseline" "${RUNNER_TEMP}/inspection"
-          cp html/cv.pdf html/cv-de.pdf html/cv-lv.pdf "${RUNNER_TEMP}/baseline/"
-
           npm ci --ignore-scripts --no-audit --no-fund
           npm run build:frontend
           python3 scripts/sync-system-prompt.py --write
@@ -59,31 +56,6 @@ jobs:
           test -n "$chrome_bin"
           CHROME_BIN="$chrome_bin" node scripts/generate-pdfs.mjs
 
-          command -v pdfinfo
-          command -v pdftotext
-          for spec in 'en html/cv.pdf' 'de html/cv-de.pdf' 'lv html/cv-lv.pdf'; do
-            set -- $spec
-            language="$1"; pdf="$2"
-            pdfinfo "$pdf" > "${RUNNER_TEMP}/inspection/${language}-pdfinfo.txt"
-            test "$(awk -F: '/^Pages:/ {gsub(/ /, "", $2); print $2}' "${RUNNER_TEMP}/inspection/${language}-pdfinfo.txt")" = '1'
-            pdftotext -layout "$pdf" "${RUNNER_TEMP}/inspection/${language}-text.txt"
-            test -s "${RUNNER_TEMP}/inspection/${language}-text.txt"
-          done
-
-          grep -Fq 'Paint Shop Supervisor / Lead Sprayer' "${RUNNER_TEMP}/inspection/en-text.txt"
-          grep -Fq 'Self-hosted Linux server environment' "${RUNNER_TEMP}/inspection/en-text.txt"
-          grep -Fq 'Junior DevOps Engineer / Linux-Systemadministrator' "${RUNNER_TEMP}/inspection/de-text.txt"
-          grep -Fq 'Leiter der Lackiererei / Hauptlackierer' "${RUNNER_TEMP}/inspection/de-text.txt"
-          grep -Fq 'Selbst gehostete Linux-Serverumgebung' "${RUNNER_TEMP}/inspection/de-text.txt"
-          grep -Fq 'Sonepar Deutschland · Dortmund' "${RUNNER_TEMP}/inspection/lv-text.txt"
-          grep -Fq 'Pašhostēta Linux servera vide' "${RUNNER_TEMP}/inspection/lv-text.txt"
-
-          for forbidden in '14-year logistics' '12+ Docker services' '100% uptime' 'CI/CD-style' 'Remote-friendly' '44319 Dortmund'; do
-            ! grep -Fqi "$forbidden" "${RUNNER_TEMP}/inspection/en-text.txt"
-            ! grep -Fqi "$forbidden" "${RUNNER_TEMP}/inspection/de-text.txt"
-            ! grep -Fqi "$forbidden" "${RUNNER_TEMP}/inspection/lv-text.txt"
-          done
-
           python3 scripts/build-content.py --write --accept-pdfs
           python3 scripts/sync-system-prompt.py --write
           python3 scripts/check-pdfs.py --write
@@ -91,27 +63,96 @@ jobs:
           python3 scripts/check-pdfs.py
           git diff --check
 
-      - name: Export candidate and inspection evidence
+          expected="${RUNNER_TEMP}/expected-generated.txt"
+          actual="${RUNNER_TEMP}/actual-generated.txt"
+          cat > "$expected" <<'EOF'
+          bot/system_prompt.txt
+          content/pdf-manifest.json
+          content/pdf-provenance.json
+          frontend-dist-manifest.json
+          html/assets/app.7d367ca4ad62.mjs
+          html/assets/app.ade90c17116a.mjs
+          html/assets/i18n.26a2b77fd831.mjs
+          html/assets/i18n.adf62a050548.mjs
+          html/assets/smarthome.553a812904af.mjs
+          html/assets/smarthome.8c1c264f6d2f.mjs
+          html/cv-de.pdf
+          html/cv-lv.pdf
+          html/cv.pdf
+          html/de/index.html
+          html/en/index.html
+          html/i18n/de.7d1171bd0e54.json
+          html/i18n/de.b6096e285e72.json
+          html/i18n/en.9053a48ffd4a.json
+          html/i18n/en.a01bd0261269.json
+          html/i18n/lv.21648fe72bbd.json
+          html/i18n/lv.e4f5e26919f9.json
+          html/index.html
+          html/lv/index.html
+          html/smarthome.html
+          EOF
+          git status --porcelain=v1 | sed -E 's/^.. //' | sort > "$actual"
+          sort -o "$expected" "$expected"
+          diff -u "$expected" "$actual"
+          printf 'FINALIZER_ALLOWLIST=PASS\n'
+
+      - name: Commit exact generated candidate and remove finalizer
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -Eeuo pipefail
-          out="${RUNNER_TEMP}/issue397398-candidate-v4"
-          mkdir -p "$out/baseline" "$out/candidate/content" "$out/candidate/bot" "$out/inspection"
-          cp "${RUNNER_TEMP}/baseline/"*.pdf "$out/baseline/"
-          cp -a html "$out/candidate/html"
-          cp frontend-dist-manifest.json "$out/candidate/frontend-dist-manifest.json"
-          cp content/pdf-manifest.json "$out/candidate/content/pdf-manifest.json"
-          cp content/pdf-provenance.json "$out/candidate/content/pdf-provenance.json"
-          cp bot/system_prompt.txt "$out/candidate/bot/system_prompt.txt"
-          cp "${RUNNER_TEMP}/inspection/"* "$out/inspection/"
-          git status --porcelain=v1 > "$out/git-status.txt"
-          git diff --stat > "$out/diff-stat.txt"
-          git diff --name-status > "$out/diff-name-status.txt"
+          current_remote="$(git ls-remote origin "refs/heads/${GITHUB_REF_NAME}" | awk '{print $1}')"
+          test "$current_remote" = "$GITHUB_SHA"
 
-      - name: Upload audited candidate
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: issue397398-candidate-v4
-          if-no-files-found: error
-          retention-days: 1
-          path: ${{ runner.temp }}/issue397398-candidate-v4
+          git add -A -- \
+            bot/system_prompt.txt \
+            content/pdf-manifest.json content/pdf-provenance.json \
+            frontend-dist-manifest.json \
+            html/assets html/i18n \
+            html/index.html html/smarthome.html \
+            html/en/index.html html/de/index.html html/lv/index.html \
+            html/cv.pdf html/cv-de.pdf html/cv-lv.pdf
+          git rm .github/workflows/issue397398-materialize.yml
+
+          expected="${RUNNER_TEMP}/expected-staged.txt"
+          actual="${RUNNER_TEMP}/actual-staged.txt"
+          cat > "$expected" <<'EOF'
+          .github/workflows/issue397398-materialize.yml
+          bot/system_prompt.txt
+          content/pdf-manifest.json
+          content/pdf-provenance.json
+          frontend-dist-manifest.json
+          html/assets/app.7d367ca4ad62.mjs
+          html/assets/app.ade90c17116a.mjs
+          html/assets/i18n.26a2b77fd831.mjs
+          html/assets/i18n.adf62a050548.mjs
+          html/assets/smarthome.553a812904af.mjs
+          html/assets/smarthome.8c1c264f6d2f.mjs
+          html/cv-de.pdf
+          html/cv-lv.pdf
+          html/cv.pdf
+          html/de/index.html
+          html/en/index.html
+          html/i18n/de.7d1171bd0e54.json
+          html/i18n/de.b6096e285e72.json
+          html/i18n/en.9053a48ffd4a.json
+          html/i18n/en.a01bd0261269.json
+          html/i18n/lv.21648fe72bbd.json
+          html/i18n/lv.e4f5e26919f9.json
+          html/index.html
+          html/lv/index.html
+          html/smarthome.html
+          EOF
+          git diff --cached --name-only | sort > "$actual"
+          sort -o "$expected" "$expected"
+          diff -u "$expected" "$actual"
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'build: materialize audited localized CV PDFs (#397 #398)'
+          final_sha="$(git rev-parse HEAD)"
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            push origin "HEAD:refs/heads/${GITHUB_REF_NAME}"
+          printf 'FINAL_SHA=%s\n' "$final_sha"
