@@ -95,13 +95,10 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          out="${RUNNER_TEMP}/issue397398-candidate-v3"
-          mkdir -p "$out/baseline" "$out/candidate/html/en" "$out/candidate/html/de" "$out/candidate/html/lv" "$out/candidate/content" "$out/candidate/bot" "$out/inspection"
+          out="${RUNNER_TEMP}/issue397398-candidate-v4"
+          mkdir -p "$out/baseline" "$out/candidate/content" "$out/candidate/bot" "$out/inspection"
           cp "${RUNNER_TEMP}/baseline/"*.pdf "$out/baseline/"
-          cp html/cv.pdf html/cv-de.pdf html/cv-lv.pdf "$out/candidate/html/"
-          cp html/en/index.html "$out/candidate/html/en/index.html"
-          cp html/de/index.html "$out/candidate/html/de/index.html"
-          cp html/lv/index.html "$out/candidate/html/lv/index.html"
+          cp -a html "$out/candidate/html"
           cp frontend-dist-manifest.json "$out/candidate/frontend-dist-manifest.json"
           cp content/pdf-manifest.json "$out/candidate/content/pdf-manifest.json"
           cp content/pdf-provenance.json "$out/candidate/content/pdf-provenance.json"
@@ -114,7 +111,7 @@ jobs:
       - name: Upload audited candidate
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: issue397398-candidate-v3
+          name: issue397398-candidate-v4
           if-no-files-found: error
           retention-days: 1
-          path: ${{ runner.temp }}/issue397398-candidate-v3
+          path: ${{ runner.temp }}/issue397398-candidate-v4
