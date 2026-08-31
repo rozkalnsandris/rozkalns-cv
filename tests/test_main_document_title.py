@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 EXPECTED_TITLES = {
     "en": "Andris Rožkalns · DevOps & Linux Engineer",
-    "de": "Andris Rožkalns · DevOps- & Linux-Engineer",
+    "de": "Andris Rožkalns · DevOps Engineer / Linux-Systemadministrator",
     "lv": "Andris Rožkalns · DevOps un Linux inženieris",
 }
 
