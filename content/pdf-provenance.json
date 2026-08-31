@@ -1,6 +1,8 @@
 {
   "schema_version": 1,
-  "source_sha256": "294aed03b097f31aabca5024f186921d997843a75bc8fa83302be61cfa9c68db",
+  "pdf_source_sha256": "4de363e4ceb3d2acff9a22bf6f87b232635a1c344115ce36c519a03c7711a83f",
+  "renderer_sha256": "80ea39f1830f472ba4d144b1b6189f2df8f1f7b53cc031a2712115a22fbf4eb3",
+  "photo_sha256": "1070aa250e2eaa0be5da0245f7815d7a93923f81f9780bac00b9d79aae79cf51",
   "pdfs": {
     "en": {
       "path": "html/cv.pdf",
