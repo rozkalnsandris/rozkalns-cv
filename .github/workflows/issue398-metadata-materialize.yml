@@ -31,7 +31,10 @@ jobs:
         run: |
           set -Eeuo pipefail
           python3 - <<'PY'
+          from hashlib import sha256
           from pathlib import Path
+          import re
+          import textwrap
 
           def replace_once(path, old, new):
               p = Path(path)
@@ -76,6 +79,15 @@ jobs:
               '    location = /favicon.ico {\n        return 308 /favicon.svg;\n    }\n\n    location ~* \\.(?:png|jpg|jpeg|svg|woff2?|pdf)$ {\n',
               '    location = /favicon.ico {\n        return 308 /favicon.svg;\n    }\n\n    location ~ ^/cv(?:-de|-lv)?\\.pdf$ {\n        expires 1h;\n        add_header X-Robots-Tag "noindex, nofollow" always;\n        try_files $uri =404;\n    }\n\n    location ~* \\.(?:png|jpg|jpeg|svg|woff2?|pdf)$ {\n'
           )
+
+          nginx_digest = sha256(Path("nginx.conf").read_bytes()).hexdigest()
+          compose_path = Path("docker-compose.yml")
+          compose = compose_path.read_text(encoding="utf-8")
+          pattern = r'(net\.rozkalns\.cv\.nginx-config-sha256: ")[0-9a-f]{64}("\n)'
+          compose, count = re.subn(pattern, rf'\g<1>{nginx_digest}\g<2>', compose, count=1)
+          if count != 1:
+              raise SystemExit(f"expected one nginx config identity label, got {count}")
+          compose_path.write_text(compose, encoding="utf-8")
 
           test_content = '''import json
           import re
@@ -123,11 +135,22 @@ jobs:
           if __name__ == "__main__":
               unittest.main()
           '''
-          # The YAML block indentation is stripped by the workflow parser; remove
-          # the Python string indentation before writing the actual test module.
-          import textwrap
           Path("tests/test_seo_policy_398.py").write_text(textwrap.dedent(test_content), encoding="utf-8")
           PY
+
+      - name: Install hash-locked test dependencies
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test_venv="${RUNNER_TEMP}/rozkalns-cv-test-venv"
+          python3 -m venv "$test_venv"
+          "$test_venv/bin/python" -m pip install \
+            --disable-pip-version-check \
+            --require-hashes \
+            --no-deps \
+            -r bot/requirements.txt
+          echo "TEST_VENV=$test_venv" >> "$GITHUB_ENV"
+          echo "PYTHONPYCACHEPREFIX=${RUNNER_TEMP}/rozkalns-cv-pycache" >> "$GITHUB_ENV"
 
       - name: Set up pinned Node.js frontend toolchain
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -141,8 +164,8 @@ jobs:
           set -Eeuo pipefail
           npm ci --ignore-scripts --no-audit --no-fund
           npm run build:frontend
-          python3 -m unittest tests.test_seo_policy_398
-          python3 scripts/run-python-tests.py --coverage-dir "${RUNNER_TEMP}/python-coverage"
+          "$TEST_VENV/bin/python" -m unittest tests.test_seo_policy_398
+          "$TEST_VENV/bin/python" scripts/run-python-tests.py --coverage-dir "${RUNNER_TEMP}/python-coverage"
           node --check scripts/localize-frontend.mjs
           git diff --check
 
@@ -156,7 +179,7 @@ jobs:
           test "$current_remote" = "$GITHUB_SHA"
 
           git rm .github/workflows/issue398-metadata-materialize.yml
-          git add -- scripts/localize-frontend.mjs nginx.conf tests/test_seo_policy_398.py \
+          git add -- scripts/localize-frontend.mjs nginx.conf docker-compose.yml tests/test_seo_policy_398.py \
             frontend-dist-manifest.json html/index.html html/en/index.html html/de/index.html html/lv/index.html html/sitemap.xml
 
           git diff --cached --check
