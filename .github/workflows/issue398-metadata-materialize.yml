@@ -142,7 +142,7 @@ jobs:
           npm ci --ignore-scripts --no-audit --no-fund
           npm run build:frontend
           python3 -m unittest tests.test_seo_policy_398
-          python3 scripts/run-python-tests.py
+          python3 scripts/run-python-tests.py --coverage-dir "${RUNNER_TEMP}/python-coverage"
           node --check scripts/localize-frontend.mjs
           git diff --check
 
