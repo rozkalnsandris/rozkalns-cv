@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "content_version": "2026-08-18.1",
+  "content_version": "2026-08-31.1",
   "identity": {
     "name": "Andris Rožkalns",
     "role": "Junior DevOps & Linux Engineer",
@@ -51,12 +51,12 @@
       "highlights": [
         "Processed high-volume electrical wholesale orders using scanner systems",
         "Prepared cable, operated forklifts, and worked rotating logistics shifts",
-        "Built process discipline and reliability transferable to IT operations"
+        "Maintained reliable, process-focused work across rotating logistics shifts"
       ]
     },
     {
       "id": "koksne",
-      "role": "Painting Area Manager / Main Paint Sprayer",
+      "role": "Paint Shop Supervisor / Lead Sprayer",
       "organization": "SIA Koksne",
       "location": "Latvia",
       "start": "2020-05",
@@ -149,7 +149,7 @@
   "projects": [
     {
       "id": "homelab",
-      "title": "Production Linux server stack",
+      "title": "Self-hosted Linux server environment",
       "facts": [
         "Raspberry Pi 5 with NVMe storage",
         "Docker Compose services running 24/7",

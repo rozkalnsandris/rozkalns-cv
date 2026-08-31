@@ -7,7 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED = {
     "en": ("Junior DevOps &amp; Linux Engineer", "Dortmund, Germany", "/cv.pdf"),
-    "de": ("Junior DevOps- &amp; Linux-Engineer", "Dortmund, Deutschland", "/cv-de.pdf"),
+    "de": ("Junior DevOps Engineer / Linux-Systemadministrator", "Dortmund, Deutschland", "/cv-de.pdf"),
     "lv": ("Junior DevOps un Linux inženieris", "Dortmund, Vācija", "/cv-lv.pdf"),
 }
 IDENTITY_PATHS = {
