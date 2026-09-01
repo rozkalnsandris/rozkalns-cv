@@ -162,9 +162,9 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn('"brand lang"', layout)
         self.assertIn('"photo name"', layout)
         self.assertIn('padding-inline: 18px', layout)
-        self.assertIn('grid-template-columns: auto minmax(0,1fr) 260px;', responsive)
-        self.assertIn('"brand nav lang"', responsive)
-        self.assertIn('"name name photo"', responsive)
+        self.assertIn('grid-template-columns: auto minmax(0,1fr) auto 260px;', responsive)
+        self.assertIn('"brand nav lang ."', responsive)
+        self.assertIn('"name name name photo"', responsive)
 
     def test_v3_accessibility_closeout_contract(self) -> None:
         base = SOURCE_BASE.read_text(encoding="utf-8")
