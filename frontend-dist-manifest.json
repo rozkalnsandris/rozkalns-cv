@@ -11,15 +11,15 @@
     "file": "i18n/lv.e4f5e26919f9.json",
     "src": "../content/translations/lv.json"
   },
-  "_i18n.4bf8d742583a.css": {
-    "file": "assets/i18n.4bf8d742583a.css",
-    "src": "_i18n.4bf8d742583a.css"
+  "_i18n.39d02e8cc03f.css": {
+    "file": "assets/i18n.39d02e8cc03f.css",
+    "src": "_i18n.39d02e8cc03f.css"
   },
-  "_i18n.a7aa7ad36f7a.mjs": {
-    "file": "assets/i18n.a7aa7ad36f7a.mjs",
+  "_i18n.6d45d413c4a0.mjs": {
+    "file": "assets/i18n.6d45d413c4a0.mjs",
     "name": "i18n",
     "css": [
-      "assets/i18n.4bf8d742583a.css"
+      "assets/i18n.39d02e8cc03f.css"
     ],
     "assets": [
       "i18n/en.a01bd0261269.json",
@@ -50,12 +50,12 @@
     ]
   },
   "index.html": {
-    "file": "assets/app.75fa5c40a1ca.mjs",
+    "file": "assets/app.ab8c140a08a3.mjs",
     "name": "app",
     "src": "index.html",
     "isEntry": true,
     "imports": [
-      "_i18n.a7aa7ad36f7a.mjs"
+      "_i18n.6d45d413c4a0.mjs"
     ],
     "dynamicImports": [
       "features/chat.mjs",
@@ -70,26 +70,26 @@
     "src": "photo.webp"
   },
   "smarthome.html": {
-    "file": "assets/smarthome.9719ab21bb29.mjs",
+    "file": "assets/smarthome.62ffb0b03137.mjs",
     "name": "smarthome",
     "src": "smarthome.html",
     "isEntry": true,
     "imports": [
-      "_i18n.a7aa7ad36f7a.mjs"
+      "_i18n.6d45d413c4a0.mjs"
     ]
   },
   "_localized": {
     "en": {
       "path": "en/index.html",
-      "sha256": "dee998874a10434eaa7806f3f9fe092ed44e8db98131c6dd6043e697ca97ccca"
+      "sha256": "4202d8603c8258bae587f183223cbeb33cf569ed0ddf2ae62ee58ae623a881fc"
     },
     "de": {
       "path": "de/index.html",
-      "sha256": "ce1f71afe39e18c344eb9ebdbaa00eb8ee84ad6b5d615f6f43c290556d82f7ed"
+      "sha256": "8f1a4b059eae1e8a0307257b239f3cfef3a2849356e71d25fe9796df77ec7e99"
     },
     "lv": {
       "path": "lv/index.html",
-      "sha256": "a8ab707a0a54d02f05c294125322323ef65d23f4608a474544c6366273493bbe"
+      "sha256": "989c91fefa62cfeba853d8078089b0b8e2f870ea9ba8dcb0eb1406be6df4e4e7"
     },
     "sitemap": {
       "path": "sitemap.xml",
