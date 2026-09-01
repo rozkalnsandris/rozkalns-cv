@@ -3,7 +3,7 @@
   .hero-shell { grid-template-columns: 116px minmax(0,1fr); padding-block: 22px; padding-inline: 22px; gap: 13px 18px; }
   .profile-photo { width: 116px; height: 146px; }
   .site-nav { gap: 6px; overflow-x: auto; }
-  .site-nav a { display: inline-flex; flex: 0 0 auto; justify-content: flex-start; padding-inline: 12px; font-size: 12px; }
+  .site-nav a { display: inline-flex; flex: 0 0 auto; justify-content: flex-start; }
   .site-nav a:first-child, .site-nav a:last-child { display: inline-flex; }
   .education-row { grid-template-columns: 135px minmax(0,1fr); gap: 18px; }
   .demo-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
@@ -53,7 +53,6 @@
   .hero-shell::before { width: 320px; height: 320px; inset-block-start: -156px; inset-inline-end: -90px; }
   .brand { font-size: 24px; }
   .site-nav { justify-content: center; gap: 2px; overflow: visible; }
-  .site-nav a { flex: 1 1 0; justify-content: center; padding-inline: 5px; font-size: 10.5px; }
   .language-switcher { align-self: center; }
   .profile-photo { width: 100%; height: 100%; min-height: 300px; max-height: 336px; }
   .hero-shell h1 { max-width: none; font-size: clamp(58px,5vw,70px); }
