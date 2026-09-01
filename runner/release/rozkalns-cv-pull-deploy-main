@@ -156,15 +156,42 @@ EVIDENCE_READY=true
 printf 'DEPLOY_TRANSPORT=pull-controller\n' >"$EVIDENCE_DIR/transport.env"
 
 verify_public_frontend_contracts() {
-    local tmp html root_headers module_path module_headers content_type csp
+    local tmp html root_headers page_headers root_status root_location expected_location
+    local module_path module_headers content_type csp
     tmp="$(mktemp -d)" || return 1
-    html="$tmp/root.html"
+    html="$tmp/en.html"
     root_headers="$tmp/root.headers"
+    page_headers="$tmp/en.headers"
+    expected_location="${PUBLIC_URL%/}/en/"
+
+    if ! root_status="$(
+        curl --silent --show-error --max-time 20 \
+            --dump-header "$root_headers" \
+            --output /dev/null \
+            --write-out '%{http_code}' \
+            "$PUBLIC_URL"
+    )"; then
+        rm -rf -- "$tmp"
+        return 1
+    fi
+    if [[ "$root_status" != 308 ]]; then
+        rm -rf -- "$tmp"
+        return 1
+    fi
+
+    root_location="$(
+        awk 'tolower($1) == "location:" { value=$2; sub(/\r$/, "", value); print value; exit }' \
+            "$root_headers"
+    )"
+    if [[ "$root_location" != "$expected_location" ]]; then
+        rm -rf -- "$tmp"
+        return 1
+    fi
 
     if ! curl --fail --silent --show-error --max-time 20 \
-        --dump-header "$root_headers" \
+        --dump-header "$page_headers" \
         --output "$html" \
-        "$PUBLIC_URL"; then
+        "$expected_location"; then
         rm -rf -- "$tmp"
         return 1
     fi
@@ -213,7 +240,7 @@ verify_public_frontend_contracts() {
 
     csp="$(
         awk 'tolower($1) == "content-security-policy:" { sub(/\r$/, ""); sub(/^[^:]+:[[:space:]]*/, ""); print; exit }' \
-            "$root_headers"
+            "$page_headers"
     )"
     if [[ ! "$csp" =~ nonce-[0-9a-f]{32} ]] \
        || [[ "$csp" != *"script-src-attr 'none'"* ]] \
@@ -224,6 +251,7 @@ verify_public_frontend_contracts() {
     fi
 
     rm -rf -- "$tmp"
+    printf 'PUBLIC_ROOT_REDIRECT=PASS location=%s\n' "$root_location"
     printf 'PUBLIC_SITE=PASS\n'
     printf 'PUBLIC_MODULE_MIME=PASS type=%s\n' "$content_type"
     printf 'PUBLIC_CACHE_IMMUTABLE=PASS\n'
