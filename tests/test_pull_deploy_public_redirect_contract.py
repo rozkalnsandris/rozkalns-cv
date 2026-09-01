@@ -38,6 +38,9 @@ def test_rollout_verifier_separates_local_origin_from_public_ingress() -> None:
     assert 'expected_local_location="${LOCAL_URL%/}/en/"' in contract
     assert '"$LOCAL_URL"' in contract
     assert '[[ "$local_root_status" != 308 ]]' in contract
+    assert '/en/|"$expected_local_location"|http://127.0.0.1/en/' in contract
+    assert 'http://127.0.0.1/en/' in contract
+    assert 'http://example.com/en/' not in contract
     assert 'LOCAL_ROOT_REDIRECT=FAIL reason=status' in contract
     assert 'LOCAL_ROOT_REDIRECT=FAIL reason=location' in contract
     assert 'LOCAL_ROOT_REDIRECT=PASS status=%s location=%s' in contract

@@ -191,8 +191,11 @@ verify_public_frontend_contracts() {
         rm -rf -- "$tmp"
         return 1
     fi
+    # nginx forms an absolute redirect from its internal :80 listener even
+    # though Docker publishes that listener as loopback :8088 on the host.
+    # Keep the local contract loopback-only while tolerating that port elision.
     case "$local_root_location" in
-        /en/|"$expected_local_location")
+        /en/|"$expected_local_location"|http://127.0.0.1/en/)
             ;;
         *)
             printf 'LOCAL_ROOT_REDIRECT=FAIL reason=location actual=%s expected=%s\n' \
