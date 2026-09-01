@@ -38,28 +38,20 @@ export function updateChatLauncherLabel({ messages }, {
   return true;
 }
 
-export function updateChatLauncherPlacement({
-  documentLike = globalThis.document,
-  viewportWidth = globalThis.innerWidth,
-  rightInset = 14
-} = {}) {
+export function updateChatLauncherPlacement({ documentLike = globalThis.document } = {}) {
   const launcher = documentLike?.querySelector?.("#chatLauncher");
-  const page = documentLike?.querySelector?.("#pageShell");
-  const actions = documentLike?.querySelector?.(".actions");
   const body = documentLike?.body;
-  const width = Number(documentLike?.documentElement?.clientWidth) || Number(viewportWidth);
-  const pageRect = page?.getBoundingClientRect?.();
-  const launcherRect = launcher?.getBoundingClientRect?.();
-  if (!launcher || !actions || !body || !pageRect || !launcherRect || !Number.isFinite(width)) return false;
-  const launcherWidth = Math.max(launcherRect.width, Number(launcher.scrollWidth) || 0);
-  const rail = width - pageRect.right >= launcherWidth + rightInset;
-  launcher.classList.toggle("chat-launcher-inline", !rail);
-  launcher.dataset.placement = rail ? "rail" : "inline";
-  if (rail && launcher.parentElement !== body) {
-    body.insertBefore(launcher, documentLike.querySelector?.("#chatBackdrop") || null);
-  } else if (!rail && launcher.parentElement !== actions) {
-    actions.append(launcher);
+  if (!launcher || !body || typeof documentLike?.createElement !== "function") return false;
+  let dock = documentLike.querySelector("#chatLauncherDock");
+  if (!dock) {
+    dock = documentLike.createElement("div");
+    dock.id = "chatLauncherDock";
+    dock.className = "actions chat-launcher-dock";
+    body.insertBefore(dock, documentLike.querySelector("#chatBackdrop"));
   }
+  launcher.classList.add("chat-launcher-inline");
+  launcher.dataset.placement = "inline";
+  if (launcher.parentElement !== dock) dock.append(launcher);
   return true;
 }
 

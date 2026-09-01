@@ -961,14 +961,18 @@ async function runBrowserSmoke(baseUrl, state) {
             } : null,
             languageSwitcher: languageRect ? { left: languageRect.left, right: languageRect.right } : null,
             launcher: launcherElement && launcherRect ? {
-    placement: launcherElement.dataset.placement,
-    position: getComputedStyle(launcherElement).position,
-    parentClass: launcherElement.parentElement?.className || '',
-    text: launcherElement.textContent.trim(),
-    left: launcherRect.left,
-    right: launcherRect.right,
-    width: launcherRect.width
-  } : null,
+              placement: launcherElement.dataset.placement,
+              position: getComputedStyle(launcherElement).position,
+              parentClass: launcherElement.parentElement?.className || '',
+              parentPosition: launcherElement.parentElement
+                ? getComputedStyle(launcherElement.parentElement).position
+                : '',
+              text: launcherElement.textContent.trim(),
+              left: launcherRect.left,
+              right: launcherRect.right,
+              bottom: launcherRect.bottom,
+              width: launcherRect.width
+            } : null,
             location: locationRow ? {
               clientWidth: locationRow.clientWidth,
               scrollWidth: locationRow.scrollWidth
@@ -1007,22 +1011,37 @@ async function runBrowserSmoke(baseUrl, state) {
           );
         }
         assert.ok(layout.launcher, `${context} chat launcher missing`);
-assert.notEqual(layout.launcher.text, "AI", `${context} ambiguous launcher label`);
-if (layout.launcher.placement === "rail") {
-  assert.equal(layout.launcher.position, "fixed", `${context} rail launcher position`);
-  assert.ok(
-    layout.launcher.left >= layout.page.right - 0.5,
-    `${context} rail launcher overlaps page: ${JSON.stringify(layout.launcher)}`
-  );
-} else {
-  assert.equal(layout.launcher.placement, "inline", `${context} launcher placement`);
-  assert.equal(layout.launcher.position, "static", `${context} inline launcher position`);
-  assert.match(layout.launcher.parentClass, /(^|\s)actions(\s|$)/, `${context} inline launcher parent`);
-  assert.ok(
-    layout.launcher.left >= layout.page.left - 0.5 && layout.launcher.right <= layout.page.right + 0.5,
-    `${context} inline launcher outside page: ${JSON.stringify(layout.launcher)}`
-  );
-}
+        assert.notEqual(layout.launcher.text, "AI", `${context} ambiguous launcher label`);
+        if (layout.launcher.placement === "rail") {
+          assert.equal(layout.launcher.position, "fixed", `${context} rail launcher position`);
+          assert.ok(
+            layout.launcher.left >= layout.page.right - 0.5,
+            `${context} rail launcher overlaps page: ${JSON.stringify(layout.launcher)}`
+          );
+        } else {
+          assert.equal(layout.launcher.placement, "inline", `${context} launcher placement`);
+          assert.equal(layout.launcher.position, "static", `${context} inline launcher position`);
+          assert.match(layout.launcher.parentClass, /(^|\s)actions(\s|$)/, `${context} inline launcher parent`);
+          if (/(^|\s)chat-launcher-dock(\s|$)/.test(layout.launcher.parentClass)) {
+            assert.equal(layout.launcher.parentPosition, "fixed", `${context} launcher dock position`);
+            assert.ok(
+              layout.launcher.right <= layout.documentClientWidth + 0.5 &&
+                layout.launcher.right >= layout.documentClientWidth - 48,
+              `${context} launcher dock not at right edge: ${JSON.stringify(layout.launcher)}`
+            );
+            assert.ok(
+              layout.launcher.bottom <= viewport.height + 0.5 &&
+                layout.launcher.bottom >= viewport.height - 48,
+              `${context} launcher dock not at bottom edge: ${JSON.stringify(layout.launcher)}`
+            );
+          } else {
+            assert.ok(
+              layout.launcher.left >= layout.page.left - 0.5 &&
+                layout.launcher.right <= layout.page.right + 0.5,
+              `${context} inline launcher outside page: ${JSON.stringify(layout.launcher)}`
+            );
+          }
+        }
         assert.ok(layout.location, `${context} location row missing`);
         assert.ok(
           layout.location.scrollWidth <= layout.location.clientWidth,

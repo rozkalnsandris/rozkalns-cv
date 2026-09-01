@@ -91,7 +91,7 @@ class CssSourceContractTests(unittest.TestCase):
         self.assertNotIn(".work-rail", responsive)
         self.assertIn("#experience .timeline { grid-template-columns: 1fr; }", responsive)
         self.assertIn("#experience .entry { grid-template-columns: 150px minmax(0,1fr);", responsive)
-        self.assertIn(".chat-launcher { right: 18px; bottom: 18px; }", responsive)
+        self.assertIn(".chat-launcher-dock { right: 18px; bottom: 18px; }", responsive)
         self.assertNotIn('content: "AI"', responsive)
         self.assertIn(".project-entry.primary:hover { background: var(--surface-2); }", components)
 
