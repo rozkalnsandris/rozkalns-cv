@@ -38,43 +38,20 @@ export function updateChatLauncherLabel({ messages }, {
   return true;
 }
 
-function getOrCreateChatLauncherDock(documentLike, body) {
-  let dock = documentLike?.querySelector?.("#chatLauncherDock");
-  if (dock) return dock;
-  if (!body || typeof documentLike?.createElement !== "function") return null;
-  dock = documentLike.createElement("div");
-  dock.id = "chatLauncherDock";
-  dock.className = "actions chat-launcher-dock";
-  body.insertBefore(dock, documentLike.querySelector?.("#chatBackdrop") || null);
-  return dock;
-}
-
-export function updateChatLauncherPlacement({
-  documentLike = globalThis.document,
-  viewportWidth = globalThis.innerWidth,
-  rightInset = 14
-} = {}) {
+export function updateChatLauncherPlacement({ documentLike = globalThis.document } = {}) {
   const launcher = documentLike?.querySelector?.("#chatLauncher");
-  const page = documentLike?.querySelector?.("#pageShell");
   const body = documentLike?.body;
-  const width = Number(documentLike?.documentElement?.clientWidth) || Number(viewportWidth);
-  const pageRect = page?.getBoundingClientRect?.();
-  const launcherRect = launcher?.getBoundingClientRect?.();
-  if (!launcher || !body || !pageRect || !launcherRect || !Number.isFinite(width)) return false;
-  const launcherWidth = Math.max(launcherRect.width, Number(launcher.scrollWidth) || 0);
-  const rail = width - pageRect.right >= launcherWidth + rightInset;
-  launcher.classList.toggle("chat-launcher-inline", !rail);
-  launcher.dataset.placement = rail ? "rail" : "inline";
-  if (rail) {
-    if (launcher.parentElement !== body) {
-      body.insertBefore(launcher, documentLike.querySelector?.("#chatBackdrop") || null);
-    }
-    documentLike.querySelector?.("#chatLauncherDock")?.remove?.();
-  } else {
-    const dock = getOrCreateChatLauncherDock(documentLike, body);
-    if (!dock) return false;
-    if (launcher.parentElement !== dock) dock.append(launcher);
+  if (!launcher || !body || typeof documentLike?.createElement !== "function") return false;
+  let dock = documentLike.querySelector("#chatLauncherDock");
+  if (!dock) {
+    dock = documentLike.createElement("div");
+    dock.id = "chatLauncherDock";
+    dock.className = "actions chat-launcher-dock";
+    body.insertBefore(dock, documentLike.querySelector("#chatBackdrop"));
   }
+  launcher.classList.add("chat-launcher-inline");
+  launcher.dataset.placement = "inline";
+  if (launcher.parentElement !== dock) dock.append(launcher);
   return true;
 }
 
