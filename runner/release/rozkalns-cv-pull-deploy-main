@@ -11,6 +11,8 @@ PULL_CALLER='andris'
 VALIDATION_TMP_ROOT='/tmp'
 MIN_VALIDATION_TMP_BYTES=268435456
 MIN_VALIDATION_TMP_INODES=10000
+PUBLIC_CONTRACT_ATTEMPTS=6
+PUBLIC_CONTRACT_RETRY_DELAY_SECONDS=5
 
 fail_bootstrap() {
     printf 'ERROR: %s\n' "$*" >&2
@@ -32,7 +34,7 @@ unset ROZKALNS_CV_DEPLOY_LIBRARY_ONLY
 
 for command_name in \
     awk bash chmod chown curl df docker du find flock grep head id install mktemp mv \
-    python3 realpath rm rsync runuser sha256sum sort stat sync tee tr wc xargs
+    python3 realpath rm rsync runuser sha256sum sleep sort stat sync tee tr wc xargs
 do
     command -v "$command_name" >/dev/null 2>&1 \
         || fail "required command is missing: $command_name"
@@ -156,42 +158,102 @@ EVIDENCE_READY=true
 printf 'DEPLOY_TRANSPORT=pull-controller\n' >"$EVIDENCE_DIR/transport.env"
 
 verify_public_frontend_contracts() {
-    local tmp html root_headers page_headers root_status root_location expected_location
-    local module_path module_headers content_type csp
+    local tmp html local_root_headers root_headers page_headers
+    local local_root_status local_root_location expected_local_location
+    local root_status root_location expected_location
+    local module_path module_headers content_type csp attempt
     tmp="$(mktemp -d)" || return 1
     html="$tmp/en.html"
+    local_root_headers="$tmp/local-root.headers"
     root_headers="$tmp/root.headers"
     page_headers="$tmp/en.headers"
+    expected_local_location="${LOCAL_URL%/}/en/"
     expected_location="${PUBLIC_URL%/}/en/"
 
-    if ! root_status="$(
+    if ! local_root_status="$(
         curl --silent --show-error --max-time 20 \
-            --dump-header "$root_headers" \
+            --dump-header "$local_root_headers" \
             --output /dev/null \
             --write-out '%{http_code}' \
-            "$PUBLIC_URL"
+            "$LOCAL_URL"
     )"; then
+        printf 'LOCAL_ROOT_REDIRECT=FAIL reason=curl\n'
         rm -rf -- "$tmp"
         return 1
     fi
-    if [[ "$root_status" != 308 ]]; then
-        rm -rf -- "$tmp"
-        return 1
-    fi
-
-    root_location="$(
+    local_root_location="$(
         awk 'tolower($1) == "location:" { value=$2; sub(/\r$/, "", value); print value; exit }' \
-            "$root_headers"
+            "$local_root_headers"
     )"
-    if [[ "$root_location" != "$expected_location" ]]; then
+    if [[ "$local_root_status" != 308 ]]; then
+        printf 'LOCAL_ROOT_REDIRECT=FAIL reason=status actual=%s expected=308\n' \
+            "$local_root_status"
+        rm -rf -- "$tmp"
+        return 1
+    fi
+    case "$local_root_location" in
+        /en/|"$expected_local_location")
+            ;;
+        *)
+            printf 'LOCAL_ROOT_REDIRECT=FAIL reason=location actual=%s expected=%s\n' \
+                "${local_root_location:-missing}" "$expected_local_location"
+            rm -rf -- "$tmp"
+            return 1
+            ;;
+    esac
+    printf 'LOCAL_ROOT_REDIRECT=PASS status=%s location=%s\n' \
+        "$local_root_status" "$local_root_location"
+
+    root_status=''
+    root_location=''
+    for (( attempt = 1; attempt <= PUBLIC_CONTRACT_ATTEMPTS; attempt++ )); do
+        : >"$root_headers"
+        if root_status="$(
+            curl --silent --show-error --max-time 20 \
+                --header 'Cache-Control: no-cache' \
+                --header 'Pragma: no-cache' \
+                --dump-header "$root_headers" \
+                --output /dev/null \
+                --write-out '%{http_code}' \
+                "$PUBLIC_URL"
+        )"; then
+            root_location="$(
+                awk 'tolower($1) == "location:" { value=$2; sub(/\r$/, "", value); print value; exit }' \
+                    "$root_headers"
+            )"
+        else
+            root_status='curl-error'
+            root_location=''
+        fi
+
+        if [[ "$root_status" == 308 && "$root_location" == "$expected_location" ]]; then
+            printf 'PUBLIC_ROOT_REDIRECT_ATTEMPT=PASS attempt=%s status=%s location=%s\n' \
+                "$attempt" "$root_status" "$root_location"
+            break
+        fi
+
+        printf 'PUBLIC_ROOT_REDIRECT_ATTEMPT=RETRY attempt=%s status=%s location=%s expected=%s\n' \
+            "$attempt" "$root_status" "${root_location:-missing}" "$expected_location"
+        if (( attempt < PUBLIC_CONTRACT_ATTEMPTS )); then
+            sleep "$PUBLIC_CONTRACT_RETRY_DELAY_SECONDS"
+        fi
+    done
+
+    if [[ "$root_status" != 308 || "$root_location" != "$expected_location" ]]; then
+        printf 'PUBLIC_ROOT_REDIRECT=FAIL status=%s location=%s expected_status=308 expected_location=%s attempts=%s\n' \
+            "$root_status" "${root_location:-missing}" "$expected_location" \
+            "$PUBLIC_CONTRACT_ATTEMPTS"
         rm -rf -- "$tmp"
         return 1
     fi
 
     if ! curl --fail --silent --show-error --max-time 20 \
+        --header 'Cache-Control: no-cache' \
+        --header 'Pragma: no-cache' \
         --dump-header "$page_headers" \
         --output "$html" \
         "$expected_location"; then
+        printf 'PUBLIC_SITE=FAIL reason=page-fetch url=%s\n' "$expected_location"
         rm -rf -- "$tmp"
         return 1
     fi
@@ -202,6 +264,7 @@ verify_public_frontend_contracts() {
             || true
     )"
     if [[ -z "$module_path" ]]; then
+        printf 'PUBLIC_SITE=FAIL reason=module-path-missing\n'
         rm -rf -- "$tmp"
         return 1
     fi
@@ -210,6 +273,7 @@ verify_public_frontend_contracts() {
         curl --fail --silent --show-error --head --max-time 20 \
             "${PUBLIC_URL%/}${module_path}"
     )"; then
+        printf 'PUBLIC_MODULE_MIME=FAIL reason=module-fetch path=%s\n' "$module_path"
         rm -rf -- "$tmp"
         return 1
     fi
@@ -222,6 +286,7 @@ verify_public_frontend_contracts() {
         text/javascript|application/javascript)
             ;;
         *)
+            printf 'PUBLIC_MODULE_MIME=FAIL actual=%s\n' "${content_type:-missing}"
             rm -rf -- "$tmp"
             return 1
             ;;
@@ -229,11 +294,13 @@ verify_public_frontend_contracts() {
 
     if ! printf '%s\n' "$module_headers" \
         | grep -Eiq '^Cache-Control:.*immutable'; then
+        printf 'PUBLIC_CACHE_IMMUTABLE=FAIL path=%s\n' "$module_path"
         rm -rf -- "$tmp"
         return 1
     fi
     if ! printf '%s\n' "$module_headers" \
         | grep -Eiq '^X-Content-Type-Options:[[:space:]]*nosniff'; then
+        printf 'PUBLIC_NOSNIFF=FAIL path=%s\n' "$module_path"
         rm -rf -- "$tmp"
         return 1
     fi
@@ -246,6 +313,7 @@ verify_public_frontend_contracts() {
        || [[ "$csp" != *"script-src-attr 'none'"* ]] \
        || [[ "$csp" != *"https://static.cloudflareinsights.com/beacon.min.js"* ]] \
        || [[ "$csp" == *"unsafe-inline"* ]]; then
+        printf 'PUBLIC_CSP_NONCE=FAIL reason=policy-contract\n'
         rm -rf -- "$tmp"
         return 1
     fi
