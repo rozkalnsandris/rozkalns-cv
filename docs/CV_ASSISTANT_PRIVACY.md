@@ -35,11 +35,17 @@ not restore a visitor's or the global quota.
 
 ## Conversation retention
 
-Successful question/answer pairs are retained in SQLite for
-`CHAT_RETENTION_DAYS` (default: 7). Cleanup occurs when a new successful chat is
-recorded. Set `CHAT_RETENTION_DAYS=0` to disable conversation-content storage.
+`CHAT_RETENTION_DAYS=0` is the privacy-minimizing default. With that value,
+successful question/answer content is not inserted into the `chats` table.
 
-The client field is the HMAC pseudonym, never the raw address.
+If `CHAT_RETENTION_DAYS` is set to a positive value, successful question/answer
+pairs are retained in SQLite for up to the configured number of days. The
+retention policy is applied at startup and by bounded maintenance cleanup; new
+retained chats wake the cleanup loop so the next expiry is recalculated
+promptly.
+
+The client field is the HMAC pseudonym, never the raw address. See
+`docs/CVBOT_DATA_RETENTION.md` for the detailed retention lifecycle.
 
 ## Telegram notifications
 
