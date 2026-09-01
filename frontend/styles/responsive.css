@@ -17,7 +17,7 @@
   .actions { align-items: center; }
   .contact-reveal { width: fit-content; }
   .turnstile-mount { width: 300px; }
-  .chat-launcher { right: 22px; bottom: 22px; }
+  .chat-launcher-dock { right: 22px; bottom: 22px; }
   .dialog-backdrop { padding: 22px; }
 }
 @media (min-width: 900px) {
@@ -34,7 +34,7 @@
   #skills .section-heading, #experience .section-heading { margin-block-end: 14px; }
   #experience .timeline { grid-template-columns: 1fr; }
   #experience .entry { grid-template-columns: 150px minmax(0,1fr); gap: 24px; }
-  .chat-launcher { right: 18px; bottom: 18px; }
+  .chat-launcher-dock { right: 18px; bottom: 18px; }
 }
 
 @media (min-width: 1120px) {
