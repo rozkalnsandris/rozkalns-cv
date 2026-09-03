@@ -40,18 +40,22 @@ export function updateChatLauncherLabel({ messages }, {
 
 export function updateChatLauncherPlacement({ documentLike = globalThis.document } = {}) {
   const launcher = documentLike?.querySelector?.("#chatLauncher");
+  const actions = documentLike?.querySelector?.(".hero-shell .actions");
+  const verify = documentLike?.querySelector?.(".hero-shell .contact-verify");
+  const page = documentLike?.querySelector?.("#pageShell");
+  const backdrop = documentLike?.querySelector?.("#chatBackdrop");
   const body = documentLike?.body;
-  if (!launcher || !body || typeof documentLike?.createElement !== "function") return false;
-  let dock = documentLike.querySelector("#chatLauncherDock");
-  if (!dock) {
-    dock = documentLike.createElement("div");
-    dock.id = "chatLauncherDock";
-    dock.className = "actions chat-launcher-dock";
-    body.insertBefore(dock, documentLike.querySelector("#chatBackdrop"));
-  }
-  launcher.classList.add("chat-launcher-inline");
-  launcher.dataset.placement = "inline";
-  if (launcher.parentElement !== dock) dock.append(launcher);
+  if (!launcher || !actions || !page || !backdrop || !body) return false;
+
+  if (verify && verify.parentElement !== actions) actions.append(verify);
+  const rail = documentLike.documentElement.clientWidth - page.getBoundingClientRect().right >=
+    launcher.getBoundingClientRect().width + 18;
+  launcher.dataset.placement = rail ? "rail" : "inline";
+  launcher.style.cssText = rail
+    ? "position:fixed;right:18px;bottom:18px;z-index:40"
+    : "";
+  if (rail) body.insertBefore(launcher, backdrop);
+  else actions.append(launcher);
   return true;
 }
 
