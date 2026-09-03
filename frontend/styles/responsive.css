@@ -17,7 +17,6 @@
   .actions { align-items: center; }
   .contact-reveal { width: fit-content; }
   .turnstile-mount { width: 300px; }
-  .chat-launcher-dock { right: 22px; bottom: 22px; }
   .dialog-backdrop { padding: 22px; }
 }
 @media (min-width: 900px) {
@@ -34,7 +33,6 @@
   #skills .section-heading, #experience .section-heading { margin-block-end: 14px; }
   #experience .timeline { grid-template-columns: 1fr; }
   #experience .entry { grid-template-columns: 150px minmax(0,1fr); gap: 24px; }
-  .chat-launcher-dock { right: 18px; bottom: 18px; }
 }
 
 @media (min-width: 1120px) {
@@ -46,8 +44,8 @@
       "role role role photo"
       "langs langs langs photo"
       "tagline tagline tagline photo"
-      "contacts contacts contacts photo"
-      "actions actions verify photo";
+      "contacts contacts verify photo"
+      "actions actions actions photo";
     gap: 12px 26px;
     padding: 24px 26px 26px;
   }
@@ -62,7 +60,9 @@
   .tagline { max-width: 52ch; font-size: 18px; }
   .contacts { display: flex; flex-wrap: wrap; gap: 2px 20px; padding: 0; border: 0; background: transparent; box-shadow: none; }
   .actions { margin-top: 0; }
-  .contact-verify { justify-self: end; max-width: 100%; }
+  .contact-verify { align-self: center; justify-self: end; max-width: 220px; }
+  .contact-reveal { width: auto; min-height: 40px; padding: 8px 11px; border-radius: 999px; font-size: 11.5px; }
+  .contact-verify-status { max-width: 220px; }
   #experience .entry { grid-template-columns: 170px minmax(0,1fr); gap: 30px; }
   .education-list { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 0 24px; }
 }
