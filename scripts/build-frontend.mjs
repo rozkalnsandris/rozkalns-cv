@@ -24,7 +24,7 @@ async function withMinifiedTranslationSources(buildFrontend) {
   const originals = await Promise.all(translationSources.map((path) => readFile(path, "utf8")));
   try {
     await Promise.all(translationSources.map((path, index) =>
-      writeFile(path, JSON.stringify(JSON.parse(originals[index])))
+      writeFile(path, JSON.stringify(Object.fromEntries(Object.entries(JSON.parse(originals[index])).filter(([key]) => !key.startsWith("pdf_")))))
     ));
     await buildFrontend();
   } finally {
