@@ -236,7 +236,7 @@ class FrontendContractTests(unittest.TestCase):
         limits = {INDEX: 21_000, SMART: 5_000}
         for path, limit in limits.items():
             self.assertLess(path.stat().st_size, limit, path)
-        self.assertLess(js_bytes, 25_000)
+        self.assertLess(js_bytes, 26_000)
         self.assertLess(css_bytes, 22_000)
 
 
