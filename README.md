@@ -36,6 +36,29 @@ and versioned together before deployment.
 | **Assistant** | Python CV assistant behind Nginx |
 | **Runtime** | Docker Compose · Raspberry Pi 5 · shared Cloudflare Tunnel |
 
+## What this project demonstrates
+
+This repository is also a practical DevOps/Linux portfolio project. The source
+and its automated checks demonstrate applied work rather than skill ratings:
+
+- **Linux and self-hosting** — a Raspberry Pi 5 environment operated with Linux,
+  systemd and Docker Compose
+- **Containers and web serving** — Docker Compose, Nginx, TLS-related response
+  contracts and a Python CV assistant
+- **Deterministic delivery** — a pinned frontend toolchain, double Vite rebuilds,
+  generated-artifact drift detection and exact-SHA CI evidence
+- **Testing and security** — Python/source validation, real Chromium smoke tests,
+  full-history Gitleaks scanning, nginx security-header checks and a pinned Trivy
+  HIGH/CRITICAL container vulnerability gate
+- **Observability** — Prometheus-derived live CV metrics and monitoring-oriented
+  project work
+- **Release discipline** — reviewed source/deployment boundaries, explicit image
+  identity and fail-closed deployment/rollback contracts
+
+The public CV deliberately distinguishes proven core skills from working
+knowledge and technologies that are still being learned. `content/profile.json`
+is the canonical factual boundary for those claims.
+
 ## Architecture
 
 - Human-readable frontend source in `frontend/`
