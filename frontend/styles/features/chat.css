@@ -1,6 +1,5 @@
-.chat-launcher-dock { position: fixed; z-index: 40; right: 14px; bottom: 14px; }
-.chat-launcher { position: static; min-height: 48px; padding: 11px 16px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); cursor: pointer; font: 750 13px/1.2 var(--sans); box-shadow: var(--shadow-sm); transition: transform .14s ease, border-color .14s ease, color .14s ease; }
-.chat-launcher:hover { transform: translateY(-1px); border-color: var(--accent-line); color: var(--accent-strong); }
+.chat-launcher { min-height: 48px; padding: 11px 16px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface); color: var(--text); cursor: pointer; font-weight: 750; box-shadow: var(--shadow-sm); }
+.chat-launcher:hover { border-color: var(--accent-line); color: var(--accent-strong); }
 .dialog-backdrop { position: fixed; inset: 0; z-index: 50; display: grid; place-items: end; padding: 14px; background: rgba(15,28,56,.34); backdrop-filter: blur(5px); }
 .chat-dialog { width: min(390px,calc(100vw - 28px)); height: min(580px,calc(100vh - 28px)); display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); box-shadow: 0 24px 70px rgba(15,28,56,.24); }
 .chat-head { display: flex; justify-content: space-between; gap: 12px; padding: 16px 17px; border-bottom: 1px solid var(--border-soft); background: var(--surface-2); }
