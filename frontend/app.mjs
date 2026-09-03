@@ -38,61 +38,29 @@ export function updateChatLauncherLabel({ messages }, {
   return true;
 }
 
-export function updateHeroActionGrouping({ documentLike = globalThis.document } = {}) {
-  const actions = documentLike?.querySelector?.(".hero-shell .actions");
-  const contactVerify = documentLike?.querySelector?.(".hero-shell .contact-verify");
-  if (!actions || !contactVerify || typeof actions.append !== "function") return false;
-  if (contactVerify.parentElement !== actions) actions.append(contactVerify);
-  return true;
-}
-
-export function updateChatLauncherPlacement({
-  documentLike = globalThis.document,
-  viewportWidth = globalThis.innerWidth
-} = {}) {
+export function updateChatLauncherPlacement({ documentLike = globalThis.document } = {}) {
   const launcher = documentLike?.querySelector?.("#chatLauncher");
   const actions = documentLike?.querySelector?.(".hero-shell .actions");
+  const verify = documentLike?.querySelector?.(".hero-shell .contact-verify");
   const page = documentLike?.querySelector?.("#pageShell");
-  const body = documentLike?.body;
   const backdrop = documentLike?.querySelector?.("#chatBackdrop");
-  const width = Number(viewportWidth);
-  if (!launcher || !actions || !page || !body || !backdrop || !Number.isFinite(width)) return false;
+  const body = documentLike?.body;
+  if (!launcher || !actions || !page || !backdrop || !body) return false;
 
-  const launcherRect = launcher.getBoundingClientRect?.();
-  const pageRect = page.getBoundingClientRect?.();
-  const clientWidth = Number(documentLike.documentElement?.clientWidth) || width;
-  const launcherWidth = Number(launcherRect?.width) || 0;
-  const pageRight = Number(pageRect?.right);
-  const railSpace = Number.isFinite(pageRight) ? clientWidth - pageRight : 0;
-  const railGap = 18;
-  const canUseRail = width >= 900 && launcherWidth > 0 && railSpace >= launcherWidth + railGap;
-
-  documentLike.querySelector?.("#chatLauncherDock")?.remove?.();
-  launcher.classList?.remove?.("chat-launcher-inline");
-
-  if (canUseRail) {
-    if (launcher.parentElement !== body) body.insertBefore(launcher, backdrop);
-    launcher.dataset.placement = "rail";
-    launcher.style.position = "fixed";
-    launcher.style.right = `${railGap}px`;
-    launcher.style.bottom = `${railGap}px`;
-    launcher.style.zIndex = "40";
-    return true;
-  }
-
-  if (launcher.parentElement !== actions) actions.append(launcher);
-  launcher.classList?.add?.("chat-launcher-inline");
-  launcher.dataset.placement = "inline";
-  launcher.style.position = "";
-  launcher.style.right = "";
-  launcher.style.bottom = "";
-  launcher.style.zIndex = "";
+  if (verify && verify.parentElement !== actions) actions.append(verify);
+  const rail = documentLike.documentElement.clientWidth - page.getBoundingClientRect().right >=
+    launcher.getBoundingClientRect().width + 18;
+  launcher.dataset.placement = rail ? "rail" : "inline";
+  launcher.style.cssText = rail
+    ? "position:fixed;right:18px;bottom:18px;z-index:40"
+    : "";
+  if (rail) body.insertBefore(launcher, backdrop);
+  else actions.append(launcher);
   return true;
 }
 
 function syncChatLauncher(messages) {
   updateChatLauncherLabel({ messages });
-  updateHeroActionGrouping();
   updateChatLauncherPlacement();
 }
 
