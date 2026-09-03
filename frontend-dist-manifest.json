@@ -50,7 +50,7 @@
     ]
   },
   "index.html": {
-    "file": "assets/app.f4500fcd5725.mjs",
+    "file": "assets/app.8d51783d9920.mjs",
     "name": "app",
     "src": "index.html",
     "isEntry": true,
@@ -81,15 +81,15 @@
   "_localized": {
     "en": {
       "path": "en/index.html",
-      "sha256": "34153d59a2ae3e5895126f475f2cb2c04abb21c0d5d86f77384834b520539f69"
+      "sha256": "a693c7d846da5d4599442a0bbfb3427cd3a8b6eb8a59853a4e5a9f985a17e108"
     },
     "de": {
       "path": "de/index.html",
-      "sha256": "40018042d7426d4acb144f0f7557367e46cdefc00434beef674b8c5b692bc116"
+      "sha256": "7a33182f27847cda062f720900cbc5e1a7dbe6b420ea3e4e08b76c8e36cdb815"
     },
     "lv": {
       "path": "lv/index.html",
-      "sha256": "3de983009a1b9e0be8213585d448c6039269ec1d193f56923a61d74f8621bee6"
+      "sha256": "ade1073a3711bca3f200a039d029eb58ea4df3a680d6064fca07b428d4a0bcb2"
     },
     "sitemap": {
       "path": "sitemap.xml",
