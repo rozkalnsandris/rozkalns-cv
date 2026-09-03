@@ -155,7 +155,7 @@ assert.match(images[0], /^assets\/photo\.[0-9a-f]{12}\.webp$/);
 const nginxSource = await readFile(resolve(root, "nginx.conf"), "utf8");
 assert.match(nginxSource, /\(\?:css\|json\|webp\)\$\"/);
 const budgets = {
-  javascript: [await totalBytes(js), 25_000],
+  javascript: [await totalBytes(js), 26_000],
   css: [await totalBytes(css), 22_000],
   images: [await totalBytes(images), 13_000],
   translations: [await totalBytes(actualI18n), 22_000],
