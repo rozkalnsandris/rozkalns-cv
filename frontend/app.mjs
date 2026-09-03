@@ -40,26 +40,35 @@ export function updateChatLauncherLabel({ messages }, {
 
 export function updateChatLauncherPlacement({ documentLike = globalThis.document } = {}) {
   const launcher = documentLike?.querySelector?.("#chatLauncher");
-  const actions = documentLike?.querySelector?.(".hero-shell .actions");
-  const page = documentLike?.querySelector?.("#pageShell");
   const backdrop = documentLike?.querySelector?.("#chatBackdrop");
-  const body = documentLike?.body;
-  if (!launcher || !actions || !page || !backdrop || !body) return false;
+  if (!launcher || !backdrop || !documentLike?.body) return false;
 
-  const rail = documentLike.documentElement.clientWidth - page.getBoundingClientRect().right >=
-    launcher.getBoundingClientRect().width + 18;
-  launcher.dataset.placement = rail ? "rail" : "inline";
-  launcher.style.cssText = rail
-    ? "position:fixed;right:18px;bottom:18px;z-index:40"
-    : "";
-  if (rail) body.insertBefore(launcher, backdrop);
-  else actions.append(launcher);
+  let dock = documentLike.querySelector?.("#chatLauncherDock");
+  if (!dock) {
+    dock = documentLike.createElement("div");
+    dock.id = "chatLauncherDock";
+    dock.className = "actions chat-launcher-dock";
+    dock.style.cssText = "position:fixed;right:18px;bottom:18px;z-index:40;flex-direction:column;align-items:flex-end";
+    documentLike.body.insertBefore(dock, backdrop);
+  }
+  let nudge = documentLike.querySelector?.("#chatNudge");
+  if (!nudge) {
+    nudge = documentLike.createElement("div");
+    nudge.id = "chatNudge";
+    nudge.className = "chat-launcher";
+    nudge.hidden = true;
+    nudge.setAttribute("role", "status");
+    dock.append(nudge);
+  }
+  launcher.dataset.placement = "inline";
+  dock.append(launcher);
   return true;
 }
 
 function syncChatLauncher(messages) {
   updateChatLauncherLabel({ messages });
   updateChatLauncherPlacement();
+  document.querySelector("#chatNudge").textContent = messages.chat_nudge;
 }
 
 export function installPreloadErrorRecovery(windowLike = globalThis.window) {
@@ -98,6 +107,12 @@ function createNavigationObserver() {
     }
   }, { rootMargin: "-30% 0px -60% 0px" });
   document.querySelectorAll("main section[id]").forEach((section) => observer.observe(section));
+
+  const nudge = document.querySelector("#chatNudge");
+  const footer = document.querySelector(".footer-card");
+  if (nudge && footer) new IntersectionObserver(([entry]) => {
+    nudge.hidden = !entry.isIntersecting;
+  }).observe(footer);
 }
 
 function installLazyChat(languageController) {
