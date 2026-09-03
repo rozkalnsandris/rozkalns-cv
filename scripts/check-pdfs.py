@@ -20,26 +20,23 @@ PDF_PATHS = {
 }
 MANIFEST_PATH = ROOT / "content" / "pdf-provenance.json"
 RENDERER_PATH = ROOT / "scripts" / "generate-pdfs.mjs"
-PHOTO_PATH = ROOT / "frontend" / "photo.webp"
 PDF_TRANSLATION_KEYS = (
     "role",
-    "about_title",
-    "about_p1",
-    "about_p2",
+    "pdf_profile_title", "pdf_profile_summary",
     "experience_title",
     "e1_dates", "e1_title", "e1_org", "e1_b1", "e1_b2",
     "e2_dates", "e2_title", "e2_org", "e2_b1",
     "e3_dates", "e3_title", "e3_org", "e3_b1",
     "e4_dates", "e4_title", "e4_org", "e4_b1",
-    "projects_title",
-    "p1_title", "p1_desc",
-    "p2_title", "p2_desc",
-    "p3_title", "p3_desc",
+    "pdf_projects_title",
+    "p1_title", "pdf_p1_desc",
+    "p2_title", "pdf_p2_desc",
+    "p3_title", "pdf_p3_desc",
     "skills_title",
     "skills_core", "skills_core_items",
-    "skills_working", "skills_working_items",
+    "skills_working", "pdf_skills_working_items",
     "skills_learning", "skills_learning_items",
-    "skills_foundations", "skills_foundations_items",
+    "skills_foundations", "pdf_skills_foundations_items",
     "education_title",
     "ed1_dates", "ed1_title", "ed1_sub",
     "ed2_dates", "ed2_title", "ed2_sub",
@@ -111,7 +108,6 @@ def pdf_projection(profile: dict[str, Any], translations: dict[str, dict[str, st
                 for language in LANGUAGES
             },
             "renderer_sha256": sha256_file(RENDERER_PATH),
-            "photo_sha256": sha256_file(PHOTO_PATH),
         }
     except KeyError as error:
         raise PdfCheckError(f"missing PDF-relevant canonical key: {error}") from error
@@ -124,7 +120,6 @@ def expected_manifest(profile: dict[str, Any], translations: dict[str, dict[str,
         "schema_version": 1,
         "pdf_source_sha256": sha256_bytes(canonical_json_bytes(projection)),
         "renderer_sha256": projection["renderer_sha256"],
-        "photo_sha256": projection["photo_sha256"],
         "pdfs": {
             language: {
                 "path": str(path.relative_to(ROOT)),
@@ -196,13 +191,18 @@ def inspect_pdf(language: str, path: Path, profile: dict[str, Any], messages: di
         profile["contact"]["email"]["value"],
         "github.com/rozkalnsandris",
         "rozkalns.net",
+        messages["pdf_profile_summary"],
+        messages["skills_core_items"],
+        messages["pdf_skills_working_items"],
+        messages["skills_learning_items"],
+        messages["pdf_skills_foundations_items"],
+        messages["p1_title"], messages["pdf_p1_desc"],
+        messages["p3_title"], messages["pdf_p3_desc"],
+        messages["p2_title"], messages["pdf_p2_desc"],
         messages["e1_title"], messages["e1_org"], messages["e1_dates"],
         messages["e2_title"], messages["e2_org"], messages["e2_dates"],
         messages["e3_title"], messages["e3_org"], messages["e3_dates"],
         messages["e4_title"], messages["e4_org"], messages["e4_dates"],
-        messages["p1_title"], messages["p2_title"], messages["p3_title"],
-        messages["skills_core_items"], messages["skills_working_items"],
-        messages["skills_learning_items"], messages["skills_foundations_items"],
         messages["ed1_title"], messages["ed2_title"], messages["ed3_title"],
     ]
     for value in expected:
@@ -212,12 +212,23 @@ def inspect_pdf(language: str, path: Path, profile: dict[str, Any], messages: di
     assert_in_order(
         text,
         [
-            messages["about_title"],
-            messages["experience_title"],
-            messages["projects_title"],
+            messages["pdf_profile_title"],
             messages["skills_title"],
+            messages["pdf_projects_title"],
+            messages["experience_title"],
             messages["education_title"],
             messages["profile_languages_label"],
+        ],
+        language,
+    )
+
+    assert_in_order(
+        text,
+        [
+            messages["pdf_projects_title"],
+            messages["p1_title"],
+            messages["p3_title"],
+            messages["p2_title"],
         ],
         language,
     )

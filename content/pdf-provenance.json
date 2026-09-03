@@ -1,20 +1,19 @@
 {
   "schema_version": 1,
-  "pdf_source_sha256": "4de363e4ceb3d2acff9a22bf6f87b232635a1c344115ce36c519a03c7711a83f",
-  "renderer_sha256": "80ea39f1830f472ba4d144b1b6189f2df8f1f7b53cc031a2712115a22fbf4eb3",
-  "photo_sha256": "1070aa250e2eaa0be5da0245f7815d7a93923f81f9780bac00b9d79aae79cf51",
+  "pdf_source_sha256": "db9f79aa231f04f228c18a35fdfdf664c8c564ffec011072159cce31c5a477f8",
+  "renderer_sha256": "1d7c378509f1249f9abd457cc21d847688f990833fc6625f6c3ac6478d368b0c",
   "pdfs": {
     "en": {
       "path": "html/cv.pdf",
-      "sha256": "d7c24f64d89b3fd8946f2a1a8df69a7b5155a84c312fe128e0d5b01f953a9e87"
+      "sha256": "591975c92ce081092bc6283124360f684eca1a3ecb367a471a395a10022e013d"
     },
     "de": {
       "path": "html/cv-de.pdf",
-      "sha256": "6ceb70fd981fc60853e26e7f9dcf752c204f0227f2c187f26f6cad9d03940e99"
+      "sha256": "cdd361d01815db6b925446c2e3e60bd4fc03b3e1b265ae7191646a7b8f2e6301"
     },
     "lv": {
       "path": "html/cv-lv.pdf",
-      "sha256": "520345d5efa1eca2a239e8a667dae4ca4e4bb350764379896582eee0f61b8282"
+      "sha256": "3492a1811ded04dd06cb387d23256c48307e26ca011af163bef1045911ccb6fe"
     }
   }
 }

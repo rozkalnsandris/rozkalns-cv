@@ -1,7 +1,7 @@
 {
   "skip": "Pāriet uz galveno saturu",
   "role": "Junior DevOps un Linux inženieris",
-  "tagline": "Es būvēju un automatizēju uzticamu Linux infrastruktūru, arvien vairāk iesaistot AI aģentus. Šī lapa darbojas uz tās.",
+  "tagline": "Es būvēju un automatizēju pašhostētas Linux sistēmas ar konteineriem, monitoringu un uzticamu darbību. Šī vietne darbojas uz infrastruktūras, ko pats uzturu.",
   "focus_ai": "AI atbalstīta uzturēšana",
   "focus_auto": "Automatizācija",
   "focus_home": "Home Assistant",
@@ -32,7 +32,7 @@
   "st_temp": "CPU temperatūra",
   "last_update": "Pēdējais atjauninājums",
   "experience_title": "Darba pieredze",
-  "e1_dates": "2023. g. jũlijs – plānots līdz 2026. g. decembrim",
+  "e1_dates": "2023. g. jūlijs – plānots līdz 2026. g. decembrim",
   "e1_title": "Noliktavas darbinieks",
   "e1_org": "Sonepar Deutschland · Dortmund",
   "e1_b1": "Liela apjoma elektrovairumtirdzniecības pasūtījumu apstrāde ar skeneru sistēmām.",
@@ -132,5 +132,18 @@
   "profile_lang_english": "Angļu",
   "profile_lang_german": "Vācu",
   "profile_level_native": "dzimtā valoda",
-  "profile_level_fluent": "brīvi"
+  "profile_level_fluent": "brīvi",
+  "hero_capabilities_label": "Galvenās prasmes",
+  "hero_meta_label": "Atrašanās vieta un pieejamība",
+  "hero_location": "Dortmunde, Vācija",
+  "availability": "Pieejams no 2027. g. janvāra",
+  "hero_live_label": "Mājas servera darbības pierādījums",
+  "pdf_profile_title": "Tehniskais profils",
+  "pdf_profile_summary": "Junior DevOps un Linux inženieris Dortmundē ar praktisku pieredzi pašhostētas Linux infrastruktūras projektos — projektēšanā, automatizēšanā un uzturēšanā. Galvenās tehnoloģijas: Linux, Docker Compose, Bash, Nginx, DNS/TLS un Prometheus/Grafana; praktiskas zināšanas Python un REST API.",
+  "pdf_p1_desc": "Projektēju un uzturu Raspberry Pi 5 / NVMe Linux vidi ar Docker Compose, Nginx, AdGuard Home, TLS un Cloudflare Tunnel.",
+  "pdf_p2_desc": "Uzturu pašhostētu aģentu ar primāro/rezerves LLM maršrutēšanu, ChromaDB meklēšanu, pastāvīgu atmiņu, Telegram un Home Assistant integrāciju.",
+  "pdf_p3_desc": "Izmantoju Prometheus, Grafana un eksportētājus reāllaika sistēmas stāvokļa un veiktspējas rādītājiem.",
+  "pdf_projects_title": "Atlasīti infrastruktūras projekti",
+  "pdf_skills_working_items": "Python · REST API · YAML",
+  "pdf_skills_foundations_items": "Tīklošana · SSH/FTP · HTML/CSS"
 }

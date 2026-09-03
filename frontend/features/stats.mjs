@@ -35,12 +35,19 @@ export function validateStats(payload, nowMs = Date.now()) {
 }
 
 function setStatus(state, messages, root) {
-  const dot = root.querySelector("#liveDot");
-  const label = root.querySelector("#liveLabel");
-  if (!dot || !label) return;
-  dot.dataset.state = state;
+  const dots = [
+    root.querySelector?.("#liveDot"),
+    ...Array.from(root.querySelectorAll?.("[data-live-state-dot]") || [])
+  ].filter(Boolean);
+  const labels = [
+    root.querySelector?.("#liveLabel"),
+    ...Array.from(root.querySelectorAll?.("[data-live-state-label]") || [])
+  ].filter(Boolean);
+  if (!dots.length || !labels.length) return;
   const key = state === "live" ? "status_live" : state === "stale" ? "status_stale" : "status_offline";
-  label.textContent = messages?.[key] || state;
+  const text = messages?.[key] || state;
+  dots.forEach((dot) => { dot.dataset.state = state; });
+  labels.forEach((label) => { label.textContent = text; });
 }
 
 function renderStats(payload, validation, language, messages, root) {

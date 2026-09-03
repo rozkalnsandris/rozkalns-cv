@@ -1,7 +1,7 @@
 {
   "skip": "Skip to main content",
   "role": "Junior DevOps & Linux Engineer",
-  "tagline": "I build and automate reliable Linux infrastructure, increasingly with AI agents in the loop. This page runs on it.",
+  "tagline": "I build and automate self-hosted Linux systems with containers, monitoring and reliable operations. This site runs on infrastructure I operate.",
   "focus_ai": "AI-augmented operations",
   "focus_auto": "Automation",
   "focus_home": "Home Assistant",
@@ -132,5 +132,18 @@
   "profile_lang_english": "English",
   "profile_lang_german": "German",
   "profile_level_native": "native",
-  "profile_level_fluent": "fluent"
+  "profile_level_fluent": "fluent",
+  "hero_capabilities_label": "Core capabilities",
+  "hero_meta_label": "Location and availability",
+  "hero_location": "Dortmund, Germany",
+  "availability": "Available Jan 2027",
+  "hero_live_label": "Live homelab operational proof",
+  "pdf_profile_title": "Technical profile",
+  "pdf_profile_summary": "Junior DevOps & Linux Engineer in Dortmund with hands-on project experience designing, automating and operating self-hosted Linux infrastructure. Core work includes Linux, Docker Compose, Bash, Nginx, DNS/TLS and Prometheus/Grafana; working knowledge includes Python and REST APIs.",
+  "pdf_p1_desc": "Design and operate a Raspberry Pi 5 / NVMe Linux environment with Docker Compose, Nginx, AdGuard Home, TLS and Cloudflare Tunnel.",
+  "pdf_p2_desc": "Operate a self-hosted agent with primary/fallback LLM routing, ChromaDB search, persistent memory, Telegram and Home Assistant integration.",
+  "pdf_p3_desc": "Use Prometheus, Grafana and exporters to expose live system health and performance metrics.",
+  "pdf_projects_title": "Selected infrastructure projects",
+  "pdf_skills_working_items": "Python · REST APIs · YAML",
+  "pdf_skills_foundations_items": "Networking · SSH/FTP · HTML/CSS"
 }

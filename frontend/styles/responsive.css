@@ -42,10 +42,13 @@
       "brand nav lang ."
       "name name name photo"
       "role role role photo"
-      "langs langs langs photo"
       "tagline tagline tagline photo"
+      "capabilities capabilities capabilities photo"
+      "meta meta meta photo"
+      "langs langs langs photo"
       "contacts contacts verify photo"
-      "actions actions actions photo";
+      "actions actions actions photo"
+      "live live live photo";
     gap: 12px 26px;
     padding: 24px 26px 26px;
   }

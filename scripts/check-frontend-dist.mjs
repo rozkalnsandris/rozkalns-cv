@@ -156,10 +156,10 @@ const nginxSource = await readFile(resolve(root, "nginx.conf"), "utf8");
 assert.match(nginxSource, /\(\?:css\|json\|webp\)\$\"/);
 const budgets = {
   javascript: [await totalBytes(js), 26_000],
-  css: [await totalBytes(css), 22_000],
+  css: [await totalBytes(css), 24_000],
   images: [await totalBytes(images), 13_000],
-  translations: [await totalBytes(actualI18n), 22_000],
-  indexHtml: [(await stat(resolve(htmlRoot, "index.html"))).size, 21_000],
+  translations: [await totalBytes(actualI18n), 23_000],
+  indexHtml: [(await stat(resolve(htmlRoot, "index.html"))).size, 23_000],
   englishHtml: [(await stat(resolve(htmlRoot, "en", "index.html"))).size, 32_000],
   germanHtml: [(await stat(resolve(htmlRoot, "de", "index.html"))).size, 32_000],
   latvianHtml: [(await stat(resolve(htmlRoot, "lv", "index.html"))).size, 32_000],

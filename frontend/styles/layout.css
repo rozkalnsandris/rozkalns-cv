@@ -15,8 +15,11 @@
     "photo name"
     "photo role"
     "tagline tagline"
-    "contacts contacts"
+    "capabilities capabilities"
+    "meta meta"
     "langs langs"
+    "live live"
+    "contacts contacts"
     "actions actions"
     "verify verify";
   gap: 12px 14px;

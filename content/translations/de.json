@@ -1,7 +1,7 @@
 {
   "skip": "Zum Hauptinhalt springen",
   "role": "Junior DevOps Engineer / Linux-Systemadministrator",
-  "tagline": "Ich baue und automatisiere zuverlässige Linux-Infrastruktur – zunehmend mit Unterstützung von KI-Agenten. Diese Website läuft auf meiner eigenen Infrastruktur.",
+  "tagline": "Ich baue und automatisiere selbst gehostete Linux-Systeme mit Containern, Monitoring und zuverlässigem Betrieb. Diese Website läuft auf Infrastruktur, die ich selbst betreibe.",
   "focus_ai": "KI-gestützter Betrieb",
   "focus_auto": "Automatisierung",
   "focus_home": "Home Assistant",
@@ -132,5 +132,18 @@
   "profile_lang_english": "Englisch",
   "profile_lang_german": "Deutsch",
   "profile_level_native": "Muttersprache",
-  "profile_level_fluent": "fließend"
+  "profile_level_fluent": "fließend",
+  "hero_capabilities_label": "Kernkompetenzen",
+  "hero_meta_label": "Standort und Verfügbarkeit",
+  "hero_location": "Dortmund, Deutschland",
+  "availability": "Verfügbar ab Jan 2027",
+  "hero_live_label": "Betriebsnachweis des Live-Homelabs",
+  "pdf_profile_title": "Technisches Profil",
+  "pdf_profile_summary": "Junior DevOps Engineer / Linux-Systemadministrator in Dortmund mit praktischer Projekterfahrung in Konzeption, Automatisierung und Betrieb selbst gehosteter Linux-Infrastruktur. Schwerpunkte: Linux, Docker Compose, Bash, Nginx, DNS/TLS und Prometheus/Grafana; praktische Kenntnisse in Python und REST-APIs.",
+  "pdf_p1_desc": "Konzipiere und betreibe eine Raspberry-Pi-5-/NVMe-Linux-Umgebung mit Docker Compose, Nginx, AdGuard Home, TLS und Cloudflare Tunnel.",
+  "pdf_p2_desc": "Betreibe einen selbst gehosteten Agenten mit Primär-/Fallback-LLM-Routing, ChromaDB-Suche, persistentem Speicher sowie Telegram- und Home-Assistant-Integration.",
+  "pdf_p3_desc": "Nutze Prometheus, Grafana und Exporter für Live-Metriken zu Systemzustand und Leistung.",
+  "pdf_projects_title": "Ausgewählte Infrastrukturprojekte",
+  "pdf_skills_working_items": "Python · REST-APIs · YAML",
+  "pdf_skills_foundations_items": "Netzwerke · SSH/FTP · HTML/CSS"
 }

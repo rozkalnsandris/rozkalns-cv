@@ -8,11 +8,33 @@ import { setTimeout as delay } from 'node:timers/promises';
 const ROOT = resolve(import.meta.dirname, '..');
 const LANGUAGES = ['en', 'de', 'lv'];
 const OUTPUTS = { en: 'html/cv.pdf', de: 'html/cv-de.pdf', lv: 'html/cv-lv.pdf' };
-const TITLES = { en: 'Andris Rožkalns — CV', de: 'Andris Rožkalns — Lebenslauf', lv: 'Andris Rožkalns — CV' };
-const LOCATIONS = { en: 'Dortmund, Germany', de: 'Dortmund, Deutschland', lv: 'Dortmund, Vācija' };
-const AVAILABILITY = { en: 'Available from January 2027', de: 'Verfügbar ab Januar 2027', lv: 'Pieejams no 2027. gada janvāra' };
-const SELECTED_PROJECTS = ['p1', 'p2', 'p3'];
-const EXPERIENCE_BULLETS = { e1: ['b1', 'b2'], e2: ['b1'], e3: ['b1'], e4: ['b1'] };
+const TITLES = {
+  en: 'Andris Rožkalns — CV',
+  de: 'Andris Rožkalns — Lebenslauf',
+  lv: 'Andris Rožkalns — CV'
+};
+const LOCATIONS = {
+  en: 'Dortmund, Germany',
+  de: 'Dortmund, Deutschland',
+  lv: 'Dortmund, Vācija'
+};
+const AVAILABILITY = {
+  en: 'Available from January 2027',
+  de: 'Verfügbar ab Januar 2027',
+  lv: 'Pieejams no 2027. gada janvāra'
+};
+
+// Recruiter-first order: infrastructure -> observability -> differentiator.
+const SELECTED_PROJECTS = ['p1', 'p3', 'p2'];
+
+// Keep the full chronology while reducing non-IT visual dominance.
+const EXPERIENCE_BULLETS = {
+  e1: ['b1'],
+  e2: ['b1'],
+  e3: ['b1'],
+  e4: ['b1']
+};
+
 const LEVELS = {
   en: { Latvian: 'Native', English: 'Fluent', German: 'B1' },
   de: { Latvian: 'Muttersprache', English: 'Fließend', German: 'B1' },
@@ -28,102 +50,310 @@ function escapeHtml(value) {
 }
 
 function required(value, label) {
-  if (typeof value !== 'string' || !value.trim()) throw new Error(`missing ${label}`);
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new Error(`missing ${label}`);
+  }
   return value.trim();
-}
-
-function fileUrlData(mime, bytes) {
-  return `data:${mime};base64,${Buffer.from(bytes).toString('base64')}`;
 }
 
 function section(title, body) {
   return `<section class="section"><h2>${escapeHtml(title)}</h2>${body}</section>`;
 }
 
-function renderHtml(language, profile, messages, photoData) {
+function renderHtml(language, profile, messages) {
   const identity = profile.identity;
   const contact = profile.contact;
-  if (contact.phone?.visibility !== 'runtime-protected') throw new Error('protected phone contract changed');
+
+  if (contact.phone?.visibility !== 'runtime-protected') {
+    throw new Error('protected phone contract changed');
+  }
+
   const publicEmail = required(contact.email?.value, 'public email');
   const publicGithub = required(contact.github?.value, 'public GitHub');
   const publicWebsite = required(contact.website?.value, 'public website');
 
   const experience = [1, 2, 3, 4].map((index) => {
     const prefix = `e${index}`;
-    const bullets = EXPERIENCE_BULLETS[prefix].map((suffix) => required(messages[`${prefix}_${suffix}`], `${prefix}_${suffix}`));
+    const bullets = EXPERIENCE_BULLETS[prefix].map((suffix) =>
+      required(messages[`${prefix}_${suffix}`], `${prefix}_${suffix}`)
+    );
+
     return `<article class="job">
-      <div class="job-head"><div class="job-title">${escapeHtml(required(messages[`${prefix}_title`], `${prefix}_title`))} <span class="org">· ${escapeHtml(required(messages[`${prefix}_org`], `${prefix}_org`))}</span></div><div class="date">${escapeHtml(required(messages[`${prefix}_dates`], `${prefix}_dates`))}</div></div>
+      <div class="job-head">
+        <div class="job-title">${escapeHtml(required(messages[`${prefix}_title`], `${prefix}_title`))}
+          <span class="org">· ${escapeHtml(required(messages[`${prefix}_org`], `${prefix}_org`))}</span>
+        </div>
+        <div class="date">${escapeHtml(required(messages[`${prefix}_dates`], `${prefix}_dates`))}</div>
+      </div>
       <ul>${bullets.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
     </article>`;
   }).join('');
 
   const projects = SELECTED_PROJECTS.map((prefix) => `<article class="project">
     <div class="project-title">${escapeHtml(required(messages[`${prefix}_title`], `${prefix}_title`))}</div>
-    <div class="project-desc">${escapeHtml(required(messages[`${prefix}_desc`], `${prefix}_desc`))}</div>
+    <div class="project-desc">${escapeHtml(required(messages[`pdf_${prefix}_desc`], `pdf_${prefix}_desc`))}</div>
   </article>`).join('');
 
-  const skills = ['core', 'working', 'learning', 'foundations'].map((key) => `<div class="skill-label">${escapeHtml(required(messages[`skills_${key}`], `skills_${key}`))}</div><div class="skill-items">${escapeHtml(required(messages[`skills_${key}_items`], `skills_${key}_items`))}</div>`).join('');
+  const skillItemKeys = {
+    core: 'skills_core_items',
+    working: 'pdf_skills_working_items',
+    learning: 'skills_learning_items',
+    foundations: 'pdf_skills_foundations_items'
+  };
+
+  const skills = ['core', 'working', 'learning', 'foundations'].map((key) =>
+    `<div class="skill-label">${escapeHtml(required(messages[`skills_${key}`], `skills_${key}`))}</div>` +
+    `<div class="skill-items">${escapeHtml(required(messages[skillItemKeys[key]], skillItemKeys[key]))}</div>`
+  ).join('');
 
   const education = [1, 2, 3].map((index) => `<article class="education-item">
     <div class="education-title">${escapeHtml(required(messages[`ed${index}_title`], `ed${index}_title`))}</div>
-    <div class="education-sub">${escapeHtml(required(messages[`ed${index}_sub`], `ed${index}_sub`))} · ${escapeHtml(required(messages[`ed${index}_dates`], `ed${index}_dates`))}</div>
+    <div class="education-sub">${escapeHtml(required(messages[`ed${index}_sub`], `ed${index}_sub`))}
+      · ${escapeHtml(required(messages[`ed${index}_dates`], `ed${index}_dates`))}</div>
   </article>`).join('');
 
   const languageRows = profile.languages.map((entry) => {
     const key = entry.name.toLowerCase();
     const label = required(messages[`profile_lang_${key}`], `profile_lang_${key}`);
     const level = LEVELS[language]?.[entry.name];
-    if (!level) throw new Error(`missing localized language level for ${language}:${entry.name}`);
+    if (!level) {
+      throw new Error(`missing localized language level for ${language}:${entry.name}`);
+    }
     return `<div class="language-row"><strong>${escapeHtml(label)}</strong><span>${escapeHtml(level)}</span></div>`;
   }).join('');
 
   return `<!doctype html>
-<html lang="${language}"><head><meta charset="utf-8"><title>${escapeHtml(TITLES[language])}</title>
+<html lang="${language}">
+<head>
+<meta charset="utf-8">
+<title>${escapeHtml(TITLES[language])}</title>
 <style>
 @page { size: A4; margin: 0; }
 * { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; background: #fff; }
-body { font-family: Arial, Helvetica, sans-serif; color: #282d34; font-size: 8.45pt; line-height: 1.24; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-.page { width: 210mm; height: 297mm; overflow: hidden; padding: 10.5mm 12.5mm 8mm; position: relative; }
-header { display: grid; grid-template-columns: 1fr 27mm; gap: 7mm; align-items: start; border-bottom: 1.4px solid #c87922; padding-bottom: 3mm; }
-h1 { margin: 0 0 1.5mm; font-size: 23.5pt; line-height: 1; color: #20242a; }
-.role { margin-bottom: 2mm; color: #bd701e; font-size: 11.5pt; font-weight: 700; }
-.contact { display: flex; flex-wrap: wrap; gap: 1.5mm 3.3mm; color: #66707b; font-size: 8pt; }
-.contact a { color: #444c55; text-decoration: none; }
-.portrait { width: 27mm; height: 27mm; object-fit: cover; border-radius: 4mm; border: 1px solid #ded9cf; }
-.section { margin-top: 2.7mm; }
-h2 { margin: 0 0 1.3mm; padding-bottom: .9mm; border-bottom: 1px solid #d8dde3; color: #bd701e; font-size: 9.45pt; line-height: 1.1; letter-spacing: .10em; text-transform: uppercase; }
-.profile p { margin: 0 0 1.05mm; }
-.job { margin: 0 0 1.35mm; break-inside: avoid; }
-.job-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4mm; align-items: baseline; }
-.job-title { font-size: 8.85pt; font-weight: 700; }
-.org { color: #bd701e; }
-.date { color: #707983; font-size: 7.55pt; white-space: nowrap; }
-ul { margin: .55mm 0 0 4.2mm; padding: 0; }
-li { margin: 0 0 .35mm; padding-left: .55mm; }
-li::marker { color: #d8a764; }
-.projects { display: grid; grid-template-columns: 1fr; gap: 1.05mm; }
-.project-title { font-size: 8.75pt; font-weight: 700; }
-.project-desc { margin-top: .2mm; color: #3d444c; }
-.skills { display: grid; grid-template-columns: 23.5mm 1fr; gap: .75mm 2.7mm; }
-.skill-label { font-weight: 700; font-size: 8pt; }
-.skill-items { font-size: 7.9pt; }
-.bottom { display: grid; grid-template-columns: 1.38fr 1fr; gap: 9mm; }
-.education-item { margin-bottom: 1.15mm; }
-.education-title { font-weight: 700; font-size: 8.35pt; }
-.education-sub { margin-top: .2mm; color: #6d7580; font-size: 7.45pt; }
-.languages { display: grid; gap: 1.15mm; }
-.language-row { display: flex; justify-content: space-between; gap: 3mm; padding-bottom: .55mm; border-bottom: 1px dotted #dfe3e7; font-size: 8pt; }
-footer { position: absolute; left: 12.5mm; right: 12.5mm; bottom: 5mm; padding-top: 1.2mm; border-top: 1px solid #d8dde3; text-align: center; color: #939aa3; font-size: 6.9pt; }
-</style></head><body><main class="page">
-<header><div><h1>${escapeHtml(identity.name)}</h1><div class="role">${escapeHtml(required(messages.role, 'role'))}</div><div class="contact"><span>${escapeHtml(LOCATIONS[language])}</span><a href="mailto:${escapeHtml(publicEmail)}">${escapeHtml(publicEmail)}</a><a href="${escapeHtml(publicGithub)}">github.com/rozkalnsandris</a><a href="${escapeHtml(publicWebsite)}">rozkalns.net</a><span>${escapeHtml(AVAILABILITY[language])}</span></div></div><img class="portrait" src="${photoData}" alt="Portrait of Andris Rožkalns"></header>
-${section(messages.about_title, `<div class="profile"><p>${escapeHtml(messages.about_p1)}</p><p>${escapeHtml(messages.about_p2)}</p></div>`)}
-${section(messages.experience_title, experience)}
-${section(messages.projects_title, `<div class="projects">${projects}</div>`)}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #fff;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  color: #282d34;
+  font-size: 9.75pt;
+  line-height: 1.28;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.page {
+  width: 210mm;
+  height: 297mm;
+  overflow: hidden;
+  padding: 11mm 13mm 9mm;
+}
+
+header {
+  border-bottom: 1.5px solid #c87922;
+  padding-bottom: 5.5mm;
+}
+
+h1 {
+  margin: 0 0 1.5mm;
+  color: #20242a;
+  font-size: 24pt;
+  line-height: 1;
+}
+
+.role {
+  margin-bottom: 2.1mm;
+  color: #bd701e;
+  font-size: 11.8pt;
+  font-weight: 700;
+}
+
+.contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.4mm 3.5mm;
+  color: #66707b;
+  font-size: 8.45pt;
+}
+
+.contact a {
+  color: #414a54;
+  text-decoration: none;
+}
+
+.section {
+  margin-top: 5.5mm;
+}
+
+h2 {
+  margin: 0 0 2.8mm;
+  padding-bottom: .85mm;
+  border-bottom: 1px solid #d8dde3;
+  color: #bd701e;
+  font-size: 9.75pt;
+  line-height: 1.1;
+  letter-spacing: .085em;
+  text-transform: uppercase;
+}
+
+.profile {
+  font-size: 9.75pt;
+}
+
+.profile p {
+  margin: 0;
+}
+
+.skills {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 1.4mm 3mm;
+  align-items: start;
+}
+
+.skill-label {
+  font-size: 9pt;
+  font-weight: 700;
+}
+
+.skill-items {
+  font-size: 9pt;
+}
+
+.projects {
+  display: grid;
+  gap: 3.0mm;
+}
+
+.project {
+  break-inside: avoid;
+}
+
+.project-title {
+  font-size: 9.2pt;
+  font-weight: 700;
+}
+
+.project-desc {
+  margin-top: .25mm;
+  color: #3d444c;
+  font-size: 9.2pt;
+}
+
+.job {
+  margin: 0 0 2.8mm;
+  break-inside: avoid;
+}
+
+.job-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4mm;
+  align-items: baseline;
+}
+
+.job-title {
+  font-size: 9.2pt;
+  font-weight: 700;
+}
+
+.org {
+  color: #bd701e;
+}
+
+.date {
+  color: #707983;
+  font-size: 8pt;
+  white-space: nowrap;
+}
+
+ul {
+  margin: .5mm 0 0 4.4mm;
+  padding: 0;
+}
+
+li {
+  margin: 0 0 .35mm;
+  padding-left: .55mm;
+  font-size: 9pt;
+}
+
+li::marker {
+  color: #d8a764;
+}
+
+.education-item {
+  margin-bottom: 2.4mm;
+  break-inside: avoid;
+}
+
+.education-title {
+  font-size: 9.1pt;
+  font-weight: 700;
+}
+
+.education-sub {
+  margin-top: .2mm;
+  color: #6d7580;
+  font-size: 8.5pt;
+}
+
+.languages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5mm 7mm;
+}
+
+.language-row {
+  display: flex;
+  gap: 1.4mm;
+  font-size: 9pt;
+}
+
+.language-row strong {
+  color: #343b43;
+}
+</style>
+</head>
+<body>
+<main class="page">
+<header>
+  <h1>${escapeHtml(identity.name)}</h1>
+  <div class="role">${escapeHtml(required(messages.role, 'role'))}</div>
+  <div class="contact">
+    <span>${escapeHtml(LOCATIONS[language])}</span>
+    <span>${escapeHtml(AVAILABILITY[language])}</span>
+    <a href="mailto:${escapeHtml(publicEmail)}">${escapeHtml(publicEmail)}</a>
+    <a href="${escapeHtml(publicGithub)}">github.com/rozkalnsandris</a>
+    <a href="${escapeHtml(publicWebsite)}">rozkalns.net</a>
+  </div>
+</header>
+
+${section(
+  required(messages.pdf_profile_title, 'pdf_profile_title'),
+  `<div class="profile"><p>${escapeHtml(required(messages.pdf_profile_summary, 'pdf_profile_summary'))}</p></div>`
+)}
+
 ${section(messages.skills_title, `<div class="skills">${skills}</div>`)}
-<section class="section bottom"><div><h2>${escapeHtml(messages.education_title)}</h2>${education}</div><div><h2>${escapeHtml(messages.profile_languages_label)}</h2><div class="languages">${languageRows}</div></div></section>
-<footer>rozkalns.net · ${escapeHtml(publicEmail)}</footer>
-</main></body></html>`;
+
+${section(required(messages.pdf_projects_title, 'pdf_projects_title'), `<div class="projects">${projects}</div>`)}
+
+${section(messages.experience_title, experience)}
+
+${section(messages.education_title, education)}
+
+${section(
+  messages.profile_languages_label,
+  `<div class="languages">${languageRows}</div>`
+)}
+</main>
+</body>
+</html>`;
 }
 
 async function findChrome() {
@@ -211,8 +441,6 @@ function assertPdfStructure(bytes, language) {
 async function main() {
   const profile = JSON.parse(await readFile(join(ROOT, 'content/profile.json'), 'utf8'));
   const translations = Object.fromEntries(await Promise.all(LANGUAGES.map(async (language) => [language, JSON.parse(await readFile(join(ROOT, `content/translations/${language}.json`), 'utf8'))])));
-  const photo = await readFile(join(ROOT, 'frontend/photo.webp'));
-  const photoData = fileUrlData('image/webp', photo);
   const chromeBin = await findChrome();
   const profileDir = await mkdtemp(join(tmpdir(), 'rozkalns-cv-pdf-'));
   const chrome = spawn(chromeBin, [
@@ -230,7 +458,7 @@ async function main() {
     await cdp.open();
     await cdp.send('Page.enable');
     for (const language of LANGUAGES) {
-      const html = renderHtml(language, profile, translations[language], photoData);
+      const html = renderHtml(language, profile, translations[language]);
       const loaded = cdp.wait('Page.loadEventFired');
       await cdp.send('Page.navigate', { url: `data:text/html;base64,${Buffer.from(html).toString('base64')}` });
       await loaded;
