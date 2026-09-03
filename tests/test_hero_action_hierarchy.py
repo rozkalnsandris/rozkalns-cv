@@ -29,9 +29,10 @@ def test_desktop_hero_separates_contact_verification_from_actions() -> None:
 def test_assistant_footer_nudge_is_localized() -> None:
     app = (ROOT / "frontend/app.mjs").read_text(encoding="utf-8")
 
-    assert 'document.querySelector("#chatNudge").textContent = messages.chat_nudge;' in app
+    assert 'launcher.dataset?.nudge ? "chat_nudge"' in app
     assert 'document.querySelector(".footer-card")' in app
-    assert "nudge.hidden = !entry.isIntersecting;" in app
+    assert 'launcher.dataset.nudge = entry.isIntersecting ? "1" : "";' in app
+    assert "updateChatLauncherLabel({ messages: languageController.messages });" in app
 
     expected = {
         "en": "Questions? Ask me.",
