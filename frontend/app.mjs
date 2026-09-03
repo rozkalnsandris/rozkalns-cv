@@ -41,13 +41,11 @@ export function updateChatLauncherLabel({ messages }, {
 export function updateChatLauncherPlacement({ documentLike = globalThis.document } = {}) {
   const launcher = documentLike?.querySelector?.("#chatLauncher");
   const actions = documentLike?.querySelector?.(".hero-shell .actions");
-  const verify = documentLike?.querySelector?.(".hero-shell .contact-verify");
   const page = documentLike?.querySelector?.("#pageShell");
   const backdrop = documentLike?.querySelector?.("#chatBackdrop");
   const body = documentLike?.body;
   if (!launcher || !actions || !page || !backdrop || !body) return false;
 
-  if (verify && verify.parentElement !== actions) actions.append(verify);
   const rail = documentLike.documentElement.clientWidth - page.getBoundingClientRect().right >=
     launcher.getBoundingClientRect().width + 18;
   launcher.dataset.placement = rail ? "rail" : "inline";
