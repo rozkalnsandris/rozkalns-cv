@@ -1,26 +1,26 @@
 {
   "../content/translations/de.json": {
-    "file": "i18n/de.b6096e285e72.json",
+    "file": "i18n/de.1a96143bbbb7.json",
     "src": "../content/translations/de.json"
   },
   "../content/translations/en.json": {
-    "file": "i18n/en.a01bd0261269.json",
+    "file": "i18n/en.7736068f2697.json",
     "src": "../content/translations/en.json"
   },
   "../content/translations/lv.json": {
-    "file": "i18n/lv.e4f5e26919f9.json",
+    "file": "i18n/lv.62b5b0a29300.json",
     "src": "../content/translations/lv.json"
   },
-  "_i18n.af4a0536b365.mjs": {
-    "file": "assets/i18n.af4a0536b365.mjs",
+  "_i18n.44ed3bd0676d.mjs": {
+    "file": "assets/i18n.44ed3bd0676d.mjs",
     "name": "i18n",
     "css": [
       "assets/i18n.e91de2dd79d6.css"
     ],
     "assets": [
-      "i18n/en.a01bd0261269.json",
-      "i18n/de.b6096e285e72.json",
-      "i18n/lv.e4f5e26919f9.json"
+      "i18n/en.7736068f2697.json",
+      "i18n/de.1a96143bbbb7.json",
+      "i18n/lv.62b5b0a29300.json"
     ]
   },
   "_i18n.e91de2dd79d6.css": {
@@ -50,12 +50,12 @@
     ]
   },
   "index.html": {
-    "file": "assets/app.2d6ba8561c5c.mjs",
+    "file": "assets/app.6c8391d5afa9.mjs",
     "name": "app",
     "src": "index.html",
     "isEntry": true,
     "imports": [
-      "_i18n.af4a0536b365.mjs"
+      "_i18n.44ed3bd0676d.mjs"
     ],
     "dynamicImports": [
       "features/chat.mjs",
@@ -70,26 +70,26 @@
     "src": "photo.webp"
   },
   "smarthome.html": {
-    "file": "assets/smarthome.430d9f6ca708.mjs",
+    "file": "assets/smarthome.5750389a6a51.mjs",
     "name": "smarthome",
     "src": "smarthome.html",
     "isEntry": true,
     "imports": [
-      "_i18n.af4a0536b365.mjs"
+      "_i18n.44ed3bd0676d.mjs"
     ]
   },
   "_localized": {
     "en": {
       "path": "en/index.html",
-      "sha256": "ee65a0c0f304bb1b0a8c3227fb2b794eba938941c8ee6e76a7d1368dfdaaa468"
+      "sha256": "900be5d4fb1decaaddbb732e29b3c2f625ffe2f8d53c7957628efc21facf6cdd"
     },
     "de": {
       "path": "de/index.html",
-      "sha256": "fa245816f4a5914ee04a43238f5408fdee0b447f59c1df7142f28a0acb35f68a"
+      "sha256": "e90f18802c5d033fbea78272b30a1d602a875f7e671cdbe87243cc2cab14e823"
     },
     "lv": {
       "path": "lv/index.html",
-      "sha256": "248175e2827ebecbf846295316dd5fcab35e2953402d0402d264daa732f46127"
+      "sha256": "5f446bd52bb955f1ea7acf7b7f2842d8407744e6bd0664a46641ea179cf1e974"
     },
     "sitemap": {
       "path": "sitemap.xml",

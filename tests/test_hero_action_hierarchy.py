@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 
@@ -9,8 +10,11 @@ def test_contact_verification_is_not_moved_into_primary_actions() -> None:
 
     assert '.hero-shell .contact-verify' not in app
     assert "actions.append(verify)" not in app
-    assert 'launcher.dataset.placement = rail ? "rail" : "inline"' in app
-    assert "else actions.append(launcher);" in app
+    assert 'launcher.dataset.placement = "inline"' in app
+    assert 'dock.className = "actions chat-launcher-dock"' in app
+    assert "position:fixed;right:18px;bottom:18px;z-index:40" in app
+    assert "dock.append(launcher);" in app
+    assert "actions.append(launcher);" not in app
 
 
 def test_desktop_hero_separates_contact_verification_from_actions() -> None:
@@ -20,6 +24,26 @@ def test_desktop_hero_separates_contact_verification_from_actions() -> None:
     assert '"actions actions actions photo"' in responsive
     assert ".contact-verify { align-self: center; justify-self: end; max-width: 220px; }" in responsive
     assert ".contact-reveal { width: auto; min-height: 40px;" in responsive
+
+
+def test_assistant_footer_nudge_is_localized() -> None:
+    app = (ROOT / "frontend/app.mjs").read_text(encoding="utf-8")
+
+    assert 'launcher.dataset?.nudge ? "chat_nudge"' in app
+    assert 'document.querySelector(".footer-card")' in app
+    assert 'launcher.dataset.nudge = entry.isIntersecting ? "1" : "";' in app
+    assert "updateChatLauncherLabel({ messages: languageController.messages });" in app
+
+    expected = {
+        "en": "Questions? Ask me.",
+        "de": "Fragen? Fragen Sie mich.",
+        "lv": "Jautājumi? Jautā man.",
+    }
+    for language, value in expected.items():
+        messages = json.loads(
+            (ROOT / f"content/translations/{language}.json").read_text(encoding="utf-8")
+        )
+        assert messages["chat_nudge"] == value
 
 
 def test_assistant_uses_secondary_action_visual_weight() -> None:

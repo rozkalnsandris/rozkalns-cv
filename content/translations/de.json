@@ -86,6 +86,7 @@
   "ed3_sub": "Riga 45. Sekundarschule · Lettland",
   "footer": "Diese Website läuft auf einem Raspberry Pi 5, den ich selbst aufbaue, betreibe und überwache.",
   "chat_open": "CV-Assistent fragen",
+  "chat_nudge": "Fragen? Fragen Sie mich.",
   "chat_title": "CV-Assistent",
   "chat_subtitle": "Skills · Projekte · Erfahrung",
   "chat_close": "Assistent schließen",

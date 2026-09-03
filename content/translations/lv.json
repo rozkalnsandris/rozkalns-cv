@@ -86,6 +86,7 @@
   "ed3_sub": "Rīgas 45. vidusskola · Latvija",
   "footer": "Šī lapa darbojas uz Raspberry Pi 5, ko pats būvēju, uzturu un uzraugu.",
   "chat_open": "Jautāt CV asistentam",
+  "chat_nudge": "Jautājumi? Jautā man.",
   "chat_title": "CV asistents",
   "chat_subtitle": "Prasmes · projekti · pieredze",
   "chat_close": "Aizvērt asistentu",
