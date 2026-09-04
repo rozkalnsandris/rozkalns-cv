@@ -59,7 +59,7 @@
   "p2_title": "Hermes — selbst gehosteter KI-Agent",
   "p2_desc": "Umgesetzt: selbst gehosteter Agent mit Primär-/Fallback-LLM-Routing, ChromaDB-Suche, persistentem Speicher sowie Telegram- und Home-Assistant-Integration.",
   "p2_ops": "Betrieb: Python-/systemd-Dienst mit persistenten Integrationen und Fallback-Routing.",
-  "p3_title": "Monitoring und automatisierte Wartung",
+  "p3_title": "Monitoring und Observability",
   "p3_desc": "Umgesetzt: Prometheus-/Grafana-Monitoring, Exporter sowie Bash-basierte Health-Checks und Wartungsautomatisierung.",
   "p3_ops": "Betrieb: Live-Zustandsmetriken sowie kontrollierte APT-/Container-Updates mit Vorher-/Nachher-Evidenz und Verfügbarkeitschecks.",
   "p4_title": "Hausautomatisierung",
