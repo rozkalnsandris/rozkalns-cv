@@ -14,6 +14,7 @@ FAVICON = ROOT / "html" / "favicon.svg"
 NGINX = ROOT / "nginx.conf"
 COMPOSE = ROOT / "docker-compose.yml"
 MANIFEST = ROOT / "frontend-dist-manifest.json"
+SOURCE_INDEX = ROOT / "frontend" / "index.html"
 SOURCE_LAYOUT = ROOT / "frontend" / "styles" / "layout.css"
 SOURCE_BASE = ROOT / "frontend" / "styles" / "base.css"
 SOURCE_RESPONSIVE = ROOT / "frontend" / "styles" / "responsive.css"
@@ -114,26 +115,27 @@ class FrontendContractTests(unittest.TestCase):
 
     def test_rich_layout_and_sections_are_not_simplified_away(self) -> None:
         html = INDEX.read_text(encoding="utf-8")
+        source_html = SOURCE_INDEX.read_text(encoding="utf-8")
         layout = SOURCE_LAYOUT.read_text(encoding="utf-8")
         responsive = SOURCE_RESPONSIVE.read_text(encoding="utf-8")
         for section_id in ("about", "stats", "experience", "projects", "skills", "education"):
             self.assertIn(f'id="{section_id}"', html)
         self.assertIn('<div class=skill-row id=github-projects>', html)
         self.assertNotIn('<section id="github-projects">', html)
-        self.assertEqual(html.count('class="project-entry'), 6)
-        self.assertEqual(html.count('class="project-entry primary"'), 4)
-        self.assertEqual(html.count('class="project-entry secondary"'), 2)
+        self.assertEqual(source_html.count('class="project-entry'), 6)
+        self.assertEqual(source_html.count('class="project-entry primary"'), 4)
+        self.assertEqual(source_html.count('class="project-entry secondary"'), 2)
         for number in ('01', '02', '03', '04'):
-            self.assertIn(f'<span class="project-no">{number}</span>', html)
-        secondary_start = html.index('class="project-entry secondary"')
+            self.assertIn(f'<span class="project-no">{number}</span>', source_html)
+        secondary_start = source_html.index('class="project-entry secondary"')
         for key in ('p7_title', 'p1_title', 'p3_title', 'p2_title'):
-            self.assertLess(html.index(f'data-i18n="{key}"'), secondary_start)
+            self.assertLess(source_html.index(f'data-i18n="{key}"'), secondary_start)
         for key in ('p4_title', 'p6_title'):
-            self.assertGreater(html.index(f'data-i18n="{key}"'), secondary_start)
+            self.assertGreater(source_html.index(f'data-i18n="{key}"'), secondary_start)
         for key in ('p7_ops', 'p1_ops', 'p3_ops', 'p2_ops'):
-            self.assertLess(html.index(f'data-i18n="{key}"'), secondary_start)
-        self.assertGreaterEqual(html.count('class="project-icon"'), 6)
-        self.assertGreaterEqual(html.count('class="tech-tag"'), 25)
+            self.assertLess(source_html.index(f'data-i18n="{key}"'), secondary_start)
+        self.assertGreaterEqual(source_html.count('class="project-icon"'), 6)
+        self.assertGreaterEqual(source_html.count('class="tech-tag"'), 25)
         self.assertGreaterEqual(html.count('class="skill-chip"'), 20)
         self.assertIn('class="work-layout"', html)
         self.assertNotIn('class="work-rail"', html)
