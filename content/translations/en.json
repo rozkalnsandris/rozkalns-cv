@@ -59,7 +59,7 @@
   "p2_title": "Hermes self-hosted AI agent",
   "p2_desc": "Built: self-hosted agent with primary/fallback LLM routing, ChromaDB search, persistent memory, Telegram and Home Assistant integration.",
   "p2_ops": "Operations: Python/systemd service with persistent integrations and fallback routing.",
-  "p3_title": "Monitoring and automated maintenance",
+  "p3_title": "Monitoring and observability",
   "p3_desc": "Built: Prometheus/Grafana monitoring, exporters and Bash-based health and maintenance automation.",
   "p3_ops": "Operations: live health metrics plus controlled APT/container updates with before/after evidence and availability checks.",
   "p4_title": "Home automation",
