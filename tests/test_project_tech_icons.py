@@ -44,7 +44,6 @@ class ProjectTechIconTests(unittest.TestCase):
             "Telegram",
             "Home Assistant",
             "Prometheus",
-            "Node Exporter",
             "Matter",
             "MQTT",
             "Energy",
