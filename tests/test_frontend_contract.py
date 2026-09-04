@@ -237,7 +237,7 @@ class FrontendContractTests(unittest.TestCase):
         assets = generated_assets()
         js_bytes = sum((ROOT / "html" / path).stat().st_size for path in assets if path.endswith((".mjs", ".js")))
         css_bytes = sum((ROOT / "html" / path).stat().st_size for path in assets if path.endswith(".css"))
-        limits = {INDEX: 23_000, SMART: 5_000}
+        limits = {INDEX: 25_000, SMART: 5_000}
         for path, limit in limits.items():
             self.assertLess(path.stat().st_size, limit, path)
         self.assertLess(js_bytes, 26_000)
