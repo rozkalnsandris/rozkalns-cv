@@ -59,7 +59,7 @@
   "p2_title": "Hermes pašhostēts AI aģents",
   "p2_desc": "Izveidots: pašhostēts aģents ar primāro/rezerves LLM maršrutēšanu, ChromaDB meklēšanu, pastāvīgu atmiņu, Telegram un Home Assistant integrāciju.",
   "p2_ops": "Darbība: Python/systemd serviss ar pastāvīgām integrācijām un rezerves maršrutēšanu.",
-  "p3_title": "Monitorings un automatizēta uzturēšana",
+  "p3_title": "Monitorings un novērojamība",
   "p3_desc": "Izveidots: Prometheus/Grafana monitorings, eksportētāji un Bash balstītas veselības pārbaudes un uzturēšanas automatizācija.",
   "p3_ops": "Darbība: reāllaika stāvokļa rādītāji un kontrolēti APT/konteineru atjauninājumi ar pirms/pēc pierādījumiem un pieejamības pārbaudēm.",
   "p4_title": "Mājas automatizācija",
