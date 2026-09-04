@@ -120,16 +120,18 @@ class FrontendContractTests(unittest.TestCase):
             self.assertIn(f'id="{section_id}"', html)
         self.assertIn('<div class=skill-row id=github-projects>', html)
         self.assertNotIn('<section id="github-projects">', html)
-        self.assertGreaterEqual(html.count('class="project-entry'), 6)
-        self.assertEqual(html.count('class="project-entry primary"'), 3)
-        self.assertEqual(html.count('class="project-entry secondary"'), 3)
-        for number in ('01', '02', '03'):
+        self.assertEqual(html.count('class="project-entry'), 6)
+        self.assertEqual(html.count('class="project-entry primary"'), 4)
+        self.assertEqual(html.count('class="project-entry secondary"'), 2)
+        for number in ('01', '02', '03', '04'):
             self.assertIn(f'<span class="project-no">{number}</span>', html)
         secondary_start = html.index('class="project-entry secondary"')
-        for key in ('p2_title', 'p1_title', 'p4_title'):
+        for key in ('p7_title', 'p1_title', 'p3_title', 'p2_title'):
             self.assertLess(html.index(f'data-i18n="{key}"'), secondary_start)
-        for key in ('p3_title', 'p5_title', 'p6_title'):
+        for key in ('p4_title', 'p6_title'):
             self.assertGreater(html.index(f'data-i18n="{key}"'), secondary_start)
+        for key in ('p7_ops', 'p1_ops', 'p3_ops', 'p2_ops'):
+            self.assertLess(html.index(f'data-i18n="{key}"'), secondary_start)
         self.assertGreaterEqual(html.count('class="project-icon"'), 6)
         self.assertGreaterEqual(html.count('class="tech-tag"'), 25)
         self.assertGreaterEqual(html.count('class="skill-chip"'), 20)
