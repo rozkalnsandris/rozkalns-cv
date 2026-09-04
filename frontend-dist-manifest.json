@@ -1,31 +1,31 @@
 {
   "../content/translations/de.json": {
-    "file": "i18n/de.313c243fe99b.json",
+    "file": "i18n/de.708c41e0b287.json",
     "src": "../content/translations/de.json"
   },
   "../content/translations/en.json": {
-    "file": "i18n/en.40054fd53903.json",
+    "file": "i18n/en.8ab77c876c2f.json",
     "src": "../content/translations/en.json"
   },
   "../content/translations/lv.json": {
-    "file": "i18n/lv.762992934682.json",
+    "file": "i18n/lv.f31de6e09029.json",
     "src": "../content/translations/lv.json"
   },
-  "_i18n.b2e199de6c51.css": {
-    "file": "assets/i18n.b2e199de6c51.css",
-    "src": "_i18n.b2e199de6c51.css"
-  },
-  "_i18n.fb2129f33742.mjs": {
-    "file": "assets/i18n.fb2129f33742.mjs",
+  "_i18n.a747a7275b23.mjs": {
+    "file": "assets/i18n.a747a7275b23.mjs",
     "name": "i18n",
     "css": [
       "assets/i18n.b2e199de6c51.css"
     ],
     "assets": [
-      "i18n/en.40054fd53903.json",
-      "i18n/de.313c243fe99b.json",
-      "i18n/lv.762992934682.json"
+      "i18n/en.8ab77c876c2f.json",
+      "i18n/de.708c41e0b287.json",
+      "i18n/lv.f31de6e09029.json"
     ]
+  },
+  "_i18n.b2e199de6c51.css": {
+    "file": "assets/i18n.b2e199de6c51.css",
+    "src": "_i18n.b2e199de6c51.css"
   },
   "_turnstile.ca86c68bc37a.mjs": {
     "file": "assets/turnstile.ca86c68bc37a.mjs",
@@ -50,12 +50,12 @@
     ]
   },
   "index.html": {
-    "file": "assets/app.ea64fe30d629.mjs",
+    "file": "assets/app.83e614c75f09.mjs",
     "name": "app",
     "src": "index.html",
     "isEntry": true,
     "imports": [
-      "_i18n.fb2129f33742.mjs"
+      "_i18n.a747a7275b23.mjs"
     ],
     "dynamicImports": [
       "features/chat.mjs",
@@ -70,26 +70,26 @@
     "src": "photo.webp"
   },
   "smarthome.html": {
-    "file": "assets/smarthome.d80f298c4d60.mjs",
+    "file": "assets/smarthome.67067a59126f.mjs",
     "name": "smarthome",
     "src": "smarthome.html",
     "isEntry": true,
     "imports": [
-      "_i18n.fb2129f33742.mjs"
+      "_i18n.a747a7275b23.mjs"
     ]
   },
   "_localized": {
     "en": {
       "path": "en/index.html",
-      "sha256": "d824327e2c3cb7a69f44d83ad0b9ebbe6baa25cbf0fe34221e3560c2ff87ce66"
+      "sha256": "8f9a24dc244e8117c1601653a1ae32c3e3bc97dd0a3eb3875ce65b26c6243ff3"
     },
     "de": {
       "path": "de/index.html",
-      "sha256": "4b5dabf1d8f9dcd502c923d4478eec0df0fd40f0f2830b438bb72a994b704b34"
+      "sha256": "1a0ca801b468f0747897548c957f0f310564ebc2b064c3657f8f547b844059b8"
     },
     "lv": {
       "path": "lv/index.html",
-      "sha256": "fefdd27d4275a40826f32805db10fc3942b701731bcc21b2089fc4733e022675"
+      "sha256": "ba5737ceec6e17731cda40bba908b90626469851cea3c73897e28f351f64cd5b"
     },
     "sitemap": {
       "path": "sitemap.xml",
