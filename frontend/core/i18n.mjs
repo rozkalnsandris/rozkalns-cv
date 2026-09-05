@@ -68,6 +68,11 @@ export async function loadMessages(language, { fetchImpl = globalThis.fetch } = 
   return { language: safe, messages: data };
 }
 
+function webMessage(messages, key) {
+  const override = messages[`web_${key}`];
+  return typeof override === "string" ? override : messages[key];
+}
+
 function translationItems(value) {
   if (typeof value !== "string") return null;
   const items = value.split("Â·").map((item) => item.trim());
@@ -104,7 +109,7 @@ export function applyTranslations(messages, language, {
   root.documentElement.lang = safe;
   applyRegionDisplayNames(safe, { root });
   root.querySelectorAll("[data-i18n]").forEach((element) => {
-    const value = messages[element.dataset.i18n];
+    const value = webMessage(messages, element.dataset.i18n);
     if (typeof value === "string") element.textContent = value;
   });
   root.querySelectorAll("[data-i18n-placeholder]").forEach((element) => {
@@ -128,51 +133,10 @@ export function applyTranslations(messages, language, {
     }
   });
   if (pdfs) {
-    const pdf = root.querySelector("#pdfLink");
-    if (pdf && typeof pdfs[safe] === "string") pdf.setAttribute("href", pdfs[safe]);
-  }
-  try { storage?.setItem?.("cvlang", safe); } catch {}
-  return safe;
-}
-
-export function createLanguageController({
-  root = globalThis.document,
-  storage = globalThis.localStorage,
-  navigatorLike = globalThis.navigator,
-  fetchImpl = globalThis.fetch,
-  pdfs = null,
-  onApplied = null,
-  initialLanguage = null
-} = {}) {
-  let language = initialLanguage === null
-    ? preferredLanguage({ storage, navigatorLike })
-    : normalizeLanguage(initialLanguage);
-  let messages = null;
-  let latestRequest = 0;
-
-  async function apply(nextLanguage) {
-    const request = ++latestRequest;
-    const loaded = await loadMessages(nextLanguage, { fetchImpl });
-    if (request !== latestRequest) return messages;
-    language = applyTranslations(loaded.messages, loaded.language, { root, storage, pdfs });
-    messages = loaded.messages;
-    onApplied?.({ language, messages });
-    return messages;
-  }
-
-  async function tryApply(nextLanguage) {
-    try {
-      await apply(nextLanguage);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  return {
-    apply,
-    tryApply,
-    get language() { return language; },
-    get messages() { return messages; }
-  };
-}
+    const pdf = root.querySelector(HÜ“[šÈŠNÂˆYˆ
+ˆ	‰ˆ\[ÙˆœÖÜØY™WHOOHœİš[™ÈŠH‹œÙ]]šX]Jš™Yˆ‹œÖÜØY™WJNÂˆBˆHÈİÜ˜YÙOËœÙ]][OËŠ˜İ›[™È‹ØY™JNÈHØ]ÚßBˆ™]\›ˆØY™NÂŸB‚™^Ü[˜İ[ÛˆÜ™X]S[™İXYÙPÛÛ›Û\ŠÂˆ›ÛİHÛØ˜[\Ë™Øİ[Y[ˆİÜ˜YÙHHÛØ˜[\Ë›ØØ[İÜ˜YÙKˆ˜]šYØ]Ü“ZÙHHÛØ˜[\Ë›˜]šYØ]Ü‹ˆ™]Ú[\HÛØ˜[\Ë™™]ÚˆœÈH[ˆÛ\YYH[ˆ[š]X[[™İXYÙHH[ŸHHßJHÂˆ][™İXYÙHH[š]X[[™İXYÙHOOH[ˆÈ™Y™\œ™Y[™İXYÙJÈİÜ˜YÙK˜]šYØ]Ü“ZÙHJBˆˆ›Ü›X[^™S[™İXYÙJ[š]X[[™İXYÙJNÂˆ]Y\ÜØYÙ\ÈH[Âˆ]]\İ™\]Y\İHÂ‚ˆ\Ş[˜È[˜İ[Ûˆ\J™^[™İXYÙJHÂˆÛÛœİ™\]Y\İH
+ÊÛ]\İ™\]Y\İÂˆÛÛœİØYYH]ØZ]ØYY\ÜØYÙ\Ê™^[™İXYÙKÈ™]Ú[\JNÂˆYˆ
+™\]Y\İOOH]\İ™\]Y\İ
+H™]\›ˆY\ÜØYÙ\ÎÂˆ[™İXYÙHH\U˜[œÛ][ÛœÊØYY›Y\ÜØYÙ\ËØYY›[™İXYÙKÈ›ÛİİÜ˜YÙKœÈJNÂˆY\ÜØYÙ\ÈHØYY›Y\ÜØYÙ\ÎÂˆÛ\YYËŠÈ[™İXYÙKY\ÜØYÙ\ÈJNÂˆ™]\›ˆY\ÜØYÙ\ÎÂˆB‚ˆ\Ş[˜È[˜İ[ÛˆP\J™^[™İXYÙJHÂˆHÂˆ]ØZ]\J™^[™İXYÙJNÂˆ™]\›ˆYNÂˆHØ]ÚÂˆ™]\›ˆ˜[ÙNÂˆBˆB‚ˆ™]\›ˆÂˆ\KˆP\KˆÙ][™İXYÙJ
+HÈ™]\›ˆ[™İXYÙNÈKˆÙ]Y\ÜØYÙ\Ê
+HÈ™]\›ˆY\ÜØYÙ\ÎÈBˆNÂŸB

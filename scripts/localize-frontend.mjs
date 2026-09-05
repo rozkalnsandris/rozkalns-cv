@@ -30,10 +30,15 @@ function escapeRegExp(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function webMessage(messages, key) {
+  const override = messages[`web_${key}`];
+  return typeof override === "string" ? override : messages[key];
+}
+
 function replaceBoundText(html, messages) {
   const keys = [...new Set([...html.matchAll(/\bdata-i18n="([^"]+)"/g)].map((match) => match[1]))];
   for (const key of keys) {
-    const value = messages[key];
+    const value = webMessage(messages, key);
     if (typeof value !== "string") throw new Error(`missing translation for ${key}`);
     const pattern = new RegExp(
       `(<([a-z][a-z0-9-]*)\\b[^>]*\\bdata-i18n="${escapeRegExp(key)}"[^>]*>)([^<]*)(<\\/\\2>)`,
@@ -188,7 +193,7 @@ function renderPage(template, language, messages) {
   html = localizeLocation(html, language);
   html = localizePdf(html, language);
   html = replaceLanguageState(html, language);
-  html = html.replace(/<title>[\s\S]*?<\/title>/, `<title>${escapeHtml(title)}</title>`);
+  html = html.replace(/<title>[\s\S]*?<\/title>/, `<title>${escapeHtml(title)|</title>`);
   html = replaceMetaContent(html, "name", "description", description);
   html = replaceMetaContent(html, "property", "og:title", title);
   html = replaceMetaContent(html, "property", "og:description", description);

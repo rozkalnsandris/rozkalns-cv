@@ -14,13 +14,13 @@
   "download_pdf": "PDF herunterladen",
   "smart_demo": "Smart-Home-Demo",
   "about_title": "Ãœber mich",
-  "about_p1": "Linux und DevOps habe ich mir im Selbststudium angeeignet. Ich lebe in Dortmund und kehre nach einer langen Laufbahn in der Logistik bewusst in die IT zurÃ¼ck. Meine ersten praktischen Erfahrungen sammelte ich bereits in der Schulzeit: Linux-Spieleserver Ã¼ber SSH/FTP administrieren, PHP-Foren pflegen und HTML-Websites erstellen.",
-  "about_p2": "Heute konzipiere, automatisiere und betreibe ich eine selbst gehostete Raspberry-Pi-5-Umgebung, die rund um die Uhr lÃ¤uft â€“ mit Docker, Monitoring, DNS und KI-Diensten. Ich suche eine Position als Junior DevOps Engineer oder Linux-Systemadministrator und bin ab Januar 2027 verfÃ¼gbar.",
+  "about_p1": "Ich habe mir Linux und DevOps im Selbststudium angeeignet und lebe in Dortmund. Nach vielen Jahren in der Logistik kehre ich bewusst in die IT zurÃ¼ck. Erste praktische Erfahrung sammelte ich schon in der Schulzeit: Ich administrierte Linux-Spieleserver Ã¼ber SSH/FTP, pflegte PHP-Foren und erstellte HTML-Websites.",
+  "about_p2": "Heute plane, automatisiere und betreibe ich eine selbst gehostete Raspberry-Pi-5-Umgebvg im 24/7-Betrieb mit Docker, Monitoring, DNS und eigenen KI-Diensten. Ich suche eine Junior-Position als DevOps Engineer oder Linux-Systemadministrator und bin ab Januar 2027 verfÃ¼gbar.",
   "stats_title": "Live-Homelab",
   "stats_subtitle": "Prometheus und Node Exporter Â· alle 60 Sekunden aktualisiert",
   "status_loading": "wird geprÃ¼ft",
   "status_live": "live",
-  "status_stale": "zwischengespeichert",
+  "status_stale": "zuischengespeichert",
   "status_offline": "offline",
   "st_uptime": "Uptime 30 Tage",
   "st_containers": "Container",
@@ -29,7 +29,7 @@
   "st_cpu": "CPU-Auslastung",
   "st_ram": "RAM belegt",
   "st_disk": "Speicher belegt",
-  "st_temp": "CPU-Temperatur",
+  "st_temp": "CPU Temperatur",
   "last_update": "Letzte Aktualisierung",
   "experience_title": "Berufserfahrung",
   "e1_dates": "Jul 2023 â€“ Dez 2026 geplant",
@@ -37,7 +37,7 @@
   "e1_org": "Sonepar Deutschland Â· Dortmund",
   "e1_b1": "Bearbeitung groÃŸer Mengen von Elektro-GroÃŸhandelsauftrÃ¤gen mit Scannersystemen.",
   "e1_b2": "Kabelkonfektionierung, Staplerfahren und Arbeit im Schichtbetrieb.",
-  "e1_b3": "VerlÃ¤ssliche, prozessorientierte Arbeit bei hohem Auftragsvolumen und im Schichtbetrieb.",
+  "e1_b3": "ZuverlÃ¤ssige, prozessorientierte Arbeit bei hohem Auftragsvolumen und wechselnden Schichten.",
   "e2_dates": "Mai 2020 â€“ Jun 2023",
   "e2_title": "Leiter der Lackiererei / Hauptlackierer",
   "e2_org": "SIA Koksne Â· Lettland",
@@ -51,105 +51,52 @@
   "e4_title": "Erste IT-Erfahrung â€” autodidaktisch",
   "e4_org": "Schulzeit Â· Riga",
   "e4_b1": "Administration von Linux-Counter-Strike-Servern Ã¼ber SSH/FTP und Fehlerbehebung.",
-  "e4_b2": "Anpassung von IPB-Forum-Templates/Plugins und Erstellung von HTML-Websites.",
-  "projects_title": "Projekte",
+  "e4_b2": "Anpassung von IPB-Forum-Templates/Plugins und Erstellung von HTML-Websiten.",
+  "projects_title": "Projekte & Nachweise",
   "p1_title": "Selbst gehostete Linux-Serverumgebung",
-  "p1_desc": "Umgesetzt: Raspberry-Pi-5-/NVMe-Linux-Umgebung mit Docker Compose, Nginx, AdGuard Home, TLS und Cloudflare Tunnel.",
+  "p1_desc": "Umgesetzt: selbst gehostete Linux-Umgebung auf Raspberry Pi 5 mit NVMe, Docker Compose, Nginx, AdGuard Home, TLS und Cloudflare Tunnel.",
   "p1_ops": "Betrieb: selbst gehostete 24/7-Dienste mit systemd, Docker Compose, DNS/TLS und Monitoring.",
   "p2_title": "Hermes â€” selbst gehosteter KI-Agent",
-  "p2_desc": "Umgesetzt: selbst gehosteter Agent mit PrimÃ¤r-/Fallback-LLM-Routing, ChromaDB-Suche, persistentem Speicher sowie Telegram- und Home-Assistant-Integration.",
+  "p2_desc": "Umgesetzt: selbst gehosteter Agent mit PrinÃ¤r-/Fallback-LLM-Routing, ChromaDB-Suche, persistentem Speicher sowie Telegram- und Home-Assistant-Integration.",
   "p2_ops": "Betrieb: Python-/systemd-Dienst mit persistenten Integrationen und Fallback-Routing.",
   "p3_title": "Monitoring und Observability",
-  "p3_desc": "Umgesetzt: Prometheus-/Grafana-Monitoring, Exporter sowie Bash-basierte Health-Checks und Wartungsautomatisierung.",
-  "p3_ops": "Betrieb: Live-Zustandsmetriken sowie kontrollierte APT-/Container-Updates mit Vorher-/Nachher-Evidenz und VerfÃ¼gbarkeitschecks.",
+  "p3_desc": "Umgesetzt: Monitoring mit Prometheus/Grafana, Exportern sowie Bash-basierten Health-Checks und Wartungsautomatisierung.",
+  "p3_ops": "Betrieb: Live-Systemmetriken sowie kontrollierte APT- und Container-Updates mit ZustandsprÃ¼fungen vor und nach dem Update und VerfÃ¼gbarkeitschecks.",
   "p4_title": "Hausautomatisierung",
   "p4_desc": "Matter-GerÃ¤te, eigene Home-Assistant-Dashboards, Stromkosten-Tracking und zuverlÃ¤ssige Automatisierungen.",
   "p5_title": "Automatisierter Betrieb",
-  "p5_desc": "Kontrollierte APT- und Container-Updates, Vorher-/Nachher-Evidenz, Telegram-Berichte und VerfÃ¼gbarkeitschecks.",
+  "p5_desc": "Kontrollierte APT- und Container-Updates mit PrÃ¼fungen vor und nach dem Update, Telegram-Berichten und VerfÃ¼gbarkeitschecks.",
   "p6_title": "BalkonbewÃ¤sserung",
   "p6_desc": "ESP32, 15 Feuchtigkeitssensoren, Relaisspumpe, Multiplexer, Zeitplan und Sicherheitsgrenzen.",
-  "p7_title": "rozkalns.net CV-Plattform",
-  "p7_desc": "Umgesetzt: recruiter-orientierte CV-Plattform auf einem selbst gehosteten Linux-Stack mit Docker Compose, Nginx und einem Python-Dienst.",
-  "p7_ops": "Betrieb: deterministische Builds, Browser-Smoke-Tests, Security-Scans und Prometheus-basierte Live-Metriken.",
+  "p7_title": "rozkalns.net CV Plattform",
+  "p7_desc": "Umgesetzt: CV-Plattform fÃ¼r Recruiter auf einem selbst gehosteten Linux-Stack mit Docker Compose, Nginx und einem Python-Dienst.",
+  "p7_ops": "Betrieb: deterministische Builds, Browser-Smoke-Tests, Sicherheits-Scans und Prometheus-basierte Live-Metriken.",
   "skills_title": "Kenntnisse",
-  "skills_core": "Kernkompetenzen",
-  "skills_working": "Praxiserfahrung",
-  "skills_learning": "Im Aufbau",
-  "skills_foundations": "Grundlagen",
-  "skills_core_items": "Linux-Administration Â· Docker Â· Docker Compose Â· Bash Â· Nginx Â· DNS Â· SSL/TLS Â· Prometheus Â· Grafana Â· systemd Â· Git",
-  "skills_working_items": "Python Â· REST-APIs Â· Home Assistant Â· ESP32/IoT Â· YAML",
-  "skills_learning_items": "Ansible Â· Terraform Â· AWS Cloud",
-  "skills_foundations_items": "Netzwerke Â· SSH/FTP Â· PHP/IPB-Foren Â· HTML/CSS",
-  "education_title": "Ausbildung und Lernen",
-  "ed1_dates": "Laufend",
-  "ed1_title": "The Linux Command Line",
-  "ed1_sub": "Selbststudium, tÃ¤glich im Homelab angewendet",
-  "ed2_dates": "2011 â€“ 2013",
-  "ed2_title": "Multimedia-Kommunikation",
-  "ed2_sub": "RÄ«ga StradiÅ†Å¡ University Â· Studium ohne Abschluss",
-  "ed3_dates": "2004 â€“ 2011",
-  "ed3_title": "Sekundarschulbildung",
-  "ed3_sub": "Riga 45. Sekundarschule Â· Lettland",
-  "footer": "Diese Website lÃ¤uft auf einem Raspberry Pi 5, den ich selbst aufbaue, betreibe und Ã¼berwache.",
-  "chat_open": "CV-Assistent fragen",
-  "chat_nudge": "Fragen? Fragen Sie mich.",
-  "chat_title": "CV-Assistent",
-  "chat_subtitle": "Skills Â· Projekte Â· Erfahrung",
-  "chat_close": "Assistent schlieÃŸen",
-  "chat_greeting": "Hallo â€” fragen Sie nach Andris' DevOps-Skills, Projekten, Erfahrung oder VerfÃ¼gbarkeit.",
-  "chat_privacy": "Nachrichten werden vom konfigurierten LLM-Anbieter verarbeitet. Die Aufbewahrungsdauer ist nicht verfÃ¼gbar; rohe IP-Adressen werden nicht gespeichert.",
-  "chat_privacy_zero": "Nachrichten werden vom konfigurierten LLM-Anbieter verarbeitet. Rohe Chat-Inhalte werden nicht gespeichert; rohe IP-Adressen werden nicht gespeichert.",
-  "chat_privacy_retained": "Nachrichten werden vom konfigurierten LLM-Anbieter verarbeitet. Aufbewahrung roher Chat-Inhalte (Tage): bis zu {days}, pseudonymisiert; rohe IP-Adressen werden nicht gespeichert.",
-  "chat_input": "Frage zu Andris' Erfahrung",
-  "chat_send": "Senden",
-  "chat_typing": "Antwort wird erstelltâ€¦",
-  "chat_complete": "Antwort abgeschlossen.",
-  "chat_error": "Verbindungsfehler â€” bitte kontaktieren Sie Andris per E-Mail.",
-  "contact_reveal": "PrÃ¼fen, um Telefon / WhatsApp anzuzeigen",
-  "contact_loading": "PrÃ¼fung wird geladenâ€¦",
-  "contact_verifying": "Wird geprÃ¼ftâ€¦",
-  "contact_success": "Kontakt bestÃ¤tigt.",
-  "contact_failed": "PrÃ¼fung fehlgeschlagen. Bitte erneut versuchen.",
-  "contact_unavailable": "KontaktprÃ¼fung ist derzeit nicht verfÃ¼gbar.",
-  "contact_email_hidden": "E-Mail bis zur PrÃ¼fung verborgen",
-  "contact_phone_hidden": "Telefon bis zur PrÃ¼fung verborgen",
-  "smart_back": "ZurÃ¼ck zum CV",
-  "smart_badge": "Statische Portfolio-Demo",
-  "smart_title": "Home-Assistant-Dashboard-Demo",
-  "smart_intro": "Eine vereinfachte, nicht interaktive Ansicht meines Home-Assistant-Dashboards.",
-  "smart_climate": "Klima",
-  "smart_devices": "GerÃ¤te",
-  "smart_bedroom": "Schlafzimmer",
-  "smart_living": "Wohnzimmer",
-  "smart_children": "Kinderzimmer",
-  "smart_office": "Arbeitszimmer",
-  "smart_target": "Sollwert",
-  "smart_heating": "Heizt",
-  "smart_on": "Ein",
-  "smart_off": "Aus",
-  "smart_desk_lamp": "Schreibtischlampe",
-  "smart_air_quality": "LuftqualitÃ¤t",
-  "smart_heating_zones": "Heizzonen",
-  "smart_open_windows": "Offene Fenster",
-  "smart_footer": "Nur eine statische Demonstration â€” kein Zugriff auf das echte Zuhause oder GerÃ¤te.",
-  "contact_whatsapp_verify": "PrÃ¼fen, um WhatsApp zu Ã¶ffnen",
-  "profile_languages_label": "Sprachen",
-  "profile_lang_latvian": "Lettisch",
-  "profile_lang_english": "Englisch",
-  "profile_lang_german": "Deutsch",
-  "profile_level_native": "Muttersprache",
-  "profile_level_fluent": "flieÃŸend",
-  "hero_capabilities_label": "Kernkompetenzen",
-  "hero_meta_label": "Standort und VerfÃ¼gbarkeit",
-  "hero_location": "Dortmund, Deutschland",
-  "availability": "VerfÃ¼gbar ab Jan 2027",
-  "hero_live_label": "Betriebsnachweis des Live-Homelabs",
-  "pdf_profile_title": "Technisches Profil",
-  "pdf_profile_summary": "Junior DevOps Engineer / Linux-Systemadministrator in Dortmund mit praktischer Projekterfahrung in Konzeption, Automatisierung und Betrieb selbst gehosteter Linux-Infrastruktur. Schwerpunkte: Linux, Docker Compose, Bash, Nginx, DNS/TLS und Prometheus/Grafana; praktische Kenntnisse in Python und REST-APIs.",
-  "pdf_p1_desc": "Konzipiere und betreibe eine Raspberry-Pi-5-/NVMe-Linux-Umgebung mit Docker Compose, Nginx, AdGuard Home, TLS und Cloudflare Tunnel.",
-  "pdf_p2_desc": "Betreibe einen selbst gehosteten Agenten mit PrimÃ¤r-/Fallback-LLM-Routing, ChromaDB-Suche, persistentem Speicher sowie Telegram- und Home-Assistant-Integration.",
-  "pdf_p3_desc": "Nutze Prometheus, Grafana und Exporter fÃ¼r Live-Metriken zu Systemzustand und Leistung.",
-  "pdf_projects_title": "AusgewÃ¤hlte Infrastrukturprojekte",
-  "pdf_skills_working_items": "Python Â· REST-APIs Â· YAML",
-  "pdf_skills_foundations_items": "Netzwerke Â· SSH/FTP Â· HTML/CSS"
-}
+  "skills_core": "Kerm­½µÁ•Ñ•¹é•¸ˆ°(€€‰Í­¥±±Í}İ½É­¥¹œˆè€‰AÉ…á¥Í•É™…¡ÉÕ¹œˆ°(€€‰Í­¥±±Í}±•…É¹¥¹œˆè€‰%´Õ™‰…Ôˆ°(€€‰Í­¥±±Í}™½Õ¹‘…Ñ¥½¹Ìˆè€‰ÉÕ¹‘±…•¸ˆ°(€€‰Í­¥±±Í}½É•}¥Ñ•µÌˆè€‰1¥¹Õàµ‘µ¥¹¥ÍÑÉ…Ñ¥½¸ƒ
+Ü½­•Èƒ
+Ü½­•È½µÁ½Í”ƒ
+Ü	…Í ƒ
+Ü9¥¹àƒ
+Ü9Lƒ
+ÜMM0½Q1Lƒ
+ÜAÉ½µ•Ñ¡•ÕÌƒ
+ÜÉ…™…¹„ƒ
+ÜÍåÍÑ•µƒ
+Ü¥Ğˆ°(€€‰Í­¥±±Í}İ½É­¥¹}¥Ñ•µÌˆè€‰AåÑ¡½¸ƒ
+ÜIMPµA%Ìƒ
+Ü!½µ”ÍÍ¥ÍÑ…¹Ğƒ
+ÜM@ÌÈ½%½Pƒ
+Üe50ˆ°(€€‰Í­¥±±Í}±•…É¹¥¹}¥Ñ•µÌˆè€‰¹Í¥‰±”ƒ
+ÜQ•ÉÉ…™½É´ƒ
+Ü]L±½Õˆ°(€€‰Í­¥±±Í}™½Õ¹‘…Ñ¥½¹Í}¥Ñ•µÌˆè€‰9•Ñéİ•É­”ƒ
+ÜMM ½QC
+ÜA!@½%Aµ½É•¸ƒ
+Ü!Q50½MLˆ°(€€‰•‘Õ…Ñ¥½¹}Ñ¥Ñ±”ˆè€‰ÕÍ‰¥±‘Õ¹œÕ¹1•É¹•¸ˆ°(€€‰•Å}‘…Ñ•Ìˆè€‰1…Õ™•¹ˆ°(€€‰•Å}Ñ¥Ñ±”ˆè€‰Q¡”1¥¹Õà½µµ…¹1¥¹”ˆ°(€€‰•Å}ÍÕˆˆè€‰M•±‰ÍÑÍÑÕ‘¥Õ´°Ó‘±¥ ¥´!½µ•±…ˆ…¹•İ•¹‘•Ğˆ°(€€‰•É}‘…Ñ•Ìˆè€ˆÈÀÄÄƒŠL€ÈÀÄÌˆ°(€€‰•É}Ñ¥Ñ±”ˆè€‰5Õ±Ñ¥µ•‘¥„µ-½µµÕ¹¥­…Ñ¥½¸ˆ°(€€‰•É}ÍÕˆˆè€‰K­„MÑÉ…‘§„U¹¥Ù•ÉÍ¥Ñäƒ
+ÜMÑÕ‘¥Õ´½¡¹”‰Í¡±ÕÍÌˆ°(€€‰•Í}‘…Ñ•Ìˆè€ˆÈÀÀĞƒŠL€ÈÀÄÄˆ°(€€‰•Í}Ñ¥Ñ±”ˆè€‰M•­Õ¹‘…ÉÍ¡Õ±‰¥±‘Õ¹œˆ°(€€‰•Í}ÍÕˆˆè€‰I¥„€ĞÔ¸M•­Õ¹‘…ÉÍ¡Õ±”ƒ
+Ü1•ÑÑ±…¹ˆ°(€€‰™½½Ñ•Èˆè€‰¥•Í”]•‰Í¥Ñ”³‘Õ™Ğ…Õ˜•¥¹•´I…ÍÁ‰•ÉÉäA¤€Ô°‘•¸¥ Í•±‰ÍĞ…Õ™‰…Õ”°‰•ÑÉ•¥‰”Õ¹ƒñ‰•Éİ…¡”¸ˆ°(€€‰¡…Ñ}½Á•¸ˆè€‰XµÍÍ¥ÍÑ•¹Ğ™É…•¸ˆ°(€€‰¡…Ñ}¹Õ‘”ˆè€‰É…•¸üÉ…•¸M¥”µ¥ ¸ˆ°(€€‰¡…Ñ}Ñ¥Ñ±”ˆè€‰XµÍÍ¥ÍÑ•¹Ğˆ°(€€‰¡…Ñ}ÍÕ‰Ñ¥Ñ±”ˆè€‰M­¥±±Ìƒ
+ÜAÉ½©•­Ñ”ƒ
+ÜÉ™…¡ÉÕ¹œˆ°(€€‰¡…Ñ}±½Í”ˆè€‰ÍÍ¥ÍÑ•¹ĞÍ¡±¥—}•¸ˆ°(€€‰¡…Ñ}É••Ñ¥¹œˆè€‰!…±±¼ƒŠP™É…•¸M¥”¹… ¹‘É¥Ìœ•Ù=ÁÌµM­¥±±Ì°AÉ½©•­Ñ•¸°É™…¡ÉÕ¹œ½‘•ÈY•É›ñ‰…É­•¥Ğ¸ˆ°(€€‰¡…Ñ}ÁÉ¥Ù…äˆè€‰9…¡É¥¡Ñ•¸İ•É‘•¸Ù½´­½¹™¥ÕÉ¥•ÉÑ•¸114µ¹‰¥•Ñ•ÈÙ•É…É‰•¥Ñ•Ğ¸¥”Õ™‰•İ…¡ÉÕ¹Í‘…Õ•È¥ÍĞ¹¥¡ĞÙ•É›ñ‰…ÈìÉ½¡”%@µ‘É•ÍÍ•¸İ•É‘•¸¹¥¡Ğ•ÍÁ•¥¡•ÉĞ¸ˆ°(€€‰¡…Ñ}ÁÉ¥Ù…å}é•É¼ˆè€‰9…¡É¥¡Ñ•¸İ•É‘•¸Ù½´­½¹™¥ÕÉ¥•ÉÑ•¸114µ¹‰¥•Ñ•ÈÙ•É…É‰•¥Ñ•Ğ¸I½¡”¡…Ğµ%¹¡…±Ñ”İ•É‘•¸¹¥¡Ğ•ÍÁ•¥¡•ÉĞìÉ½¡”%@µ‘É•ÍÍ•¸İ•É‘•¸¹¥¡Ğ•ÍÁ•¥¡•ÉĞ¸ˆ°(€€‰¡…Ñ}ÁÉ¥Ù…å}É•Ñ…¥¹•ˆè€‰9…¡É¥¡Ñ•¸İ•É‘•¸Ù½´­½¹™¥ÕÉ¥•ÉÑ•¸114µ¹‰¥•Ñ•ÈÙ•É…É‰•¥Ñ•Ğ¸Õ™‰•İ…¡ÉÕ¹œÉ½¡•È¡…Ğµ%¹¡…±Ñ”€¡Q…”¤è‰¥ÌéÔí‘…åÍô°ÁÍ•Õ‘½¹åµ¥Í¥•ÉĞìÉ½¡”%@µ‘É•ÍÍ•¸İ•É‘•¸¹¥¡Ğ•ÍÁ•¥¡•ÉĞ¸ˆ°(€€‰¡…Ñ}¥¹ÁÕĞˆè€‰É…”éÔ¹‘É¥ÌœÉ™…¡ÉÕ¹œˆ°(€€‰¡…Ñ}Í•¹ˆè€‰M•¹‘•¸ˆ°(€€‰¡…Ñ}ÑåÁ¥¹œˆè€‰¹Ñİ½ÉĞİ¥É•ÉÍÑ•±±ÓŠ˜ˆ°(€€‰¡…Ñ}½µÁ±•Ñ”ˆè€‰¹Ñİ½ÉĞ…‰•Í¡±½ÍÍ•¸¸ˆ°(€€‰¡…Ñ}•ÉÉ½Èˆè€‰Y•É‰¥¹‘Õ¹Í™•¡±•ÈƒŠP‰¥ÑÑ”­½¹Ñ…­Ñ¥•É•¸M¥”¹‘É¥ÌÁ•Èµ5…¥°¸ˆ°(€€‰½¹Ñ…Ñ}É•Ù•…°ˆè€‰AËñ™•¸°Õ´Q•±•™½¸€¼]¡…ÑÍÁÀ…¹éÕé•¥•¸ˆ°(€€‰½¹Ñ…Ñ}±½…‘¥¹œˆè€‰AËñ™Õ¹œİ¥É•±…‘•»Š˜ˆ°(€€‰½¹Ñ…Ñ}Ù•É¥™å¥¹œˆè€‰]¥É•ÁËñ™ÓŠ˜ˆ°(€€‰½¹Ñ…Ñ}ÍÕ•ÍÌˆè€‰-½¹Ñ…­Ğ‰•ÍÓ‘Ñ¥Ğ¸ˆ°(€€‰½¹Ñ…Ñ}™…¥±•ˆè€‰AËñ™Õ¹œ™•¡±•Í¡±…•¸¸	¥ÑÑ”•É¹•ÕĞÙ•ÉÍÕ¡•¸¸ˆ°(€€‰½¹Ñ…Ñ}Õ¹…Ù…¥±…‰±”ˆè€‰-½¹Ñ…­ÑÁËñ™Õ¹œ¥ÍĞ‘•Éé•¥Ğ¹¥¡ĞÙ•É›ñ‰…È¸ˆ°(€€‰½¹Ñ…Ñ}•µ…¥±}¡¥‘‘•¸ˆè€‰µ5…¥°‰¥ÌéÕÈAËñ™Õ¹œÙ•É‰½É•¸ˆ°(€€‰½¹Ñ…Ñ}Á¡½¹•}¡¥‘‘•¸ˆè€‰Q•±•™½¸‰¥ÌéÕÈAËñ™Õ¹œÙ•É‰½É•¸ˆ°(€€‰Íµ…ÉÑ}‰…¬ˆè€‰iÕËñ¬éÕ´Xˆ°(€€‰Íµ…ÉÑ}‰…‘”ˆè€‰MÑ…Ñ¥Í¡”A½ÉÑ™½±¥¼µ•µ¼ˆ°(€€‰Íµ…ÉÑ}Ñ¥Ñ±”ˆè€‰!½µ”µÍÍ¥ÍÑ…¹Ğµ…Í¡‰½…Éµ•µ¼ˆ°(€€‰Íµ…ÉÑ}¥¹ÑÉ¼ˆè€‰¥¹”Ù•É•¥¹™…¡Ñ”°¹¥¡Ğ¥¹Ñ•É…­Ñ¥Ù”¹Í¥¡Ğµ•¥¹•Ì!½µ”µÍÍ¥ÍÑ…¹Ğµ…Í¡‰½…É‘Ì¸ˆ°(€€‰Íµ…ÉÑ}±¥µ…Ñ”ˆè€‰-±¥µ„ˆ°(€€‰Íµ…ÉÑ}‘•Ù¥•Ìˆè€‰•Ë‘Ñ”ˆ°(€€‰Íµ…ÉÑ}‰•‘É½½´ˆè€‰M¡±…™é¥µµ•Èˆ°(€€‰Íµ…ÉÑ}±¥Ù¥¹œˆè€‰]½¡¹é¥µµ•Èˆ°(€€‰Íµ…ÉÑ}¡¥±‘É•¸ˆè€‰-¥¹‘•Éé¥µµ•Èˆ°(€€‰Íµ…ÉÑ}½™™¥”ˆè€‰É‰•¥ÑÍé¥µµ•Èˆ°(€€‰Íµ…ÉÑ}Ñ…É•Ğˆè€‰M½±±İ•ÉĞˆ°(€€‰Íµ…ÉÑ}¡•…Ñ¥¹œˆè€‰!•¥éĞˆ°(€€‰Íµ…ÉÑ}½¸ˆè€‰¥¸ˆ°(€€‰Íµ…ÉÑ}½™˜ˆè€‰ÕÌˆ°(€€‰Íµ…ÉÑ}‘•Í­}±…µÀˆè€‰M¡É•¥‰Ñ¥Í¡±…µÁ”ˆ°(€€‰Íµ…ÉÑ}…¥É}ÅÕ…±¥Ñäˆè€‰1Õ™ÑÅÕ…±¥Ó‘Ğˆ°(€€‰Íµ…ÉÑ}¡•…Ñ¥¹}é½¹•Ìˆè€‰!•¥éé½¹•¸ˆ°(€€‰Íµ…ÉÑ}½Á•¹}İ¥¹‘½İÌˆè€‰=™™•¹”•¹ÍÑ•Èˆ°(€€‰Íµ…ÉÑ}™½½Ñ•Èˆè€‰9ÕÈ•¥¹”ÍÑ…Ñ¥Í¡”•µ½¹ÍÑÉ…Ñ¥½¸ƒŠP­•¥¸iÕÉ¥™˜…Õ˜‘…Ì•¡Ñ”iÕ¡…ÕÍ”½‘•È•Ë‘Ñ”¸ˆ°(€€‰½¹Ñ…Ñ}İ¡…ÑÍ…ÁÁ}Ù•É¥™äˆè€‰AËñ™•¸°Õ´]¡…ÑÍÁÀéÔƒÙ™™¹•¸ˆ°(€€‰ÁÉ½™¥±•}±…¹Õ…•Í}±…‰•°ˆè€‰MÁÉ…¡•¸ˆ°(€€‰ÁÉ½™¥±•}±…¹}±…ÑÙ¥…¸ˆè€‰1•ÑÑ¥Í ˆ°(€€‰ÁÉ½™¥±•}±…¹}•¹±¥Í ˆè€‰¹±¥Í ˆ°(€€‰ÁÉ½™¥±•}±…¹}•Éµ…¸ˆè€‰•ÕÑÍ ˆ°(€€‰ÁÉ½™¥±•}±•Ù•±}¹…Ñ¥Ù”ˆè€‰5ÕÑÑ•ÉÍÁÉ…¡”ˆ°(€€‰ÁÉ½™¥±•}±•Ù•±}™±Õ•¹Ğˆè€‰™±¥—}•¹ˆ°(€€‰¡•É½}…Á…‰¥±¥Ñ¥•Í}±…‰•°ˆè€‰-•É¹­½µÁ•Ñ•¹é•¸ˆ°(€€‰¡•É½}µ•Ñ…}±…‰•°ˆè€‰MÑ…¹‘½ÉĞÕ¹Y•É›ñ‰…É­•¥Ğˆ°(€€‰¡•É½}±½…Ñ¥½¸ˆè€‰½ÉÑµÕ¹°•ÕÑÍ¡±…¹ˆ°(€€‰…Ù…¥±…‰¥±¥Ñäˆè€‰Y•É›ñ‰…È…ˆ)…¸€ÈÀÈÜˆ°(€€‰¡•É½}±¥Ù•}±…‰•°ˆè€‰	•ÑÉ¥•‰Í¹…¡İ•¥Ì‘•Ì1¥Ù”µ!½µ•±…‰Ìˆ°(€€‰Á‘™}ÁÉ½™¥±•}Ñ¥Ñ±”ˆè€‰Q•¡¹¥Í¡•ÌAÉ½™¥°ˆ°(€€‰Á‘™}ÁÉ½™¥±•}ÍÕµµ…Éäˆè€‰)Õ¹¥½È•Ù=ÁÌ¹¥¹••È€¼1¥¹ÕàµMåÍÑ•µ…‘µ¥¹¥ÍÑÉ…Ñ½È¥¸½ÉÑµÕ¹µ¥ĞÁÉ…­Ñ¥Í¡•ÈAÉ½©•­Ñ•É™…¡ÉÕ¹œ¥¸-½¹é•ÁÑ¥½¸°ÕÑ½µ…Ñ¥Í¥•ÉÕ¹œÕ¹	•ÑÉ¥•ˆÍ•±‰ÍĞ•¡½ÍÑ•Ñ•È1¥¹Õàµ%¹™É…ÍÑÉÕ­ÑÕÈ¸M¡İ•ÉÁÕ¹­Ñ”è1¥¹Õà°½­•È½µÁ½Í”°	…Í °9¥¹à°9L½Q1LÕ¹AÉ½µ•Ñ¡•ÕÌ½É…™…¹„ìÁÉ…­Ñ¥Í¡”-•¹¹Ñ¹¥ÍÍ”¥¸AåÑ¡½¸Õ¹IMPµA%Ì¸ˆ°(€€‰Á‘™}ÀÅ}‘•ÍŒˆè€‰-½¹é¥Á¥•É”Õ¹‰•ÑÉ•¥‰”•¥¹”I…ÍÁ‰•ÉÉäµA¤´Ô´½9Y5”µ1¥¹ÕàµUµ•‰Õ¹œµ¥Ğ½­•È½µÁ½Í”°9¥¹à°‘Õ…É!½µ”°Q1LÕ¹±½Õ‘™±…É”QÕ¹¹•°¸ˆ°(€€‰Á‘™}ÀÉ}‘•ÍŒˆè€‰	•ÑÉ•¥‰”•¥¹•¸Í•±‰ÍĞ•¡½ÍÑ•Ñ•¸•¹Ñ•¸µ¥ĞAÉ¥·‘È´½…±±‰…¬µ114µI½ÕÑ¥¹œ°¡É½µ…µMÕ¡”°Á•ÉÍ¥ÍÑ•¹Ñ•´MÁ•¥¡•ÈÍ½İ¥”Q•±•É…´´Õ¹!½µ”µÍÍ¥ÍÑ…¹Ğµ%¹Ñ•É…Ñ¥½¸¸ˆ°(€€‰Á‘™}ÀÍ}‘•ÍŒˆè€‰9ÕÑé”AÉ½µ•Ñ¡•ÕÌ°É…™…¹„Õ¹áÁ½ÉÑ•È›ñÈ1¥Ù”µ5•ÑÉ¥­•¸éÔMåÍÑ•µéÕÍÑ…¹Õ¹1•¥ÍÑÕ¹œ¸ˆ°(€€‰Á‘™}ÁÉ½©•ÑÍ}Ñ¥Ñ±”ˆè€‰ÕÍ•ß‘¡±Ñ”%¹™É…ÍÑÉÕ­ÑÕÉÁÉ½©•­Ñ”ˆ°(€€‰Á‘™}Í­¥±±Í}İ½É­¥¹}¥Ñ•µÌˆè€‰AåÑ¡½¸ƒ
+ÜIMPµA%Ìƒ
+Üe50ˆ°(€€‰Á‘™}Í­¥±±Í}™½Õ¹‘…Ñ¥½¹Í}¥Ñ•µÌˆè€‰9•Ñéİ•É­”ƒ
+ÜMM ½Q@ƒ
+Ü!Q50½MLˆ°(€€‰İ•‰}”Å}‘…Ñ•Ìˆè€‰)Õ±¤€ÈÀÈÌƒŠL•è¸€ÈÀÈØ€¡•Á±…¹Ğ¤ˆ°(€€‰İ•‰}”Å}ˆÄˆè€‰	•…É‰•¥ÑÕ¹œÉ¿}•È5•¹•¸…¸	•ÍÑ•±±Õ¹•¸¥´±•­ÑÉ¼µÉ¿}¡…¹‘•°µ¥ĞM…¹¹•ÉÍåÍÑ•µ•¸¸ˆ°(€€‰İ•‰}”Å}ˆÈˆè€‰-…‰•±Ù½É‰•É•¥ÑÕ¹œ°MÑ…Á±•É™…¡É•¸Õ¹É‰•¥Ğ¥¸İ•¡Í•±¹‘•¸M¡¥¡Ñ•¸¸ˆ°(€€‰İ•‰}”É}‘…Ñ•Ìˆè€‰5…¤€ÈÀÈÀƒŠL)Õ¹¤€ÈÀÈÌˆ°(€€‰İ•‰}”É}Ñ¥Ñ±”ˆè€‰1•¥Ñ•È‘•È1…­¥•É•É•¤€¼±•¥Ñ•¹‘•È1…­¥•É•Èˆ°(€€‰İ•‰}”É}ˆÄˆè€‰1•¥ÑÕ¹œ‘•ÈÓ‘±¥¡•¸AÉ½‘Õ­Ñ¥½¹Ì´Õ¹1…•É…‰³‘Õ™”Í½İ¥”-½½É‘¥¹…Ñ¥½¸‘•È5¥Ñ…É‰•¥Ñ•É…Õ™…‰•¸¸ˆ°(€€‰İ•‰}”Í}Ñ¥Ñ±”ˆè€‰1…•È´Õ¹¥±¥…±±•¥Ñ•Èˆ°(€€‰İ•‰}Í­¥±±Í}İ½É­¥¹œˆè€‰AÉ…­Ñ¥Í¡”-•¹¹Ñ¹¥ÍÍ”ˆ)ô(
