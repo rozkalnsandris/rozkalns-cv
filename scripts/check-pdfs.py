@@ -162,6 +162,26 @@ def assert_in_order(text: str, values: list[str], language: str) -> None:
         position = next_position
 
 
+FORBIDDEN_LINK_PREFIXES = (
+    "tel:",
+    "sms:",
+    "whatsapp:",
+    "https://wa.me/",
+    "https://api.whatsapp.com/",
+)
+
+
+def assert_pdf_link_targets(language: str, raw: str, expected_targets: tuple[str, ...]) -> None:
+    if raw.count("/Subtype /Link") < len(expected_targets):
+        raise PdfCheckError(f"{language} PDF is missing expected public contact links")
+    for target in expected_targets:
+        if f"/URI ({target})" not in raw:
+            raise PdfCheckError(f"{language} PDF is missing canonical public link target: {target!r}")
+    for prefix in FORBIDDEN_LINK_PREFIXES:
+        if re.search(rf"/URI\s*\({re.escape(prefix)}", raw, flags=re.IGNORECASE):
+            raise PdfCheckError(f"{language} PDF contains protected contact link target: {prefix!r}")
+
+
 def inspect_pdf(language: str, path: Path, profile: dict[str, Any], messages: dict[str, str]) -> None:
     if shutil.which("pdfinfo") is None or shutil.which("pdftotext") is None:
         raise PdfCheckError("pdfinfo and pdftotext are required; install poppler-utils")
@@ -177,8 +197,12 @@ def inspect_pdf(language: str, path: Path, profile: dict[str, Any], messages: di
         raise PdfCheckError(f"{language} PDF is missing StructTreeRoot")
     if f"/Lang ({language})" not in raw:
         raise PdfCheckError(f"{language} PDF has incorrect document language")
-    if raw.count("/Subtype /Link") < 3:
-        raise PdfCheckError(f"{language} PDF is missing expected public contact links")
+    expected_link_targets = (
+        f"mailto:{profile['contact']['email']['value']}",
+        profile["contact"]["github"]["value"],
+        profile["contact"]["website"]["value"],
+    )
+    assert_pdf_link_targets(language, raw, expected_link_targets)
 
     text = normalize_text(run_tool(["pdftotext", "-layout", str(path), "-"]))
     if not text:
