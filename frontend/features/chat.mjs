@@ -123,7 +123,7 @@ export function createChatController(languageController, {
   const send = root.querySelector("#chatSend");
   const log = root.querySelector("#chatLog");
   const status = root.querySelector("#chatStatus");
-  const privacy = root.querySelector("#chatPrivacy");
+  const privacy = root.querySelector("#chatPrivacyText") || root.querySelector("#chatPrivacy");
   if (!form || !input || !send || !log || !status) return null;
   const completedHistory = [];
   let admissionSession = "";
