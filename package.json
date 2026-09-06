@@ -7,9 +7,10 @@
   },
   "scripts": {
     "build:frontend": "node scripts/build-frontend.mjs",
-    "check:frontend": "node scripts/check-frontend-dist.mjs && node scripts/check-chat-privacy.mjs"
+    "check:frontend": "node scripts/check-frontend-dist.mjs && node scripts/check-chat-privacy.mjs && node scripts/check-frontend-budget.mjs"
   },
   "devDependencies": {
+    "axe-core": "4.13.0",
     "vite": "8.2.2"
   }
 }
