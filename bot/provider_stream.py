@@ -5,24 +5,31 @@ import json
 from typing import Any
 
 
-ALLOWED_FINISH_REASONS = frozenset(
+_PROGRESS_EVENTS = frozenset(
     {
-        "stop",
-        "length",
-        "content_filter",
-        "tool_calls",
-        "insufficient_system_resource",
+        "response.created",
+        "response.queued",
+        "response.in_progress",
+        "response.output_item.added",
+        "response.content_part.added",
+        "response.output_text.done",
+        "response.refusal.done",
+        "response.content_part.done",
+        "response.output_item.done",
+        "response.output_text.annotation.added",
+        "response.reasoning_summary_part.added",
+        "response.reasoning_summary_part.done",
+        "response.reasoning_summary_text.delta",
+        "response.reasoning_summary_text.done",
+        "response.reasoning_text.delta",
+        "response.reasoning_text.done",
     }
 )
-
-_STATE_ACTIVE = "ACTIVE"
-_STATE_TERMINAL = "TERMINAL"
-_STATE_USAGE = "USAGE"
-_STATE_DONE = "DONE"
+_ALLOWED_OUTPUT_TYPES = frozenset({"message", "reasoning"})
 
 
 class ProviderStreamError(RuntimeError):
-    """Raised when the DeepSeek SSE stream violates the documented contract."""
+    """Raised when an OpenAI Responses SSE stream violates the locked contract."""
 
 
 @dataclass(frozen=True)
@@ -41,13 +48,13 @@ class ProviderStreamEvent:
 
 
 class ProviderStreamParser:
-    """Fail-closed parser for DeepSeek include_usage chat streams."""
+    """Fail-closed parser for the text-only OpenAI Responses stream."""
 
     def __init__(self) -> None:
         self.finish_reason: str | None = None
         self.done = False
         self.usage: ProviderUsage | None = None
-        self._state = _STATE_ACTIVE
+        self._pending_event: str | None = None
 
     @staticmethod
     def _required_nonnegative_int(value: Any, field: str) -> int:
@@ -60,118 +67,151 @@ class ProviderStreamParser:
             raise ProviderStreamError("usage must be an object")
         return ProviderUsage(
             prompt_tokens=self._required_nonnegative_int(
-                payload.get("prompt_tokens"), "prompt_tokens"
+                payload.get("input_tokens"), "input_tokens"
             ),
             completion_tokens=self._required_nonnegative_int(
-                payload.get("completion_tokens"), "completion_tokens"
+                payload.get("output_tokens"), "output_tokens"
             ),
             total_tokens=self._required_nonnegative_int(
                 payload.get("total_tokens"), "total_tokens"
             ),
         )
 
-    def feed_line(self, line: str) -> list[ProviderStreamEvent]:
+    @staticmethod
+    def _response(payload: dict[str, Any], expected_status: str) -> dict[str, Any]:
+        response = payload.get("response")
+        if not isinstance(response, dict) or response.get("status") != expected_status:
+            raise ProviderStreamError("invalid terminal response")
+        return response
+
+    @staticmethod
+    def _has_unsupported_output(response: dict[str, Any]) -> bool:
+        output = response.get("output")
+        if not isinstance(output, list):
+            raise ProviderStreamError("terminal response output must be a list")
+        for item in output:
+            if not isinstance(item, dict):
+                raise ProviderStreamError("terminal response output item must be an object")
+            if item.get("type") not in _ALLOWED_OUTPUT_TYPES:
+                return True
+        return False
+
+    def _terminal(
+        self,
+        finish_reason: str,
+        *,
+        usage: ProviderUsage | None,
+    ) -> list[ProviderStreamEvent]:
+        if self.done or self.finish_reason is not None:
+            raise ProviderStreamError("duplicate terminal event")
+        self.finish_reason = finish_reason
+        self.done = True
+        self.usage = usage
+        events = [
+            ProviderStreamEvent(kind="terminal", finish_reason=finish_reason)
+        ]
+        if usage is not None:
+            events.append(ProviderStreamEvent(kind="usage", usage=usage))
+        return events
+
+    def _handle_payload(
+        self, event_name: str, payload: dict[str, Any]
+    ) -> list[ProviderStreamEvent]:
         if self.done:
-            if line:
-                raise ProviderStreamError("data received after [DONE]")
+            raise ProviderStreamError("event received after terminal response")
+
+        if event_name in {"response.output_text.delta", "response.refusal.delta"}:
+            delta = payload.get("delta")
+            if not isinstance(delta, str):
+                raise ProviderStreamError("output delta must be text")
+            return [ProviderStreamEvent(kind="content", content=delta)] if delta else []
+
+        if event_name in _PROGRESS_EVENTS:
             return []
+
+        if event_name == "response.completed":
+            response = self._response(payload, "completed")
+            if response.get("error") is not None or response.get("incomplete_details") is not None:
+                raise ProviderStreamError("completed response carries failure metadata")
+            usage = self._parse_usage(response.get("usage"))
+            if self._has_unsupported_output(response):
+                return self._terminal("tool_calls", usage=usage)
+            return self._terminal("stop", usage=usage)
+
+        if event_name == "response.incomplete":
+            response = self._response(payload, "incomplete")
+            details = response.get("incomplete_details")
+            if not isinstance(details, dict):
+                raise ProviderStreamError("incomplete response lacks details")
+            reason = details.get("reason")
+            reason_map = {
+                "max_output_tokens": "length",
+                "content_filter": "content_filter",
+            }
+            if reason not in reason_map:
+                raise ProviderStreamError("unexpected incomplete reason")
+            usage = self._parse_usage(response.get("usage"))
+            if self._has_unsupported_output(response):
+                return self._terminal("tool_calls", usage=usage)
+            return self._terminal(reason_map[reason], usage=usage)
+
+        if event_name == "response.failed":
+            response = self._response(payload, "failed")
+            usage_payload = response.get("usage")
+            usage = self._parse_usage(usage_payload) if usage_payload is not None else None
+            return self._terminal("provider_failed", usage=usage)
+
+        if event_name == "error":
+            return self._terminal("provider_failed", usage=None)
+
+        raise ProviderStreamError("unexpected Responses event type")
+
+    def feed_line(self, line: str) -> list[ProviderStreamEvent]:
+        if not isinstance(line, str):
+            raise ProviderStreamError("provider stream line must be text")
+
         if not line:
+            if self._pending_event is not None:
+                raise ProviderStreamError("SSE event ended without data")
             return []
+
         if line.startswith(":"):
             return []
+
+        if line.startswith("event:"):
+            if self.done:
+                raise ProviderStreamError("event received after terminal response")
+            if self._pending_event is not None:
+                raise ProviderStreamError("duplicate SSE event field")
+            event_name = line[6:].strip()
+            if not event_name:
+                raise ProviderStreamError("empty SSE event name")
+            self._pending_event = event_name
+            return []
+
         if not line.startswith("data:"):
-            raise ProviderStreamError("unexpected non-data SSE field")
+            raise ProviderStreamError("unexpected SSE field")
+        if self._pending_event is None:
+            raise ProviderStreamError("SSE data received without event field")
 
         raw = line[5:].strip()
         if not raw:
-            raise ProviderStreamError("empty data event")
-        if raw == "[DONE]":
-            if self._state != _STATE_USAGE:
-                if self.finish_reason is None:
-                    raise ProviderStreamError(
-                        "[DONE] received before terminal finish_reason"
-                    )
-                raise ProviderStreamError("[DONE] received before usage chunk")
-            self.done = True
-            self._state = _STATE_DONE
-            return [ProviderStreamEvent(kind="done")]
-
+            raise ProviderStreamError("empty SSE data")
         try:
             payload = json.loads(raw)
         except json.JSONDecodeError as error:
             raise ProviderStreamError("malformed provider JSON") from error
         if not isinstance(payload, dict):
-            raise ProviderStreamError("provider chunk must be an object")
-        if payload.get("object") not in {None, "chat.completion.chunk"}:
-            raise ProviderStreamError("unexpected provider object type")
+            raise ProviderStreamError("Responses event payload must be an object")
 
-        choices = payload.get("choices")
-        usage_payload = payload.get("usage")
-
-        if choices == []:
-            if self._state == _STATE_ACTIVE:
-                raise ProviderStreamError("usage chunk received before terminal")
-            if self._state == _STATE_USAGE:
-                raise ProviderStreamError("duplicate usage chunk")
-            if self._state != _STATE_TERMINAL:
-                raise ProviderStreamError("usage chunk received in invalid state")
-            if usage_payload is None:
-                raise ProviderStreamError("empty choices without usage")
-            usage = self._parse_usage(usage_payload)
-            self.usage = usage
-            self._state = _STATE_USAGE
-            return [ProviderStreamEvent(kind="usage", usage=usage)]
-
-        if self._state != _STATE_ACTIVE:
-            raise ProviderStreamError("choice chunk received after terminal")
-
-        if not isinstance(choices, list) or len(choices) != 1:
-            raise ProviderStreamError("provider chunk must contain one choice")
-
-        choice = choices[0]
-        if not isinstance(choice, dict) or choice.get("index") not in {None, 0}:
-            raise ProviderStreamError("invalid provider choice")
-
-        delta = choice.get("delta")
-        if not isinstance(delta, dict):
-            raise ProviderStreamError("provider delta must be an object")
-        content = delta.get("content")
-        if content is not None and not isinstance(content, str):
-            raise ProviderStreamError("provider content must be text or null")
-
-        finish_reason = choice.get("finish_reason")
-        if finish_reason is None and usage_payload is not None:
-            raise ProviderStreamError("ordinary choice chunk must have null usage")
-
-        events: list[ProviderStreamEvent] = []
-        if content:
-            events.append(ProviderStreamEvent(kind="content", content=content))
-
-        if finish_reason is not None:
-            if not isinstance(finish_reason, str):
-                raise ProviderStreamError("finish_reason must be text or null")
-            if finish_reason not in ALLOWED_FINISH_REASONS:
-                raise ProviderStreamError("unexpected finish_reason")
-            self.finish_reason = finish_reason
-            self._state = _STATE_TERMINAL
-            events.append(
-                ProviderStreamEvent(
-                    kind="terminal",
-                    finish_reason=finish_reason,
-                )
-            )
-            if usage_payload is not None:
-                usage = self._parse_usage(usage_payload)
-                self.usage = usage
-                self._state = _STATE_USAGE
-                events.append(ProviderStreamEvent(kind="usage", usage=usage))
-
-        return events
+        event_name = self._pending_event
+        self._pending_event = None
+        if payload.get("type") != event_name:
+            raise ProviderStreamError("SSE event name does not match payload type")
+        return self._handle_payload(event_name, payload)
 
     def finish_eof(self) -> None:
-        if not self.done:
-            raise ProviderStreamError("provider stream ended before [DONE]")
-        if self.finish_reason is None:
-            raise ProviderStreamError("provider stream ended without finish_reason")
-        if self.usage is None:
-            raise ProviderStreamError("provider stream ended without usage")
+        if self._pending_event is not None:
+            raise ProviderStreamError("provider stream ended mid-event")
+        if not self.done or self.finish_reason is None:
+            raise ProviderStreamError("provider stream ended before terminal response")

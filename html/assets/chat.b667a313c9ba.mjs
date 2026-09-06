@@ -2,9 +2,9 @@ import{n as e,t}from"./turnstile.ca86c68bc37a.mjs";var n={length:`
 
 [The response was truncated. Please ask a narrower question.]`,content_filter:`
 
-[The provider stopped this response for safety. Please rephrase.]`,insufficient_system_resource:`
+[The provider stopped this response for safety. Please rephrase.]`,provider_failed:`
 
-[The provider is temporarily short on capacity. Please try again.]`,tool_calls:`
+[The provider could not complete this response. Please try again.]`,tool_calls:`
 
 [The provider returned an unsupported response. Please try again.]`,protocol_error:`
 

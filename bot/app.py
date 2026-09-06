@@ -35,7 +35,7 @@ from contact import (
     verify_turnstile,
 )
 from notifier import TelegramNotifier
-from provider import DeepSeekProvider
+from provider import OpenAIResponsesProvider
 from provider_capacity import ProviderStreamCapacity
 from provider_stream import ProviderStreamError, ProviderStreamParser
 from readiness import check_local_readiness
@@ -154,17 +154,11 @@ def _parse_payload(data: Any, settings: Settings | None = None) -> tuple[str, li
     )
 
 
-def _build_messages(
+def _build_input(
     message: str,
     history: list[dict[str, str]],
-    system_prompt: str | None = None,
 ) -> list[dict[str, str]]:
-    prompt = load_system_prompt() if system_prompt is None else system_prompt
-    return [
-        {"role": "system", "content": prompt},
-        *history,
-        {"role": "user", "content": message},
-    ]
+    return [*history, {"role": "user", "content": message}]
 
 
 def _rate_headers(decision: RateDecision, rate_limit: int | None = None) -> dict[str, str]:
@@ -182,7 +176,7 @@ def _rate_headers(decision: RateDecision, rate_limit: int | None = None) -> dict
 _PROVIDER_NOTICE_KEYS = frozenset({
     "length",
     "content_filter",
-    "insufficient_system_resource",
+    "provider_failed",
     "tool_calls",
     "protocol_error",
     "timeout",
@@ -241,7 +235,7 @@ def create_app(
     settings: Settings | None = None,
     *,
     store: AssistantStore | None = None,
-    provider: DeepSeekProvider | None = None,
+    provider: OpenAIResponsesProvider | None = None,
     notifier: TelegramNotifier | None = None,
     contact_config=None,
     system_prompt: str | None = None,
@@ -266,7 +260,7 @@ def create_app(
     )
     if start_maintenance:
         active_store.start_retention_maintenance()
-    active_provider = provider or DeepSeekProvider(
+    active_provider = provider or OpenAIResponsesProvider(
         base_url=active.llm_base_url,
         api_key=active.llm_api_key,
         model=active.llm_model,
@@ -492,7 +486,7 @@ def create_app(
                 decision, active.rate_per_ip_hour
             )
 
-        messages = _build_messages(user_msg, history, prompt)
+        input_items = _build_input(user_msg, history)
         request_id = uuid.uuid4().hex[:16]
         stream_lease = provider_capacity.try_acquire()
         if stream_lease is None:
@@ -519,7 +513,11 @@ def create_app(
             finish_reason: str | None = None
             persist_answer = False
             try:
-                with active_provider.open_stream(messages) as upstream:
+                with active_provider.open_stream(
+                    instructions=prompt,
+                    input_items=input_items,
+                    safety_identifier=client_key,
+                ) as upstream:
                     upstream.raise_for_status()
                     for line in upstream.iter_lines(decode_unicode=True):
                         for event in parser.feed_line(line):
@@ -555,7 +553,7 @@ def create_app(
                             yield _provider_notice(status)
                         elif finish_reason in {
                             "content_filter",
-                            "insufficient_system_resource",
+                            "provider_failed",
                             "tool_calls",
                         }:
                             status = finish_reason
@@ -664,7 +662,6 @@ def __getattr__(name: str):
         "LLM_BASE_URL": settings.llm_base_url,
         "LLM_API_KEY": settings.llm_api_key,
         "LLM_MODEL": settings.llm_model,
-        "LLM_THINKING": {"type": "disabled"},
         "MAX_INPUT_CHARS": settings.max_input_chars,
         "MAX_RESPONSE_TOKENS": settings.max_response_tokens,
         "MAX_HISTORY_TURNS": settings.max_history_turns,

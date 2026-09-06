@@ -33,11 +33,34 @@ class ProviderRuntimeContractTests(unittest.TestCase):
         self.assertGreater(worker, read)
         self.assertGreater(proxy, worker)
 
-    def test_provider_uses_explicit_connect_and_idle_read_tuple(self) -> None:
+    def test_provider_uses_locked_stateless_responses_contract(self) -> None:
         provider = (ROOT / "bot/provider.py").read_text(encoding="utf-8")
+        self.assertIn('f"{self._base_url}/v1/responses"', provider)
         self.assertIn("timeout=(self._connect_timeout, self._read_timeout)", provider)
-        self.assertIn('"stream_options": {"include_usage": True}', provider)
-        self.assertIn('"thinking": {"type": "disabled"}', provider)
+        for required in (
+            '"max_output_tokens": self._max_response_tokens',
+            '"reasoning": {"effort": "none"}',
+            '"text": {"verbosity": "low"}',
+            '"store": False',
+            '"stream": True',
+            '"tools": []',
+            '"truncation": "disabled"',
+            '"safety_identifier": safety_identifier',
+        ):
+            self.assertIn(required, provider)
+        for forbidden in (
+            "stream_options",
+            '"thinking"',
+            '"previous_response_id"',
+            '"conversation"',
+        ):
+            self.assertNotIn(forbidden, provider)
+
+    def test_provider_migration_does_not_expand_python_dependency_graph(self) -> None:
+        requirements = (ROOT / "bot/requirements.in").read_text(encoding="utf-8")
+        provider = (ROOT / "bot/provider.py").read_text(encoding="utf-8")
+        self.assertNotIn("openai==", requirements.lower())
+        self.assertIn("import requests", provider)
 
     def test_runtime_image_contains_every_local_app_import(self) -> None:
         dockerfile = (ROOT / "bot/Dockerfile").read_text(encoding="utf-8")

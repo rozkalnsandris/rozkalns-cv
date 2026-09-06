@@ -17,6 +17,11 @@ sys.path.insert(0, str(BOT))
 from notifier import TelegramNotifier  # noqa: E402
 
 
+def sse(event_type: str, payload: dict) -> list[str]:
+    body = {"type": event_type, **payload}
+    return [f"event: {event_type}", "data: " + json.dumps(body), ""]
+
+
 class FakeUpstreamResponse:
     def __enter__(self):
         return self
@@ -28,17 +33,28 @@ class FakeUpstreamResponse:
         return None
 
     def iter_lines(self, decode_unicode: bool = False):
-        return iter(
-            [
-                'data: {"choices":[{"delta":{"reasoning_content":"hidden chain"},"finish_reason":null}]}',
-                'data: {"choices":[{"delta":{},"finish_reason":null}]}',
-                'data: {"choices":[{"delta":{"content":"Hello"},"finish_reason":null}]}',
-                'data: {"choices":[{"delta":{"content":" world"},"finish_reason":null}]}',
-                'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}',
-                'data: {"choices":[],"usage":{"prompt_tokens":10,"completion_tokens":2,"total_tokens":12}}',
-                "data: [DONE]",
-            ]
+        lines: list[str] = []
+        lines += sse("response.created", {"response": {"status": "in_progress"}})
+        lines += sse("response.output_text.delta", {"delta": "Hello"})
+        lines += sse("response.output_text.delta", {"delta": " world"})
+        lines += sse("response.output_text.done", {"text": "Hello world"})
+        lines += sse(
+            "response.completed",
+            {
+                "response": {
+                    "status": "completed",
+                    "error": None,
+                    "incomplete_details": None,
+                    "output": [{"type": "message"}],
+                    "usage": {
+                        "input_tokens": 10,
+                        "output_tokens": 2,
+                        "total_tokens": 12,
+                    },
+                }
+            },
         )
+        return iter(lines)
 
 
 class FakeTelegramResponse:
@@ -53,7 +69,7 @@ class BotBehaviorTests(unittest.TestCase):
         self.db_path = str(Path(self.tmp.name) / "assistant.sqlite3")
         env = {
             "LLM_API_KEY": "test-llm-key",
-            "LLM_MODEL": "deepseek-v4-flash",
+            "LLM_MODEL": "gpt-5.6-luna",
             "CLIENT_KEY_SECRET": "A" * 43,
             "ASSISTANT_DB_PATH": self.db_path,
             "RATE_PER_IP_HOUR": "2",
@@ -81,13 +97,8 @@ class BotBehaviorTests(unittest.TestCase):
         client_key = self.module.STORE.pseudonymize(
             address, self.module.CLIENT_KEY_SECRET
         )
-        session = self.module.issue_session(
-            client_key, self.module.CLIENT_KEY_SECRET
-        )
-        return {
-            "X-Real-IP": address,
-            "X-Chat-Admission": session,
-        }
+        session = self.module.issue_session(client_key, self.module.CLIENT_KEY_SECRET)
+        return {"X-Real-IP": address, "X-Chat-Admission": session}
 
     def _post(self, message: str, history=None, *, address="203.0.113.10"):
         captured: list[dict] = []
@@ -117,14 +128,16 @@ class BotBehaviorTests(unittest.TestCase):
             ],
         )
         self.assertEqual(response.status_code, 200)
-        messages = captured[0]["messages"]
+        input_items = captured[0]["input"]
         self.assertEqual(
-            [row["role"] for row in messages],
-            ["system", "user", "assistant", "user"],
+            [row["role"] for row in input_items],
+            ["user", "assistant", "user"],
         )
         self.assertEqual(
-            sum(row["content"] == "Current question" for row in messages), 1
+            sum(row["content"] == "Current question" for row in input_items), 1
         )
+        self.assertNotIn("system", {row["role"] for row in input_items})
+        self.assertTrue(captured[0]["instructions"])
 
     def test_unpaired_failed_browser_turn_is_not_forwarded(self) -> None:
         response, captured = self._post(
@@ -136,37 +149,44 @@ class BotBehaviorTests(unittest.TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(
-            [row["role"] for row in captured[0]["messages"]],
-            ["system", "user"],
+            [row["role"] for row in captured[0]["input"]], ["user"]
         )
-        self.assertEqual(captured[0]["messages"][-1]["content"], "New question")
+        self.assertEqual(captured[0]["input"][-1]["content"], "New question")
 
-    def test_v4_request_contract_is_explicit_non_thinking(self) -> None:
-        response, captured = self._post("Question")
+    def test_luna_responses_contract_is_stateless_tool_free_and_low_latency(self) -> None:
+        address = "203.0.113.10"
+        response, captured = self._post("Question", address=address)
         self.assertEqual(response.status_code, 200)
         payload = captured[0]
-        self.assertEqual(payload["model"], "deepseek-v4-flash")
-        self.assertEqual(payload["thinking"], {"type": "disabled"})
-        self.assertTrue(payload["stream"])
-        self.assertEqual(payload["stream_options"], {"include_usage": True})
-        self.assertEqual(payload["max_tokens"], self.module.MAX_RESPONSE_TOKENS)
-        self.assertEqual(payload["temperature"], 0.4)
-        self.assertNotIn("reasoning_effort", payload)
+        self.assertEqual(payload["model"], "gpt-5.6-luna")
+        self.assertIs(payload["store"], False)
+        self.assertIs(payload["stream"], True)
+        self.assertEqual(payload["tools"], [])
+        self.assertEqual(payload["reasoning"], {"effort": "none"})
+        self.assertEqual(payload["text"], {"verbosity": "low"})
+        self.assertEqual(payload["max_output_tokens"], self.module.MAX_RESPONSE_TOKENS)
+        self.assertEqual(payload["truncation"], "disabled")
+        self.assertNotEqual(payload["safety_identifier"], address)
+        self.assertEqual(len(payload["safety_identifier"]), 24)
+        for forbidden in (
+            "previous_response_id",
+            "conversation",
+            "temperature",
+        ):
+            self.assertNotIn(forbidden, payload)
 
-    def test_v4_reasoning_content_is_never_forwarded(self) -> None:
+    def test_response_stream_forwards_only_output_text(self) -> None:
         response, _ = self._post("Question")
-        body = response.get_data(as_text=True)
-        self.assertEqual(body, "Hello world")
-        self.assertNotIn("hidden chain", body)
+        self.assertEqual(response.get_data(as_text=True), "Hello world")
 
-    def test_only_supported_v4_models_are_allowed(self) -> None:
+    def test_only_openai_luna_is_allowed(self) -> None:
         self.assertEqual(
             self.module.SUPPORTED_LLM_MODELS,
-            frozenset({"deepseek-v4-flash", "deepseek-v4-pro"}),
+            frozenset({"gpt-5.6-luna"}),
         )
         self.assertIn(self.module.LLM_MODEL, self.module.SUPPORTED_LLM_MODELS)
-        self.assertNotIn("deepseek-chat", self.module.SUPPORTED_LLM_MODELS)
-        self.assertNotIn("deepseek-reasoner", self.module.SUPPORTED_LLM_MODELS)
+        self.assertNotIn("deepseek-v4-flash", self.module.SUPPORTED_LLM_MODELS)
+        self.assertNotIn("gpt-5.6-terra", self.module.SUPPORTED_LLM_MODELS)
 
     def test_invalid_payload_does_not_consume_quota(self) -> None:
         address = "203.0.113.10"

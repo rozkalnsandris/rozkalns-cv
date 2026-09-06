@@ -14,7 +14,7 @@ from config import Settings, SettingsError
 BASE = {
     "LLM_API_KEY": "provider-test-key",
     "CLIENT_KEY_SECRET": "A" * 43,
-    "LLM_MODEL": "deepseek-v4-flash",
+    "LLM_MODEL": "gpt-5.6-luna",
     "ASSISTANT_DB_PATH": "/tmp/cvbot-test.sqlite3",
     "TRUSTED_PROXY_CIDRS": "172.19.0.10/32",
 }
@@ -23,7 +23,8 @@ BASE = {
 class SettingsTests(unittest.TestCase):
     def test_valid_settings_are_parsed_once(self) -> None:
         settings = Settings.from_env(BASE)
-        self.assertEqual(settings.llm_model, "deepseek-v4-flash")
+        self.assertEqual(settings.llm_model, "gpt-5.6-luna")
+        self.assertEqual(settings.llm_base_url, "https://api.openai.com")
         self.assertEqual(settings.rate_per_ip_hour, 8)
         self.assertEqual(settings.llm_max_concurrent_streams, 3)
         self.assertEqual(settings.trusted_proxy_cidrs[0].compressed, "172.19.0.10/32")
@@ -55,9 +56,9 @@ class SettingsTests(unittest.TestCase):
 
     def test_base_url_requires_clean_https_origin(self) -> None:
         for value in (
-            "http://api.deepseek.com",
-            "https://user:pass@api.deepseek.com",
-            "https://api.deepseek.com/v1",
+            "http://api.openai.com",
+            "https://user:pass@api.openai.com",
+            "https://api.openai.com/v1",
         ):
             with self.subTest(value=value):
                 with self.assertRaisesRegex(SettingsError, "LLM_BASE_URL"):
@@ -87,7 +88,7 @@ class SettingsTests(unittest.TestCase):
 
     def test_unsupported_model_fails_closed(self) -> None:
         with self.assertRaisesRegex(SettingsError, "LLM_MODEL"):
-            Settings.from_env({**BASE, "LLM_MODEL": "deepseek-chat"})
+            Settings.from_env({**BASE, "LLM_MODEL": "gpt-5.6-terra"})
 
 
 if __name__ == "__main__":

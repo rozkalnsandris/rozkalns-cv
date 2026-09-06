@@ -32,22 +32,41 @@ class FakeUpstreamResponse:
         return None
 
     def iter_lines(self, decode_unicode: bool = False):
-        rows = []
+        rows: list[str] = []
         for chunk in self.chunks:
-            payload = {
-                "choices": [
-                    {"delta": {"content": chunk}, "finish_reason": None}
-                ],
-                "usage": None,
-            }
-            rows.append(f"data: {json.dumps(payload)}")
-        rows.append(
-            'data: {"choices":[{"delta":{},"finish_reason":"stop"}],"usage":null}'
+            rows.extend(
+                [
+                    "event: response.output_text.delta",
+                    "data: "
+                    + json.dumps(
+                        {"type": "response.output_text.delta", "delta": chunk}
+                    ),
+                    "",
+                ]
+            )
+        rows.extend(
+            [
+                "event: response.completed",
+                "data: "
+                + json.dumps(
+                    {
+                        "type": "response.completed",
+                        "response": {
+                            "status": "completed",
+                            "error": None,
+                            "incomplete_details": None,
+                            "output": [{"type": "message"}],
+                            "usage": {
+                                "input_tokens": 8,
+                                "output_tokens": 4,
+                                "total_tokens": 12,
+                            },
+                        },
+                    }
+                ),
+                "",
+            ]
         )
-        rows.append(
-            'data: {"choices":[],"usage":{"prompt_tokens":8,"completion_tokens":4,"total_tokens":12}}'
-        )
-        rows.append("data: [DONE]")
         return iter(rows)
 
 
@@ -58,7 +77,7 @@ class BotOutputPolicyIntegrationTests(unittest.TestCase):
         self.db_path = str(Path(self.tmp.name) / "assistant.sqlite3")
         env = {
             "LLM_API_KEY": "test-llm-key",
-            "LLM_MODEL": "deepseek-v4-flash",
+            "LLM_MODEL": "gpt-5.6-luna",
             "CLIENT_KEY_SECRET": "A" * 43,
             "ASSISTANT_DB_PATH": self.db_path,
             "RATE_PER_IP_HOUR": "20",
