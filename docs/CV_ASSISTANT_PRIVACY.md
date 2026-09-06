@@ -61,4 +61,13 @@ The utility deletes only rows from the local `chats` table. Rate-limit state rem
 
 ## Public disclosure
 
-The frontend must disclose LLM processing and the active local retention period before the visitor sends the first message. A fuller public Privacy / Datenschutz notice is tracked by #428 and must match the actual OpenAI and Cloudflare configuration before publication.
+The frontend must disclose LLM processing and the active local retention period before the visitor sends the first message. The public Privacy / Datenschutz notice must match the actual OpenAI and Cloudflare configuration at rollout time.
+
+Before a production rollout that changes or republishes this notice, read-only preflight evidence must confirm all of the following without exposing secret values:
+
+- the active `CHAT_RETENTION_DAYS` value matches the local-retention wording;
+- `TELEGRAM_INCLUDE_CONTENT` remains `false` if the notice says question/answer text is not forwarded in operational notifications;
+- Cloudflare Web Analytics is actually enabled if the notice says it is enabled;
+- no OpenAI Zero Data Retention, Modified Abuse Monitoring, or EU data-residency feature is claimed unless fresh account evidence confirms it.
+
+A mismatch is a rollout blocker and requires a source/privacy correction or an explicitly authorized runtime-policy change before LIVE.

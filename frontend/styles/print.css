@@ -1,7 +1,7 @@
 @media print {
   body { background: #fff; color: #000; font-size: 11px; }
   .page { display: block; width: 100%; padding: 0; }
-  .language-switcher, .site-nav, .actions, .chat-launcher, .dialog-backdrop { display: none !important; }
+  .language-switcher, .site-nav, .actions, .chat-launcher, .dialog-backdrop, .privacy-panel { display: none !important; }
   .sidebar { display: block; position: static; margin-bottom: 20px; padding: 0; border: 0; box-shadow: none; }
   .profile-photo { float: right; width: 92px; height: 112px; margin: 0 0 12px 18px; }
   .contacts { padding: 0; border: 0; background: transparent; }

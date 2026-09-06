@@ -1,38 +1,38 @@
 {
   "../content/translations/de.json": {
-    "file": "i18n/de.81d86c7abbac.json",
+    "file": "i18n/de.fcd4bd2548a6.json",
     "src": "../content/translations/de.json"
   },
   "../content/translations/en.json": {
-    "file": "i18n/en.1029c709d05a.json",
+    "file": "i18n/en.630667066dad.json",
     "src": "../content/translations/en.json"
   },
   "../content/translations/lv.json": {
-    "file": "i18n/lv.db4fe5237f98.json",
+    "file": "i18n/lv.62d111da7834.json",
     "src": "../content/translations/lv.json"
   },
-  "_i18n.11c0cd266789.css": {
-    "file": "assets/i18n.11c0cd266789.css",
-    "src": "_i18n.11c0cd266789.css"
-  },
-  "_i18n.2d7b7a27d46d.mjs": {
-    "file": "assets/i18n.2d7b7a27d46d.mjs",
+  "_i18n.b651564b0239.mjs": {
+    "file": "assets/i18n.b651564b0239.mjs",
     "name": "i18n",
     "css": [
-      "assets/i18n.11c0cd266789.css"
+      "assets/i18n.e14ca3d3e2f8.css"
     ],
     "assets": [
-      "i18n/en.1029c709d05a.json",
-      "i18n/de.81d86c7abbac.json",
-      "i18n/lv.db4fe5237f98.json"
+      "i18n/en.630667066dad.json",
+      "i18n/de.fcd4bd2548a6.json",
+      "i18n/lv.62d111da7834.json"
     ]
+  },
+  "_i18n.e14ca3d3e2f8.css": {
+    "file": "assets/i18n.e14ca3d3e2f8.css",
+    "src": "_i18n.e14ca3d3e2f8.css"
   },
   "_turnstile.ca86c68bc37a.mjs": {
     "file": "assets/turnstile.ca86c68bc37a.mjs",
     "name": "turnstile"
   },
   "features/chat.mjs": {
-    "file": "assets/chat.b667a313c9ba.mjs",
+    "file": "assets/chat.8765be2f3c6a.mjs",
     "name": "chat",
     "src": "features/chat.mjs",
     "isDynamicEntry": true,
@@ -50,12 +50,12 @@
     ]
   },
   "index.html": {
-    "file": "assets/app.19b5189e9172.mjs",
+    "file": "assets/app.16e9fbcf018a.mjs",
     "name": "app",
     "src": "index.html",
     "isEntry": true,
     "imports": [
-      "_i18n.2d7b7a27d46d.mjs"
+      "_i18n.b651564b0239.mjs"
     ],
     "dynamicImports": [
       "features/chat.mjs",
@@ -70,26 +70,26 @@
     "src": "photo.webp"
   },
   "smarthome.html": {
-    "file": "assets/smarthome.6905aef8ee10.mjs",
+    "file": "assets/smarthome.2516ccf426b7.mjs",
     "name": "smarthome",
     "src": "smarthome.html",
     "isEntry": true,
     "imports": [
-      "_i18n.2d7b7a27d46d.mjs"
+      "_i18n.b651564b0239.mjs"
     ]
   },
   "_localized": {
     "en": {
       "path": "en/index.html",
-      "sha256": "0227b40e61748bf42a1e4aae4f0419d293015a46d00c57748a0872abd4ca3d7a"
+      "sha256": "0a49cb8518f19733b1efbb4ea3b96b3d07aceafded9f8278713710e7074e1caa"
     },
     "de": {
       "path": "de/index.html",
-      "sha256": "e64b1e9f781e2f73cc36917904f4c75ee69428752b42109d7c5908258d47c13c"
+      "sha256": "529e4ed5b63ff6aebf8eba01413783f894fd1f876b6dfb563feab2bdaea8ff11"
     },
     "lv": {
       "path": "lv/index.html",
-      "sha256": "7d142ca909a63e46d9a1cdc3597322e6f9d5565621174833e537d728ab65b636"
+      "sha256": "1a193ee157d99da2b4590c52e9d1a94ba19c729c5445771c06cbf4e8c78cb002"
     },
     "sitemap": {
       "path": "sitemap.xml",
