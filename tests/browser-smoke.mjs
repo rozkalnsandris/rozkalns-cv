@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const HTML_ROOT = join(ROOT, "html");
+const AXE_SOURCE = await readFile(join(ROOT, "node_modules", "axe-core", "axe.min.js"), "utf8");
 const CHROME_BIN = process.env.CHROME_BIN;
 
 if (!CHROME_BIN) {
@@ -382,6 +383,27 @@ class CdpClient {
   }
 }
 
+async function assertWcagAxeClean(cdp, label) {
+  const hasAxe = await cdp.evaluate(`typeof globalThis.axe === "object"`);
+  if (!hasAxe) {
+    const injected = await cdp.evaluate(`${AXE_SOURCE}\n;typeof globalThis.axe === "object"`);
+    assert.equal(injected, true, `${label} axe-core injection`);
+  }
+  const violations = await cdp.evaluate(`axe.run(document, {
+    runOnly: {
+      type: "tag",
+      values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22a", "wcag22aa"]
+    },
+    resultTypes: ["violations"]
+  }).then(({ violations }) => violations.map(({ id, impact, help, nodes }) => ({
+    id,
+    impact,
+    help,
+    targets: nodes.slice(0, 5).map((node) => node.target)
+  })))`);
+  assert.deepEqual(violations, [], `${label} WCAG violations: ${JSON.stringify(violations)}`);
+}
+
 async function runBrowserSmoke(baseUrl, state) {
   const profile = await mkdtemp(join(tmpdir(), "rozkalns-cv-chrome-"));
   const chrome = spawn(CHROME_BIN, [
@@ -453,6 +475,7 @@ async function runBrowserSmoke(baseUrl, state) {
       10_000,
       "live statistics rendering"
     );
+    await assertWcagAxeClean(cdp, "English main CV");
 
     const skillIconContract = await cdp.evaluate(`(() => [...document.querySelectorAll(".skill-chip")].map((chip) => {
       const svg = chip.querySelector("svg");
@@ -554,6 +577,7 @@ async function runBrowserSmoke(baseUrl, state) {
       }))()`),
       { placeholder: "Frage zu Andris' Erfahrung", binding: "chat_input" }
     );
+    await assertWcagAxeClean(cdp, "German main CV");
 
     const latvianLoaded = cdp.waitForEvent("Page.loadEventFired", 15_000);
     await cdp.evaluate(`document.querySelector('[data-lang="lv"]').click()`);
@@ -582,6 +606,7 @@ async function runBrowserSmoke(baseUrl, state) {
       await cdp.evaluate(`[...document.querySelectorAll('.language-switcher [data-lang]')].map((control) => [control.dataset.lang, control.getAttribute('aria-current')])`),
       [["en", null], ["de", null], ["lv", "page"]]
     );
+    await assertWcagAxeClean(cdp, "Latvian main CV");
     assert.equal(
     await cdp.evaluate(`document.querySelector('.focus-tags')`),
     null
