@@ -856,7 +856,7 @@ async function runBrowserSmoke(baseUrl, state) {
           disclosureUsesProjectList: document.querySelector('#github-projects > dd > details')?.classList.contains('project-list') || false
         }))()`);
         assert.equal(githubProof.profile, "GitHub", `responsive ${viewport.width}px ${locale.label} GitHub profile link`);
-        assert.deepEqual(githubProof.selected, ["hermes-tech", "RPi5_main", "hermes-deals", "rozkalns-control-center", "dashboard_RPi5"]);
+        assert.deepEqual(githubProof.selected, ["hermes-tech · Python", "RPi5_main · Prometheus · Bash", "hermes-deals", "rozkalns-control-center", "dashboard_RPi5"]);
         for (const repo of ["home-assistant-config", "balcony-irrigation-esp32", "rozkalns-cv", "ops-workflows"]) assert.match(githubProof.remaining, new RegExp(repo));
         assert.equal(githubProof.collapsed, true);
         const proofHierarchy = await cdp.evaluate(`(() => {

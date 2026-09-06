@@ -59,9 +59,29 @@ function enhanceIconPill(element, root, { hideFallback = false } = {}) {
   if (hideFallback) element.classList?.add?.("has-tech-icon");
 }
 
+const PROJECT_SKILL_PROOF = Object.freeze({
+  "rozkalns-cv": "Linux · Docker Compose · Nginx",
+  "RPi5_main": "Prometheus · Bash",
+  "hermes-tech": "Python",
+  "home-assistant-config": "Home Assistant · YAML"
+});
+
+function addProjectSkillProof(link, root) {
+  const repository = String(link.textContent || "").trim();
+  const proof = PROJECT_SKILL_PROOF[repository];
+  if (!proof || link.querySelector(".skill-proof-text")) return;
+  const text = root.createElement("span");
+  text.className = "skill-proof-text";
+  text.textContent = ` · ${proof}`;
+  link.append(text);
+}
+
 export function enhanceSkillIcons(root = globalThis.document) {
   root.querySelectorAll(".skill-chip, #github-projects a").forEach((chip) => {
     enhanceIconPill(chip, root);
+  });
+  root.querySelectorAll("#github-projects a").forEach((link) => {
+    addProjectSkillProof(link, root);
   });
   root.querySelectorAll(".tech-tag").forEach((tag) => {
     enhanceIconPill(tag, root, { hideFallback: true });
