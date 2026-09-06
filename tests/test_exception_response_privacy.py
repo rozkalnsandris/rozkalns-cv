@@ -19,7 +19,7 @@ class ExceptionResponsePrivacyTests(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         env = {
             "LLM_API_KEY": "test-llm-key",
-            "LLM_MODEL": "deepseek-v4-flash",
+            "LLM_MODEL": "gpt-5.6-luna",
             "CLIENT_KEY_SECRET": "A" * 43,
             "ASSISTANT_DB_PATH": str(Path(self.tmp.name) / "assistant.sqlite3"),
             "RATE_PER_IP_HOUR": "2",

@@ -9,7 +9,7 @@ from urllib.parse import urlparse
 
 from storage import validate_client_key_secret
 
-SUPPORTED_LLM_MODELS = frozenset({"deepseek-v4-flash", "deepseek-v4-pro"})
+SUPPORTED_LLM_MODELS = frozenset({"gpt-5.6-luna"})
 DEFAULT_TRUSTED_HOSTS = ("rozkalns.net", "localhost", "cvbot", "127.0.0.1")
 _HOST_LABEL = re.compile(r"^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$")
 
@@ -158,14 +158,14 @@ class Settings:
         client_secret = validate_client_key_secret(
             source.get("CLIENT_KEY_SECRET", ""), llm_api_key
         )
-        model = source.get("LLM_MODEL", "deepseek-v4-flash").strip()
+        model = source.get("LLM_MODEL", "gpt-5.6-luna").strip()
         if model not in SUPPORTED_LLM_MODELS:
-            raise SettingsError("LLM_MODEL must be a supported DeepSeek V4 model")
+            raise SettingsError("LLM_MODEL must be a supported OpenAI model")
         db_path = source.get("ASSISTANT_DB_PATH", "/app/data/assistant.sqlite3").strip()
         if not db_path:
             raise SettingsError("ASSISTANT_DB_PATH must not be empty")
         return cls(
-            llm_base_url=_https_url(source, "LLM_BASE_URL", "https://api.deepseek.com"),
+            llm_base_url=_https_url(source, "LLM_BASE_URL", "https://api.openai.com"),
             llm_api_key=llm_api_key,
             llm_model=model,
             max_input_chars=_integer(source, "MAX_INPUT_CHARS", 500, minimum=1, maximum=4000),

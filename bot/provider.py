@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence
+from typing import Mapping, Sequence
 
 import requests
 
 
-class DeepSeekProvider:
-    """Narrow HTTP transport boundary for streamed DeepSeek chat completions."""
+class OpenAIResponsesProvider:
+    """Narrow HTTP transport boundary for streamed OpenAI Responses."""
 
     def __init__(
         self,
@@ -17,7 +17,7 @@ class DeepSeekProvider:
         max_response_tokens: int,
         connect_timeout: float,
         read_timeout: float,
-        http: Any = requests,
+        http=requests,
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
@@ -27,21 +27,32 @@ class DeepSeekProvider:
         self._read_timeout = read_timeout
         self._http = http
 
-    def open_stream(self, messages: Sequence[Mapping[str, str]]):
+    def open_stream(
+        self,
+        *,
+        instructions: str,
+        input_items: Sequence[Mapping[str, str]],
+        safety_identifier: str,
+    ):
         return self._http.post(
-            f"{self._base_url}/chat/completions",
+            f"{self._base_url}/v1/responses",
             headers={
                 "Authorization": f"Bearer {self._api_key}",
                 "Content-Type": "application/json",
+                "Accept": "text/event-stream",
             },
             json={
                 "model": self._model,
-                "messages": list(messages),
-                "max_tokens": self._max_response_tokens,
-                "temperature": 0.4,
-                "thinking": {"type": "disabled"},
+                "instructions": instructions,
+                "input": list(input_items),
+                "max_output_tokens": self._max_response_tokens,
+                "reasoning": {"effort": "none"},
+                "text": {"verbosity": "low"},
+                "store": False,
                 "stream": True,
-                "stream_options": {"include_usage": True},
+                "tools": [],
+                "truncation": "disabled",
+                "safety_identifier": safety_identifier,
             },
             timeout=(self._connect_timeout, self._read_timeout),
             stream=True,

@@ -14,7 +14,7 @@ sys.path.insert(0, str(ROOT / "bot"))
 from readiness import check_local_readiness  # noqa: E402
 
 
-SUPPORTED = frozenset({"deepseek-v4-flash", "deepseek-v4-pro"})
+SUPPORTED = frozenset({"gpt-5.6-luna"})
 
 
 class LocalReadinessTests(unittest.TestCase):
@@ -22,7 +22,7 @@ class LocalReadinessTests(unittest.TestCase):
         kwargs = {
             "llm_api_key": "provider-key",
             "client_key_secret": "A" * 43,
-            "llm_model": "deepseek-v4-flash",
+            "llm_model": "gpt-5.6-luna",
             "supported_models": SUPPORTED,
         }
         kwargs.update(overrides)

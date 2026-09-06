@@ -25,10 +25,12 @@ APP_SPEC.loader.exec_module(APP)
 
 
 SUCCESS_LINES = [
-    'data: {"choices":[{"delta":{"content":"' + ("safe " * 80) + '"},"finish_reason":null}]}',
-    'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}',
-    'data: {"choices":[],"usage":{"prompt_tokens":2,"completion_tokens":2,"total_tokens":4}}',
-    "data: [DONE]",
+    "event: response.output_text.delta",
+    'data: {"type":"response.output_text.delta","delta":"' + ("safe " * 80) + '"}',
+    "",
+    "event: response.completed",
+    'data: {"type":"response.completed","response":{"status":"completed","error":null,"incomplete_details":null,"output":[{"type":"message"}],"usage":{"input_tokens":2,"output_tokens":2,"total_tokens":4}}}',
+    "",
 ]
 
 
@@ -61,7 +63,7 @@ class FakeProvider:
         self.calls = 0
         self.response = response or FakeResponse()
 
-    def open_stream(self, messages):
+    def open_stream(self, **kwargs):
         self.calls += 1
         return self.response
 
@@ -76,7 +78,7 @@ class ProviderCapacityTests(unittest.TestCase):
             {
                 "LLM_API_KEY": "provider-test-key",
                 "CLIENT_KEY_SECRET": "A" * 43,
-                "LLM_MODEL": "deepseek-v4-flash",
+                "LLM_MODEL": "gpt-5.6-luna",
                 "ASSISTANT_DB_PATH": str(Path(self.tmp.name) / "assistant.sqlite3"),
                 "TRUSTED_PROXY_CIDRS": "172.19.0.10/32",
                 "LLM_MAX_CONCURRENT_STREAMS": str(limit),

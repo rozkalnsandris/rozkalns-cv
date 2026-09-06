@@ -122,7 +122,7 @@ class BotFailureBehaviorTests(unittest.TestCase):
             {
                 "length",
                 "content_filter",
-                "insufficient_system_resource",
+                "provider_failed",
                 "tool_calls",
                 "protocol_error",
                 "timeout",
