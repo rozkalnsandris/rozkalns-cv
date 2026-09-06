@@ -32,7 +32,7 @@
     "name": "turnstile"
   },
   "features/chat.mjs": {
-    "file": "assets/chat.c36868410ca6.mjs",
+    "file": "assets/chat.b667a313c9ba.mjs",
     "name": "chat",
     "src": "features/chat.mjs",
     "isDynamicEntry": true,
@@ -50,7 +50,7 @@
     ]
   },
   "index.html": {
-    "file": "assets/app.df5f9de803a4.mjs",
+    "file": "assets/app.19b5189e9172.mjs",
     "name": "app",
     "src": "index.html",
     "isEntry": true,
@@ -81,15 +81,15 @@
   "_localized": {
     "en": {
       "path": "en/index.html",
-      "sha256": "10587f87b6c3d12063f100cda9cf0b3cb96ad21c4a704dfc184f14fdfdc4eb3f"
+      "sha256": "0227b40e61748bf42a1e4aae4f0419d293015a46d00c57748a0872abd4ca3d7a"
     },
     "de": {
       "path": "de/index.html",
-      "sha256": "373f0453c3d88386ea893ce401bef129f54a876a3562aa1b5440a1ce420ad381"
+      "sha256": "e64b1e9f781e2f73cc36917904f4c75ee69428752b42109d7c5908258d47c13c"
     },
     "lv": {
       "path": "lv/index.html",
-      "sha256": "876e61baa3f69a1d8d2452eb606f1d7283861d4250b6262a29e6f55a9852267c"
+      "sha256": "7d142ca909a63e46d9a1cdc3597322e6f9d5565621174833e537d728ab65b636"
     },
     "sitemap": {
       "path": "sitemap.xml",
