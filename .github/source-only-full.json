@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "repository": "rozkalnsandris/rozkalns-cv",
+  "mode": "source-only-issue-scoped-full",
+  "availability": "owner-command-only",
+  "default_active": false,
+  "live_authority": false,
+  "activation": {
+    "command_regex": "^AUTO-RUN FULL rozkalns-cv #([1-9][0-9]*)$",
+    "issue_scoped": true,
+    "owner_explicit": true,
+    "issue_must_be_open": true,
+    "issue_creation_activates": false,
+    "issue_body_activates": false,
+    "label_activates": false,
+    "start_or_continue_activates": false,
+    "freeze_at_activation": [
+      "issue_number",
+      "issue_scope",
+      "default_branch",
+      "base_sha",
+      "policy_revision"
+    ]
+  },
+  "allowed_sequence": [
+    "fresh_github_revalidation",
+    "branch_create",
+    "source_content_docs_tests_generated_changes",
+    "commit_push",
+    "draft_pr_create",
+    "exact_head_ci_review_convergence",
+    "bounded_scope_preserving_corrections",
+    "ready_for_review",
+    "squash_merge",
+    "exact_main_post_merge_verification",
+    "issue_receipt_or_close"
+  ],
+  "allowed_mutation_classes": [
+    "branch_create",
+    "source_write",
+    "content_write",
+    "docs_write",
+    "tests_write",
+    "generated_artifact_refresh",
+    "commit_push",
+    "draft_pr_create",
+    "pr_metadata_update",
+    "ready_for_review",
+    "scope_preserving_correction",
+    "squash_merge",
+    "issue_receipt_or_close"
+  ],
+  "corrections": {
+    "scope_preserving_only": true,
+    "maximum": 2
+  },
+  "merge": {
+    "method": "squash",
+    "target_branch": "main",
+    "bind_expected_head_sha": true,
+    "require_current_head_revalidation": true,
+    "require_frozen_issue_scope": true,
+    "require_frozen_base_or_fresh_nonconflicting_revalidation": true,
+    "require_exact_head_ci": true,
+    "require_zero_unresolved_review_threads": true,
+    "require_no_actionable_reviews": true
+  },
+  "fail_closed": {
+    "conditions": [
+      "scope_expansion",
+      "branch_or_head_drift",
+      "base_or_policy_drift_without_safe_revalidation",
+      "unexpected_failure",
+      "tool_error_or_timeout",
+      "authorization_ambiguity",
+      "privacy_or_publication_uncertainty",
+      "merge_condition_mismatch"
+    ],
+    "automatic_retry_after_mutation_error": false,
+    "automatic_rollback": false,
+    "automatic_cleanup": false,
+    "alternate_mutation_path": false
+  },
+  "forbidden_mutation_classes": [
+    "production_deploy",
+    "pull_deploy_activation",
+    "host_mutation",
+    "runtime_mutation",
+    "container_runtime_mutation",
+    "cloudflare_mutation",
+    "dns_mutation",
+    "external_account_mutation",
+    "openai_account_or_billing_mutation",
+    "secret_or_credential_mutation",
+    "token_mutation",
+    "permission_mutation",
+    "repository_settings_mutation",
+    "production_data_write",
+    "application_data_write",
+    "production_rollback_or_cutover"
+  ],
+  "privacy": {
+    "repository_is_public": true,
+    "forbidden_publication_classes": [
+      "private_job_search_notes",
+      "private_vacancy_or_company_details",
+      "residential_or_street_address",
+      "protected_phone",
+      "credentials",
+      "secrets",
+      "tokens",
+      "other_nonpublic_personal_context"
+    ]
+  }
+}
