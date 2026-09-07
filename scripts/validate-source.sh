@@ -34,10 +34,13 @@ for required in \
     .gitignore \
     content/profile.json \
     content/profile.schema.json \
+    content/evidence.json \
     content/pdf-manifest.json \
     content/translations/en.json \
     content/translations/de.json \
     content/translations/lv.json \
+    bot/evidence.py \
+    bot/evidence_registry.json \
     bot/system_prompt.txt \
     frontend/index.html \
     frontend/smarthome.html \

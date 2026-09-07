@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "evidence": {
+    "portfolio-readme": {
+      "url": "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/README.md"
+    },
+    "cv-compose": {
+      "url": "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/docker-compose.yml"
+    },
+    "nginx-runtime-config": {
+      "url": "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/nginx.conf"
+    },
+    "cloudflare-dns-tls-guide": {
+      "url": "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/CLOUDFLARE.md"
+    },
+    "prometheus-stats-client": {
+      "url": "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/scripts/generate-stats.py"
+    },
+    "systemd-bash-installer": {
+      "url": "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/scripts/install-live-stats-systemd.sh"
+    },
+    "monitoring-project-source": {
+      "url": "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/frontend/index.html"
+    },
+    "ci-workflow": {
+      "url": "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/.github/workflows/ci.yml"
+    }
+  },
+  "skill_evidence": {
+    "Linux administration": [
+      "portfolio-readme",
+      "systemd-bash-installer"
+    ],
+    "Docker": [
+      "cv-compose",
+      "portfolio-readme"
+    ],
+    "Docker Compose": [
+      "cv-compose",
+      "portfolio-readme"
+    ],
+    "Bash": [
+      "systemd-bash-installer",
+      "monitoring-project-source"
+    ],
+    "Nginx": [
+      "nginx-runtime-config",
+      "cv-compose"
+    ],
+    "DNS": [
+      "cloudflare-dns-tls-guide"
+    ],
+    "SSL/TLS": [
+      "cloudflare-dns-tls-guide"
+    ],
+    "Prometheus": [
+      "prometheus-stats-client",
+      "monitoring-project-source"
+    ],
+    "Grafana": [
+      "monitoring-project-source"
+    ],
+    "systemd": [
+      "systemd-bash-installer",
+      "portfolio-readme"
+    ],
+    "Git": [
+      "ci-workflow",
+      "portfolio-readme"
+    ],
+    "Python": [
+      "prometheus-stats-client"
+    ],
+    "YAML": [
+      "ci-workflow",
+      "cv-compose"
+    ]
+  },
+  "project_evidence": {
+    "homelab": [
+      "portfolio-readme",
+      "cv-compose",
+      "nginx-runtime-config",
+      "cloudflare-dns-tls-guide"
+    ],
+    "observability": [
+      "portfolio-readme",
+      "prometheus-stats-client",
+      "systemd-bash-installer",
+      "monitoring-project-source"
+    ],
+    "maintenance": [
+      "systemd-bash-installer",
+      "monitoring-project-source"
+    ]
+  },
+  "project_titles": {
+    "homelab": "Self-hosted Linux server environment",
+    "observability": "Monitoring and observability",
+    "maintenance": "Automated maintenance"
+  },
+  "allowed_output_urls": [
+    "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/README.md",
+    "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/docker-compose.yml",
+    "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/nginx.conf",
+    "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/CLOUDFLARE.md",
+    "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/scripts/generate-stats.py",
+    "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/scripts/install-live-stats-systemd.sh",
+    "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/frontend/index.html",
+    "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/.github/workflows/ci.yml",
+    "https://github.com/rozkalnsandris",
+    "https://rozkalns.net/",
+    "https://rozkalns.net"
+  ]
+}
