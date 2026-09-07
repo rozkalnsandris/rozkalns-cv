@@ -13,6 +13,22 @@
     "lv": {
       "path": "html/cv-lv.pdf",
       "sha256": "fe996d1268d1bdecfc1202a4e2535b0c58bc9e89f9a9f2893bca50619251ab5d"
+    },
+    "devops-en": {
+      "path": "html/cv-devops.pdf",
+      "sha256": "9102cf4bec71847176079e6adf2a868c17b3c9d34a8fb6e4932d0238c526fa48"
+    },
+    "devops-de": {
+      "path": "html/cv-devops-de.pdf",
+      "sha256": "5968fd6f036fd21fb2265d94e2c679f9b37267a8480b00f40ff62f87e6dd58d1"
+    },
+    "linux-admin-en": {
+      "path": "html/cv-linux-admin.pdf",
+      "sha256": "5d1511b97cb294af80c91abd7c48a675bdaf9f65cc1db9ba40a36dbf8017a899"
+    },
+    "linux-admin-de": {
+      "path": "html/cv-linux-admin-de.pdf",
+      "sha256": "d2fc056f3b0c0843c33c08201b2964e681806eb25fb458fcdbceda6dfe629ee4"
     }
   }
 }

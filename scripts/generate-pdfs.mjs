@@ -7,7 +7,19 @@ import { setTimeout as delay } from 'node:timers/promises';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const LANGUAGES = ['en', 'de', 'lv'];
-const OUTPUTS = { en: 'html/cv.pdf', de: 'html/cv-de.pdf', lv: 'html/cv-lv.pdf' };
+const DEFAULT_PROJECTS = ['p1', 'p3', 'p2'];
+const DEVOPS_CORE_ORDER = [1, 2, 10, 3, 0, 7, 8, 4, 5, 6, 9];
+const LINUX_CORE_ORDER = [0, 9, 3, 4, 5, 6, 1, 2, 7, 8, 10];
+const PDF_CASES = [
+  { id: 'en', language: 'en', output: 'html/cv.pdf', variant: null, projects: DEFAULT_PROJECTS, coreOrder: null },
+  { id: 'de', language: 'de', output: 'html/cv-de.pdf', variant: null, projects: DEFAULT_PROJECTS, coreOrder: null },
+  { id: 'lv', language: 'lv', output: 'html/cv-lv.pdf', variant: null, projects: DEFAULT_PROJECTS, coreOrder: null },
+  { id: 'devops-en', language: 'en', output: 'html/cv-devops.pdf', variant: 'devops', projects: ['p3', 'p1', 'p2'], coreOrder: DEVOPS_CORE_ORDER },
+  { id: 'devops-de', language: 'de', output: 'html/cv-devops-de.pdf', variant: 'devops', projects: ['p3', 'p1', 'p2'], coreOrder: DEVOPS_CORE_ORDER },
+  { id: 'linux-admin-en', language: 'en', output: 'html/cv-linux-admin.pdf', variant: 'linux-admin', projects: DEFAULT_PROJECTS, coreOrder: LINUX_CORE_ORDER },
+  { id: 'linux-admin-de', language: 'de', output: 'html/cv-linux-admin-de.pdf', variant: 'linux-admin', projects: DEFAULT_PROJECTS, coreOrder: LINUX_CORE_ORDER }
+];
+const ROLE_ONLY_FLAG = '--role-variants-only';
 const TITLES = {
   en: 'Andris Rožkalns — CV',
   de: 'Andris Rožkalns — Lebenslauf',
@@ -23,9 +35,6 @@ const AVAILABILITY = {
   de: 'Verfügbar ab Januar 2027',
   lv: 'Pieejams no 2027. gada janvāra'
 };
-
-// Recruiter-first order: infrastructure -> observability -> differentiator.
-const SELECTED_PROJECTS = ['p1', 'p3', 'p2'];
 
 // Keep the full chronology while reducing non-IT visual dominance.
 const EXPERIENCE_BULLETS = {
@@ -60,7 +69,32 @@ function section(title, body) {
   return `<section class="section"><h2>${escapeHtml(title)}</h2>${body}</section>`;
 }
 
-function renderHtml(language, profile, messages) {
+function reorderItems(value, order, label) {
+  const items = required(value, label).split(' · ');
+  if (!order) return items.join(' · ');
+  if (items.length !== order.length || new Set(order).size !== items.length || order.some((index) => index < 0 || index >= items.length)) {
+    throw new Error(`invalid ${label} role order`);
+  }
+  return order.map((index) => items[index]).join(' · ');
+}
+
+function variantRole(language, profile, messages, variant) {
+  if (!variant) return required(messages.role, 'role');
+  if (language === 'en') {
+    const goal = required(profile.identity?.career_goal, 'identity.career_goal');
+    const match = goal.match(/^(.+?) or (.+?)(?:,|$)/);
+    if (!match) throw new Error('canonical career goal does not expose both role targets');
+    return variant === 'devops' ? match[1] : match[2];
+  }
+  if (language === 'de') {
+    const roles = required(messages.role, 'role').split(' / ');
+    if (roles.length !== 2) throw new Error('German canonical role does not expose both role targets');
+    return variant === 'devops' ? roles[0] : roles[1];
+  }
+  throw new Error(`role variants are not defined for ${language}`);
+}
+
+function renderHtml(language, profile, messages, pdfCase) {
   const identity = profile.identity;
   const contact = profile.contact;
 
@@ -89,7 +123,7 @@ function renderHtml(language, profile, messages) {
     </article>`;
   }).join('');
 
-  const projects = SELECTED_PROJECTS.map((prefix) => `<article class="project">
+  const projects = pdfCase.projects.map((prefix) => `<article class="project">
     <div class="project-title">${escapeHtml(required(messages[`${prefix}_title`], `${prefix}_title`))}</div>
     <div class="project-desc">${escapeHtml(required(messages[`pdf_${prefix}_desc`], `pdf_${prefix}_desc`))}</div>
   </article>`).join('');
@@ -101,10 +135,13 @@ function renderHtml(language, profile, messages) {
     foundations: 'pdf_skills_foundations_items'
   };
 
-  const skills = ['core', 'working', 'learning', 'foundations'].map((key) =>
-    `<div class="skill-label">${escapeHtml(required(messages[`skills_${key}`], `skills_${key}`))}</div>` +
-    `<div class="skill-items">${escapeHtml(required(messages[skillItemKeys[key]], skillItemKeys[key]))}</div>`
-  ).join('');
+  const skills = ['core', 'working', 'learning', 'foundations'].map((key) => {
+    const itemValue = key === 'core'
+      ? reorderItems(messages[skillItemKeys[key]], pdfCase.coreOrder, skillItemKeys[key])
+      : required(messages[skillItemKeys[key]], skillItemKeys[key]);
+    return `<div class="skill-label">${escapeHtml(required(messages[`skills_${key}`], `skills_${key}`))}</div>` +
+      `<div class="skill-items">${escapeHtml(itemValue)}</div>`;
+  }).join('');
 
   const education = [1, 2, 3].map((index) => `<article class="education-item">
     <div class="education-title">${escapeHtml(required(messages[`ed${index}_title`], `ed${index}_title`))}</div>
@@ -324,7 +361,7 @@ li::marker {
 <main class="page">
 <header>
   <h1>${escapeHtml(identity.name)}</h1>
-  <div class="role">${escapeHtml(required(messages.role, 'role'))}</div>
+  <div class="role">${escapeHtml(variantRole(language, profile, messages, pdfCase.variant))}</div>
   <div class="contact">
     <span>${escapeHtml(LOCATIONS[language])}</span>
     <span>${escapeHtml(AVAILABILITY[language])}</span>
@@ -360,7 +397,10 @@ async function findChrome() {
   const candidates = [process.env.CHROME_BIN, 'google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser'].filter(Boolean);
   for (const candidate of candidates) {
     const child = spawn(candidate, ['--version'], { stdio: 'ignore' });
-    const code = await new Promise((resolve) => child.once('exit', resolve));
+    const code = await new Promise((resolve) => {
+      child.once('error', () => resolve(null));
+      child.once('exit', resolve);
+    });
     if (code === 0) return candidate;
   }
   throw new Error('Chromium/Chrome not found; set CHROME_BIN');
@@ -439,6 +479,9 @@ function assertPdfStructure(bytes, language) {
 }
 
 async function main() {
+  const pdfCases = process.argv.includes(ROLE_ONLY_FLAG)
+    ? PDF_CASES.filter(({ variant }) => variant)
+    : PDF_CASES;
   const profile = JSON.parse(await readFile(join(ROOT, 'content/profile.json'), 'utf8'));
   const translations = Object.fromEntries(await Promise.all(LANGUAGES.map(async (language) => [language, JSON.parse(await readFile(join(ROOT, `content/translations/${language}.json`), 'utf8'))])));
   const chromeBin = await findChrome();
@@ -457,8 +500,9 @@ async function main() {
     cdp = new Cdp(target.webSocketDebuggerUrl);
     await cdp.open();
     await cdp.send('Page.enable');
-    for (const language of LANGUAGES) {
-      const html = renderHtml(language, profile, translations[language]);
+    for (const pdfCase of pdfCases) {
+      const { language, output } = pdfCase;
+      const html = renderHtml(language, profile, translations[language], pdfCase);
       const loaded = cdp.wait('Page.loadEventFired');
       await cdp.send('Page.navigate', { url: `data:text/html;base64,${Buffer.from(html).toString('base64')}` });
       await loaded;
@@ -487,8 +531,8 @@ async function main() {
       if (!result.data) throw new Error(`no PDF data for ${language}`);
       const bytes = Buffer.from(result.data, 'base64');
       assertPdfStructure(bytes, language);
-      await writeFile(join(ROOT, OUTPUTS[language]), bytes);
-      console.log(`PDF_GENERATED=${language}:${OUTPUTS[language]}:${bytes.length}`);
+      await writeFile(join(ROOT, output), bytes);
+      console.log(`PDF_GENERATED=${pdfCase.id}:${output}:${bytes.length}`);
     }
   } finally {
     try { cdp?.close(); } catch {}
