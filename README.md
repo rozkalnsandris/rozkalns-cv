@@ -13,6 +13,8 @@
   ·
   <a href="content/profile.json">Canonical CV data</a>
   ·
+  <a href="docs/ARCHITECTURE.md">Architecture</a>
+  ·
   <a href="frontend/">Frontend source</a>
   ·
   <a href="https://github.com/rozkalnsandris/rozkalns-cv/actions">Actions</a>
@@ -60,6 +62,10 @@ knowledge and technologies that are still being learned. `content/profile.json`
 is the canonical factual boundary for those claims.
 
 ## Architecture
+
+[Architecture & trust boundaries](docs/ARCHITECTURE.md) provides the concise
+recruiter/interviewer view of the request path, external providers, observability,
+source/release flow and the application-vs-shared-infrastructure ownership line.
 
 - Human-readable frontend source in `frontend/`
 - Deterministic Vite build output committed under `html/` for nginx deployment
