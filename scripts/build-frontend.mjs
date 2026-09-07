@@ -3,6 +3,7 @@ import { cp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { build } from "vite";
 import { LOCALIZED_LANGUAGES, renderLocalizedPages } from "./localize-frontend.mjs";
+import { bindProjectProof } from "./bind-project-proof.mjs";
 
 const root = resolve(import.meta.dirname, "..");
 const html = resolve(root, "html");
@@ -112,6 +113,7 @@ async function bindLocalizedIdentity() {
 await removeGeneratedFrontend();
 await withMinifiedTranslationSources(() => build({ configFile: resolve(root, "vite.config.mjs") }));
 await verifyGeneratedShape();
+await bindProjectProof({ root, htmlPath: resolve(html, "index.html") });
 await renderLocalizedPages({ root, htmlRoot: html });
 await compactGeneratedHtml();
 await bindLocalizedIdentity();
