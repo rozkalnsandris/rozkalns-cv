@@ -1,0 +1,5 @@
+Synthetische Anforderungen:
+- Linux und Compose
+- Python und YAML
+- Ansible Grundlagen
+- Jenkins

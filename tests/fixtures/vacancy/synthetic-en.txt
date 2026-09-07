@@ -1,0 +1,6 @@
+Synthetic role requirements:
+- Linux administration and Docker Compose
+- Python scripting and REST APIs
+- Terraform exposure
+- Kubernetes operations
+- Networking fundamentals
