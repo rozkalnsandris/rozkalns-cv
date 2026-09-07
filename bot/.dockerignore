@@ -8,6 +8,8 @@
 !chat_policy.py
 !config.py
 !contact.py
+!evidence.py
+!evidence_registry.json
 !notifier.py
 !provider.py
 !provider_capacity.py

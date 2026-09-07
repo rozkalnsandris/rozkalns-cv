@@ -179,6 +179,14 @@ class BotBehaviorTests(unittest.TestCase):
         response, _ = self._post("Question")
         self.assertEqual(response.get_data(as_text=True), "Hello world")
 
+    def test_supported_skill_question_appends_registry_evidence(self) -> None:
+        response, _ = self._post("What public proof do you have for Docker?")
+        body = response.get_data(as_text=True)
+        self.assertTrue(body.startswith("Hello world"))
+        self.assertIn("Public evidence:", body)
+        self.assertIn("cv-compose: https://github.com/rozkalnsandris/rozkalns-cv/blob/main/docker-compose.yml", body)
+        self.assertNotIn("https://example.com", body)
+
     def test_only_openai_luna_is_allowed(self) -> None:
         self.assertEqual(
             self.module.SUPPORTED_LLM_MODELS,

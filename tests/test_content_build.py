@@ -58,8 +58,9 @@ class CanonicalContentTests(unittest.TestCase):
         )
 
     def test_generated_prompt_uses_canonical_facts(self) -> None:
+        profile = builder.validate_profile(copy.deepcopy(self.profile))
         prompt = builder.build_system_prompt(
-            builder.validate_profile(copy.deepcopy(self.profile))
+            profile, builder.build_runtime_evidence(profile)
         )
         self.assertIn("Andris Rožkalns", prompt)
         self.assertIn("2027-01", prompt)

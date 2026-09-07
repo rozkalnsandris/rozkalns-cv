@@ -31,7 +31,7 @@ COPY requirements.txt ./requirements.txt
 RUN python -m pip install --require-hashes --no-deps -r requirements.txt
 
 COPY --chown=${APP_UID}:${APP_GID} \
-    app.py chat_admission.py chat_entry.py chat_policy.py config.py contact.py \
+    app.py chat_admission.py chat_entry.py chat_policy.py config.py contact.py evidence.py evidence_registry.json \
     notifier.py provider.py provider_capacity.py provider_notices.json provider_stream.py readiness.py storage.py \
     system_prompt.py system_prompt.txt turnstile.py ./
 RUN mkdir -p /app/data \
