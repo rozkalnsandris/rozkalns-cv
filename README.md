@@ -13,6 +13,8 @@
   ·
   <a href="content/profile.json">Canonical CV data</a>
   ·
+  <a href="docs/README.md">Documentation</a>
+  ·
   <a href="docs/ARCHITECTURE.md">Architecture</a>
   ·
   <a href="frontend/">Frontend source</a>
@@ -70,6 +72,13 @@ source/release flow and the application-vs-shared-infrastructure ownership line.
 [Troubleshooting & release case study](docs/TROUBLESHOOTING_CASE_STUDY.md) shows
 how a stale rollout-verifier assumption was isolated, corrected and locked with
 regression coverage using only public evidence.
+
+For source-level authority and documentation navigation, start with the
+[documentation index](docs/README.md), then use
+[project knowledge](docs/PROJECT_KNOWLEDGE.md) for the consolidated application
+boundary and the [build/deploy runbook](docs/BUILD_DEPLOY_RUNBOOK.md) for the
+reviewed release contract. These source documents do not by themselves prove
+current production/runtime state.
 
 - Human-readable frontend source in `frontend/`
 - Deterministic Vite build output committed under `html/` for nginx deployment

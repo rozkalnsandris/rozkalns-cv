@@ -5,13 +5,62 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 AGENTS = ROOT / "AGENTS.md"
-MIGRATION = ROOT / "docs" / "MIGRATION_RUNBOOK.md"
-KNOWLEDGE = ROOT / "docs" / "PROJECT_KNOWLEDGE.md"
-SUPPLY_CHAIN = ROOT / "docs" / "SUPPLY_CHAIN.md"
-PUBLIC_READINESS = ROOT / "docs" / "PUBLIC_READINESS.md"
-CONTENT_AUTHORING = ROOT / "docs" / "CONTENT_AUTHORING.md"
-FAST_LANE_V2_1 = ROOT / "docs" / "FAST_LANE_V2_1.md"
-FAST_LANE_V2_2 = ROOT / "docs" / "FAST_LANE_V2_2.md"
+ROOT_README = ROOT / "README.md"
+DOCS_ROOT = ROOT / "docs"
+DOCS_INDEX = DOCS_ROOT / "README.md"
+MIGRATION = DOCS_ROOT / "MIGRATION_RUNBOOK.md"
+KNOWLEDGE = DOCS_ROOT / "PROJECT_KNOWLEDGE.md"
+SUPPLY_CHAIN = DOCS_ROOT / "SUPPLY_CHAIN.md"
+PUBLIC_READINESS = DOCS_ROOT / "PUBLIC_READINESS.md"
+CONTENT_AUTHORING = DOCS_ROOT / "CONTENT_AUTHORING.md"
+FAST_LANE_V2_1 = DOCS_ROOT / "FAST_LANE_V2_1.md"
+FAST_LANE_V2_2 = DOCS_ROOT / "FAST_LANE_V2_2.md"
+
+CURRENT_AUTHORITY = {
+    "FAST_LANE_V2_2.md",
+    "PROJECT_KNOWLEDGE.md",
+}
+ARCHITECTURE_OPERATIONS = {
+    "ACCESSIBILITY_TESTING.md",
+    "ARCHITECTURE.md",
+    "BUILD_DEPLOY_RUNBOOK.md",
+    "CONTENT_AUTHORING.md",
+    "FRONTEND.md",
+    "LIVE_STATS.md",
+    "live-stats-scheduler.md",
+}
+SECURITY_PRIVACY = {
+    "CV_ASSISTANT_PRIVACY.md",
+    "CVBOT_CHAT_ADMISSION.md",
+    "CVBOT_CLIENT_SECRET.md",
+    "CVBOT_DATA_RETENTION.md",
+    "CVBOT_HEALTH.md",
+    "CVBOT_PROVIDER_STREAM.md",
+    "SUPPLY_CHAIN.md",
+}
+ENGINEERING_EVIDENCE = {
+    "TROUBLESHOOTING_CASE_STUDY.md",
+}
+HISTORICAL_EVIDENCE = {
+    "A11Y_C6_AUDIT.md",
+    "BRANCH_HYGIENE_AUDIT.md",
+    "C7_STATIC_AUDIT.md",
+    "C8_DELIVERY_AUDIT.md",
+    "C9_FINAL_ACCEPTANCE.md",
+    "CSS_C4_AUDIT.md",
+    "FAST_LANE_V2_1.md",
+    "MIGRATION_RUNBOOK.md",
+    "PUBLIC_READINESS.md",
+    "RESEARCH_PROVENANCE.md",
+    "ui-v2/README.md",
+}
+DOC_CLASSIFICATIONS = (
+    CURRENT_AUTHORITY,
+    ARCHITECTURE_OPERATIONS,
+    SECURITY_PRIVACY,
+    ENGINEERING_EVIDENCE,
+    HISTORICAL_EVIDENCE,
+)
 
 
 def compact_markdown(text: str) -> str:
@@ -19,6 +68,60 @@ def compact_markdown(text: str) -> str:
 
 
 class CurrentOperationalDocsTests(unittest.TestCase):
+    def test_docs_index_classifies_every_markdown_document_exactly_once(self) -> None:
+        index = DOCS_INDEX.read_text(encoding="utf-8")
+        compact = compact_markdown(index)
+
+        for heading in (
+            "## Current / authoritative source contracts",
+            "## Architecture / operations",
+            "## Security / privacy / assistant operations",
+            "## Engineering evidence / case studies",
+            "## Historical audits / evidence",
+            "## Classification contract",
+        ):
+            self.assertIn(heading, index)
+
+        for boundary in (
+            "GitHub remains canonical for mutable source, branch, issue, PR, CI and review state.",
+            "does not by itself prove current production/runtime state",
+            "They must not be used to determine current `main`, current production/runtime state, deploy status or the current work queue.",
+        ):
+            self.assertIn(boundary, compact)
+
+        classified: set[str] = set()
+        classified_count = 0
+        for category in DOC_CLASSIFICATIONS:
+            classified_count += len(category)
+            classified.update(category)
+            for relative in category:
+                self.assertIn(f"]({relative})", index)
+
+        self.assertEqual(classified_count, len(classified), "doc appears in multiple classifications")
+
+        actual = {
+            path.relative_to(DOCS_ROOT).as_posix()
+            for path in DOCS_ROOT.rglob("*.md")
+            if path != DOCS_INDEX
+        }
+        self.assertEqual(actual, classified)
+
+        current_section = index.split(
+            "## Current / authoritative source contracts", 1
+        )[1].split("## Architecture / operations", 1)[0]
+        for historical in HISTORICAL_EVIDENCE:
+            self.assertNotIn(f"]({historical})", current_section)
+
+    def test_root_readme_points_to_current_documentation_entrypoints(self) -> None:
+        compact = compact_markdown(ROOT_README.read_text(encoding="utf-8"))
+        for required in (
+            "docs/README.md",
+            "docs/PROJECT_KNOWLEDGE.md",
+            "docs/BUILD_DEPLOY_RUNBOOK.md",
+            "These source documents do not by themselves prove current production/runtime state.",
+        ):
+            self.assertIn(required, compact)
+
     def test_migration_runbook_is_archival_not_retired_runner_instructions(self) -> None:
         text = MIGRATION.read_text(encoding="utf-8")
         compact = compact_markdown(text)
