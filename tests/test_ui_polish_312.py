@@ -38,7 +38,7 @@ class RecruiterUiPolishTest(unittest.TestCase):
         self.assertNotIn('/smarthome.html', markup)
 
     def test_primary_projects_are_devops_first_case_studies_with_direct_proof(self) -> None:
-        projects = re.findall(r'<article class="project-entry primary">.*?</article>', INDEX, re.S)
+        projects = re.findall(r'<article class="project-entry primary"[^>]*>.*?</article>', INDEX, re.S)
         self.assertEqual(len(projects), 4)
         expected = (
             ("p7_title", "rozkalns-cv", "p7_ops"),
