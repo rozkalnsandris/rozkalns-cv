@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "canonical_profile": "content/profile.json",
+  "policy": {
+    "proficiency_source": "content/profile.json#skills",
+    "mapping_changes_proficiency": false,
+    "learning_default": "unproven",
+    "allowed_url_hosts": [
+      "github.com",
+      "rozkalns.net"
+    ]
+  },
+  "evidence": {
+    "portfolio-readme": {
+      "kind": "repository_file",
+      "repository": "rozkalnsandris/rozkalns-cv",
+      "path": "README.md",
+      "url": "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/README.md",
+      "project_ids": [
+        "homelab",
+        "observability"
+      ]
+    },
+    "cv-compose": {
+      "kind": "repository_file",
+      "repository": "rozkalnsandris/rozkalns-cv",
+      "path": "docker-compose.yml",
+      "url": "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/docker-compose.yml",
+      "project_ids": [
+        "homelab"
+      ]
+    },
+    "nginx-runtime-config": {
+      "kind": "repository_file",
+      "repository": "rozkalnsandris/rozkalns-cv",
+      "path": "nginx.conf",
+      "url": "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/nginx.conf",
+      "project_ids": [
+        "homelab"
+      ]
+    },
+    "cloudflare-dns-tls-guide": {
+      "kind": "repository_file",
+      "repository": "rozkalnsandris/rozkalns-cv",
+      "path": "CLOUDFLARE.md",
+      "url": "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/CLOUDFLARE.md",
+      "project_ids": [
+        "homelab"
+      ]
+    },
+    "prometheus-stats-client": {
+      "kind": "repository_file",
+      "repository": "rozkalnsandris/rozkalns-cv",
+      "path": "scripts/generate-stats.py",
+      "url": "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/scripts/generate-stats.py",
+      "project_ids": [
+        "observability"
+      ]
+    },
+    "systemd-bash-installer": {
+      "kind": "repository_file",
+      "repository": "rozkalnsandris/rozkalns-cv",
+      "path": "scripts/install-live-stats-systemd.sh",
+      "url": "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/scripts/install-live-stats-systemd.sh",
+      "project_ids": [
+        "observability",
+        "maintenance"
+      ]
+    },
+    "monitoring-project-source": {
+      "kind": "repository_file",
+      "repository": "rozkalnsandris/rozkalns-cv",
+      "path": "frontend/index.html",
+      "url": "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/frontend/index.html",
+      "project_ids": [
+        "observability",
+        "maintenance"
+      ]
+    },
+    "ci-workflow": {
+      "kind": "repository_file",
+      "repository": "rozkalnsandris/rozkalns-cv",
+      "path": ".github/workflows/ci.yml",
+      "url": "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/.github/workflows/ci.yml",
+      "project_ids": []
+    }
+  },
+  "skill_evidence": {
+    "Linux administration": [
+      "portfolio-readme",
+      "systemd-bash-installer"
+    ],
+    "Docker": [
+      "cv-compose",
+      "portfolio-readme"
+    ],
+    "Docker Compose": [
+      "cv-compose",
+      "portfolio-readme"
+    ],
+    "Bash": [
+      "systemd-bash-installer",
+      "monitoring-project-source"
+    ],
+    "Nginx": [
+      "nginx-runtime-config",
+      "cv-compose"
+    ],
+    "DNS": [
+      "cloudflare-dns-tls-guide"
+    ],
+    "SSL/TLS": [
+      "cloudflare-dns-tls-guide"
+    ],
+    "Prometheus": [
+      "prometheus-stats-client",
+      "monitoring-project-source"
+    ],
+    "Grafana": [
+      "monitoring-project-source"
+    ],
+    "systemd": [
+      "systemd-bash-installer",
+      "portfolio-readme"
+    ],
+    "Git": [
+      "ci-workflow",
+      "portfolio-readme"
+    ],
+    "Python": [
+      "prometheus-stats-client"
+    ],
+    "YAML": [
+      "ci-workflow",
+      "cv-compose"
+    ]
+  }
+}
