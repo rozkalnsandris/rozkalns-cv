@@ -67,6 +67,10 @@ is the canonical factual boundary for those claims.
 recruiter/interviewer view of the request path, external providers, observability,
 source/release flow and the application-vs-shared-infrastructure ownership line.
 
+[Troubleshooting & release case study](docs/TROUBLESHOOTING_CASE_STUDY.md) shows
+how a stale rollout-verifier assumption was isolated, corrected and locked with
+regression coverage using only public evidence.
+
 - Human-readable frontend source in `frontend/`
 - Deterministic Vite build output committed under `html/` for nginx deployment
 - Canonical CV data in `content/profile.json` and `content/translations/*.json`
