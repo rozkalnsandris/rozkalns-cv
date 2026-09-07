@@ -113,14 +113,14 @@ class CurrentOperationalDocsTests(unittest.TestCase):
             self.assertNotIn(f"]({historical})", current_section)
 
     def test_root_readme_points_to_current_documentation_entrypoints(self) -> None:
-        text = ROOT_README.read_text(encoding="utf-8")
+        compact = compact_markdown(ROOT_README.read_text(encoding="utf-8"))
         for required in (
             "docs/README.md",
             "docs/PROJECT_KNOWLEDGE.md",
             "docs/BUILD_DEPLOY_RUNBOOK.md",
             "These source documents do not by themselves prove current production/runtime state.",
         ):
-            self.assertIn(required, text)
+            self.assertIn(required, compact)
 
     def test_migration_runbook_is_archival_not_retired_runner_instructions(self) -> None:
         text = MIGRATION.read_text(encoding="utf-8")
