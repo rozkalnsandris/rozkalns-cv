@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import { build } from "vite";
 import { LOCALIZED_LANGUAGES, renderLocalizedPages } from "./localize-frontend.mjs";
 import { bindProjectProof } from "./bind-project-proof.mjs";
+import { bindEngineeringProof } from "./bind-engineering-proof.mjs";
 
 const root = resolve(import.meta.dirname, "..");
 const html = resolve(root, "html");
@@ -14,6 +15,9 @@ const localizedIdentityFiles = Object.freeze({
   en: "en/index.html",
   de: "de/index.html",
   lv: "lv/index.html",
+  proof_en: "en/proof/index.html",
+  proof_de: "de/proof/index.html",
+  proof_lv: "lv/proof/index.html",
   sitemap: "sitemap.xml"
 });
 
@@ -37,7 +41,11 @@ async function compactGeneratedHtml() {
   const paths = [
     resolve(html, "index.html"),
     resolve(html, "smarthome.html"),
-    ...LOCALIZED_LANGUAGES.map((language) => resolve(html, language, "index.html"))
+    resolve(html, "proof.html"),
+    ...LOCALIZED_LANGUAGES.flatMap((language) => [
+      resolve(html, language, "index.html"),
+      resolve(html, language, "proof", "index.html")
+    ])
   ];
   await Promise.all(paths.map(async (path) => {
     const source = await readFile(path, "utf8");
@@ -52,6 +60,7 @@ async function removeGeneratedFrontend() {
     rm(resolve(html, ".vite"), { recursive: true, force: true }),
     rm(resolve(html, "index.html"), { force: true }),
     rm(resolve(html, "smarthome.html"), { force: true }),
+    rm(resolve(html, "proof.html"), { force: true }),
     ...LOCALIZED_LANGUAGES.map((language) => rm(resolve(html, language), { recursive: true, force: true })),
     rm(committedManifest, { force: true })
   ]);
@@ -79,8 +88,8 @@ async function bindAppRepresentation(manifest) {
 async function verifyGeneratedShape() {
   const manifest = JSON.parse(await readFile(viteManifest, "utf8"));
   const htmlEntries = await readdir(html);
-  if (!htmlEntries.includes("index.html") || !htmlEntries.includes("smarthome.html")) {
-    throw new Error("Vite did not emit both HTML entry points");
+  if (!htmlEntries.includes("index.html") || !htmlEntries.includes("proof.html") || !htmlEntries.includes("smarthome.html")) {
+    throw new Error("Vite did not emit all HTML entry points");
   }
   const manifestRows = Object.values(manifest);
   if (!manifestRows.some((row) => row?.isEntry && row?.file?.startsWith("assets/"))) {
@@ -114,6 +123,7 @@ await removeGeneratedFrontend();
 await withMinifiedTranslationSources(() => build({ configFile: resolve(root, "vite.config.mjs") }));
 await verifyGeneratedShape();
 await bindProjectProof({ root, htmlPath: resolve(html, "index.html") });
+await bindEngineeringProof({ root, htmlPath: resolve(html, "proof.html") });
 await renderLocalizedPages({ root, htmlRoot: html });
 await compactGeneratedHtml();
 await bindLocalizedIdentity();

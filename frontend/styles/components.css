@@ -93,3 +93,4 @@
 .footer-card::before { content: ""; width: 7px; height: 7px; flex: 0 0 auto; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 4px rgba(36,122,82,.12); }
 .footer-card a { color: var(--accent-strong); font-weight: 750; text-decoration: none; }
 .footer-card a:hover { color: var(--accent); text-decoration: underline; }
+.proof-header,.proof-project,.proof-principle{padding:18px}.proof-main,.proof-grid,.proof-project-body{display:grid;gap:16px}.proof-main{margin-top:30px}.proof-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr))}.proof-skills,.proof-links{display:flex;flex-wrap:wrap;gap:7px}.proof-skill{font-size:11px}.proof-skill-level{color:var(--text-faint)}

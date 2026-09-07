@@ -17,6 +17,7 @@ export default defineConfig({
     rolldownOptions: {
       input: {
         app: resolve(frontendRoot, "index.html"),
+        proof: resolve(frontendRoot, "proof.html"),
         smarthome: resolve(frontendRoot, "smarthome.html")
       },
       output: {
