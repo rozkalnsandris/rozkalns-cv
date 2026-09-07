@@ -138,3 +138,33 @@ rolls back CV application failures.
 
 Real CV application secrets are stored only on the RPi5. Shared Cloudflare
 credentials are outside the CV application ownership boundary.
+
+## Local vacancy evidence-gap checker
+
+`scripts/check-vacancy-fit.py` compares vacancy text locally with the canonical
+skill taxonomy in `content/profile.json` and public proof in
+`content/evidence.json`. It is advisory only: it does not score ATS or hiring
+probability, change the CV, make network requests, or persist vacancy text.
+
+Use stdin for pasted text:
+
+```sh
+printf '%s\n' 'Linux Docker Compose Python Terraform Kubernetes' \
+  | python3 scripts/check-vacancy-fit.py
+```
+
+Or point it at an explicitly supplied local file. The path and source vacancy
+text are never included in the report:
+
+```sh
+python3 scripts/check-vacancy-fit.py --file /path/to/local-vacancy.txt
+python3 scripts/check-vacancy-fit.py --json < /path/to/local-vacancy.txt
+```
+
+The report keeps canonical proficiency boundaries: proven core skills require
+registry evidence, working and learning skills retain their profile level, and
+`foundations` are shown separately rather than being promoted. Unsupported
+recognized technology terms remain explicit `not_in_canonical_profile` gaps.
+The checker intentionally uses conservative local term matching; unrecognized
+free-form prose is not treated as a requirement and is never auto-added to CV
+content.
