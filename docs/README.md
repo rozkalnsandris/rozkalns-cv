@@ -3,7 +3,7 @@
 This index separates **current source-level guidance** from dated engineering evidence.
 GitHub remains canonical for mutable source, branch, issue, PR, CI and review state.
 Repository documentation describes reviewed source contracts and intended architecture; it
-does **not** by itself prove current production/runtime state, deployment state or the
+does not by itself prove current production/runtime state, deployment state or the
 active work queue. Revalidate those separately from fresh evidence when they matter.
 
 Repository operating authority starts in [`../AGENTS.md`](../AGENTS.md), which points to
