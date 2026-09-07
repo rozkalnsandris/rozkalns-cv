@@ -10,7 +10,9 @@
     "adoption_version": "2026-08-25.2"
   },
   "authority": {
-    "repository_rules": ["AGENTS.md"],
+    "repository_rules": [
+      "AGENTS.md"
+    ],
     "master_sources": [],
     "local_rules_override_when_stricter": true
   },
@@ -22,10 +24,18 @@
       "deploy_queue_source_reconciliation",
       "explicitly_ordered_next_roadmap_item"
     ],
-    "tie_breakers": ["explicit_phase_priority", "explicit_dependency_order"],
+    "tie_breakers": [
+      "explicit_phase_priority",
+      "explicit_dependency_order"
+    ],
     "unresolved_tie_result": "AMBIGUOUS_CANONICAL_LANE",
     "no_candidate_result": "IDLE",
-    "excluded_labels": ["automation-fixture", "do-not-merge", "superseded", "parked-historical"]
+    "excluded_labels": [
+      "automation-fixture",
+      "do-not-merge",
+      "superseded",
+      "parked-historical"
+    ]
   },
   "source_work": {
     "default_branch_direct_writes": false,
@@ -39,16 +49,29 @@
     "require_current_head_revalidation": true,
     "require_exact_head_ci": true,
     "require_review_thread_resolution": true,
-    "auto_merge": false
+    "auto_merge": false,
+    "conditional_issue_scoped_full": {
+      "policy_file": ".github/source-only-full.json",
+      "default_active": false,
+      "owner_activation_required": true,
+      "allows_squash_merge_when_active": true
+    }
   },
   "deploy": {
     "queue_repository": "rozkalnsandris/ops-workflows",
     "queue_prefix": "[DEPLOY-QUEUE]",
-    "executor_classes": ["repository-defined-trusted-executor"],
+    "executor_classes": [
+      "repository-defined-trusted-executor"
+    ],
     "executor_capability_affects_readiness": false
   },
   "security": {
     "repository_is_public": true,
-    "public_queue_forbidden_content": ["secrets", "credentials", "protected_configuration", "sensitive_logs"]
+    "public_queue_forbidden_content": [
+      "secrets",
+      "credentials",
+      "protected_configuration",
+      "sensitive_logs"
+    ]
   }
 }

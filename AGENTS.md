@@ -89,3 +89,17 @@ Every user-visible work-cycle response that ends or pauses repository work must 
 - When the current outcome is complete and no same-scope continuation remains, output `START rozkalns-cv`.
 - Give exactly one recommended command, not a menu. The response-format contract never grants authority by itself.
 <!-- END AGENT-WORK-CYCLE-V1-MANAGED -->
+
+## Repository-local source-only FULL mode
+
+Machine contract: `.github/source-only-full.json`.
+
+- Source-only FULL is **off by default**. Issue creation, issue text, labels, `START`, `SYNC`, `turpini`, FAST-LANE, GITHUB-ONLY and LIVE-ALL do not activate it.
+- The only activation form is an explicit owner command for one open issue: `AUTO-RUN FULL rozkalns-cv #<issue>`.
+- Activation freezes the issue scope, default branch, current base SHA and policy revision before the first mutation. Any scope expansion or unsafe drift fails closed.
+- While active, FULL may perform only the finite source-delivery mutation classes listed in `.github/source-only-full.json`, including branch/source/docs/tests/generated-artifact work, Draft PR, bounded scope-preserving corrections, Ready transition and exact-head squash merge when every machine merge condition is satisfied.
+- A FULL merge must bind the exact PR head SHA, revalidate the current head/base/policy state, require exact-head CI, require zero unresolved review threads and require no actionable review state.
+- Source-only FULL does not grant LIVE authority. It never authorizes production deploy/pull-deploy activation, host/runtime/container mutation, Cloudflare/DNS/account changes, OpenAI account/billing/API-key changes, secrets/tokens, permissions/repository settings, production/application data writes, rollback or cutover.
+- The public-repository privacy boundary remains unchanged: private job-search/vacancy/company context, residential or street address, protected phone data, credentials and other non-public personal context must not be copied into public source/issues merely because it exists in chat, Notion or another private source.
+- After any authorized mutation begins, tool error, timeout, unexpected failure, authorization ambiguity, privacy uncertainty, branch/head drift or merge-condition mismatch requires read-only evidence preservation and STOP. No automatic retry, rollback, cleanup or alternate mutation path is implied by FULL.
+- When FULL is not actively and validly bound to the current issue, the existing normal FAST-LANE rule applies: MERGE requires separate explicit owner authorization. FULL never implies deploy/LIVE authorization after merge.
