@@ -13,10 +13,17 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 LANGUAGES = ("en", "de", "lv")
-PDF_PATHS = {
-    "en": ROOT / "html" / "cv.pdf",
-    "de": ROOT / "html" / "cv-de.pdf",
-    "lv": ROOT / "html" / "cv-lv.pdf",
+DEFAULT_PROJECTS = ("p1", "p3", "p2")
+DEVOPS_CORE_ORDER = (1, 2, 10, 3, 0, 7, 8, 4, 5, 6, 9)
+LINUX_CORE_ORDER = (0, 9, 3, 4, 5, 6, 1, 2, 7, 8, 10)
+PDF_CASES = {
+    "en": {"language": "en", "path": ROOT / "html" / "cv.pdf", "variant": None, "projects": DEFAULT_PROJECTS, "core_order": None},
+    "de": {"language": "de", "path": ROOT / "html" / "cv-de.pdf", "variant": None, "projects": DEFAULT_PROJECTS, "core_order": None},
+    "lv": {"language": "lv", "path": ROOT / "html" / "cv-lv.pdf", "variant": None, "projects": DEFAULT_PROJECTS, "core_order": None},
+    "devops-en": {"language": "en", "path": ROOT / "html" / "cv-devops.pdf", "variant": "devops", "projects": ("p3", "p1", "p2"), "core_order": DEVOPS_CORE_ORDER},
+    "devops-de": {"language": "de", "path": ROOT / "html" / "cv-devops-de.pdf", "variant": "devops", "projects": ("p3", "p1", "p2"), "core_order": DEVOPS_CORE_ORDER},
+    "linux-admin-en": {"language": "en", "path": ROOT / "html" / "cv-linux-admin.pdf", "variant": "linux-admin", "projects": DEFAULT_PROJECTS, "core_order": LINUX_CORE_ORDER},
+    "linux-admin-de": {"language": "de", "path": ROOT / "html" / "cv-linux-admin-de.pdf", "variant": "linux-admin", "projects": DEFAULT_PROJECTS, "core_order": LINUX_CORE_ORDER},
 }
 MANIFEST_PATH = ROOT / "content" / "pdf-provenance.json"
 RENDERER_PATH = ROOT / "scripts" / "generate-pdfs.mjs"
@@ -95,7 +102,7 @@ def sha256_file(path: Path) -> str:
 def pdf_projection(profile: dict[str, Any], translations: dict[str, dict[str, str]]) -> dict[str, Any]:
     try:
         projection = {
-            "identity": {"name": profile["identity"]["name"]},
+            "identity": {"name": profile["identity"]["name"], "career_goal": profile["identity"]["career_goal"]},
             "contact": {
                 "email": profile["contact"]["email"],
                 "phone": profile["contact"]["phone"],
@@ -121,11 +128,11 @@ def expected_manifest(profile: dict[str, Any], translations: dict[str, dict[str,
         "pdf_source_sha256": sha256_bytes(canonical_json_bytes(projection)),
         "renderer_sha256": projection["renderer_sha256"],
         "pdfs": {
-            language: {
-                "path": str(path.relative_to(ROOT)),
-                "sha256": sha256_file(path),
+            case_id: {
+                "path": str(case["path"].relative_to(ROOT)),
+                "sha256": sha256_file(case["path"]),
             }
-            for language, path in PDF_PATHS.items()
+            for case_id, case in PDF_CASES.items()
         },
     }
 
@@ -149,6 +156,32 @@ def run_tool(args: list[str]) -> str:
 
 def normalize_text(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
+
+
+def ordered_core_items(messages: dict[str, str], order: tuple[int, ...] | None) -> str:
+    value = messages["skills_core_items"]
+    if order is None:
+        return value
+    items = value.split(" · ")
+    if len(items) != len(order) or set(order) != set(range(len(items))):
+        raise PdfCheckError("invalid role-focused core skill ordering")
+    return " · ".join(items[index] for index in order)
+
+
+def role_for_case(language: str, variant: str | None, profile: dict[str, Any], messages: dict[str, str]) -> str:
+    if variant is None:
+        return messages["role"]
+    if language == "en":
+        match = re.match(r"^(.+?) or (.+?)(?:,|$)", profile["identity"]["career_goal"])
+        if match is None:
+            raise PdfCheckError("canonical career goal does not expose both role targets")
+        return match.group(1) if variant == "devops" else match.group(2)
+    if language == "de":
+        roles = messages["role"].split(" / ")
+        if len(roles) != 2:
+            raise PdfCheckError("German canonical role does not expose both role targets")
+        return roles[0] if variant == "devops" else roles[1]
+    raise PdfCheckError(f"unsupported role-variant language: {language}")
 
 
 def assert_in_order(text: str, values: list[str], language: str) -> None:
@@ -182,7 +215,11 @@ def assert_pdf_link_targets(language: str, raw: str, expected_targets: tuple[str
             raise PdfCheckError(f"{language} PDF contains protected contact link target: {prefix!r}")
 
 
-def inspect_pdf(language: str, path: Path, profile: dict[str, Any], messages: dict[str, str]) -> None:
+def inspect_pdf(case_id: str, case: dict[str, Any], profile: dict[str, Any], messages: dict[str, str]) -> None:
+    language = case["language"]
+    path = case["path"]
+    role = role_for_case(language, case["variant"], profile, messages)
+    core_items = ordered_core_items(messages, case["core_order"])
     if shutil.which("pdfinfo") is None or shutil.which("pdftotext") is None:
         raise PdfCheckError("pdfinfo and pdftotext are required; install poppler-utils")
 
@@ -210,13 +247,13 @@ def inspect_pdf(language: str, path: Path, profile: dict[str, Any], messages: di
 
     expected = [
         profile["identity"]["name"],
-        messages["role"],
+        role,
         AVAILABILITY[language],
         profile["contact"]["email"]["value"],
         "github.com/rozkalnsandris",
         "rozkalns.net",
         messages["pdf_profile_summary"],
-        messages["skills_core_items"],
+        core_items,
         messages["pdf_skills_working_items"],
         messages["skills_learning_items"],
         messages["pdf_skills_foundations_items"],
@@ -250,9 +287,7 @@ def inspect_pdf(language: str, path: Path, profile: dict[str, Any], messages: di
         text,
         [
             messages["pdf_projects_title"],
-            messages["p1_title"],
-            messages["p3_title"],
-            messages["p2_title"],
+            *[messages[f"{prefix}_title"] for prefix in case["projects"]],
         ],
         language,
     )
@@ -280,8 +315,9 @@ def main() -> int:
             language: load_json(ROOT / "content" / "translations" / f"{language}.json")
             for language in LANGUAGES
         }
-        for language in LANGUAGES:
-            inspect_pdf(language, PDF_PATHS[language], profile, translations[language])
+        for case_id, case in PDF_CASES.items():
+            language = case["language"]
+            inspect_pdf(case_id, case, profile, translations[language])
         manifest = expected_manifest(profile, translations)
         if args.write:
             write_manifest(manifest)

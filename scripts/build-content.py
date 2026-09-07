@@ -384,6 +384,10 @@ def expected_pdf_manifest(content_sha256: str) -> dict[str, Any]:
         "en": ROOT / "html" / "cv.pdf",
         "de": ROOT / "html" / "cv-de.pdf",
         "lv": ROOT / "html" / "cv-lv.pdf",
+        "devops-en": ROOT / "html" / "cv-devops.pdf",
+        "devops-de": ROOT / "html" / "cv-devops-de.pdf",
+        "linux-admin-en": ROOT / "html" / "cv-linux-admin.pdf",
+        "linux-admin-de": ROOT / "html" / "cv-linux-admin-de.pdf",
     }
     result: dict[str, Any] = {
         "schema_version": 1,
