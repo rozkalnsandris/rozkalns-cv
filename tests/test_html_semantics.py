@@ -261,9 +261,14 @@ class HtmlSemanticTests(unittest.TestCase):
                 self.assertTrue(all(row.attrs.get("aria-pressed") in {"true", "false"} for row in controls))
             else:
                 self.assertTrue(all(row.tag == "a" for row in controls))
+                expected_hrefs = (
+                    {"en": "/en/proof/", "de": "/de/proof/", "lv": "/lv/proof/"}
+                    if path.name == "proof.html"
+                    else {"en": "/en/", "de": "/de/", "lv": "/lv/"}
+                )
                 self.assertEqual(
                     {row.attrs.get("data-lang"): row.attrs.get("href") for row in controls},
-                    {"en": "/en/", "de": "/de/", "lv": "/lv/"},
+                    expected_hrefs,
                 )
                 current = [row for row in controls if row.attrs.get("aria-current") == "page"]
                 self.assertEqual([row.attrs.get("data-lang") for row in current], ["en"])

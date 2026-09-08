@@ -35,6 +35,7 @@ for required in \
     content/profile.json \
     content/profile.schema.json \
     content/evidence.json \
+    content/proof.json \
     content/pdf-manifest.json \
     content/translations/en.json \
     content/translations/de.json \
@@ -43,6 +44,7 @@ for required in \
     bot/evidence_registry.json \
     bot/system_prompt.txt \
     frontend/index.html \
+    frontend/proof.html \
     frontend/smarthome.html \
     frontend/app.mjs \
     frontend/enhancements.mjs \
@@ -68,6 +70,7 @@ for required in \
     package-lock.json \
     vite.config.mjs \
     scripts/build-frontend.mjs \
+    scripts/bind-engineering-proof.mjs \
     scripts/check-frontend-dist.mjs \
     scripts/build-content.py \
     scripts/sync-system-prompt.py \

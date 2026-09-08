@@ -10,6 +10,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 INDEX = ROOT / "html" / "index.html"
 SMART = ROOT / "html" / "smarthome.html"
+PROOF = ROOT / "html" / "proof.html"
 FAVICON = ROOT / "html" / "favicon.svg"
 NGINX = ROOT / "nginx.conf"
 COMPOSE = ROOT / "docker-compose.yml"
@@ -67,7 +68,7 @@ class Parser(HTMLParser):
 
 class FrontendContractTests(unittest.TestCase):
     def test_html_has_no_inline_code_or_styles(self) -> None:
-        for path in (INDEX, SMART):
+        for path in (INDEX, SMART, PROOF, *(ROOT / f"html/{language}/proof/index.html" for language in ("en", "de", "lv"))):
             parser = Parser()
             text = path.read_text(encoding="utf-8")
             parser.feed(text)

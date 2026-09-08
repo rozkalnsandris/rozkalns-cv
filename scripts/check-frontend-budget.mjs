@@ -13,7 +13,8 @@ const LIMITS = {
   localeJsonBytes: 16 * 1024,
   appScriptBytes: 24 * 1024,
   stylesheetBytes: 48 * 1024,
-  photoBytes: 32 * 1024
+  photoBytes: 32 * 1024,
+  proofHtmlBytes: 20 * 1024
 };
 
 async function size(relativePath) {
@@ -59,6 +60,14 @@ for (const language of LANGUAGES) {
   for (const file of initialFiles) initialRawBytes += await size(file);
   assert.ok(initialRawBytes <= LIMITS.initialRawBytes, `${language} initial raw payload budget exceeded: ${initialRawBytes}`);
   console.log(`FRONTEND_BUDGET=${language}:${initialRawBytes}/${LIMITS.initialRawBytes}`);
+}
+
+for (const language of LANGUAGES) {
+  const proofPath = manifest._localized?.[`proof_${language}`]?.path;
+  assert.ok(proofPath, `missing localized proof HTML path: ${language}`);
+  const proofBytes = await size(proofPath);
+  assert.ok(proofBytes <= LIMITS.proofHtmlBytes, `${language} proof HTML budget exceeded: ${proofBytes}`);
+  console.log(`FRONTEND_PROOF_BUDGET=${language}:${proofBytes}/${LIMITS.proofHtmlBytes}`);
 }
 
 console.log("FRONTEND_BUDGET=PASS");
