@@ -154,7 +154,30 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          image='nginx:1.31.4-alpine@sha256:db35bfc6b2951e7f8a72db5db120288c127ffaeeb4a6d4b95a26fead017d5913'
+          image="$(python3 - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          data = json.loads(Path('security/supply-chain.json').read_text(encoding='utf-8'))
+          images = data.get('images', {})
+          nginx = [
+              (reference, digest)
+              for reference, digest in images.items()
+              if reference.startswith('nginx:')
+          ]
+          if len(nginx) != 1:
+              raise SystemExit(f'expected exactly one audited nginx image, got {len(nginx)}')
+          reference, digest = nginx[0]
+          if not re.fullmatch(r'nginx:[A-Za-z0-9._-]+', reference):
+              raise SystemExit(f'unexpected nginx reference: {reference!r}')
+          if not re.fullmatch(r'sha256:[0-9a-f]{64}', digest):
+              raise SystemExit(f'unexpected nginx digest: {digest!r}')
+          print(f'{reference}@{digest}')
+          PY
+          )"
+          [[ "$image" =~ ^nginx:[A-Za-z0-9._-]+@sha256:[0-9a-f]{64}$ ]]
+          grep -Fq "image: $image" docker-compose.yml
           docker run --rm \
             --add-host=cvbot:127.0.0.1 \
             --mount "type=bind,src=$PWD/nginx.conf,dst=/etc/nginx/conf.d/default.conf,readonly" \
