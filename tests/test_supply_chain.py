@@ -87,23 +87,41 @@ class SupplyChainContractTests(unittest.TestCase):
         manifest = json.loads(SUPPLY.read_text(encoding="utf-8"))
         self.assertEqual(manifest["schema_version"], 1)
         images = manifest["images"]
-        expected = {
+        expected_non_nginx = {
             "python:3.12.13-alpine3.24",
-            "nginx:1.31.5-alpine",
             "aquasec/trivy:0.72.0",
             "ghcr.io/gitleaks/gitleaks:v8.30.0",
         }
-        self.assertEqual(set(images), expected)
+        nginx_references = sorted(
+            reference for reference in images if reference.startswith("nginx:")
+        )
+        self.assertEqual(len(nginx_references), 1)
+        self.assertEqual(set(images) - set(nginx_references), expected_non_nginx)
         self.assertNotIn("cloudflare/cloudflared:2026.7.3", images)
         for reference, digest in images.items():
             self.assertRegex(digest, r"^sha256:[0-9a-f]{64}$")
             if reference.startswith("python:"):
                 self.assertIn(f"FROM {reference}@{digest}", dockerfile)
-            elif reference == "nginx:1.31.5-alpine":
+            elif reference.startswith("nginx:"):
+                self.assertRegex(reference, r"^nginx:[A-Za-z0-9._-]+$")
                 self.assertIn(f"image: {reference}@{digest}", compose)
         self.assertNotIn("cloudflare/cloudflared", compose)
         self.assertNotIn(":latest", compose)
         self.assertNotIn("FROM python:3.12\n", dockerfile)
+
+    def test_ci_nginx_smoke_uses_canonical_supply_chain_identity(self) -> None:
+        ci = CI.read_text(encoding="utf-8")
+        for marker in (
+            "Path('security/supply-chain.json')",
+            "if reference.startswith('nginx:')",
+            "expected exactly one audited nginx image",
+            'grep -Fq "image: $image" docker-compose.yml',
+        ):
+            self.assertIn(marker, ci)
+        self.assertNotRegex(
+            ci,
+            r"nginx:[0-9]+\.[0-9]+\.[0-9]+-alpine@sha256:[0-9a-f]{64}",
+        )
 
     def test_cvbot_pins_alpine_openssl_security_update(self) -> None:
         dockerfile = DOCKERFILE.read_text(encoding="utf-8")
