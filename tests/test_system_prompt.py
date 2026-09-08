@@ -17,6 +17,10 @@ class SystemPromptResourceTests(unittest.TestCase):
         prompt = load_system_prompt()
         self.assertIn("Andris Rožkalns", prompt)
         self.assertIn("Do not answer unrelated questions.", prompt)
+        self.assertIn("APPROVED PUBLIC EVIDENCE", prompt)
+        self.assertIn("cv-compose: https://github.com/rozkalnsandris/rozkalns-cv/blob/main/docker-compose.yml", prompt)
+        self.assertIn("application appends only approved public evidence links", prompt)
+        self.assertIn("English, German, or Latvian", prompt)
 
     def test_empty_prompt_fails_closed(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

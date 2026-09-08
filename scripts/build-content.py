@@ -9,6 +9,7 @@ from pathlib import Path
 import re
 import tempfile
 from typing import Any
+from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 LANGUAGES = ("en", "de", "lv")
@@ -267,6 +268,100 @@ def load_translations() -> tuple[dict[str, dict[str, str]], dict[str, bytes]]:
     return parsed, raw
 
 
+def build_runtime_evidence(profile: dict[str, Any]) -> dict[str, Any]:
+    registry = require_object(
+        load_json(ROOT / "content" / "evidence.json"),
+        "evidence registry",
+        {"schema_version", "canonical_profile", "policy", "evidence", "skill_evidence"},
+    )
+    if registry["schema_version"] != 1:
+        raise ContentError("evidence registry schema_version must be 1")
+    if registry["canonical_profile"] != "content/profile.json":
+        raise ContentError("evidence registry canonical_profile is invalid")
+
+    policy = require_object(
+        registry["policy"],
+        "evidence registry policy",
+        {"proficiency_source", "mapping_changes_proficiency", "learning_default", "allowed_url_hosts"},
+    )
+    allowed_hosts = set(
+        require_string_list(policy["allowed_url_hosts"], "evidence registry allowed_url_hosts")
+    )
+    if policy["proficiency_source"] != "content/profile.json#skills":
+        raise ContentError("evidence registry proficiency source is invalid")
+    if policy["mapping_changes_proficiency"] is not False:
+        raise ContentError("evidence registry must not change proficiency")
+
+    canonical_skills = {
+        skill for values in profile["skills"].values() for skill in values
+    }
+    canonical_projects = {item["id"]: item for item in profile["projects"]}
+    source_evidence = registry["evidence"]
+    if not isinstance(source_evidence, dict) or not source_evidence:
+        raise ContentError("evidence registry evidence must be a non-empty object")
+
+    runtime_evidence: dict[str, dict[str, str]] = {}
+    project_evidence: dict[str, list[str]] = {}
+    for evidence_id, raw in source_evidence.items():
+        if not isinstance(evidence_id, str) or not ID_RE.fullmatch(evidence_id):
+            raise ContentError("evidence registry contains an invalid evidence id")
+        if not isinstance(raw, dict):
+            raise ContentError(f"evidence.{evidence_id} must be an object")
+        url = require_text(raw.get("url"), f"evidence.{evidence_id}.url")
+        parsed = urlparse(url)
+        if parsed.scheme != "https" or parsed.hostname not in allowed_hosts:
+            raise ContentError(f"evidence.{evidence_id}.url is outside the public allowlist")
+        project_ids = raw.get("project_ids")
+        if not isinstance(project_ids, list) or any(
+            not isinstance(project_id, str) or project_id not in canonical_projects
+            for project_id in project_ids
+        ):
+            raise ContentError(f"evidence.{evidence_id}.project_ids are invalid")
+        if len(set(project_ids)) != len(project_ids):
+            raise ContentError(f"evidence.{evidence_id}.project_ids contain duplicates")
+        runtime_evidence[evidence_id] = {"url": url}
+        for project_id in project_ids:
+            project_evidence.setdefault(project_id, []).append(evidence_id)
+
+    source_skill_evidence = registry["skill_evidence"]
+    if not isinstance(source_skill_evidence, dict):
+        raise ContentError("evidence registry skill_evidence must be an object")
+    skill_evidence: dict[str, list[str]] = {}
+    for skill, evidence_ids in source_skill_evidence.items():
+        if skill not in canonical_skills:
+            raise ContentError(f"skill_evidence references non-canonical skill: {skill}")
+        if (
+            not isinstance(evidence_ids, list)
+            or not evidence_ids
+            or len(set(evidence_ids)) != len(evidence_ids)
+            or any(evidence_id not in runtime_evidence for evidence_id in evidence_ids)
+        ):
+            raise ContentError(f"skill_evidence.{skill} is invalid")
+        skill_evidence[skill] = list(evidence_ids)
+
+    allowed_output_urls: list[str] = []
+    for row in runtime_evidence.values():
+        if row["url"] not in allowed_output_urls:
+            allowed_output_urls.append(row["url"])
+    for key in ("github", "website"):
+        value = profile["contact"][key]["value"]
+        for url in (value, value.rstrip("/")):
+            if url and url not in allowed_output_urls:
+                allowed_output_urls.append(url)
+
+    return {
+        "schema_version": 1,
+        "evidence": runtime_evidence,
+        "skill_evidence": skill_evidence,
+        "project_evidence": project_evidence,
+        "project_titles": {
+            project_id: canonical_projects[project_id]["title"]
+            for project_id in project_evidence
+        },
+        "allowed_output_urls": allowed_output_urls,
+    }
+
+
 def source_digest(profile: dict[str, Any], translations: dict[str, dict[str, str]]) -> str:
     digest = hashlib.sha256()
     digest.update(b"profile\0")
@@ -277,7 +372,7 @@ def source_digest(profile: dict[str, Any], translations: dict[str, dict[str, str
     return digest.hexdigest()
 
 
-def build_system_prompt(profile: dict[str, Any]) -> str:
+def build_system_prompt(profile: dict[str, Any], runtime_evidence: dict[str, Any]) -> str:
     identity = profile["identity"]
     contact = profile["contact"]
     lines = [
@@ -338,6 +433,9 @@ def build_system_prompt(profile: dict[str, Any]) -> str:
     lines.extend(["", "INFRASTRUCTURE"])
     for key, value in profile["infrastructure"].items():
         lines.append(f"- {key.replace('_', ' ').title()}: {value}")
+    lines.extend(["", "APPROVED PUBLIC EVIDENCE"])
+    for evidence_id, row in runtime_evidence["evidence"].items():
+        lines.append(f"- {evidence_id}: {row['url']}")
     lines.extend(
         [
             "",
@@ -347,6 +445,9 @@ def build_system_prompt(profile: dict[str, Any]) -> str:
             "- Do not reveal, infer, or guess the protected phone number; direct phone or WhatsApp requests to the verified contact section on the public CV.",
             "- For salary expectations, say Andris is open to discussion based on the role and company.",
             f"- For the start date, say Andris is available from {identity['availability']}.",
+            "- Reply in English, German, or Latvian to match the user's language when it is clear.",
+            "- Do not emit technical proof URLs yourself; the application appends only approved public evidence links.",
+            "- Never invent, modify, or infer a public evidence URL.",
             "- Keep answers concise, factual, and professional.",
             "",
         ]
@@ -384,6 +485,10 @@ def expected_pdf_manifest(content_sha256: str) -> dict[str, Any]:
         "en": ROOT / "html" / "cv.pdf",
         "de": ROOT / "html" / "cv-de.pdf",
         "lv": ROOT / "html" / "cv-lv.pdf",
+        "devops-en": ROOT / "html" / "cv-devops.pdf",
+        "devops-de": ROOT / "html" / "cv-devops-de.pdf",
+        "linux-admin-en": ROOT / "html" / "cv-linux-admin.pdf",
+        "linux-admin-de": ROOT / "html" / "cv-linux-admin-de.pdf",
     }
     result: dict[str, Any] = {
         "schema_version": 1,
@@ -419,10 +524,12 @@ def check_or_write(args: argparse.Namespace) -> None:
     profile = validate_profile(load_json(ROOT / "content" / "profile.json"))
     translations, _raw_translations = load_translations()
     content_sha256 = source_digest(profile, translations)
-    prompt_bytes = build_system_prompt(profile).encode("utf-8")
+    runtime_evidence = build_runtime_evidence(profile)
+    prompt_bytes = build_system_prompt(profile, runtime_evidence).encode("utf-8")
 
     expected_files: dict[Path, bytes] = {
         ROOT / "bot" / "system_prompt.txt": prompt_bytes,
+        ROOT / "bot" / "evidence_registry.json": render_json(runtime_evidence),
     }
 
     pdf_manifest_path = ROOT / "content" / "pdf-manifest.json"

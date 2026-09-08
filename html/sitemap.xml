@@ -21,4 +21,25 @@
     <xhtml:link rel="alternate" hreflang="lv" href="https://rozkalns.net/lv/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://rozkalns.net/en/"/>
   </url>
+  <url>
+    <loc>https://rozkalns.net/en/proof/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://rozkalns.net/en/proof/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://rozkalns.net/de/proof/"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://rozkalns.net/lv/proof/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://rozkalns.net/en/proof/"/>
+  </url>
+  <url>
+    <loc>https://rozkalns.net/de/proof/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://rozkalns.net/en/proof/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://rozkalns.net/de/proof/"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://rozkalns.net/lv/proof/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://rozkalns.net/en/proof/"/>
+  </url>
+  <url>
+    <loc>https://rozkalns.net/lv/proof/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://rozkalns.net/en/proof/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://rozkalns.net/de/proof/"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://rozkalns.net/lv/proof/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://rozkalns.net/en/proof/"/>
+  </url>
 </urlset>

@@ -28,6 +28,7 @@ from chat_admission import (
 )
 from chat_policy import ProtectedContactPolicy, ProtectedContactStreamGuard
 from config import SUPPORTED_LLM_MODELS, Settings, VerificationRateConfig
+from evidence import ApprovedUrlStreamGuard, EvidenceRegistry
 from contact import (
     ContactVerificationError,
     load_contact_config,
@@ -239,6 +240,7 @@ def create_app(
     notifier: TelegramNotifier | None = None,
     contact_config=None,
     system_prompt: str | None = None,
+    evidence_registry: EvidenceRegistry | None = None,
     verification_rate: VerificationRateConfig | None = None,
     start_maintenance: bool = True,
 ) -> Flask:
@@ -252,6 +254,9 @@ def create_app(
     )
     contacts = load_contact_config() if contact_config is None else contact_config
     prompt = load_system_prompt() if system_prompt is None else system_prompt
+    active_evidence = (
+        EvidenceRegistry.load() if evidence_registry is None else evidence_registry
+    )
     active_store = store or AssistantStore(
         active.db_path,
         per_client_hour=active.rate_per_ip_hour,
@@ -296,6 +301,7 @@ def create_app(
         "notifier": active_notifier,
         "contact_config": contacts,
         "system_prompt": prompt,
+        "evidence_registry": active_evidence,
         "verification_rate": active_verification_rate,
     }
 
@@ -506,7 +512,35 @@ def create_app(
 
         def generate():
             full_reply: list[str] = []
-            guard = ProtectedContactStreamGuard(output_policy)
+            contact_guard = ProtectedContactStreamGuard(output_policy)
+            url_guard = ApprovedUrlStreamGuard(active_evidence.allowed_output_urls)
+
+            def policy_blocked() -> bool:
+                return contact_guard.blocked or url_guard.blocked
+
+            def policy_feed(chunk: str) -> list[str]:
+                emitted: list[str] = []
+                for contact_safe in contact_guard.feed(chunk):
+                    if contact_guard.blocked:
+                        emitted.append(contact_safe)
+                        break
+                    emitted.extend(url_guard.feed(contact_safe))
+                    if url_guard.blocked:
+                        break
+                return emitted
+
+            def policy_finish() -> list[str]:
+                emitted: list[str] = []
+                for contact_safe in contact_guard.finish():
+                    if contact_guard.blocked:
+                        emitted.append(contact_safe)
+                        return emitted
+                    emitted.extend(url_guard.feed(contact_safe))
+                    if url_guard.blocked:
+                        return emitted
+                emitted.extend(url_guard.finish())
+                return emitted
+
             parser = ProviderStreamParser()
             started_at = time.monotonic()
             status = "protocol_error"
@@ -522,35 +556,46 @@ def create_app(
                     for line in upstream.iter_lines(decode_unicode=True):
                         for event in parser.feed_line(line):
                             if event.kind == "content":
-                                for safe_chunk in guard.feed(event.content):
+                                for safe_chunk in policy_feed(event.content):
                                     full_reply.append(safe_chunk)
                                     yield safe_chunk
-                                if guard.blocked:
+                                if policy_blocked():
                                     status = "policy_blocked"
                                     persist_answer = True
                                     break
                             elif event.kind == "terminal":
                                 finish_reason = event.finish_reason
-                        if guard.blocked:
+                        if policy_blocked():
                             break
 
-                    if guard.blocked:
+                    if policy_blocked():
                         status = "policy_blocked"
                     else:
                         parser.finish_eof()
                         finish_reason = parser.finish_reason
                         if finish_reason == "stop":
-                            for safe_chunk in guard.finish():
+                            for safe_chunk in policy_finish():
                                 full_reply.append(safe_chunk)
                                 yield safe_chunk
-                            status = "success"
+                            if policy_blocked():
+                                status = "policy_blocked"
+                            else:
+                                appendix = active_evidence.render_appendix(user_msg)
+                                if appendix:
+                                    full_reply.append(appendix)
+                                    yield appendix
+                                status = "success"
                             persist_answer = True
                         elif finish_reason == "length":
-                            for safe_chunk in guard.finish():
+                            for safe_chunk in policy_finish():
                                 full_reply.append(safe_chunk)
                                 yield safe_chunk
-                            status = "length"
-                            yield _provider_notice(status)
+                            if policy_blocked():
+                                status = "policy_blocked"
+                                persist_answer = True
+                            else:
+                                status = "length"
+                                yield _provider_notice(status)
                         elif finish_reason in {
                             "content_filter",
                             "provider_failed",

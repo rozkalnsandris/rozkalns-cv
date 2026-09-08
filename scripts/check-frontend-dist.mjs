@@ -35,6 +35,9 @@ const expectedLocalizedIdentity = Object.freeze({
   en: "en/index.html",
   de: "de/index.html",
   lv: "lv/index.html",
+  proof_en: "en/proof/index.html",
+  proof_de: "de/proof/index.html",
+  proof_lv: "lv/proof/index.html",
   sitemap: "sitemap.xml"
 });
 assert.deepEqual(
@@ -84,13 +87,20 @@ assert.deepEqual(
 
 const indexHtml = await readFile(resolve(htmlRoot, "index.html"), "utf8");
 const smartHtml = await readFile(resolve(htmlRoot, "smarthome.html"), "utf8");
+const proofHtml = await readFile(resolve(htmlRoot, "proof.html"), "utf8");
 const localizedHtml = Object.fromEntries(await Promise.all(
   ["en", "de", "lv"].map(async (language) => [
     language,
     await readFile(resolve(htmlRoot, language, "index.html"), "utf8")
   ])
 ));
-for (const [name, text] of [["index", indexHtml], ["smarthome", smartHtml], ...Object.entries(localizedHtml)]) {
+const localizedProofHtml = Object.fromEntries(await Promise.all(
+  ["en", "de", "lv"].map(async (language) => [
+    `proof_${language}`,
+    await readFile(resolve(htmlRoot, language, "proof", "index.html"), "utf8")
+  ])
+));
+for (const [name, text] of [["index", indexHtml], ["smarthome", smartHtml], ["proof", proofHtml], ...Object.entries(localizedHtml), ...Object.entries(localizedProofHtml)]) {
   assert.doesNotMatch(text, /(?:src|href)="\.\//, `${name} HTML still contains source-relative frontend references`);
   for (const path of text.matchAll(/(?:src|href)="\/(assets\/[^"?#]+)/g)) {
     assert.ok(referenced.has(path[1]), `${name} HTML references an asset outside the manifest: ${path[1]}`);
@@ -115,6 +125,7 @@ assert.doesNotMatch(smartHtml, /\?cfg=[0-9a-f]{12}/, "Smart Home HTML has an une
 
 for (const source of [
   "frontend/index.html",
+  "frontend/proof.html",
   "frontend/smarthome.html",
   "frontend/app.mjs",
   "frontend/enhancements.mjs",
@@ -135,7 +146,8 @@ for (const source of [
   "frontend/styles/features/smarthome.css",
   "frontend/styles/responsive.css",
   "frontend/styles/print.css",
-  "scripts/localize-frontend.mjs"
+  "scripts/localize-frontend.mjs",
+  "scripts/bind-engineering-proof.mjs"
 ]) {
   const text = await readFile(resolve(root, source), "utf8");
   assert.doesNotMatch(text, /\/(?:assets|i18n)\/[^"'`\s]+\.[0-9a-f]{12}\./, `${source} contains a generated fingerprint`);
@@ -163,7 +175,11 @@ const budgets = {
   englishHtml: [(await stat(resolve(htmlRoot, "en", "index.html"))).size, 32_000],
   germanHtml: [(await stat(resolve(htmlRoot, "de", "index.html"))).size, 32_000],
   latvianHtml: [(await stat(resolve(htmlRoot, "lv", "index.html"))).size, 32_000],
-  smartHomeHtml: [(await stat(resolve(htmlRoot, "smarthome.html"))).size, 5_000]
+  smartHomeHtml: [(await stat(resolve(htmlRoot, "smarthome.html"))).size, 5_000],
+  proofHtml: [(await stat(resolve(htmlRoot, "proof.html"))).size, 18_000],
+  proofEnglishHtml: [(await stat(resolve(htmlRoot, "en", "proof", "index.html"))).size, 18_000],
+  proofGermanHtml: [(await stat(resolve(htmlRoot, "de", "proof", "index.html"))).size, 18_000],
+  proofLatvianHtml: [(await stat(resolve(htmlRoot, "lv", "proof", "index.html"))).size, 18_000]
 };
 for (const [name, [bytes, limit]] of Object.entries(budgets)) {
   assert.ok(bytes <= limit, `${name} exceeds budget: ${bytes} > ${limit}`);

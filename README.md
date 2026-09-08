@@ -13,6 +13,10 @@
   ·
   <a href="content/profile.json">Canonical CV data</a>
   ·
+  <a href="docs/README.md">Documentation</a>
+  ·
+  <a href="docs/ARCHITECTURE.md">Architecture</a>
+  ·
   <a href="frontend/">Frontend source</a>
   ·
   <a href="https://github.com/rozkalnsandris/rozkalns-cv/actions">Actions</a>
@@ -60,6 +64,21 @@ knowledge and technologies that are still being learned. `content/profile.json`
 is the canonical factual boundary for those claims.
 
 ## Architecture
+
+[Architecture & trust boundaries](docs/ARCHITECTURE.md) provides the concise
+recruiter/interviewer view of the request path, external providers, observability,
+source/release flow and the application-vs-shared-infrastructure ownership line.
+
+[Troubleshooting & release case study](docs/TROUBLESHOOTING_CASE_STUDY.md) shows
+how a stale rollout-verifier assumption was isolated, corrected and locked with
+regression coverage using only public evidence.
+
+For source-level authority and documentation navigation, start with the
+[documentation index](docs/README.md), then use
+[project knowledge](docs/PROJECT_KNOWLEDGE.md) for the consolidated application
+boundary and the [build/deploy runbook](docs/BUILD_DEPLOY_RUNBOOK.md) for the
+reviewed release contract. These source documents do not by themselves prove
+current production/runtime state.
 
 - Human-readable frontend source in `frontend/`
 - Deterministic Vite build output committed under `html/` for nginx deployment
@@ -119,3 +138,33 @@ rolls back CV application failures.
 
 Real CV application secrets are stored only on the RPi5. Shared Cloudflare
 credentials are outside the CV application ownership boundary.
+
+## Local vacancy evidence-gap checker
+
+`scripts/check-vacancy-fit.py` compares vacancy text locally with the canonical
+skill taxonomy in `content/profile.json` and public proof in
+`content/evidence.json`. It is advisory only: it does not score ATS or hiring
+probability, change the CV, make network requests, or persist vacancy text.
+
+Use stdin for pasted text:
+
+```sh
+printf '%s\n' 'Linux Docker Compose Python Terraform Kubernetes' \
+  | python3 scripts/check-vacancy-fit.py
+```
+
+Or point it at an explicitly supplied local file. The path and source vacancy
+text are never included in the report:
+
+```sh
+python3 scripts/check-vacancy-fit.py --file /path/to/local-vacancy.txt
+python3 scripts/check-vacancy-fit.py --json < /path/to/local-vacancy.txt
+```
+
+The report keeps canonical proficiency boundaries: proven core skills require
+registry evidence, working and learning skills retain their profile level, and
+`foundations` are shown separately rather than being promoted. Unsupported
+recognized technology terms remain explicit `not_in_canonical_profile` gaps.
+The checker intentionally uses conservative local term matching; unrecognized
+free-form prose is not treated as a requirement and is never auto-added to CV
+content.

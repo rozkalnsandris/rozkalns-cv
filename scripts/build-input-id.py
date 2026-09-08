@@ -14,6 +14,8 @@ CVBOT_DOCKER_COPY_INPUTS = (
     "bot/chat_policy.py",
     "bot/config.py",
     "bot/contact.py",
+    "bot/evidence.py",
+    "bot/evidence_registry.json",
     "bot/notifier.py",
     "bot/provider.py",
     "bot/provider_capacity.py",

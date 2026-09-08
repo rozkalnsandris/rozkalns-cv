@@ -14,6 +14,9 @@ IDENTITY_PATHS = {
     "en": "en/index.html",
     "de": "de/index.html",
     "lv": "lv/index.html",
+    "proof_en": "en/proof/index.html",
+    "proof_de": "de/proof/index.html",
+    "proof_lv": "lv/proof/index.html",
     "sitemap": "sitemap.xml",
 }
 

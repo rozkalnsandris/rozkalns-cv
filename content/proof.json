@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "canonical_profile": "content/profile.json",
+  "canonical_evidence": "content/evidence.json",
+  "canonical_skill_labels": "content/skill-labels.json",
+  "featured_project_ids": [
+    "homelab",
+    "observability",
+    "maintenance"
+  ],
+  "lesson_evidence_id": "portfolio-readme",
+  "i18n": {
+    "en": {
+      "link_label": "Engineering proof",
+      "skip": "Skip to proof content",
+      "kicker": "Portfolio evidence",
+      "page_title": "Engineering proof",
+      "meta_title": "Engineering proof · Andris Rožkalns",
+      "meta_description": "Evidence-backed engineering projects from Andris Rožkalns, linked to public source and canonical skill levels.",
+      "intro": "Three CV-defined projects with public source evidence, operating details and proficiency labels taken from the canonical CV sources.",
+      "projects_heading": "Evidence-backed projects",
+      "summary_label": "What it shows",
+      "operations_label": "Operations",
+      "skills_label": "Technologies & proficiency",
+      "evidence_label": "Public evidence",
+      "lesson_title": "Engineering principle",
+      "lesson_body": "Source readiness and production state are kept separate. Public proof here points to reviewable source rather than claiming that a component is currently live.",
+      "lesson_link": "Review the source evidence",
+      "back_cv": "Back to CV",
+      "github": "GitHub profile"
+    },
+    "de": {
+      "link_label": "Technische Nachweise",
+      "skip": "Direkt zu den technischen Nachweisen",
+      "kicker": "Portfolio-Nachweise",
+      "page_title": "Technische Nachweise",
+      "meta_title": "Technische Nachweise · Andris Rožkalns",
+      "meta_description": "Öffentlich belegte Engineering-Projekte von Andris Rožkalns mit Quellnachweisen und kanonischen Kompetenzstufen.",
+      "intro": "Drei im CV definierte Projekte mit öffentlichen Quellnachweisen, Betriebsdetails und Kompetenzstufen aus den kanonischen CV-Quellen.",
+      "projects_heading": "Belegte Projekte",
+      "summary_label": "Was es zeigt",
+      "operations_label": "Betrieb",
+      "skills_label": "Technologien & Kompetenzstufe",
+      "evidence_label": "Öffentliche Nachweise",
+      "lesson_title": "Engineering-Grundsatz",
+      "lesson_body": "Source-Reife und Produktionsstatus werden getrennt behandelt. Die Nachweise hier verweisen auf prüfbaren Quellcode, ohne zu behaupten, dass eine Komponente aktuell live ist.",
+      "lesson_link": "Quellnachweis ansehen",
+      "back_cv": "Zurück zum CV",
+      "github": "GitHub-Profil"
+    },
+    "lv": {
+      "link_label": "Tehniskie pierādījumi",
+      "skip": "Pāriet uz tehniskajiem pierādījumiem",
+      "kicker": "Portfolio pierādījumi",
+      "page_title": "Tehniskie pierādījumi",
+      "meta_title": "Tehniskie pierādījumi · Andris Rožkalns",
+      "meta_description": "Publiski pamatoti Andra Rožkalna tehniskie projekti ar avota pierādījumiem un kanoniskajiem prasmju līmeņiem.",
+      "intro": "Trīs CV avotā definēti projekti ar publiskiem avota pierādījumiem, darbības informāciju un prasmju līmeņiem no kanoniskajiem CV avotiem.",
+      "projects_heading": "Ar pierādījumiem pamatoti projekti",
+      "summary_label": "Ko tas parāda",
+      "operations_label": "Darbība",
+      "skills_label": "Tehnoloģijas un prasmju līmenis",
+      "evidence_label": "Publiskie pierādījumi",
+      "lesson_title": "Inženierijas princips",
+      "lesson_body": "Avota gatavība un produkcijas vides stāvoklis tiek nodalīti. Šeit dotie pierādījumi ved uz pārbaudāmu publisku avotu, neapgalvojot, ka komponents pašlaik darbojas produkcijā.",
+      "lesson_link": "Apskatīt avota pierādījumu",
+      "back_cv": "Atpakaļ uz CV",
+      "github": "GitHub profils"
+    }
+  }
+}
