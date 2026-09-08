@@ -348,7 +348,7 @@ function assertInitialResourceShape(requests) {
     /^\/en\/$/,
     /^\/assets\/app\.[0-9a-f]{12}\.mjs$/,
     /^\/assets\/i18n\.[0-9a-f]{12}\.mjs$/,
-    /^\/assets\/i18n\.[0-9a-f]{12}\.css$/,
+    /^\/assets\/styles\.[0-9a-f]{12}\.css$/,
     /^\/assets\/photo\.[0-9a-f]{12}\.webp$/,
     /^\/i18n\/en\.[0-9a-f]{12}\.json$/
   ]) {
