@@ -1,0 +1,553 @@
+{
+  "bomFormat": "CycloneDX",
+  "components": [
+    {
+      "bom-ref": "pkg:npm/%40oxc-project/types@0.144.0",
+      "name": "@oxc-project/types",
+      "purl": "pkg:npm/%40oxc-project/types@0.144.0",
+      "scope": "excluded",
+      "type": "library",
+      "version": "0.144.0"
+    },
+    {
+      "bom-ref": "pkg:npm/%40rolldown/binding-android-arm64@1.2.4",
+      "name": "@rolldown/binding-android-arm64",
+      "purl": "pkg:npm/%40rolldown/binding-android-arm64@1.2.4",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.2.4"
+    },
+    {
+      "bom-ref": "pkg:npm/%40rolldown/binding-darwin-arm64@1.2.4",
+      "name": "@rolldown/binding-darwin-arm64",
+      "purl": "pkg:npm/%40rolldown/binding-darwin-arm64@1.2.4",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.2.4"
+    },
+    {
+      "bom-ref": "pkg:npm/%40rolldown/binding-darwin-x64@1.2.4",
+      "name": "@rolldown/binding-darwin-x64",
+      "purl": "pkg:npm/%40rolldown/binding-darwin-x64@1.2.4",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.2.4"
+    },
+    {
+      "bom-ref": "pkg:npm/%40rolldown/binding-freebsd-x64@1.2.4",
+      "name": "@rolldown/binding-freebsd-x64",
+      "purl": "pkg:npm/%40rolldown/binding-freebsd-x64@1.2.4",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.2.4"
+    },
+    {
+      "bom-ref": "pkg:npm/%40rolldown/binding-linux-arm-gnueabihf@1.2.4",
+      "name": "@rolldown/binding-linux-arm-gnueabihf",
+      "purl": "pkg:npm/%40rolldown/binding-linux-arm-gnueabihf@1.2.4",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.2.4"
+    },
+    {
+      "bom-ref": "pkg:npm/%40rolldown/binding-linux-arm64-gnu@1.2.4",
+      "name": "@rolldown/binding-linux-arm64-gnu",
+      "purl": "pkg:npm/%40rolldown/binding-linux-arm64-gnu@1.2.4",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.2.4"
+    },
+    {
+      "bom-ref": "pkg:npm/%40rolldown/binding-linux-arm64-musl@1.2.4",
+      "name": "@rolldown/binding-linux-arm64-musl",
+      "purl": "pkg:npm/%40rolldown/binding-linux-arm64-musl@1.2.4",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.2.4"
+    },
+    {
+      "bom-ref": "pkg:npm/%40rolldown/binding-linux-ppc64-gnu@1.2.4",
+      "name": "@rolldown/binding-linux-ppc64-gnu",
+      "purl": "pkg:npm/%40rolldown/binding-linux-ppc64-gnu@1.2.4",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.2.4"
+    },
+    {
+      "bom-ref": "pkg:npm/%40rolldown/binding-linux-s390x-gnu@1.2.4",
+      "name": "@rolldown/binding-linux-s390x-gnu",
+      "purl": "pkg:npm/%40rolldown/binding-linux-s390x-gnu@1.2.4",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.2.4"
+    },
+    {
+      "bom-ref": "pkg:npm/%40rolldown/binding-linux-x64-gnu@1.2.4",
+      "name": "@rolldown/binding-linux-x64-gnu",
+      "purl": "pkg:npm/%40rolldown/binding-linux-x64-gnu@1.2.4",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.2.4"
+    },
+    {
+      "bom-ref": "pkg:npm/%40rolldown/binding-linux-x64-musl@1.2.4",
+      "name": "@rolldown/binding-linux-x64-musl",
+      "purl": "pkg:npm/%40rolldown/binding-linux-x64-musl@1.2.4",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.2.4"
+    },
+    {
+      "bom-ref": "pkg:npm/%40rolldown/binding-openharmony-arm64@1.2.4",
+      "name": "@rolldown/binding-openharmony-arm64",
+      "purl": "pkg:npm/%40rolldown/binding-openharmony-arm64@1.2.4",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.2.4"
+    },
+    {
+      "bom-ref": "pkg:npm/%40rolldown/binding-win32-arm64-msvc@1.2.4",
+      "name": "@rolldown/binding-win32-arm64-msvc",
+      "purl": "pkg:npm/%40rolldown/binding-win32-arm64-msvc@1.2.4",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.2.4"
+    },
+    {
+      "bom-ref": "pkg:npm/%40rolldown/binding-win32-x64-msvc@1.2.4",
+      "name": "@rolldown/binding-win32-x64-msvc",
+      "purl": "pkg:npm/%40rolldown/binding-win32-x64-msvc@1.2.4",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.2.4"
+    },
+    {
+      "bom-ref": "pkg:npm/%40rolldown/pluginutils@1.0.1",
+      "name": "@rolldown/pluginutils",
+      "purl": "pkg:npm/%40rolldown/pluginutils@1.0.1",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.0.1"
+    },
+    {
+      "bom-ref": "pkg:npm/axe-core@4.13.0",
+      "name": "axe-core",
+      "purl": "pkg:npm/axe-core@4.13.0",
+      "scope": "excluded",
+      "type": "library",
+      "version": "4.13.0"
+    },
+    {
+      "bom-ref": "pkg:npm/detect-libc@2.1.2",
+      "name": "detect-libc",
+      "purl": "pkg:npm/detect-libc@2.1.2",
+      "scope": "excluded",
+      "type": "library",
+      "version": "2.1.2"
+    },
+    {
+      "bom-ref": "pkg:npm/fdir@6.5.0",
+      "name": "fdir",
+      "purl": "pkg:npm/fdir@6.5.0",
+      "scope": "excluded",
+      "type": "library",
+      "version": "6.5.0"
+    },
+    {
+      "bom-ref": "pkg:npm/fsevents@2.3.3",
+      "name": "fsevents",
+      "purl": "pkg:npm/fsevents@2.3.3",
+      "scope": "excluded",
+      "type": "library",
+      "version": "2.3.3"
+    },
+    {
+      "bom-ref": "pkg:npm/lightningcss@1.33.0",
+      "name": "lightningcss",
+      "purl": "pkg:npm/lightningcss@1.33.0",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.33.0"
+    },
+    {
+      "bom-ref": "pkg:npm/lightningcss-android-arm64@1.33.0",
+      "name": "lightningcss-android-arm64",
+      "purl": "pkg:npm/lightningcss-android-arm64@1.33.0",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.33.0"
+    },
+    {
+      "bom-ref": "pkg:npm/lightningcss-darwin-arm64@1.33.0",
+      "name": "lightningcss-darwin-arm64",
+      "purl": "pkg:npm/lightningcss-darwin-arm64@1.33.0",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.33.0"
+    },
+    {
+      "bom-ref": "pkg:npm/lightningcss-darwin-x64@1.33.0",
+      "name": "lightningcss-darwin-x64",
+      "purl": "pkg:npm/lightningcss-darwin-x64@1.33.0",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.33.0"
+    },
+    {
+      "bom-ref": "pkg:npm/lightningcss-freebsd-x64@1.33.0",
+      "name": "lightningcss-freebsd-x64",
+      "purl": "pkg:npm/lightningcss-freebsd-x64@1.33.0",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.33.0"
+    },
+    {
+      "bom-ref": "pkg:npm/lightningcss-linux-arm-gnueabihf@1.33.0",
+      "name": "lightningcss-linux-arm-gnueabihf",
+      "purl": "pkg:npm/lightningcss-linux-arm-gnueabihf@1.33.0",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.33.0"
+    },
+    {
+      "bom-ref": "pkg:npm/lightningcss-linux-arm64-gnu@1.33.0",
+      "name": "lightningcss-linux-arm64-gnu",
+      "purl": "pkg:npm/lightningcss-linux-arm64-gnu@1.33.0",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.33.0"
+    },
+    {
+      "bom-ref": "pkg:npm/lightningcss-linux-arm64-musl@1.33.0",
+      "name": "lightningcss-linux-arm64-musl",
+      "purl": "pkg:npm/lightningcss-linux-arm64-musl@1.33.0",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.33.0"
+    },
+    {
+      "bom-ref": "pkg:npm/lightningcss-linux-x64-gnu@1.33.0",
+      "name": "lightningcss-linux-x64-gnu",
+      "purl": "pkg:npm/lightningcss-linux-x64-gnu@1.33.0",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.33.0"
+    },
+    {
+      "bom-ref": "pkg:npm/lightningcss-linux-x64-musl@1.33.0",
+      "name": "lightningcss-linux-x64-musl",
+      "purl": "pkg:npm/lightningcss-linux-x64-musl@1.33.0",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.33.0"
+    },
+    {
+      "bom-ref": "pkg:npm/lightningcss-win32-arm64-msvc@1.33.0",
+      "name": "lightningcss-win32-arm64-msvc",
+      "purl": "pkg:npm/lightningcss-win32-arm64-msvc@1.33.0",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.33.0"
+    },
+    {
+      "bom-ref": "pkg:npm/lightningcss-win32-x64-msvc@1.33.0",
+      "name": "lightningcss-win32-x64-msvc",
+      "purl": "pkg:npm/lightningcss-win32-x64-msvc@1.33.0",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.33.0"
+    },
+    {
+      "bom-ref": "pkg:npm/nanoid@3.3.18",
+      "name": "nanoid",
+      "purl": "pkg:npm/nanoid@3.3.18",
+      "scope": "excluded",
+      "type": "library",
+      "version": "3.3.18"
+    },
+    {
+      "bom-ref": "pkg:npm/picocolors@1.1.1",
+      "name": "picocolors",
+      "purl": "pkg:npm/picocolors@1.1.1",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.1.1"
+    },
+    {
+      "bom-ref": "pkg:npm/picomatch@4.0.5",
+      "name": "picomatch",
+      "purl": "pkg:npm/picomatch@4.0.5",
+      "scope": "excluded",
+      "type": "library",
+      "version": "4.0.5"
+    },
+    {
+      "bom-ref": "pkg:npm/postcss@8.5.26",
+      "name": "postcss",
+      "purl": "pkg:npm/postcss@8.5.26",
+      "scope": "excluded",
+      "type": "library",
+      "version": "8.5.26"
+    },
+    {
+      "bom-ref": "pkg:npm/rolldown@1.2.4",
+      "name": "rolldown",
+      "purl": "pkg:npm/rolldown@1.2.4",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.2.4"
+    },
+    {
+      "bom-ref": "pkg:npm/source-map-js@1.2.1",
+      "name": "source-map-js",
+      "purl": "pkg:npm/source-map-js@1.2.1",
+      "scope": "excluded",
+      "type": "library",
+      "version": "1.2.1"
+    },
+    {
+      "bom-ref": "pkg:npm/tinyglobby@0.2.17",
+      "name": "tinyglobby",
+      "purl": "pkg:npm/tinyglobby@0.2.17",
+      "scope": "excluded",
+      "type": "library",
+      "version": "0.2.17"
+    },
+    {
+      "bom-ref": "pkg:npm/vite@8.2.2",
+      "name": "vite",
+      "purl": "pkg:npm/vite@8.2.2",
+      "scope": "excluded",
+      "type": "library",
+      "version": "8.2.2"
+    }
+  ],
+  "dependencies": [
+    {
+      "dependsOn": [
+        "pkg:npm/axe-core@4.13.0",
+        "pkg:npm/vite@8.2.2"
+      ],
+      "ref": "urn:rozkalns-cv:node"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/%40oxc-project/types@0.144.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/%40rolldown/binding-android-arm64@1.2.4"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/%40rolldown/binding-darwin-arm64@1.2.4"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/%40rolldown/binding-darwin-x64@1.2.4"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/%40rolldown/binding-freebsd-x64@1.2.4"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/%40rolldown/binding-linux-arm-gnueabihf@1.2.4"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/%40rolldown/binding-linux-arm64-gnu@1.2.4"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/%40rolldown/binding-linux-arm64-musl@1.2.4"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/%40rolldown/binding-linux-ppc64-gnu@1.2.4"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/%40rolldown/binding-linux-s390x-gnu@1.2.4"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/%40rolldown/binding-linux-x64-gnu@1.2.4"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/%40rolldown/binding-linux-x64-musl@1.2.4"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/%40rolldown/binding-openharmony-arm64@1.2.4"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/%40rolldown/binding-win32-arm64-msvc@1.2.4"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/%40rolldown/binding-win32-x64-msvc@1.2.4"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/%40rolldown/pluginutils@1.0.1"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/axe-core@4.13.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/detect-libc@2.1.2"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/fdir@6.5.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/fsevents@2.3.3"
+    },
+    {
+      "dependsOn": [
+        "pkg:npm/detect-libc@2.1.2",
+        "pkg:npm/lightningcss-android-arm64@1.33.0",
+        "pkg:npm/lightningcss-darwin-arm64@1.33.0",
+        "pkg:npm/lightningcss-darwin-x64@1.33.0",
+        "pkg:npm/lightningcss-freebsd-x64@1.33.0",
+        "pkg:npm/lightningcss-linux-arm-gnueabihf@1.33.0",
+        "pkg:npm/lightningcss-linux-arm64-gnu@1.33.0",
+        "pkg:npm/lightningcss-linux-arm64-musl@1.33.0",
+        "pkg:npm/lightningcss-linux-x64-gnu@1.33.0",
+        "pkg:npm/lightningcss-linux-x64-musl@1.33.0",
+        "pkg:npm/lightningcss-win32-arm64-msvc@1.33.0",
+        "pkg:npm/lightningcss-win32-x64-msvc@1.33.0"
+      ],
+      "ref": "pkg:npm/lightningcss@1.33.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/lightningcss-android-arm64@1.33.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/lightningcss-darwin-arm64@1.33.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/lightningcss-darwin-x64@1.33.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/lightningcss-freebsd-x64@1.33.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/lightningcss-linux-arm-gnueabihf@1.33.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/lightningcss-linux-arm64-gnu@1.33.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/lightningcss-linux-arm64-musl@1.33.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/lightningcss-linux-x64-gnu@1.33.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/lightningcss-linux-x64-musl@1.33.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/lightningcss-win32-arm64-msvc@1.33.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/lightningcss-win32-x64-msvc@1.33.0"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/nanoid@3.3.18"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/picocolors@1.1.1"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/picomatch@4.0.5"
+    },
+    {
+      "dependsOn": [
+        "pkg:npm/nanoid@3.3.18",
+        "pkg:npm/picocolors@1.1.1",
+        "pkg:npm/source-map-js@1.2.1"
+      ],
+      "ref": "pkg:npm/postcss@8.5.26"
+    },
+    {
+      "dependsOn": [
+        "pkg:npm/%40oxc-project/types@0.144.0",
+        "pkg:npm/%40rolldown/binding-android-arm64@1.2.4",
+        "pkg:npm/%40rolldown/binding-darwin-arm64@1.2.4",
+        "pkg:npm/%40rolldown/binding-darwin-x64@1.2.4",
+        "pkg:npm/%40rolldown/binding-freebsd-x64@1.2.4",
+        "pkg:npm/%40rolldown/binding-linux-arm-gnueabihf@1.2.4",
+        "pkg:npm/%40rolldown/binding-linux-arm64-gnu@1.2.4",
+        "pkg:npm/%40rolldown/binding-linux-arm64-musl@1.2.4",
+        "pkg:npm/%40rolldown/binding-linux-ppc64-gnu@1.2.4",
+        "pkg:npm/%40rolldown/binding-linux-s390x-gnu@1.2.4",
+        "pkg:npm/%40rolldown/binding-linux-x64-gnu@1.2.4",
+        "pkg:npm/%40rolldown/binding-linux-x64-musl@1.2.4",
+        "pkg:npm/%40rolldown/binding-openharmony-arm64@1.2.4",
+        "pkg:npm/%40rolldown/binding-win32-arm64-msvc@1.2.4",
+        "pkg:npm/%40rolldown/binding-win32-x64-msvc@1.2.4",
+        "pkg:npm/%40rolldown/pluginutils@1.0.1"
+      ],
+      "ref": "pkg:npm/rolldown@1.2.4"
+    },
+    {
+      "dependsOn": [],
+      "ref": "pkg:npm/source-map-js@1.2.1"
+    },
+    {
+      "dependsOn": [
+        "pkg:npm/fdir@6.5.0",
+        "pkg:npm/picomatch@4.0.5"
+      ],
+      "ref": "pkg:npm/tinyglobby@0.2.17"
+    },
+    {
+      "dependsOn": [
+        "pkg:npm/fsevents@2.3.3",
+        "pkg:npm/lightningcss@1.33.0",
+        "pkg:npm/picomatch@4.0.5",
+        "pkg:npm/postcss@8.5.26",
+        "pkg:npm/rolldown@1.2.4",
+        "pkg:npm/tinyglobby@0.2.17"
+      ],
+      "ref": "pkg:npm/vite@8.2.2"
+    }
+  ],
+  "metadata": {
+    "component": {
+      "bom-ref": "urn:rozkalns-cv:node",
+      "name": "rozkalns-cv-frontend",
+      "type": "application"
+    },
+    "properties": [
+      {
+        "name": "rozkalns:source-lock",
+        "value": "package-lock.json"
+      }
+    ]
+  },
+  "specVersion": "1.6",
+  "version": 1
+}

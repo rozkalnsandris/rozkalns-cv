@@ -163,6 +163,7 @@ done < <(find "$ROOT" -type f \( -name '.env' -o -name '*.env' \) -print0)
 
 python3 "$ROOT/scripts/secret-scan.py" "$ROOT"
 python3 "$ROOT/scripts/check_workflow_security.py" "$ROOT"
+python3 "$ROOT/scripts/generate-sbom.py" --check
 python3 "$ROOT/scripts/build-content.py" --check
 python3 "$ROOT/scripts/sync-system-prompt.py" --check
 
