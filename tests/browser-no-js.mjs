@@ -205,25 +205,9 @@ class CdpClient {
   }
 
   async navigate(url) {
-    const navigation = await this.send("Page.navigate", { url });
-    if (navigation.errorText) {
-      throw new Error(`navigation to ${url} failed: ${navigation.errorText}`);
-    }
-    if (!navigation.loaderId) {
-      throw new Error(`navigation to ${url} did not return a loader id`);
-    }
-
-    const deadline = Date.now() + 15_000;
-    let lastFrame;
-    while (Date.now() < deadline) {
-      const { frameTree } = await this.send("Page.getFrameTree");
-      lastFrame = frameTree?.frame;
-      if (lastFrame?.id === navigation.frameId && lastFrame?.loaderId === navigation.loaderId) return;
-      await delay(50);
-    }
-    throw new Error(
-      `timed out waiting for navigation loader ${navigation.loaderId} at ${url}; last=${JSON.stringify(lastFrame)}`
-    );
+    const loaded = this.waitForEvent("Page.loadEventFired", 15_000);
+    await this.send("Page.navigate", { url });
+    await loaded;
   }
 
   close() {
