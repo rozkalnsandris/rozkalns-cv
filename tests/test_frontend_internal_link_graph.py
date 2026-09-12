@@ -178,11 +178,14 @@ class FrontendInternalLinkGraphTests(unittest.TestCase):
 
             errors = validate_internal_graph(root)
 
-        self.assertEqual(len(errors), 3)
-        self.assertTrue(any("/missing/" in error for error in errors))
-        self.assertTrue(any("/missing.png" in error for error in errors))
-        self.assertTrue(any("#absent" in error for error in errors))
-        self.assertFalse(any("example.com" in error for error in errors))
+        self.assertEqual(
+            errors,
+            [
+                "index.html: <a> href='/missing/' points to missing local target '/missing/'",
+                "index.html: <img> src='/missing.png' points to missing local target '/missing.png'",
+                "index.html: href='#absent' points to missing fragment #absent in index.html",
+            ],
+        )
 
 
 if __name__ == "__main__":
