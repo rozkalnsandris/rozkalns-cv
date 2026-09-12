@@ -109,6 +109,7 @@ function createNavigationObserver(languageController) {
 function installLazyChat(languageController) {
   const launcher = document.querySelector("#chatLauncher");
   if (!launcher) return;
+  launcher.hidden = false;
   let loading = null;
 
   async function activate() {
@@ -135,6 +136,7 @@ function installLazyChat(languageController) {
 function installLazyContact(languageController) {
   const button = document.querySelector("#contactReveal");
   if (!button) return null;
+  button.hidden = false;
   let loading = null;
 
   async function activate() {
