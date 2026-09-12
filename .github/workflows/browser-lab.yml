@@ -52,7 +52,8 @@ jobs:
           npm run check:frontend
           git diff --exit-code -- \
             package-lock.json frontend-dist-manifest.json \
-            html/assets html/i18n html/index.html html/smarthome.html
+            html/assets html/i18n html/index.html html/smarthome.html \
+            html/proof.html html/en/proof html/de/proof html/lv/proof
 
       - name: Run repeated synthetic visual/loading stability gate
         shell: bash
@@ -67,21 +68,25 @@ jobs:
           done
           test -n "$chrome_bin"
           node --check tests/browser-lab.mjs
+          node --check tests/browser-lab-support.mjs
           lab_log="${RUNNER_TEMP}/browser-lab.log"
           : > "$lab_log"
           for repeat in 1 2 3; do
             printf 'LAB_SYNTHETIC_REPEAT=%s\n' "$repeat" | tee -a "$lab_log"
             CHROME_BIN="$chrome_bin" node tests/browser-lab.mjs | tee -a "$lab_log"
           done
+          CHROME_BIN="$chrome_bin" node tests/browser-lab-support.mjs | tee -a "$lab_log"
           grep -Fq 'LAB_SYNTHETIC_REGRESSION_DETECTOR=PASS' "$lab_log"
           grep -Fq 'LAB_SYNTHETIC_NOT_FIELD_CWV=PASS' "$lab_log"
           grep -Fq 'BROWSER_LAB_STABILITY=PASS' "$lab_log"
+          grep -Fq 'LAB_SUPPORT_SURFACES=PASS' "$lab_log"
+          grep -Fq 'BROWSER_LAB_SUPPORT_STABILITY=PASS' "$lab_log"
           {
             echo '## Deterministic browser lab'
             echo
             echo 'Synthetic/lab evidence only; this is not field Core Web Vitals or CrUX evidence.'
             echo
             echo '```text'
-            tail -n 40 "$lab_log"
+            tail -n 60 "$lab_log"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
