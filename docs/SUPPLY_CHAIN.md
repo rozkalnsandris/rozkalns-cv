@@ -170,3 +170,18 @@ A supply-chain-changing pull request is ready only when it contains:
 Production release is complete only after the RPi5 rebuilds on ARM64 from the
 same immutable inputs, verifies the image identity before start, passes service
 health/public HTTP checks, and preserves the deploy evidence.
+
+## Deterministic SBOM evidence
+
+The repository commits two offline-generated CycloneDX 1.6 SBOMs:
+
+- `security/sbom-python.cdx.json` from `bot/requirements.txt` plus the direct roots in `bot/requirements.in`;
+- `security/sbom-node.cdx.json` from the npm v3 graph in `package-lock.json`.
+
+Regenerate both artifacts after either lock changes:
+
+```bash
+python3 scripts/generate-sbom.py
+```
+
+`python3 scripts/generate-sbom.py --check` is part of source validation and fails when either committed SBOM is stale. Generation is lockfile-only: it performs no registry/network lookup and must not include host paths, credentials, runtime data, or private configuration.
