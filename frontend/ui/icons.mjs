@@ -18,7 +18,7 @@ const ICONS = Object.freeze({
 export function skillIconName(label) {
   const value = String(label || "").toLowerCase();
   if (/docker|compose/.test(value)) return "container";
-  if (/chromadb|database|sqlite|postgres|mysql|deals/.test(value)) return "database";
+  if (/chromadb|database|sqlite|postgres|mysql|deals|\bsql\b/.test(value)) return "database";
   if (/telegram/.test(value)) return "send";
   if (/adguard|safety|health check|ssl|tls|ssh|ftp/.test(value)) return "shield";
   if (/prometheus|grafana|node exporter|live metrics|energy|dashboard/.test(value)) return "chart";

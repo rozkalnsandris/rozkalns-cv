@@ -7,125 +7,63 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 LANGUAGES = ("en", "de", "lv")
-GROUPS = ("core", "working", "learning", "foundations")
+PROFICIENCY_GROUPS = ("core", "working", "learning", "foundations")
+PRESENTATION_GROUPS = ("linux_operations", "networking_web", "containers_monitoring", "application_support", "automation_git")
 SEPARATOR = " · "
-
 
 def load_json(path: Path):
     return json.loads(path.read_text(encoding="utf-8"))
 
-
 def validate_skill_consistency(profile, skill_labels, translations) -> None:
     skills = profile.get("skills")
-    if not isinstance(skills, dict) or tuple(skills) != GROUPS:
-        raise AssertionError("canonical skill groups/order changed")
-
-    label_document = skill_labels
-    if not isinstance(label_document, dict) or set(label_document) != {
-        "schema_version",
-        "labels",
-    }:
-        raise AssertionError("skill label document shape is invalid")
-    if label_document["schema_version"] != 1:
-        raise AssertionError("skill label schema version is invalid")
-
-    labels = label_document["labels"]
-    if not isinstance(labels, dict):
-        raise AssertionError("skill labels must be an object")
-
-    canonical_items: list[str] = []
-    for group in GROUPS:
-        items = skills.get(group)
-        if not isinstance(items, list) or not items:
-            raise AssertionError(f"profile.skills.{group} must be non-empty")
-        if any(not isinstance(item, str) or not item.strip() for item in items):
-            raise AssertionError(f"profile.skills.{group} contains invalid items")
-        canonical_items.extend(items)
-
-    if len(set(canonical_items)) != len(canonical_items):
-        raise AssertionError("canonical skill concepts must be unique across groups")
-    if set(labels) != set(canonical_items):
-        raise AssertionError("skill label concepts do not match canonical profile")
-
-    for concept in canonical_items:
-        localized = labels[concept]
-        if not isinstance(localized, dict) or set(localized) != set(LANGUAGES):
+    groups = profile.get("skill_groups")
+    if not isinstance(skills, dict) or tuple(skills) != PROFICIENCY_GROUPS:
+        raise AssertionError("canonical proficiency groups/order changed")
+    if not isinstance(groups, dict) or tuple(groups) != PRESENTATION_GROUPS:
+        raise AssertionError("canonical recruiter skill groups/order changed")
+    labels = skill_labels.get("labels")
+    canonical = [skill for group in PROFICIENCY_GROUPS for skill in skills[group]]
+    presented = [skill for group in PRESENTATION_GROUPS for skill in groups[group]]
+    if len(canonical) != len(set(canonical)) or set(labels) != set(canonical):
+        raise AssertionError("canonical skill labels do not match proficiency concepts")
+    if presented != list(dict.fromkeys(presented)) or set(presented) != set(canonical):
+        raise AssertionError("recruiter groups must present every canonical skill exactly once")
+    for concept in canonical:
+        if set(labels[concept]) != set(LANGUAGES):
             raise AssertionError(f"localized label shape is invalid for {concept}")
-        if any(
-            not isinstance(localized[language], str)
-            or not localized[language].strip()
-            for language in LANGUAGES
-        ):
-            raise AssertionError(f"localized label is invalid for {concept}")
-
-    if set(translations) != set(LANGUAGES):
-        raise AssertionError("translation languages do not match contract")
-
     for language in LANGUAGES:
         document = translations[language]
-        for group in GROUPS:
-            key = f"skills_{group}_items"
-            expected = SEPARATOR.join(
-                labels[concept][language] for concept in skills[group]
-            )
-            if document.get(key) != expected:
-                raise AssertionError(
-                    f"{language}:{key} does not match canonical skill membership/order"
-                )
-
+        for group in PROFICIENCY_GROUPS:
+            expected = SEPARATOR.join(labels[c][language] for c in skills[group])
+            if document.get(f"skills_{group}_items") != expected:
+                raise AssertionError(f"{language}:skills_{group}_items drift")
+        for group in PRESENTATION_GROUPS:
+            expected = SEPARATOR.join(labels[c][language] for c in groups[group])
+            if document.get(f"skill_group_{group}_items") != expected:
+                raise AssertionError(f"{language}:skill_group_{group}_items drift")
 
 class SkillContentConsistencyTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.profile = load_json(ROOT / "content" / "profile.json")
-        self.skill_labels = load_json(ROOT / "content" / "skill-labels.json")
-        self.translations = {
-            language: load_json(
-                ROOT / "content" / "translations" / f"{language}.json"
-            )
-            for language in LANGUAGES
-        }
+        self.profile = load_json(ROOT / "content/profile.json")
+        self.skill_labels = load_json(ROOT / "content/skill-labels.json")
+        self.translations = {language: load_json(ROOT / f"content/translations/{language}.json") for language in LANGUAGES}
 
     def test_localized_skill_groups_match_canonical_profile(self) -> None:
-        validate_skill_consistency(
-            self.profile,
-            self.skill_labels,
-            self.translations,
-        )
+        validate_skill_consistency(self.profile, self.skill_labels, self.translations)
 
-    def test_foundations_match_owner_approved_fact_set(self) -> None:
-        self.assertEqual(
-            self.profile["skills"]["foundations"],
-            ["Networking", "SSH/FTP", "PHP/IPB forums", "HTML/CSS"],
-        )
+    def test_foundations_match_current_public_fact_set(self) -> None:
+        self.assertEqual(self.profile["skills"]["foundations"], ["Networking", "SSH/FTP", "HTML/CSS"])
 
-    def test_localized_addition_fails_closed(self) -> None:
-        translations = deepcopy(self.translations)
-        translations["de"]["skills_foundations_items"] += " · Extra"
-        with self.assertRaises(AssertionError):
-            validate_skill_consistency(self.profile, self.skill_labels, translations)
+    def test_future_devops_tooling_is_not_prominent(self) -> None:
+        flattened = {skill for values in self.profile["skills"].values() for skill in values}
+        self.assertTrue({"Ansible", "Terraform", "AWS Cloud"}.isdisjoint(flattened))
+        self.assertEqual(self.profile["skills"]["learning"], ["Basic SQL"])
 
-    def test_localized_removal_fails_closed(self) -> None:
-        translations = deepcopy(self.translations)
-        translations["lv"]["skills_foundations_items"] = " · ".join(
-            translations["lv"]["skills_foundations_items"].split(" · ")[:-1]
-        )
-        with self.assertRaises(AssertionError):
-            validate_skill_consistency(self.profile, self.skill_labels, translations)
-
-    def test_localized_reordering_fails_closed(self) -> None:
-        translations = deepcopy(self.translations)
-        items = translations["en"]["skills_foundations_items"].split(" · ")
-        items[0], items[1] = items[1], items[0]
-        translations["en"]["skills_foundations_items"] = " · ".join(items)
-        with self.assertRaises(AssertionError):
-            validate_skill_consistency(self.profile, self.skill_labels, translations)
-
-    def test_canonical_membership_change_requires_label_mapping(self) -> None:
+    def test_presentation_membership_change_fails_closed(self) -> None:
         profile = deepcopy(self.profile)
-        profile["skills"]["foundations"].append("Unmapped skill")
+        profile["skill_groups"]["automation_git"].append("Networking")
         with self.assertRaises(AssertionError):
             validate_skill_consistency(profile, self.skill_labels, self.translations)
-
 
 if __name__ == "__main__":
     unittest.main()

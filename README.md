@@ -42,7 +42,7 @@ and versioned together before deployment.
 
 ## What this project demonstrates
 
-This repository is also a practical DevOps/Linux portfolio project. The source
+This repository is also a practical Linux support and operations portfolio project. The source
 and its automated checks demonstrate applied work rather than skill ratings:
 
 - **Linux and self-hosting** — a Raspberry Pi 5 environment operated with Linux,

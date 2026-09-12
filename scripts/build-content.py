@@ -86,12 +86,13 @@ def validate_profile(profile: Any) -> dict[str, Any]:
         "experience",
         "education",
         "skills",
+        "skill_groups",
         "projects",
         "infrastructure",
     }
     profile = require_object(profile, "profile", root_keys)
-    if profile["schema_version"] != 2:
-        raise ContentError("profile.schema_version must be 2")
+    if profile["schema_version"] != 3:
+        raise ContentError("profile.schema_version must be 3")
     version = require_text(profile["content_version"], "profile.content_version")
     if not VERSION_RE.fullmatch(version):
         raise ContentError("profile.content_version is invalid")
@@ -214,8 +215,24 @@ def validate_profile(profile: Any) -> dict[str, Any]:
         "profile.skills",
         {"core", "working", "learning", "foundations"},
     )
+    canonical_skills: list[str] = []
     for key, value in skills.items():
-        require_string_list(value, f"profile.skills.{key}")
+        canonical_skills.extend(require_string_list(value, f"profile.skills.{key}"))
+    if len(canonical_skills) != len(set(canonical_skills)):
+        raise ContentError("profile.skills contains duplicate concepts across proficiency groups")
+
+    skill_groups = require_object(
+        profile["skill_groups"],
+        "profile.skill_groups",
+        {"linux_operations", "networking_web", "containers_monitoring", "application_support", "automation_git"},
+    )
+    presented_skills: list[str] = []
+    for key, value in skill_groups.items():
+        presented_skills.extend(require_string_list(value, f"profile.skill_groups.{key}"))
+    if len(presented_skills) != len(set(presented_skills)):
+        raise ContentError("profile.skill_groups contains duplicate concepts")
+    if set(presented_skills) != set(canonical_skills):
+        raise ContentError("profile.skill_groups must present every canonical skill exactly once")
 
     projects = profile["projects"]
     if not isinstance(projects, list) or not projects:
@@ -427,6 +444,16 @@ def build_system_prompt(profile: dict[str, Any], runtime_evidence: dict[str, Any
     }
     for key in ("core", "working", "learning", "foundations"):
         lines.append(f"- {skill_labels[key]}: {', '.join(profile['skills'][key])}")
+    lines.extend(["", "RECRUITER SKILL GROUPS"])
+    recruiter_labels = {
+        "linux_operations": "Linux & Operations",
+        "networking_web": "Networking & Web",
+        "containers_monitoring": "Containers & Monitoring",
+        "application_support": "Application Support",
+        "automation_git": "Automation & Git",
+    }
+    for key, label in recruiter_labels.items():
+        lines.append(f"- {label}: {', '.join(profile['skill_groups'][key])}")
     lines.extend(["", "PROJECTS"])
     for item in profile["projects"]:
         lines.append(f"- {item['title']}: {'; '.join(item['facts'])}")
@@ -485,10 +512,12 @@ def expected_pdf_manifest(content_sha256: str) -> dict[str, Any]:
         "en": ROOT / "html" / "cv.pdf",
         "de": ROOT / "html" / "cv-de.pdf",
         "lv": ROOT / "html" / "cv-lv.pdf",
-        "devops-en": ROOT / "html" / "cv-devops.pdf",
-        "devops-de": ROOT / "html" / "cv-devops-de.pdf",
-        "linux-admin-en": ROOT / "html" / "cv-linux-admin.pdf",
-        "linux-admin-de": ROOT / "html" / "cv-linux-admin-de.pdf",
+        "technical-support-en": ROOT / "html" / "cv-technical-support.pdf",
+        "technical-support-de": ROOT / "html" / "cv-technical-support-de.pdf",
+        "linux-operations-en": ROOT / "html" / "cv-linux-operations.pdf",
+        "linux-operations-de": ROOT / "html" / "cv-linux-operations-de.pdf",
+        "application-support-en": ROOT / "html" / "cv-application-support.pdf",
+        "application-support-de": ROOT / "html" / "cv-application-support-de.pdf",
     }
     result: dict[str, Any] = {
         "schema_version": 1,

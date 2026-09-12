@@ -10,21 +10,26 @@ class GitHubProjectLinksTest(unittest.TestCase):
         self.assertIn('<div class=skill-row id=github-projects>', INDEX)
         self.assertNotIn('<section id="github-projects">', INDEX)
         self.assertIn('rel=me>GitHub</a>', INDEX)
-        selected = ("hermes-tech", "RPi5_main", "hermes-deals", "rozkalns-control-center", "dashboard_RPi5")
-        remaining = ("home-assistant-config", "balcony-irrigation-esp32", "rozkalns-cv", "ops-workflows")
+        start = INDEX.index('<div class=skill-row id=github-projects>')
+        block = INDEX[start:INDEX.index('</dl>', start)]
+        selected = (
+            "linux-operations-lab",
+            "RPi5_main",
+            "rozkalns-cv",
+            "dashboard_RPi5",
+            "rozkalns-control-center",
+        )
         for repo in selected:
-            self.assertIn(f"//github.com/rozkalnsandris/{repo}", INDEX)
-        for repo in remaining:
-            self.assertIn(repo, INDEX)
-        self.assertIn('<details>', INDEX)
-        self.assertNotIn('<details class=project-list>', INDEX)
-        self.assertNotIn('<dd><div class=skill-list><a class="tech-tag has-tech-icon github-row"', INDEX)
-        self.assertIn('<dt>GitHub <span data-i18n=projects_title>Projects</span></dt>', INDEX)
-        self.assertIn('<summary class="tech-tag">+ 4 <span data-i18n=projects_title>Projects</span></summary>', INDEX)
+            self.assertIn(f"//github.com/rozkalnsandris/{repo}", block)
+        self.assertEqual(block.count('class="tech-tag has-tech-icon github-row"'), 5)
+        self.assertNotIn('<details', block)
+        self.assertNotIn('<summary', block)
+        self.assertIn('<dt>GitHub <span data-i18n=projects_title>Projects</span></dt>', block)
+        for repo in ("hermes-tech", "hermes-deals", "home-assistant-config", "balcony-irrigation-esp32", "ops-workflows"):
+            self.assertNotIn(repo, block)
         self.assertNotIn("YouTube_Marcim", INDEX)
         self.assertNotIn("hermes-email-skill", INDEX)
         self.assertNotIn("api.github.com", INDEX)
-
 
 if __name__ == "__main__":
     unittest.main()

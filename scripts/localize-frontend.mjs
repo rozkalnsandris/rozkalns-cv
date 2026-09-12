@@ -12,10 +12,11 @@ const IMAGE_ALTS = Object.freeze({
   lv: "Andra Rožkalna portrets"
 });
 const SKILL_GROUP_KEYS = Object.freeze([
-  "skills_core_items",
-  "skills_working_items",
-  "skills_learning_items",
-  "skills_foundations_items"
+  "skill_group_linux_operations_items",
+  "skill_group_networking_web_items",
+  "skill_group_containers_monitoring_items",
+  "skill_group_application_support_items",
+  "skill_group_automation_git_items"
 ]);
 
 function escapeHtml(value) {

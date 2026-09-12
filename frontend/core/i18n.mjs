@@ -7,10 +7,11 @@ const TRANSLATIONS = Object.freeze({
 });
 
 const SKILL_LIST_KEYS = Object.freeze({
-  skills_core: "skills_core_items",
-  skills_working: "skills_working_items",
-  skills_learning: "skills_learning_items",
-  skills_foundations: "skills_foundations_items"
+  skill_group_linux_operations: "skill_group_linux_operations_items",
+  skill_group_networking_web: "skill_group_networking_web_items",
+  skill_group_containers_monitoring: "skill_group_containers_monitoring_items",
+  skill_group_application_support: "skill_group_application_support_items",
+  skill_group_automation_git: "skill_group_automation_git_items"
 });
 
 export function normalizeLanguage(value) {

@@ -48,10 +48,7 @@ class VacancyFitCheckerTests(unittest.TestCase):
             [item["canonical_skill"] for item in categories["working"]],
             ["Python", "REST APIs"],
         )
-        self.assertEqual(
-            [item["canonical_skill"] for item in categories["learning"]],
-            ["Terraform"],
-        )
+        self.assertEqual(categories["learning"], [])
         self.assertEqual(
             [item["canonical_skill"] for item in categories["foundation"]],
             ["Networking"],
@@ -74,28 +71,47 @@ class VacancyFitCheckerTests(unittest.TestCase):
             self.assertTrue({proof["url"] for proof in item["evidence"]}.issubset(allowed))
 
     def test_learning_and_foundation_items_are_never_presented_as_proven(self) -> None:
-        text = "Terraform Ansible AWS Cloud Networking SSH HTML/CSS"
+        text = "Basic SQL Networking SSH HTML/CSS Terraform Ansible AWS Cloud"
         payload = json.loads(self.run_checker("--json", stdin=text).stdout)
+        categories = payload["categories"]
+        self.assertEqual(
+            [item["canonical_skill"] for item in categories["learning"]],
+            ["Basic SQL"],
+        )
+        self.assertEqual(
+            [item["canonical_skill"] for item in categories["foundation"]],
+            ["HTML/CSS", "Networking", "SSH/FTP"],
+        )
         for category in ("learning", "foundation"):
-            self.assertGreater(len(payload["categories"][category]), 0)
-            for item in payload["categories"][category]:
+            for item in categories[category]:
                 self.assertEqual(item["evidence"], [])
+        canonical = {
+            item["canonical_skill"]
+            for category in ("evidenced", "working", "learning", "foundation")
+            for item in categories[category]
+        }
+        for removed in ("Terraform", "Ansible", "AWS Cloud"):
+            self.assertNotIn(removed, canonical)
 
     def test_compose_alias_and_unsupported_terms_are_conservative(self) -> None:
         text = (FIXTURES / "synthetic-de.txt").read_text(encoding="utf-8")
         payload = json.loads(self.run_checker("--json", stdin=text).stdout)
+        categories = payload["categories"]
         self.assertIn(
             "Docker Compose",
-            [item["canonical_skill"] for item in payload["categories"]["evidenced"]],
+            [item["canonical_skill"] for item in categories["evidenced"]],
         )
         self.assertIn(
             "Jenkins",
-            [item["requirement"] for item in payload["categories"]["not_in_canonical_profile"]],
+            [item["requirement"] for item in categories["not_in_canonical_profile"]],
         )
-        self.assertIn(
-            "Ansible",
-            [item["canonical_skill"] for item in payload["categories"]["learning"]],
-        )
+        self.assertEqual(categories["learning"], [])
+        canonical = {
+            item["canonical_skill"]
+            for category in ("evidenced", "working", "learning", "foundation")
+            for item in categories[category]
+        }
+        self.assertNotIn("Ansible", canonical)
 
     def test_json_output_is_deterministic_and_does_not_echo_source_text(self) -> None:
         text = (FIXTURES / "synthetic-en.txt").read_text(encoding="utf-8")
