@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "artifact_root": "html",
+  "ADDRESS_PUBLICATION_AUTHORIZED": false,
+  "text_extensions": [".html", ".json"],
+  "pdf_extensions": [".pdf"],
+  "allowed_public_emails": ["andris@rozkalns.net"],
+  "private_only_markers": [
+    "PRIVATE_ONLY_FIXTURE_463",
+    "NONPUBLIC_ONLY_FIXTURE_463"
+  ]
+}
