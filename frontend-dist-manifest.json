@@ -47,7 +47,7 @@
     ]
   },
   "index.html": {
-    "file": "assets/app.dbf80f0f9cf7.mjs",
+    "file": "assets/app.106d90184028.mjs",
     "name": "app",
     "src": "index.html",
     "isEntry": true,
@@ -84,15 +84,15 @@
   "_localized": {
     "en": {
       "path": "en/index.html",
-      "sha256": "90872b766feb991f0b73e84f8ab1dcee561a6a40b74045ef70d59404904dbfb4"
+      "sha256": "ca4d884f24717a1cbfcf6aba6b58ec9cbb80a4ee25e4f6a9b4d65b3cc675fd65"
     },
     "de": {
       "path": "de/index.html",
-      "sha256": "d039ca9dc8e6cddddc90d1511875987256be335b774c3a1ff99f3214ce015099"
+      "sha256": "57bbcfc31a579251f2dd5ac08164b91def2d4e803427b953c6d2377017065e6a"
     },
     "lv": {
       "path": "lv/index.html",
-      "sha256": "1b888cc806c90596cfec20e02da16a7f2266c297ba79d9a6487ee36192617355"
+      "sha256": "22c34cb4a9668f26e9b290ad9d9294bac642f4f93ca120fb471330a32e2dd073"
     },
     "proof_en": {
       "path": "en/proof/index.html",

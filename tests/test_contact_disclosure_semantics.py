@@ -3,7 +3,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-BUTTON = '<button id="contactReveal" class="contact-reveal" type="button" aria-expanded="false" aria-controls="turnstileMount">'
+BUTTON = '<button id="contactReveal" class="contact-reveal" type="button" hidden aria-expanded="false" aria-controls="turnstileMount">'
 
 
 class ContactDisclosureSemanticsTest(unittest.TestCase):
