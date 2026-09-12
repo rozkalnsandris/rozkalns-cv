@@ -69,6 +69,7 @@ jobs:
           test -n "$chrome_bin"
           node --check tests/browser-lab.mjs
           node --check tests/browser-lab-support.mjs
+          node --check tests/browser-runtime-errors.mjs
           lab_log="${RUNNER_TEMP}/browser-lab.log"
           : > "$lab_log"
           for repeat in 1 2 3; do
@@ -76,17 +77,23 @@ jobs:
             CHROME_BIN="$chrome_bin" node tests/browser-lab.mjs | tee -a "$lab_log"
           done
           CHROME_BIN="$chrome_bin" node tests/browser-lab-support.mjs | tee -a "$lab_log"
+          CHROME_BIN="$chrome_bin" node tests/browser-runtime-errors.mjs | tee -a "$lab_log"
           grep -Fq 'LAB_SYNTHETIC_REGRESSION_DETECTOR=PASS' "$lab_log"
           grep -Fq 'LAB_SYNTHETIC_NOT_FIELD_CWV=PASS' "$lab_log"
           grep -Fq 'BROWSER_LAB_STABILITY=PASS' "$lab_log"
           grep -Fq 'LAB_SUPPORT_SURFACES=PASS' "$lab_log"
           grep -Fq 'BROWSER_LAB_SUPPORT_STABILITY=PASS' "$lab_log"
+          grep -Fq 'LAB_RUNTIME_EXCEPTION_DETECTOR=PASS' "$lab_log"
+          grep -Fq 'LAB_UNHANDLED_REJECTION_DETECTOR=PASS' "$lab_log"
+          grep -Fq 'LAB_CONSOLE_ERROR_DETECTOR=PASS' "$lab_log"
+          grep -Fq 'LAB_RUNTIME_CLEAN_SURFACES=PASS' "$lab_log"
+          grep -Fq 'BROWSER_RUNTIME_ERRORS=PASS' "$lab_log"
           {
             echo '## Deterministic browser lab'
             echo
             echo 'Synthetic/lab evidence only; this is not field Core Web Vitals or CrUX evidence.'
             echo
             echo '```text'
-            tail -n 60 "$lab_log"
+            tail -n 100 "$lab_log"
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
