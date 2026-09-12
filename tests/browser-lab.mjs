@@ -69,12 +69,27 @@ function statsPayload() {
   };
 }
 
+function createStatsGate() {
+  let resolveGate;
+  let released = false;
+  const promise = new Promise((resolve) => { resolveGate = resolve; });
+  return {
+    promise,
+    release() {
+      if (released) return;
+      released = true;
+      resolveGate();
+    }
+  };
+}
+
 function createFixtureServer(state) {
   return createServer(async (request, response) => {
     try {
       const url = new URL(request.url || "/", "http://127.0.0.1");
       if (url.pathname === "/stats.json") {
-        await delay(state.statsDelayMs);
+        const statsGate = state.statsGate;
+        if (statsGate) await statsGate.promise;
         const body = Buffer.from(JSON.stringify(statsPayload()));
         response.writeHead(200, {
           "Content-Type": "application/json; charset=utf-8",
@@ -265,10 +280,13 @@ class CdpClient {
 const LAYOUT_OBSERVER_SOURCE = `(() => {
   globalThis.__labLayoutObserverSupported = PerformanceObserver.supportedEntryTypes?.includes('layout-shift') === true;
   globalThis.__labLayoutShifts = [];
+  globalThis.__labLayoutMeasurementStart = null;
   if (!globalThis.__labLayoutObserverSupported) return;
   const observer = new PerformanceObserver((list) => {
     for (const entry of list.getEntries()) {
       if (entry.hadRecentInput) continue;
+      const measurementStart = globalThis.__labLayoutMeasurementStart;
+      if (typeof measurementStart !== 'number' || entry.startTime < measurementStart) continue;
       globalThis.__labLayoutShifts.push({
         value: entry.value,
         startTime: entry.startTime,
@@ -295,9 +313,40 @@ const LAYOUT_OBSERVER_SOURCE = `(() => {
       });
     }
   });
-  observer.observe({ type: 'layout-shift', buffered: true });
+  observer.observe({ type: 'layout-shift' });
   globalThis.__labLayoutObserver = observer;
+  globalThis.__labStartLayoutMeasurement = () => {
+    globalThis.__labLayoutShifts.length = 0;
+    globalThis.__labLayoutMeasurementStart = performance.now();
+    return globalThis.__labLayoutMeasurementStart;
+  };
 })();`;
+
+async function armLayoutMeasurement(cdp, context) {
+  await cdp.waitFor(
+    `(() => {
+      const styleLink = document.querySelector('link[rel="stylesheet"][href*="/assets/styles."]');
+      const page = document.querySelector('#pageShell');
+      const photo = document.querySelector('.profile-photo');
+      return Boolean(
+        styleLink?.sheet &&
+        page &&
+        getComputedStyle(page).boxSizing === 'border-box' &&
+        getComputedStyle(document.body).margin === '0px' &&
+        photo?.complete &&
+        photo.naturalWidth > 0 &&
+        photo.naturalHeight > 0
+      );
+    })()`,
+    10_000,
+    `${context} visual readiness`
+  );
+  await cdp.evaluate(`document.fonts ? document.fonts.ready.then(() => true) : true`);
+  await cdp.evaluate(`new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))`);
+  const startedAt = await cdp.evaluate(`globalThis.__labStartLayoutMeasurement?.()`);
+  assert.equal(typeof startedAt, "number", `${context}: layout measurement start unavailable`);
+  return startedAt;
+}
 
 async function settleAndReadLayout(cdp) {
   await cdp.evaluate(`document.fonts ? document.fonts.ready.then(() => true) : true`);
@@ -414,19 +463,24 @@ async function runBrowserLab(baseUrl, state) {
         mobile: false
       });
       if (index === 0) state.staticRequests.length = 0;
+      const statsGate = createStatsGate();
+      state.statsGate = statsGate;
       await cdp.navigate(`${baseUrl}${scenario.path}`);
       await cdp.waitFor(
         `document.readyState === "complete" && document.documentElement.lang === ${JSON.stringify(scenario.language)}`,
         10_000,
         `${scenario.language} ${scenario.width}px document initialization`
       );
+      const context = `${scenario.language} ${scenario.width}px`;
+      await armLayoutMeasurement(cdp, context);
+      statsGate.release();
       await cdp.waitFor(
         `document.querySelector('#liveDot')?.dataset.state === "live" && document.querySelector('[data-stat="docker_containers"]')?.textContent === "16"`,
         10_000,
         `${scenario.language} ${scenario.width}px delayed live statistics`
       );
+      state.statsGate = null;
       const layout = await settleAndReadLayout(cdp);
-      const context = `${scenario.language} ${scenario.width}px`;
       assertLayoutBudget(layout, context);
       console.log(`LAB_SYNTHETIC_LAYOUT ${context} cls=${layout.score.toFixed(6)} entries=${layout.entries.length}`);
       if (index === 0) {
@@ -441,14 +495,19 @@ async function runBrowserLab(baseUrl, state) {
       deviceScaleFactor: 1,
       mobile: false
     });
+    const detectorStatsGate = createStatsGate();
+    state.statsGate = detectorStatsGate;
     await cdp.navigate(`${baseUrl}/en/`);
+    await armLayoutMeasurement(cdp, "synthetic detector self-check");
+    detectorStatsGate.release();
     await cdp.waitFor(
       `document.querySelector('#liveDot')?.dataset.state === "live"`,
       10_000,
       "synthetic detector self-check baseline"
     );
+    state.statsGate = null;
     await settleAndReadLayout(cdp);
-    await cdp.evaluate(`globalThis.__labLayoutShifts.length = 0`);
+    await cdp.evaluate(`globalThis.__labStartLayoutMeasurement()`);
     await cdp.evaluate(`(() => {
       const regression = document.createElement('div');
       regression.id = 'synthetic-layout-regression';
@@ -466,6 +525,8 @@ async function runBrowserLab(baseUrl, state) {
   } catch (error) {
     throw new Error(`${error instanceof Error ? error.stack : error}\nChrome stderr:\n${stderr.slice(-4000)}`);
   } finally {
+    state.statsGate?.release();
+    state.statsGate = null;
     cdp?.close();
     await stopProcess(chrome);
     await rm(profile, {
@@ -478,7 +539,7 @@ async function runBrowserLab(baseUrl, state) {
 }
 
 const state = {
-  statsDelayMs: 300,
+  statsGate: null,
   staticRequests: []
 };
 const server = createFixtureServer(state);
