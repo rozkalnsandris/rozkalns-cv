@@ -68,8 +68,10 @@ for required in \
     frontend-dist-manifest.json \
     package.json \
     package-lock.json \
+    security/public-artifact-privacy.json \
     vite.config.mjs \
     scripts/build-frontend.mjs \
+    scripts/check-public-artifact-privacy.py \
     scripts/bind-engineering-proof.mjs \
     scripts/check-frontend-dist.mjs \
     scripts/build-content.py \
@@ -162,6 +164,7 @@ while IFS= read -r -d '' secret_file; do
 done < <(find "$ROOT" -type f \( -name '.env' -o -name '*.env' \) -print0)
 
 python3 "$ROOT/scripts/secret-scan.py" "$ROOT"
+python3 "$ROOT/scripts/check-public-artifact-privacy.py" "$ROOT"
 python3 "$ROOT/scripts/check_workflow_security.py" "$ROOT"
 python3 "$ROOT/scripts/generate-sbom.py" --check
 python3 "$ROOT/scripts/build-content.py" --check

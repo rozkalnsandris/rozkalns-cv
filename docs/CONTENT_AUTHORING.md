@@ -51,6 +51,27 @@ Do not edit these generated regions directly. `scripts/validate-source.sh`
 runs both generators in `--check` mode and rejects drift, extra stale hashed
 assets, missing generated files, or an out-of-date PDF manifest.
 
+## Public artifact privacy gate
+
+Generated recruiter-facing HTML, JSON, and PDF output under `html/` is checked
+against `security/public-artifact-privacy.json`. The policy deliberately keeps
+`ADDRESS_PUBLICATION_AUTHORIZED=false`, allowlists only the existing public
+email address, and rejects protected-phone patterns, street-address patterns,
+credential material, unexpected email addresses, and private-only fixture
+markers. PDF text is inspected through `pdftotext`; diagnostics report only the
+artifact path and rule identifier, never the matched value.
+
+Run the gate directly with:
+
+```bash
+python3 scripts/check-public-artifact-privacy.py .
+```
+
+Synthetic regression fixtures construct forbidden values only at test runtime;
+no residential/street/postal/service address or protected phone value belongs
+in repository source. This gate enforces the conservative publication boundary
+and does not resolve or expand issue #398.
+
 ## PDF release gate
 
 The builder does not create or visually validate PDF layout. When canonical
