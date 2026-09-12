@@ -37,6 +37,14 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test "$(git rev-parse --is-shallow-repository)" = false
 
+      - name: Install PDF inspection tools
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends poppler-utils
+          command -v pdftotext
+
       - name: Install hash-locked test dependencies
         shell: bash
         run: |
