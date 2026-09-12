@@ -283,9 +283,25 @@ class CdpClient {
   }
 
   async navigate(url) {
-    const loaded = this.waitForEvent("Page.loadEventFired", 15_000);
-    await this.send("Page.navigate", { url });
-    await loaded;
+    const navigation = await this.send("Page.navigate", { url });
+    if (navigation.errorText) {
+      throw new Error(`navigation to ${url} failed: ${navigation.errorText}`);
+    }
+    if (!navigation.loaderId) {
+      throw new Error(`navigation to ${url} did not return a loader id`);
+    }
+
+    const deadline = Date.now() + 15_000;
+    let lastFrame;
+    while (Date.now() < deadline) {
+      const { frameTree } = await this.send("Page.getFrameTree");
+      lastFrame = frameTree?.frame;
+      if (lastFrame?.id === navigation.frameId && lastFrame?.loaderId === navigation.loaderId) return;
+      await delay(50);
+    }
+    throw new Error(
+      `timed out waiting for navigation loader ${navigation.loaderId} at ${url}; last=${JSON.stringify(lastFrame)}`
+    );
   }
 
   close() {
@@ -371,13 +387,26 @@ async function openPage(debugPort, width, height) {
   await cdp.send("Network.setBlockedURLs", {
     urls: ["*://static.cloudflareinsights.com/*", "*://cloudflareinsights.com/*"]
   });
+  await cdp.send("Page.addScriptToEvaluateOnNewDocument", {
+    source: `try { localStorage.removeItem("cvlang"); } catch {}`
+  });
   await cdp.send("Emulation.setDeviceMetricsOverride", {
     width,
     height,
     deviceScaleFactor: 1,
     mobile: false
   });
-  return cdp;
+  return { cdp, targetId: target.id };
+}
+
+async function closePage(debugPort, targetId, cdp) {
+  cdp.close();
+  const response = await fetch(
+    `http://127.0.0.1:${debugPort}/json/close/${encodeURIComponent(targetId)}`
+  );
+  if (!response.ok && response.status !== 404) {
+    throw new Error(`failed to close Chromium target ${targetId}: ${response.status} ${response.statusText}`);
+  }
 }
 
 async function waitForScenario(cdp, scenario) {
@@ -420,7 +449,7 @@ function expectGateFailure(gate, context, marker) {
 }
 
 async function runSelfCheck(debugPort, baseUrl, path, marker, passMarker) {
-  const cdp = await openPage(debugPort, 1280, 900);
+  const { cdp, targetId } = await openPage(debugPort, 1280, 900);
   const gate = new RuntimeFailureGate(cdp);
   gate.start();
   try {
@@ -430,12 +459,12 @@ async function runSelfCheck(debugPort, baseUrl, path, marker, passMarker) {
     console.log(`${passMarker}=PASS`);
   } finally {
     gate.stop();
-    cdp.close();
+    await closePage(debugPort, targetId, cdp);
   }
 }
 
 async function runCleanScenario(debugPort, baseUrl, scenario) {
-  const cdp = await openPage(debugPort, scenario.width, scenario.height);
+  const { cdp, targetId } = await openPage(debugPort, scenario.width, scenario.height);
   const gate = new RuntimeFailureGate(cdp);
   gate.start();
   const context = `${scenario.path} ${scenario.width}px`;
@@ -446,7 +475,7 @@ async function runCleanScenario(debugPort, baseUrl, scenario) {
     console.log(`LAB_RUNTIME_CLEAN ${context}`);
   } finally {
     gate.stop();
-    cdp.close();
+    await closePage(debugPort, targetId, cdp);
   }
 }
 
