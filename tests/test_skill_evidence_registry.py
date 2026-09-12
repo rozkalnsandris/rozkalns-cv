@@ -60,14 +60,10 @@ class SkillEvidenceRegistryTests(unittest.TestCase):
     def test_evidence_ids_are_defined_and_used(self) -> None:
         evidence = self.registry["evidence"]
         mappings = self.registry["skill_evidence"]
-        referenced = {
-            evidence_id
-            for evidence_ids in mappings.values()
-            for evidence_id in evidence_ids
-        }
-
+        referenced = {evidence_id for evidence_ids in mappings.values() for evidence_id in evidence_ids}
         undefined = referenced - set(evidence)
-        unused = set(evidence) - referenced
+        project_used = {evidence_id for evidence_id, item in evidence.items() if item["project_ids"]}
+        unused = set(evidence) - referenced - project_used
         self.assertEqual(undefined, set(), f"undefined evidence ids: {undefined}")
         self.assertEqual(unused, set(), f"unused evidence ids: {unused}")
 
@@ -78,16 +74,16 @@ class SkillEvidenceRegistryTests(unittest.TestCase):
         for evidence_id, item in self.registry["evidence"].items():
             with self.subTest(evidence_id=evidence_id):
                 self.assertEqual(item["kind"], "repository_file")
-                self.assertEqual(item["repository"], "rozkalnsandris/rozkalns-cv")
-
+                repository = item["repository"]
+                self.assertRegex(repository, r"^rozkalnsandris/[A-Za-z0-9_.-]+$")
                 path_text = item["path"]
                 self.assertIsInstance(path_text, str)
                 self.assertNotEqual(path_text, "")
                 path = Path(path_text)
                 self.assertFalse(path.is_absolute())
                 self.assertNotIn("..", path.parts)
-                self.assertTrue((ROOT / path).is_file(), f"stale evidence path: {path_text}")
-
+                if repository == "rozkalnsandris/rozkalns-cv":
+                    self.assertTrue((ROOT / path).is_file(), f"stale local evidence path: {path_text}")
                 parsed = urlparse(item["url"])
                 self.assertEqual(parsed.scheme, "https")
                 self.assertIn(parsed.hostname, allowed_hosts)
@@ -95,12 +91,7 @@ class SkillEvidenceRegistryTests(unittest.TestCase):
                 self.assertIsNone(parsed.password)
                 self.assertEqual(parsed.query, "")
                 self.assertEqual(parsed.fragment, "")
-
-                expected_url = (
-                    "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/"
-                    + path_text
-                )
-                self.assertEqual(item["url"], expected_url)
+                self.assertEqual(item["url"], f"https://github.com/{repository}/blob/main/{path_text}")
 
     def test_project_links_reference_existing_canonical_projects(self) -> None:
         project_ids = {project["id"] for project in self.profile["projects"]}

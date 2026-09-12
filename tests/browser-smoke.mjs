@@ -512,8 +512,8 @@ async function runBrowserSmoke(baseUrl, state) {
       photoNaturalWidth: document.querySelector('.profile-photo')?.naturalWidth,
       photoNaturalHeight: document.querySelector('.profile-photo')?.naturalHeight
     }))()`);
-    assert.equal(initialContract.title, "Andris Rožkalns · DevOps & Linux Engineer");
-    assert.equal(initialContract.role, "Junior DevOps & Linux Engineer");
+    assert.equal(initialContract.title, "Andris Rožkalns · Technical Support / Linux Operations");
+    assert.equal(initialContract.role, "Junior Technical Support / Linux Operations");
     assert.match(initialContract.photoSrc, /\/assets\/photo\.[0-9a-f]{12}\.webp$/);
     assert.equal(initialContract.photoAlt, "");
     assert.equal(initialContract.profileHeading, "Andris Rožkalns");
@@ -583,13 +583,13 @@ async function runBrowserSmoke(baseUrl, state) {
     await cdp.evaluate(`document.querySelector('[data-lang="lv"]').click()`);
     await latvianLoaded;
     await cdp.waitFor(
-      `location.pathname === "/lv/" && document.documentElement.lang === "lv" && document.title === "Andris Rožkalns · DevOps un Linux inženieris" && document.querySelector('#pdfLink')?.getAttribute('href') === "/cv-lv.pdf"`,
+      `location.pathname === "/lv/" && document.documentElement.lang === "lv" && document.title === "Andris Rožkalns · Technical Support / Linux Operations" && document.querySelector('#pdfLink')?.getAttribute('href') === "/cv-lv.pdf"`,
       10_000,
       "Latvian localized URL"
     );
     assert.equal(
       await cdp.evaluate(`document.querySelector('[data-i18n="role"]').textContent`),
-      "Junior DevOps un Linux inženieris"
+      "Junior Technical Support / Linux Operations"
     );
     assert.equal(
       await cdp.evaluate(`document.querySelector('#profileLocation')?.textContent`),
@@ -823,7 +823,6 @@ async function runBrowserSmoke(baseUrl, state) {
     assert.equal(linkState.language, "lv", `link-state=${JSON.stringify(linkState)}`);
     assert.equal(linkState.pdfHref, "/cv-lv.pdf", `link-state=${JSON.stringify(linkState)}`);
     assert(linkState.hrefs.includes("/cv-lv.pdf"), `link-state=${JSON.stringify(linkState)}`);
-    assert(linkState.hrefs.includes("/smarthome.html"), `link-state=${JSON.stringify(linkState)}`);
 
     const responsiveMatrix = [
       { width: 390, height: 844, mobile: true },
@@ -863,71 +862,68 @@ async function runBrowserSmoke(baseUrl, state) {
         const githubProof = await cdp.evaluate(`(() => ({
           profile: document.querySelector('a[rel="me"]')?.textContent.trim(),
           selected: [...document.querySelectorAll('#github-projects > dd > a.github-row')].map((link) => link.textContent.trim()),
-          remaining: document.querySelector('#github-projects details')?.textContent || '',
-          collapsed: document.querySelector('#github-projects details')?.open === false,
           iconSizes: [...document.querySelectorAll('#github-projects a svg')].map((icon) => {
             const rect = icon.getBoundingClientRect();
             return { width: rect.width, height: rect.height };
           }),
           rowSizes: [...document.querySelectorAll('#github-projects > dd > a.github-row')].map((row) => {
             const rect = row.getBoundingClientRect();
-            return { width: rect.width, height: rect.height };
+            return {
+              width: rect.width,
+              height: rect.height,
+              clientWidth: row.clientWidth,
+              scrollWidth: row.scrollWidth,
+              clientHeight: row.clientHeight,
+              scrollHeight: row.scrollHeight
+            };
           }),
           proofParent: document.querySelector('#github-projects')?.closest('section')?.id,
           proofTag: document.querySelector('#github-projects')?.tagName,
           nestedFeaturedList: Boolean(document.querySelector('#github-projects > dd > .skill-list')),
-          proofDisplay: getComputedStyle(document.querySelector('#github-projects > dd')).display,
-          disclosureDisplay: getComputedStyle(document.querySelector('#github-projects > dd > details')).display,
-          disclosureUsesProjectList: document.querySelector('#github-projects > dd > details')?.classList.contains('project-list') || false
+          proofDisplay: getComputedStyle(document.querySelector('#github-projects > dd')).display
         }))()`);
         assert.equal(githubProof.profile, "GitHub", `responsive ${viewport.width}px ${locale.label} GitHub profile link`);
-        assert.deepEqual(githubProof.selected, ["hermes-tech · Python", "RPi5_main · Prometheus · Bash", "hermes-deals", "rozkalns-control-center", "dashboard_RPi5"]);
-        for (const repo of ["home-assistant-config", "balcony-irrigation-esp32", "rozkalns-cv", "ops-workflows"]) assert.match(githubProof.remaining, new RegExp(repo));
-        assert.equal(githubProof.collapsed, true);
+        assert.deepEqual(githubProof.selected, [
+          "linux-operations-lab",
+          "RPi5_main · Prometheus · Bash",
+          "rozkalns-cv · Linux · Docker Compose · Nginx",
+          "dashboard_RPi5",
+          "rozkalns-control-center"
+        ]);
         const proofHierarchy = await cdp.evaluate(`(() => {
           const skillsHeading = document.querySelector('#skills h2');
           const proofHeading = document.querySelector('#github-projects > dt');
-          const firstRow = document.querySelector('#github-projects > dd > a.github-row');
-          const summary = document.querySelector('#github-projects > dd > details > summary');
-          const firstRect = firstRow?.getBoundingClientRect();
-          const summaryRect = summary?.getBoundingClientRect();
           return {
             skillsFont: skillsHeading ? parseFloat(getComputedStyle(skillsHeading).fontSize) : 0,
             proofFont: proofHeading ? parseFloat(getComputedStyle(proofHeading).fontSize) : 0,
-            proofText: proofHeading?.textContent.trim(),
-            summaryText: summary?.textContent.trim(),
-            rowWidth: firstRect?.width || 0,
-            summaryWidth: summaryRect?.width || 0,
-            summaryHeight: summaryRect?.height || 0
+            proofText: proofHeading?.textContent.trim()
           };
         })()`);
         assert.ok(proofHierarchy.skillsFont >= 24, `responsive ${viewport.width}px ${locale.label} Skills heading hierarchy: ${proofHierarchy.skillsFont}`);
         assert.ok(proofHierarchy.proofFont <= 14, `responsive ${viewport.width}px ${locale.label} GitHub proof heading hierarchy: ${proofHierarchy.proofFont}`);
         const proofLabels = {
-          en: { heading: 'GitHub Projects', summary: '+ 4 Projects' },
-          de: { heading: 'GitHub Projekte', summary: '+ 4 Projekte' },
-          lv: { heading: 'GitHub Projekti', summary: '+ 4 Projekti' }
-        }[locale.language];
-        assert.equal(proofHierarchy.proofText, proofLabels.heading);
-        assert.equal(proofHierarchy.summaryText, proofLabels.summary);
-        assert.ok(Math.abs(proofHierarchy.summaryWidth - proofHierarchy.rowWidth) <= 2, `responsive ${viewport.width}px ${locale.label} GitHub disclosure width: ${JSON.stringify(proofHierarchy)}`);
-        assert.ok(proofHierarchy.summaryHeight >= 28 && proofHierarchy.summaryHeight <= 36, `responsive ${viewport.width}px ${locale.label} GitHub disclosure height: ${JSON.stringify(proofHierarchy)}`);
-        assert.equal(githubProof.iconSizes.length, 9, `responsive ${viewport.width}px ${locale.label} GitHub icon count`);
+          en: 'GitHub Projects',
+          de: 'GitHub Projekte',
+          lv: 'GitHub Projekti'
+        };
+        assert.equal(proofHierarchy.proofText, proofLabels[locale.language]);
+        assert.equal(githubProof.iconSizes.length, 5, `responsive ${viewport.width}px ${locale.label} GitHub icon count`);
         assert.ok(
           githubProof.iconSizes.every(({ width, height }) => width >= 12 && width <= 14 && height >= 12 && height <= 14),
           `responsive ${viewport.width}px ${locale.label} GitHub icons must stay compact: ${JSON.stringify(githubProof.iconSizes)}`
         );
         assert.equal(githubProof.rowSizes.length, 5);
         assert.ok(
-          githubProof.rowSizes.every(({ width, height }) => width >= 120 && height >= 28 && height <= 34),
-          `responsive ${viewport.width}px ${locale.label} GitHub rows must stay compact: ${JSON.stringify(githubProof.rowSizes)}`
+          githubProof.rowSizes.every(({ width, height, clientWidth, scrollWidth, clientHeight, scrollHeight }) =>
+            width >= 120 && height >= 28 && height <= 48 &&
+            scrollWidth <= clientWidth + 1 && scrollHeight <= clientHeight + 1
+          ),
+          `responsive ${viewport.width}px ${locale.label} GitHub rows must stay bounded without overflow: ${JSON.stringify(githubProof.rowSizes)}`
         );
         assert.equal(githubProof.proofParent, 'skills', `responsive ${viewport.width}px ${locale.label} GitHub proof parent`);
         assert.equal(githubProof.proofTag, 'DIV', `responsive ${viewport.width}px ${locale.label} GitHub proof row tag`);
         assert.equal(githubProof.nestedFeaturedList, false, `responsive ${viewport.width}px ${locale.label} nested GitHub list seam`);
         assert.equal(githubProof.proofDisplay, 'grid', `responsive ${viewport.width}px ${locale.label} GitHub proof grid`);
-        assert.equal(githubProof.disclosureDisplay, 'grid', `responsive ${viewport.width}px ${locale.label} GitHub disclosure grid`);
-        assert.equal(githubProof.disclosureUsesProjectList, false, `responsive ${viewport.width}px ${locale.label} disclosure section seam`);
         const layout = await cdp.evaluate(`(() => {
           const page = document.querySelector('#pageShell')?.getBoundingClientRect();
           const launcherElement = document.querySelector('#chatLauncher');

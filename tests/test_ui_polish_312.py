@@ -37,14 +37,14 @@ class RecruiterUiPolishTest(unittest.TestCase):
         self.assertIn('href=//github.com/rozkalnsandris', markup)
         self.assertNotIn('/smarthome.html', markup)
 
-    def test_primary_projects_are_devops_first_case_studies_with_direct_proof(self) -> None:
+    def test_primary_projects_are_support_first_case_studies_with_direct_proof(self) -> None:
         projects = re.findall(r'<article class="project-entry primary"[^>]*>.*?</article>', INDEX, re.S)
         self.assertEqual(len(projects), 4)
         expected = (
-            ("p7_title", "rozkalns-cv", "p7_ops"),
+            ("p8_title", "linux-operations-lab", "p8_ops"),
             ("p1_title", "RPi5_main", "p1_ops"),
             ("p3_title", "RPi5_main", "p3_ops"),
-            ("p2_title", "hermes-tech", "p2_ops"),
+            ("p7_title", "rozkalns-cv", "p7_ops"),
         )
         for project, (title_key, repo, ops_key) in zip(projects, expected):
             self.assertIn(f'data-i18n="{title_key}"', project)
@@ -53,11 +53,7 @@ class RecruiterUiPolishTest(unittest.TestCase):
             self.assertIn('class="tech-tag github-row"', project)
 
         secondary = re.findall(r'<article class="project-entry secondary">.*?</article>', INDEX, re.S)
-        self.assertEqual(len(secondary), 2)
-        self.assertIn('data-i18n="p4_title"', secondary[0])
-        self.assertIn('href=/smarthome.html', secondary[0])
-        self.assertIn('data-i18n=smart_demo', secondary[0])
-        self.assertIn('data-i18n="p6_title"', secondary[1])
+        self.assertEqual(secondary, [])
 
     def test_compact_nav_is_mobile_first_and_desktop_experience_is_linear(self) -> None:
         self.assertNotIn('@media (max-width:', RESPONSIVE)

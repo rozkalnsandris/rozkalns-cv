@@ -8,9 +8,9 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 
 EXPECTED_TITLES = {
-    "en": "Andris Rožkalns · DevOps & Linux Engineer",
-    "de": "Andris Rožkalns · DevOps Engineer / Linux-Systemadministrator",
-    "lv": "Andris Rožkalns · DevOps un Linux inženieris",
+    "en": "Andris Rožkalns · Technical Support / Linux Operations",
+    "de": "Andris Rožkalns · Technical Support / Linux Operations",
+    "lv": "Andris Rožkalns · Technical Support / Linux Operations",
 }
 
 

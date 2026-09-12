@@ -12,10 +12,10 @@ class HeroRecruiterScanTests(unittest.TestCase):
 
         for capability in (
             "Linux",
+            "Troubleshooting",
             "Docker / Compose",
-            "Bash",
-            "Nginx",
-            "Prometheus / Grafana",
+            "Monitoring",
+            "REST APIs",
         ):
             self.assertIn(capability, html)
 
@@ -27,9 +27,9 @@ class HeroRecruiterScanTests(unittest.TestCase):
 
     def test_operations_first_tagline_and_hero_labels_are_localized(self) -> None:
         expected = {
-            "en": "I build and automate self-hosted Linux systems with containers, monitoring and reliable operations. This site runs on infrastructure I operate.",
-            "de": "Ich baue und automatisiere selbst gehostete Linux-Systeme mit Containern, Monitoring und zuverlässigem Betrieb. Diese Website läuft auf Infrastruktur, die ich selbst betreibe.",
-            "lv": "Es būvēju un automatizēju pašhostētas Linux sistēmas ar konteineriem, monitoringu un uzticamu darbību. Šī vietne darbojas uz infrastruktūras, ko pats uzturu.",
+            "en": "I troubleshoot Linux systems systematically and document what I find. My public projects show hands-on Docker, monitoring, DNS/TLS, Bash and lightweight Python/REST API work.",
+            "de": "Ich analysiere Linux-Probleme systematisch und dokumentiere meine Ergebnisse. Meine öffentlichen Projekte zeigen praktische Arbeit mit Docker, Monitoring, DNS/TLS, Bash sowie einfacher Python-/REST-API-Automatisierung.",
+            "lv": "Linux problēmas risinu sistemātiski un dokumentēju atrasto. Mani publiskie projekti rāda praktisku darbu ar Docker, monitoringu, DNS/TLS, Bash un vienkāršu Python/REST API automatizāciju.",
         }
 
         required = {

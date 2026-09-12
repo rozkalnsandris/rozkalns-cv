@@ -18,7 +18,8 @@
       "url": "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/README.md",
       "project_ids": [
         "homelab",
-        "observability"
+        "observability",
+        "cv-platform"
       ]
     },
     "cv-compose": {
@@ -82,7 +83,18 @@
       "repository": "rozkalnsandris/rozkalns-cv",
       "path": ".github/workflows/ci.yml",
       "url": "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/.github/workflows/ci.yml",
-      "project_ids": []
+      "project_ids": [
+        "cv-platform"
+      ]
+    },
+    "linux-operations-lab-readme": {
+      "kind": "repository_file",
+      "repository": "rozkalnsandris/linux-operations-lab",
+      "path": "README.md",
+      "url": "https://github.com/rozkalnsandris/linux-operations-lab/blob/main/README.md",
+      "project_ids": [
+        "linux-ops-lab"
+      ]
     }
   },
   "skill_evidence": {

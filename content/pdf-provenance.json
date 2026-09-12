@@ -1,35 +1,43 @@
 {
   "schema_version": 1,
-  "pdf_source_sha256": "9a78c3f9905bb981b5a13a40b9ead4a2a939e6ebb9473b7361a402dc2c0dd682",
-  "renderer_sha256": "e5bfff70aedb0fd9410f0cfe88cca107d1e846c3b8833caa71e17126adfd9a64",
+  "pdf_source_sha256": "da7de5b4b7c3e92425766736cb92305edb7073bbfa41f8e2627f60133d934484",
+  "renderer_sha256": "f59e83ccb52aa6fb0d06cdc3f5b881a6b66f090c7a92937476e40cef9e38a971",
   "pdfs": {
     "en": {
       "path": "html/cv.pdf",
-      "sha256": "a25e3387018003f0788b0c6d4d528eca101a301e83b819d189a5170d7c539be6"
+      "sha256": "c71e7ace09d2205a72b865d7beebdae551300518f2fc6e1ce5ec663fa72546ae"
     },
     "de": {
       "path": "html/cv-de.pdf",
-      "sha256": "ac7bcaa7aefc472d6fd97151de13fb9bb782fada67ec732c598304855f5bfc1b"
+      "sha256": "7b073288a31c54ca689d080f98d1657823bdcc1000d14be1fb2c2c235fcc67c0"
     },
     "lv": {
       "path": "html/cv-lv.pdf",
-      "sha256": "fe996d1268d1bdecfc1202a4e2535b0c58bc9e89f9a9f2893bca50619251ab5d"
+      "sha256": "9ffedc1ea68b01b9eb28c06bf4dfc6d6c0e121a37398f237eafbbf40bea61193"
     },
-    "devops-en": {
-      "path": "html/cv-devops.pdf",
-      "sha256": "9102cf4bec71847176079e6adf2a868c17b3c9d34a8fb6e4932d0238c526fa48"
+    "technical-support-en": {
+      "path": "html/cv-technical-support.pdf",
+      "sha256": "50ff707f2bec6bee6e13cfc749604139820711a8f807b738f37398ed9d2d4bf2"
     },
-    "devops-de": {
-      "path": "html/cv-devops-de.pdf",
-      "sha256": "5968fd6f036fd21fb2265d94e2c679f9b37267a8480b00f40ff62f87e6dd58d1"
+    "technical-support-de": {
+      "path": "html/cv-technical-support-de.pdf",
+      "sha256": "cbab27eb2aa76d2132cc6d4da165943736fd814a3fdd0810af8e3de1523a815a"
     },
-    "linux-admin-en": {
-      "path": "html/cv-linux-admin.pdf",
-      "sha256": "5d1511b97cb294af80c91abd7c48a675bdaf9f65cc1db9ba40a36dbf8017a899"
+    "linux-operations-en": {
+      "path": "html/cv-linux-operations.pdf",
+      "sha256": "6b1791bb98b483dad2acb9b70a4c797a5b60f1454687450d3711acb44617a0ea"
     },
-    "linux-admin-de": {
-      "path": "html/cv-linux-admin-de.pdf",
-      "sha256": "d2fc056f3b0c0843c33c08201b2964e681806eb25fb458fcdbceda6dfe629ee4"
+    "linux-operations-de": {
+      "path": "html/cv-linux-operations-de.pdf",
+      "sha256": "0084ac377a022a46c6a6ac8b9e21df14f1169d978be07f54bbd473423bd9c063"
+    },
+    "application-support-en": {
+      "path": "html/cv-application-support.pdf",
+      "sha256": "7c773254e65c5a4d4fc4a684b78c10e86164ccfa709490ddbfa4773545ac6e16"
+    },
+    "application-support-de": {
+      "path": "html/cv-application-support-de.pdf",
+      "sha256": "5cbc9e5832e72b35bc0a658cb14121b86b0ca6a55f2c50fb1e0b3b508468efc6"
     }
   }
 }

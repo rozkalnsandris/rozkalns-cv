@@ -13,12 +13,13 @@
     "experience",
     "education",
     "skills",
+    "skill_groups",
     "projects",
     "infrastructure"
   ],
   "properties": {
     "schema_version": {
-      "const": 2
+      "const": 3
     },
     "content_version": {
       "type": "string",
@@ -178,6 +179,34 @@
         "public_site": {
           "type": "string",
           "format": "uri"
+        }
+      }
+    },
+    "skill_groups": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "linux_operations",
+        "networking_web",
+        "containers_monitoring",
+        "application_support",
+        "automation_git"
+      ],
+      "properties": {
+        "linux_operations": {
+          "$ref": "#/$defs/nonEmptyStrings"
+        },
+        "networking_web": {
+          "$ref": "#/$defs/nonEmptyStrings"
+        },
+        "containers_monitoring": {
+          "$ref": "#/$defs/nonEmptyStrings"
+        },
+        "application_support": {
+          "$ref": "#/$defs/nonEmptyStrings"
+        },
+        "automation_git": {
+          "$ref": "#/$defs/nonEmptyStrings"
         }
       }
     }

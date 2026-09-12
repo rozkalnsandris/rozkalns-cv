@@ -38,9 +38,9 @@ class ProfilePageStructuredDataContractTest(unittest.TestCase):
 
     def test_localized_profile_pages_match_visible_locale(self):
         expected_roles = {
-            "en": "Junior DevOps & Linux Engineer",
-            "de": "Junior DevOps Engineer / Linux-Systemadministrator",
-            "lv": "Junior DevOps un Linux inženieris",
+            "en": "Junior Technical Support / Linux Operations",
+            "de": "Junior Technical Support / Linux Operations",
+            "lv": "Junior Technical Support / Linux Operations",
         }
         for language, role in expected_roles.items():
             profile = load_profile_page(f"html/{language}/index.html")

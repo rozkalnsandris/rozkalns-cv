@@ -24,6 +24,9 @@
     },
     "ci-workflow": {
       "url": "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/.github/workflows/ci.yml"
+    },
+    "linux-operations-lab-readme": {
+      "url": "https://github.com/rozkalnsandris/linux-operations-lab/blob/main/README.md"
     }
   },
   "skill_evidence": {
@@ -89,15 +92,24 @@
       "systemd-bash-installer",
       "monitoring-project-source"
     ],
+    "cv-platform": [
+      "portfolio-readme",
+      "ci-workflow"
+    ],
     "maintenance": [
       "systemd-bash-installer",
       "monitoring-project-source"
+    ],
+    "linux-ops-lab": [
+      "linux-operations-lab-readme"
     ]
   },
   "project_titles": {
     "homelab": "Self-hosted Linux server environment",
     "observability": "Monitoring and observability",
-    "maintenance": "Automated maintenance"
+    "cv-platform": "rozkalns.net CV platform",
+    "maintenance": "Automated maintenance",
+    "linux-ops-lab": "Linux Operations Lab"
   },
   "allowed_output_urls": [
     "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/README.md",
@@ -108,6 +120,7 @@
     "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/scripts/install-live-stats-systemd.sh",
     "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/frontend/index.html",
     "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/.github/workflows/ci.yml",
+    "https://github.com/rozkalnsandris/linux-operations-lab/blob/main/README.md",
     "https://github.com/rozkalnsandris",
     "https://rozkalns.net/",
     "https://rozkalns.net"

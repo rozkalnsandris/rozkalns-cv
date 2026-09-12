@@ -32,29 +32,27 @@ class ProjectTechIconTests(unittest.TestCase):
         )[0]
         labels = re.findall(r'<span class="tech-tag">([^<]+)</span>', projects)
 
-        self.assertGreaterEqual(len(labels), 20)
-        for label in (
-            "Raspberry Pi 5",
-            "Docker",
-            "AdGuard",
-            "Cloudflare",
-            "Python",
-            "LLM routing",
-            "ChromaDB",
-            "Telegram",
-            "Home Assistant",
-            "Prometheus",
-            "Matter",
-            "MQTT",
-            "Energy",
-            "APT",
-            "Health checks",
-            "15 sensors",
-            "Relay pump",
-            "Multiplexer",
-            "Safety limits",
-        ):
-            self.assertIn(label, labels)
+        self.assertEqual(
+            labels,
+            [
+                "Troubleshooting",
+                "Linux",
+                "Runbooks",
+                "Incidents",
+                "Linux",
+                "Docker Compose",
+                "systemd",
+                "DNS/TLS",
+                "Prometheus",
+                "Grafana",
+                "Bash",
+                "Health checks",
+                "Linux",
+                "Python",
+                "Browser tests",
+                "PDF",
+            ],
+        )
 
         expected_rules = {
             "database": "chromadb|database|sqlite|postgres|mysql",

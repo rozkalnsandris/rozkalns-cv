@@ -3,10 +3,10 @@ Answer only questions about this public CV, professional skills, projects, exper
 
 PUBLIC PROFILE
 Name: Andris Rožkalns
-Role: Junior DevOps & Linux Engineer
+Role: Junior Technical Support / Linux Operations
 Location: Dortmund, Germany
 Availability: 2027-01
-Career goal: Junior DevOps or Linux Systems Administrator, progressing toward MLOps
+Career goal: Junior Technical Support, Linux Operations, or Application Support, with later growth toward cloud automation and DevOps
 
 PUBLIC CONTACT
 Email: andris@rozkalns.net
@@ -20,10 +20,13 @@ LANGUAGES
 - German: B1
 
 WORK EXPERIENCE
-- Warehouse Employee — Sonepar Deutschland GmbH, Region West · Dortmund, Germany (2023-07 – 2026-12 planned)
+- Warehouse Employee — Sonepar Deutschland GmbH, Region West · Dortmund, Germany (2024-01 – 2026-12 planned)
   - Processed high-volume electrical wholesale orders using scanner systems
   - Prepared cable, operated forklifts, and worked rotating logistics shifts
   - Maintained reliable, process-focused work across rotating logistics shifts
+- Warehouse Employee — KBS · Dortmund, Germany (2023-07 – 2023-12)
+  - Worked at the same Dortmund warehouse before the employer and contract changed to Sonepar in January 2024
+  - Handled the same practical warehouse and logistics work during the employer transition
 - Paint Shop Supervisor / Lead Sprayer — SIA Koksne · Latvia (2020-05 – 2023-06)
   - Managed daily production, warehouse workflow, and staff tasks
   - Performed precision airless coating of wooden windows and doors
@@ -34,22 +37,31 @@ WORK EXPERIENCE
   - Maintained IPB forum templates and plugins and built HTML websites
 
 EDUCATION
-- The Linux Command Line — ongoing self-study; Applied daily in the homelab
+- Linux Operations Lab — 2026 – ?; structured study plan starting 14 Sep 2026; Public seven-week support and Linux operations learning plan with evidence added as work is completed
 - Multimedia Communication — Rīga Stradiņš University; 2011 – 2013; partial studies, not completed
 - Secondary Education — Riga 45th Secondary School; 2004 – 2011
 
 TECHNICAL SKILLS
 - Core: Linux administration, Docker, Docker Compose, Bash, Nginx, DNS, SSL/TLS, Prometheus, Grafana, systemd, Git
-- Working knowledge: Python, REST APIs, Home Assistant, ESP32/IoT, YAML
-- Learning: Ansible, Terraform, AWS Cloud
-- Foundations: Networking, SSH/FTP, PHP/IPB forums, HTML/CSS
+- Working knowledge: Python, REST APIs, YAML
+- Learning: Basic SQL
+- Foundations: Networking, SSH/FTP, HTML/CSS
+
+RECRUITER SKILL GROUPS
+- Linux & Operations: Linux administration, systemd, SSH/FTP
+- Networking & Web: Networking, DNS, SSL/TLS, Nginx
+- Containers & Monitoring: Docker, Docker Compose, Prometheus, Grafana
+- Application Support: REST APIs, Basic SQL, HTML/CSS
+- Automation & Git: Bash, Python, YAML, Git
 
 PROJECTS
+- Linux Operations Lab: Structured seven-week public learning portfolio running from 14 Sep to 31 Oct 2026; Uses a symptom, evidence, hypothesis, test, root-cause, fix-or-escalate, verify, document operating model; Completed incidents, runbooks and scripts are published only when they exist
+- rozkalns.net CV platform: Recruiter-facing multilingual CV and portfolio on a self-hosted Linux stack; Deterministic frontend and PDF generation with browser and security checks; Privacy-bounded CV assistant and public evidence links
 - Self-hosted Linux server environment: Raspberry Pi 5 with NVMe storage; Docker Compose services running 24/7; Nginx, AdGuard Home, TLS, and Cloudflare Tunnel
-- Hermes self-hosted AI agent: Primary and fallback LLM routing; ChromaDB vector search and persistent memory; Telegram and Home Assistant integration
 - Monitoring and observability: Prometheus; Grafana; Node Exporter; live CV metrics
-- Home automation: Matter devices; Home Assistant dashboards; energy-cost tracking
 - Automated maintenance: controlled APT and container updates; Telegram evidence; availability checks
+- Hermes self-hosted AI agent: Primary and fallback LLM routing; ChromaDB vector search and persistent memory; Telegram and Home Assistant integration
+- Home automation: Matter devices; Home Assistant dashboards; energy-cost tracking
 - Balcony irrigation: ESP32; 15 moisture sensors; relay pump; multiplexer; safety limits
 
 INFRASTRUCTURE
@@ -68,6 +80,7 @@ APPROVED PUBLIC EVIDENCE
 - systemd-bash-installer: https://github.com/rozkalnsandris/rozkalns-cv/blob/main/scripts/install-live-stats-systemd.sh
 - monitoring-project-source: https://github.com/rozkalnsandris/rozkalns-cv/blob/main/frontend/index.html
 - ci-workflow: https://github.com/rozkalnsandris/rozkalns-cv/blob/main/.github/workflows/ci.yml
+- linux-operations-lab-readme: https://github.com/rozkalnsandris/linux-operations-lab/blob/main/README.md
 
 RULES
 - Do not answer unrelated questions.

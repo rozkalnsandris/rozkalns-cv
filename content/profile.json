@@ -1,12 +1,12 @@
 {
-  "schema_version": 2,
-  "content_version": "2026-08-31.1",
+  "schema_version": 3,
+  "content_version": "2026-09-12.1",
   "identity": {
     "name": "Andris Rožkalns",
-    "role": "Junior DevOps & Linux Engineer",
+    "role": "Junior Technical Support / Linux Operations",
     "location": "Dortmund, Germany",
     "availability": "2027-01",
-    "career_goal": "Junior DevOps or Linux Systems Administrator, progressing toward MLOps"
+    "career_goal": "Junior Technical Support, Linux Operations, or Application Support, with later growth toward cloud automation and DevOps"
   },
   "contact": {
     "email": {
@@ -45,13 +45,25 @@
       "role": "Warehouse Employee",
       "organization": "Sonepar Deutschland GmbH, Region West",
       "location": "Dortmund, Germany",
-      "start": "2023-07",
+      "start": "2024-01",
       "end": "2026-12",
       "end_planned": true,
       "highlights": [
         "Processed high-volume electrical wholesale orders using scanner systems",
         "Prepared cable, operated forklifts, and worked rotating logistics shifts",
         "Maintained reliable, process-focused work across rotating logistics shifts"
+      ]
+    },
+    {
+      "id": "kbs",
+      "role": "Warehouse Employee",
+      "organization": "KBS",
+      "location": "Dortmund, Germany",
+      "start": "2023-07",
+      "end": "2023-12",
+      "highlights": [
+        "Worked at the same Dortmund warehouse before the employer and contract changed to Sonepar in January 2024",
+        "Handled the same practical warehouse and logistics work during the employer transition"
       ]
     },
     {
@@ -92,10 +104,11 @@
   ],
   "education": [
     {
-      "id": "tlcl",
-      "title": "The Linux Command Line",
-      "status": "ongoing self-study",
-      "detail": "Applied daily in the homelab"
+      "id": "linux-operations-lab-learning",
+      "title": "Linux Operations Lab",
+      "start": "2026",
+      "status": "structured study plan starting 14 Sep 2026",
+      "detail": "Public seven-week support and Linux operations learning plan with evidence added as work is completed"
     },
     {
       "id": "rsu",
@@ -130,23 +143,36 @@
     "working": [
       "Python",
       "REST APIs",
-      "Home Assistant",
-      "ESP32/IoT",
       "YAML"
     ],
     "learning": [
-      "Ansible",
-      "Terraform",
-      "AWS Cloud"
+      "Basic SQL"
     ],
     "foundations": [
       "Networking",
       "SSH/FTP",
-      "PHP/IPB forums",
       "HTML/CSS"
     ]
   },
   "projects": [
+    {
+      "id": "linux-ops-lab",
+      "title": "Linux Operations Lab",
+      "facts": [
+        "Structured seven-week public learning portfolio running from 14 Sep to 31 Oct 2026",
+        "Uses a symptom, evidence, hypothesis, test, root-cause, fix-or-escalate, verify, document operating model",
+        "Completed incidents, runbooks and scripts are published only when they exist"
+      ]
+    },
+    {
+      "id": "cv-platform",
+      "title": "rozkalns.net CV platform",
+      "facts": [
+        "Recruiter-facing multilingual CV and portfolio on a self-hosted Linux stack",
+        "Deterministic frontend and PDF generation with browser and security checks",
+        "Privacy-bounded CV assistant and public evidence links"
+      ]
+    },
     {
       "id": "homelab",
       "title": "Self-hosted Linux server environment",
@@ -154,15 +180,6 @@
         "Raspberry Pi 5 with NVMe storage",
         "Docker Compose services running 24/7",
         "Nginx, AdGuard Home, TLS, and Cloudflare Tunnel"
-      ]
-    },
-    {
-      "id": "hermes",
-      "title": "Hermes self-hosted AI agent",
-      "facts": [
-        "Primary and fallback LLM routing",
-        "ChromaDB vector search and persistent memory",
-        "Telegram and Home Assistant integration"
       ]
     },
     {
@@ -176,21 +193,30 @@
       ]
     },
     {
-      "id": "home-automation",
-      "title": "Home automation",
-      "facts": [
-        "Matter devices",
-        "Home Assistant dashboards",
-        "energy-cost tracking"
-      ]
-    },
-    {
       "id": "maintenance",
       "title": "Automated maintenance",
       "facts": [
         "controlled APT and container updates",
         "Telegram evidence",
         "availability checks"
+      ]
+    },
+    {
+      "id": "hermes",
+      "title": "Hermes self-hosted AI agent",
+      "facts": [
+        "Primary and fallback LLM routing",
+        "ChromaDB vector search and persistent memory",
+        "Telegram and Home Assistant integration"
+      ]
+    },
+    {
+      "id": "home-automation",
+      "title": "Home automation",
+      "facts": [
+        "Matter devices",
+        "Home Assistant dashboards",
+        "energy-cost tracking"
       ]
     },
     {
@@ -211,5 +237,35 @@
     "runtime": "Docker Compose",
     "availability": "24/7",
     "public_site": "https://rozkalns.net/"
+  },
+  "skill_groups": {
+    "linux_operations": [
+      "Linux administration",
+      "systemd",
+      "SSH/FTP"
+    ],
+    "networking_web": [
+      "Networking",
+      "DNS",
+      "SSL/TLS",
+      "Nginx"
+    ],
+    "containers_monitoring": [
+      "Docker",
+      "Docker Compose",
+      "Prometheus",
+      "Grafana"
+    ],
+    "application_support": [
+      "REST APIs",
+      "Basic SQL",
+      "HTML/CSS"
+    ],
+    "automation_git": [
+      "Bash",
+      "Python",
+      "YAML",
+      "Git"
+    ]
   }
 }

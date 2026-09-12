@@ -223,7 +223,7 @@ test("failed language switch leaves the previously applied state unchanged", asy
   let fail = false;
   const fetchImpl = async () => {
     if (fail) return { ok: false, async json() { return {}; } };
-    return { ok: true, async json() { return { label: "English", role: "Junior DevOps & Linux Engineer" }; } };
+    return { ok: true, async json() { return { label: "English", role: "Junior Technical Support / Linux Operations" }; } };
   };
   const documentLike = { title: "Initial title" };
   const controller = createLanguageController({
@@ -235,7 +235,7 @@ test("failed language switch leaves the previously applied state unchanged", asy
   });
 
   assert.equal(await controller.tryApply("en"), true);
-  assert.equal(documentLike.title, "Andris Rožkalns · DevOps & Linux Engineer");
+  assert.equal(documentLike.title, "Andris Rožkalns · Technical Support / Linux Operations");
   const previousMessages = controller.messages;
   fail = true;
 
@@ -244,7 +244,7 @@ test("failed language switch leaves the previously applied state unchanged", asy
   assert.equal(controller.messages, previousMessages);
   assert.equal(root.documentElement.lang, "en");
   assert.equal(storage.value, "en");
-  assert.equal(documentLike.title, "Andris Rožkalns · DevOps & Linux Engineer");
+  assert.equal(documentLike.title, "Andris Rožkalns · Technical Support / Linux Operations");
 });
 
 test("latest language request wins when responses complete out of order", async () => {
@@ -1759,14 +1759,14 @@ test("skill chips map to meaningful SVG icon families", () => {
   assert.equal(skillIconName("dashboard_RPi5"), "chart");
 });
 
-test("GitHub projects use a compact vertical icon list", async () => {
+test("GitHub projects use a compact prioritized icon list", async () => {
   const source = await readFile(resolve(ROOT, "frontend/index.html"), "utf8");
   const proof = source.match(/<div class=skill-row id=github-projects>([\s\S]*?)<\/div><\/dl>/)?.[1] || "";
-  const featured = proof.match(/<dd>([\s\S]*?)<details/)?.[1] || "";
-  assert.equal((featured.match(/href=\/\/github\.com\/rozkalnsandris\//g) || []).length, 5);
-  assert.equal((proof.match(/href=\/\/github\.com\/rozkalnsandris\//g) || []).length, 9);
-  assert.equal((proof.match(/class="tech-tag has-tech-icon github-row"/g) || []).length, 9);
-  assert.match(proof, /<details><summary class="tech-tag">\+ 4 <span data-i18n=projects_title>Projects<\/span><\/summary><div class=skill-list>/);
+  assert.equal((proof.match(/href=\/\/github\.com\/rozkalnsandris\//g) || []).length, 5);
+  assert.equal((proof.match(/class="tech-tag has-tech-icon github-row"/g) || []).length, 5);
+  for (const repo of ["linux-operations-lab", "RPi5_main", "rozkalns-cv", "dashboard_RPi5", "rozkalns-control-center"]) {
+    assert.ok(proof.includes(`href=//github.com/rozkalnsandris/${repo}>${repo}</a>`), repo);
+  }
 });
 
 test("skill icons initialize before translation network work", async () => {
@@ -1790,7 +1790,7 @@ test("skill translation preserves an existing SVG enhancement", () => {
   };
   const row = {
     querySelector(selector) {
-      return selector === "dt[data-i18n]" ? { dataset: { i18n: "skills_foundations" } } : null;
+      return selector === "dt[data-i18n]" ? { dataset: { i18n: "skill_group_networking_web" } } : null;
     },
     querySelectorAll(selector) { return selector === ".skill-chip" ? [chip] : []; }
   };
@@ -1799,7 +1799,7 @@ test("skill translation preserves an existing SVG enhancement", () => {
   };
 
   assert.equal(
-    applySkillTranslations({ skills_foundations_items: "Netzwerke" }, { root }),
+    applySkillTranslations({ skill_group_networking_web_items: "Netzwerke" }, { root }),
     1
   );
   assert.equal(chip.textContent, "Netzwerke");
@@ -1875,11 +1875,11 @@ test("contact reveal payload must contain bounded contact shapes", () => {
 });
 
 
-test("GitHub project overflow exposes direct repository links", async () => {
+test("prioritized GitHub project list exposes direct repository links", async () => {
   const source = await readFile(resolve(ROOT, "frontend/index.html"), "utf8");
   const proof = source.match(/<div class=skill-row id=github-projects>([\s\S]*?)<\/div><\/dl>/)?.[1] || "";
-  assert.match(proof, /<details><summary class="tech-tag">\+ 4 <span data-i18n=projects_title>Projects<\/span><\/summary><div class=skill-list>/);
-  for (const repo of ["home-assistant-config", "balcony-irrigation-esp32", "rozkalns-cv", "ops-workflows"]) {
+  assert.doesNotMatch(proof, /<details>/);
+  for (const repo of ["linux-operations-lab", "RPi5_main", "rozkalns-cv", "dashboard_RPi5", "rozkalns-control-center"]) {
     assert.ok(proof.includes(`href=//github.com/rozkalnsandris/${repo}>${repo}</a>`), repo);
   }
 });

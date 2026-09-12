@@ -66,50 +66,25 @@
       "de": "REST-APIs",
       "lv": "REST API"
     },
-    "Home Assistant": {
-      "en": "Home Assistant",
-      "de": "Home Assistant",
-      "lv": "Home Assistant"
-    },
-    "ESP32/IoT": {
-      "en": "ESP32/IoT",
-      "de": "ESP32/IoT",
-      "lv": "ESP32/IoT"
-    },
     "YAML": {
       "en": "YAML",
       "de": "YAML",
       "lv": "YAML"
     },
-    "Ansible": {
-      "en": "Ansible",
-      "de": "Ansible",
-      "lv": "Ansible"
-    },
-    "Terraform": {
-      "en": "Terraform",
-      "de": "Terraform",
-      "lv": "Terraform"
-    },
-    "AWS Cloud": {
-      "en": "AWS Cloud",
-      "de": "AWS Cloud",
-      "lv": "AWS Cloud"
+    "Basic SQL": {
+      "en": "Basic SQL (learning)",
+      "de": "SQL-Grundlagen (im Aufbau)",
+      "lv": "SQL pamati (apgūstu)"
     },
     "Networking": {
       "en": "Networking",
-      "de": "Netzwerke",
-      "lv": "Tīklošana"
+      "de": "Netzwerkgrundlagen",
+      "lv": "Tīklu pamati"
     },
     "SSH/FTP": {
       "en": "SSH/FTP",
       "de": "SSH/FTP",
       "lv": "SSH/FTP"
-    },
-    "PHP/IPB forums": {
-      "en": "PHP/IPB",
-      "de": "PHP/IPB-Foren",
-      "lv": "PHP/IPB forumi"
     },
     "HTML/CSS": {
       "en": "HTML/CSS",
