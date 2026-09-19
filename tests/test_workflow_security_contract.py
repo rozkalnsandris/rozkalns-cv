@@ -39,6 +39,10 @@ class WorkflowSecurityContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "immutable 40-hex pin"):
             validate_workflow_text("github-only-policy-drift.yml", workflow)
 
+    def test_workflow_security_reusable_job_accepts_immutable_pin(self) -> None:
+        workflow = """permissions:\n  contents: read\njobs:\n  workflow-security:\n    uses: rozkalnsandris/ops-workflows/.github/workflows/workflow-security.yml@0450e662093c41e98ca96802b523ac91eb02e5fe\n"""
+        validate_workflow_text("workflow-security.yml", workflow)
+
     def test_unknown_workflow_requires_explicit_permission_policy(self) -> None:
         workflow = """permissions:\n  contents: read\njobs:\n  validate:\n    runs-on: ubuntu-24.04\n    timeout-minutes: 10\n"""
         with self.assertRaisesRegex(ValueError, "lacks explicit permission policy"):

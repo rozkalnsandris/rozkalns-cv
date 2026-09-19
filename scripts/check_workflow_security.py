@@ -11,9 +11,11 @@ EXPECTED_PERMISSIONS = {
     "codeql-evidence.yml": {"contents": "read", "checks": "read"},
     "github-only-policy-drift.yml": {"contents": "read"},
     "pdf-quality.yml": {"contents": "read"},
+    "workflow-security.yml": {"contents": "read"},
 }
 REUSABLE_JOB_ALLOWLIST = {
     ("github-only-policy-drift.yml", "github-only-policy-drift"),
+    ("workflow-security.yml", "workflow-security"),
 }
 REUSABLE_WORKFLOW_PIN = re.compile(
     r"^rozkalnsandris/ops-workflows/\.github/workflows/"
