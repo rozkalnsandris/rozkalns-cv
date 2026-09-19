@@ -220,7 +220,7 @@ jobs:
           test -n "$module_path"
 
           headers=''
-          for attempt in $(seq 1 20); do
+          for _ in $(seq 1 20); do
             if headers="$(curl --fail --silent --show-error --head \
               "http://127.0.0.1:18088${module_path}" 2>/dev/null)"; then
               break
@@ -276,7 +276,8 @@ jobs:
           : > bot/.env
           chmod 0600 cloudflared.env bot/.env
           export CVBOT_VCS_REF="$GITHUB_SHA"
-          export CVBOT_BUILD_INPUT_SHA256="$(python3 scripts/build-input-id.py "$PWD")"
+          CVBOT_BUILD_INPUT_SHA256="$(python3 scripts/build-input-id.py "$PWD")"
+          export CVBOT_BUILD_INPUT_SHA256
           [[ "$CVBOT_BUILD_INPUT_SHA256" =~ ^[0-9a-f]{64}$ ]]
           image_ref="rozkalns-cv-cvbot:${CVBOT_VCS_REF}"
           CF_TUNNEL_TOKEN='ci-placeholder-not-a-secret' \
