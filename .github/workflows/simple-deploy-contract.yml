@@ -1,0 +1,116 @@
+name: SIMPLE-DEPLOY source contract
+
+on:
+  pull_request:
+    paths:
+      - .simple-deploy.json
+      - Dockerfile.simple-deploy
+      - deploy/simple-deploy/**
+      - bot/**
+      - html/**
+      - frontend-dist-manifest.json
+      - .github/workflows/simple-deploy.yml
+      - .github/workflows/simple-deploy-contract.yml
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out exact workflow SHA
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            fetch --no-tags origin "$GITHUB_SHA"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Check out immutable SIMPLE-DEPLOY validator
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          shared_sha='e05ed760791a127c7c9628696806ef39c9fe329c'
+          git init .simple-deploy-shared
+          git -C .simple-deploy-shared remote add origin \
+            https://github.com/rozkalnsandris/ops-workflows.git
+          git -C .simple-deploy-shared fetch --no-tags --depth=1 origin "$shared_sha"
+          git -C .simple-deploy-shared checkout --detach FETCH_HEAD
+          test "$(git -C .simple-deploy-shared rev-parse HEAD)" = "$shared_sha"
+
+      - name: Validate consumer manifest
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 .simple-deploy-shared/scripts/validate_simple_deploy.py \
+            --manifest .simple-deploy.json \
+            --expected-repository "$GITHUB_REPOSITORY"
+
+      - name: Build combined CV runtime image
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          docker build \
+            --file Dockerfile.simple-deploy \
+            --tag rozkalns-cv-simple-deploy:test \
+            .
+
+      - name: Smoke combined runtime without provider calls
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          client_secret="$(python3 -c 'import secrets; print(secrets.token_urlsafe(32))')"
+          cleanup() {
+            docker rm --force rozkalns-cv-simple-deploy-test >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          docker run --detach \
+            --name rozkalns-cv-simple-deploy-test \
+            --read-only \
+            --tmpfs /tmp:rw,noexec,nosuid,nodev,size=32m,mode=1777 \
+            --tmpfs /app/data:rw,noexec,nosuid,nodev,size=16m,mode=1777 \
+            --env LLM_API_KEY=ci-placeholder \
+            --env LLM_MODEL=gpt-5.6-luna \
+            --env CLIENT_KEY_SECRET="$client_secret" \
+            --env TRUSTED_PROXY_CIDRS=127.0.0.1/32 \
+            --env TRUSTED_HOSTS=rozkalns.net,localhost,127.0.0.1 \
+            rozkalns-cv-simple-deploy:test
+
+          for attempt in $(seq 1 60); do
+            status="$(docker inspect --format '{{.State.Health.Status}}' rozkalns-cv-simple-deploy-test)"
+            if [ "$status" = healthy ]; then
+              break
+            fi
+            if [ "$status" = unhealthy ]; then
+              docker logs rozkalns-cv-simple-deploy-test
+              exit 1
+            fi
+            sleep 1
+          done
+
+          test "$(docker inspect --format '{{.State.Health.Status}}' rozkalns-cv-simple-deploy-test)" = healthy
+          docker exec -i rozkalns-cv-simple-deploy-test python3 - <<'PY'
+          import json
+          import urllib.request
+
+          for path, key in (("/api/health", "ok"), ("/api/health/ready", "ready")):
+              with urllib.request.urlopen(f"http://127.0.0.1:8080{path}", timeout=3) as response:
+                  payload = json.load(response)
+                  assert response.status == 200
+                  assert payload[key] is True
+          with urllib.request.urlopen("http://127.0.0.1:8080/en/", timeout=3) as response:
+              body = response.read()
+              assert response.status == 200
+              assert b"<!doctype html" in body.lower()
+              assert response.headers["X-Content-Type-Options"] == "nosniff"
+          PY
