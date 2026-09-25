@@ -27,3 +27,16 @@ Authorization is consumed at first authorized mutation. Any later error/ambiguit
 Use one Ready receipt and one final live receipt. Put any remaining owner decision at the **end** under `ACTION REQUIRED`; when the owner must enter/run something, provide the exact copyable instruction in a fenced `bash` block.
 
 Merge never authorizes deployment or another live mutation.
+
+## GitHub API access v1
+
+Repository consumer manifest: `.github/github-api-access-v1.json`, pinned to shared revision `3bb0740b5f0a8ce631d2ff79f1acc4999ff6ed2c` in `rozkalnsandris/ops-workflows`.
+
+- `START`, `SYNC`, `turpini` and PR continuation use serial, minimum-sufficient GitHub reads by default.
+- Inspect changed files only when the current decision requires them; prefer current event/state evidence over historical run enumeration.
+- Never tight-poll CI or reviews. Reuse same-step evidence when it remains sufficient, and refresh only when mutable state can have changed.
+- Map rate-limit evidence to the shared deterministic read dispositions rather than broad retries or request fan-out.
+- Before a merge or other authorized mutation, use the compact exact-head pre-mutation check defined by the shared contract.
+- Never issue an automatic duplicate mutation after a `403`, `429`, timeout or transport ambiguity. Reconcile only with the minimum read-only evidence required, then STOP on an ambiguous outcome.
+- This API-access contract does not create merge authority and does not create deploy, production, runtime, Cloudflare, secrets, permissions or production-data authority.
+- Repository-local FAST, source-only FULL, privacy, security and deployment rules remain stricter and unchanged.
