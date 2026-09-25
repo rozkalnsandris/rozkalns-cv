@@ -11,10 +11,13 @@ EXPECTED_PERMISSIONS = {
     "codeql-evidence.yml": {"contents": "read", "checks": "read"},
     "github-only-policy-drift.yml": {"contents": "read"},
     "pdf-quality.yml": {"contents": "read"},
+    "simple-deploy-contract.yml": {"contents": "read"},
+    "simple-deploy.yml": {"contents": "read", "packages": "write"},
     "workflow-security.yml": {"contents": "read"},
 }
 REUSABLE_JOB_ALLOWLIST = {
     ("github-only-policy-drift.yml", "github-only-policy-drift"),
+    ("simple-deploy.yml", "deploy"),
     ("workflow-security.yml", "workflow-security"),
 }
 REUSABLE_WORKFLOW_PIN = re.compile(
@@ -116,7 +119,8 @@ def validate_workflow_text(filename: str, text: str) -> None:
                 raise ValueError(
                     f"{filename}:{job_name}: reusable job is not explicitly allowlisted"
                 )
-            if not REUSABLE_WORKFLOW_PIN.fullmatch(reusable):
+            reusable_ref = reusable.split(" #", 1)[0].rstrip()
+            if not REUSABLE_WORKFLOW_PIN.fullmatch(reusable_ref):
                 raise ValueError(
                     f"{filename}:{job_name}: reusable workflow must use an immutable 40-hex pin"
                 )
