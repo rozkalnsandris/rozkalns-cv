@@ -1,0 +1,40 @@
+{
+  "schema": "rozkalns.simple-deploy.consumer.v1",
+  "repository": "rozkalnsandris/rozkalns-cv",
+  "image": "ghcr.io/rozkalnsandris/rozkalns-cv",
+  "build": {
+    "context": ".",
+    "dockerfile": "Dockerfile.simple-deploy",
+    "architecture": "linux/arm64"
+  },
+  "target": {
+    "alias": "rozkalns-cv-rpi5",
+    "runtime_class": "rpi5-compose"
+  },
+  "compose": {
+    "project": "rozkalns-cv",
+    "file": "deploy/simple-deploy/docker-compose.yml",
+    "service": "cv"
+  },
+  "health": {
+    "liveness_path": "/api/health",
+    "readiness": {
+      "state": "required",
+      "path": "/api/health/ready"
+    }
+  },
+  "persistence": {
+    "volumes": []
+  },
+  "registry": {
+    "pull_profile": "public-anonymous-pull"
+  },
+  "forbidden_operations": [
+    "database-schema-data-mutation",
+    "destructive-recovery",
+    "secrets-credentials-permissions",
+    "cloudflare-dns-network",
+    "private-provider-activation",
+    "unrelated-host-control"
+  ]
+}

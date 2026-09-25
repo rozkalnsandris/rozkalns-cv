@@ -1,0 +1,54 @@
+FROM python:3.12.13-alpine3.24@sha256:6d43704baacd1bfbe7c295d7f13079d5d8104ed33568873133f8fc69980419df
+
+ARG APP_UID=10001
+ARG APP_GID=10001
+ARG NGINX_APK_VERSION=1.30.4-r1
+ARG OPENSSL_APK_VERSION=3.5.8-r0
+ARG LIBUUID_APK_VERSION=2.42.3-r1
+
+LABEL org.opencontainers.image.source="https://github.com/rozkalnsandris/rozkalns-cv"
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_NO_CACHE_DIR=1 \
+    HOME=/tmp \
+    ASSISTANT_DB_PATH=/app/data/assistant.sqlite3 \
+    TRUSTED_PROXY_CIDRS=127.0.0.1/32
+
+WORKDIR /app
+
+RUN apk add --no-cache --upgrade \
+      "nginx=${NGINX_APK_VERSION}" \
+      "libcrypto3=${OPENSSL_APK_VERSION}" \
+      "libssl3=${OPENSSL_APK_VERSION}" \
+      "libuuid=${LIBUUID_APK_VERSION}"
+
+RUN addgroup -S -g "${APP_GID}" cv \
+    && adduser -S -D -H -u "${APP_UID}" -G cv cv
+
+COPY bot/requirements.txt ./requirements.txt
+RUN python -m pip install --require-hashes --no-deps -r requirements.txt
+
+COPY --chown=${APP_UID}:${APP_GID} \
+    bot/app.py bot/chat_admission.py bot/chat_entry.py bot/chat_policy.py bot/config.py bot/contact.py \
+    bot/evidence.py bot/evidence_registry.json bot/notifier.py bot/provider.py bot/provider_capacity.py \
+    bot/provider_notices.json bot/provider_stream.py bot/readiness.py bot/storage.py bot/system_prompt.py \
+    bot/system_prompt.txt bot/turnstile.py ./
+COPY --chown=${APP_UID}:${APP_GID} html/ /srv/cv/html/
+COPY deploy/simple-deploy/nginx.conf /etc/nginx/nginx.conf
+COPY --chown=${APP_UID}:${APP_GID} deploy/simple-deploy/supervise.py /usr/local/bin/cv-simple-deploy-supervise
+
+RUN mkdir -p /app/data \
+    && chown "${APP_UID}:${APP_GID}" /app/data \
+    && chmod 0700 /app/data \
+    && chmod 0555 /usr/local/bin/cv-simple-deploy-supervise
+
+USER ${APP_UID}:${APP_GID}
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD ["python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/api/health/ready', timeout=3).read()"]
+
+CMD ["python3", "/usr/local/bin/cv-simple-deploy-supervise"]
