@@ -27,6 +27,7 @@ ARCHITECTURE_OPERATIONS = {
     "CONTENT_AUTHORING.md",
     "FRONTEND.md",
     "LIVE_STATS.md",
+    "SIMPLE_DEPLOY_V1.md",
     "live-stats-scheduler.md",
 }
 SECURITY_PRIVACY = {

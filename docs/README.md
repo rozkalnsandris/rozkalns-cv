@@ -23,6 +23,8 @@ current **source documentation**, not a production receipt.
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — concise architecture and trust-boundary view.
 - [`BUILD_DEPLOY_RUNBOOK.md`](BUILD_DEPLOY_RUNBOOK.md) — source-level build, release and
   deploy contract; production execution remains separately gated.
+- [`SIMPLE_DEPLOY_V1.md`](SIMPLE_DEPLOY_V1.md) — source-only SIMPLE-DEPLOY v1 candidate
+  contract; production activation remains separately gated.
 - [`FRONTEND.md`](FRONTEND.md) — frontend source/build organization.
 - [`CONTENT_AUTHORING.md`](CONTENT_AUTHORING.md) — canonical content and localization
   authoring rules.
