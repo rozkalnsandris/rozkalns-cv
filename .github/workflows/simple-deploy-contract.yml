@@ -86,7 +86,7 @@ jobs:
             --env TRUSTED_HOSTS=rozkalns.net,localhost,127.0.0.1 \
             rozkalns-cv-simple-deploy:test
 
-          for attempt in $(seq 1 60); do
+          for _ in $(seq 1 60); do
             status="$(docker inspect --format '{{.State.Health.Status}}' rozkalns-cv-simple-deploy-test)"
             if [ "$status" = healthy ]; then
               break
