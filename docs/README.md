@@ -15,6 +15,7 @@ These documents are the current repository-level starting points. “Current” 
 current **source documentation**, not a production receipt.
 
 - [`FAST_LANE_V2_2.md`](FAST_LANE_V2_2.md) — active repository work-cycle contract.
+- [`WORK_CYCLE_V23_ADOPTION.md`](WORK_CYCLE_V23_ADOPTION.md) — FAST-LANE v2.3 rollout/adoption contract layered on the local repository rules.
 - [`PROJECT_KNOWLEDGE.md`](PROJECT_KNOWLEDGE.md) — consolidated application ownership,
   architecture and source/deployment-boundary documentation.
 

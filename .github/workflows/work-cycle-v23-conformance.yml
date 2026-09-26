@@ -1,0 +1,112 @@
+name: Work-cycle v2.3 conformance
+
+on:
+  pull_request:
+    paths:
+      - '.github/agent-bootstrap.json'
+      - '.github/work-cycle-v23.json'
+      - '.github/source-only-full.json'
+      - '.github/github-api-access-v1.json'
+      - '.github/workflows/simple-deploy.yml'
+      - '.github/workflows/work-cycle-v23-conformance.yml'
+      - 'AGENTS.md'
+      - 'docs/WORK_CYCLE_V23_ADOPTION.md'
+
+permissions:
+  contents: read
+
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Validate consumer contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://raw.githubusercontent.com/rozkalnsandris/rozkalns-cv/${{ github.event.pull_request.head.sha }}'
+          shared='https://raw.githubusercontent.com/rozkalnsandris/ops-workflows/274d58f2d9d3cb86feded2751b8f9009a4501f6b'
+          curl -fsSL "$base/.github/agent-bootstrap.json" -o /tmp/agent-bootstrap.json
+          curl -fsSL "$base/.github/work-cycle-v23.json" -o /tmp/work-cycle-v23.json
+          curl -fsSL "$base/.github/source-only-full.json" -o /tmp/source-only-full.json
+          curl -fsSL "$base/.github/github-api-access-v1.json" -o /tmp/github-api-access-v1.json
+          curl -fsSL "$base/.github/workflows/simple-deploy.yml" -o /tmp/simple-deploy.yml
+          curl -fsSL "$shared/scripts/agent_bootstrap_manifest.py" -o /tmp/agent_bootstrap_manifest.py
+          curl -fsSL "$shared/policy/auto-run-full-single-issue-state-v2.json" -o /tmp/auto-run-full-single-issue-state-v2.json
+          python - <<'PY'
+          import importlib.util
+          import json
+          import sys
+          from pathlib import Path
+
+          spec = importlib.util.spec_from_file_location('bootstrap_validator', '/tmp/agent_bootstrap_manifest.py')
+          validator = importlib.util.module_from_spec(spec)
+          sys.modules[spec.name] = validator
+          spec.loader.exec_module(validator)
+          manifest = validator.load_manifest(Path('/tmp/agent-bootstrap.json'), repo_root=None)
+
+          adapter = json.loads(Path('/tmp/work-cycle-v23.json').read_text())
+          full = json.loads(Path('/tmp/source-only-full.json').read_text())
+          api = json.loads(Path('/tmp/github-api-access-v1.json').read_text())
+          shared = json.loads(Path('/tmp/auto-run-full-single-issue-state-v2.json').read_text())
+          deploy = Path('/tmp/simple-deploy.yml').read_text()
+
+          assert manifest['repository'] == 'rozkalnsandris/rozkalns-cv'
+          assert manifest['deployment_profile'] == 'simple-deploy'
+          assert manifest['automation']['fast_lane'] is True
+          assert manifest['automation']['auto_run_full'] is True
+          assert manifest['automation']['queue_mode'] == 'supported'
+          assert manifest['continuation'] == {'kind': 'none'}
+
+          assert adapter['shared_revision'] == '274d58f2d9d3cb86feded2751b8f9009a4501f6b'
+          assert adapter['start_contract']['status'] == 'ADOPTED'
+          assert adapter['write_preflight']['status'] == 'ADOPTED'
+          assert adapter['write_preflight']['adapter'] == '.github/github-api-access-v1.json'
+          assert adapter['write_preflight']['duplicate_local_framework'] is False
+          assert adapter['auto_run_full']['status'] == 'ADOPTED'
+          assert adapter['auto_run_full']['supported'] is True
+          assert adapter['auto_run_full']['controller_issue'] == 489
+          assert adapter['authority']['normal_merge_requires_explicit_owner_authorization'] is True
+          assert adapter['authority']['source_only_full_merge_authority_unchanged'] is True
+          assert adapter['authority']['merge_implies_live'] is False
+          assert adapter['authority']['live_runtime_requires_separate_exact_authority'] is True
+          assert adapter['authority']['queue_vnext_96_activated'] is False
+          assert adapter['rollout']['production_deploy'] is False
+          assert adapter['rollout']['runtime_mutation'] is False
+
+          normalized = full['normalized_state']
+          assert normalized['contract'] == 'AUTO_RUN_FULL_SINGLE_ISSUE_STATE_V2'
+          assert normalized['shared_revision'] == '274d58f2d9d3cb86feded2751b8f9009a4501f6b'
+          assert normalized['controller_issue'] == 489
+          assert normalized['controller_issue'] == adapter['auto_run_full']['controller_issue']
+          assert normalized['activation_mode'] == 'NEW_EXPLICIT_RUNS_ONLY'
+          assert normalized['target_issue_owns_mutable_run_state'] is True
+          assert normalized['controller_owns_only_lock_and_active_run_pointer'] is True
+          assert normalized['maximum_active_runs'] == 1
+          assert normalized['authority_unchanged'] is True
+          assert normalized['queue_vnext_96_activated'] is False
+
+          assert api['mutation_boundary']['expected_head_binding_required_when_supported'] is True
+          assert api['mutation_boundary']['authorization_consumed_when_mutation_dispatched'] is True
+          assert api['mutation_boundary']['automatic_duplicate_mutation_after_403'] is False
+          assert api['mutation_boundary']['automatic_duplicate_mutation_after_429'] is False
+          assert api['mutation_boundary']['automatic_duplicate_mutation_after_timeout'] is False
+          assert api['mutation_boundary']['automatic_duplicate_mutation_after_transport_error'] is False
+          assert api['mutation_boundary']['merge_success_implies_live_or_deploy_authority'] is False
+          assert api['local_stricter_rules']['source_only_full_requires_explicit_issue_scoped_activation'] is True
+          assert api['local_stricter_rules']['live_deploy_runtime_requires_exact_authority'] is True
+
+          assert shared['controller']['maximum_active_runs'] == 1
+          assert shared['authority']['changes_source_authority'] is False
+          assert shared['authority']['changes_merge_authority'] is False
+          assert shared['authority']['changes_live_authority'] is False
+
+          # Mutable controller state is intentionally not fetched here. Conformance validates
+          # the stable controller binding; current IDLE/ACTIVE/STOPPED state is runtime evidence
+          # and must be read fresh only when an explicit FULL run needs it.
+
+          assert "paths-ignore:" in deploy
+          assert "- '.github/**'" in deploy
+          assert "- 'docs/**'" in deploy
+          assert "- 'tests/**'" in deploy
+          PY
