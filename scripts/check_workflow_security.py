@@ -13,6 +13,7 @@ EXPECTED_PERMISSIONS = {
     "pdf-quality.yml": {"contents": "read"},
     "simple-deploy-contract.yml": {"contents": "read"},
     "simple-deploy.yml": {"contents": "read", "packages": "write"},
+    "work-cycle-v23-conformance.yml": {"contents": "read"},
     "workflow-security.yml": {"contents": "read"},
 }
 REUSABLE_JOB_ALLOWLIST = {
