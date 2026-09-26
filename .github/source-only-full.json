@@ -111,5 +111,34 @@
       "tokens",
       "other_nonpublic_personal_context"
     ]
+  },
+  "normalized_state": {
+    "contract": "AUTO_RUN_FULL_SINGLE_ISSUE_STATE_V2",
+    "shared_revision": "274d58f2d9d3cb86feded2751b8f9009a4501f6b",
+    "document": "docs/AUTO_RUN_FULL_SINGLE_ISSUE_STATE_V2.md",
+    "policy": "policy/auto-run-full-single-issue-state-v2.json",
+    "target_schema": "rozkalns.auto-run-full-single-issue-run-state.v2",
+    "controller_schema": "rozkalns.auto-run-full-single-issue-controller.v2",
+    "controller_issue": 489,
+    "activation_mode": "NEW_EXPLICIT_RUNS_ONLY",
+    "legacy_active_or_historical_state_read_only": true,
+    "rewrite_legacy_state_in_place": false,
+    "historical_receipts_preserved": true,
+    "target_issue_owns_mutable_run_state": true,
+    "controller_owns_only_lock_and_active_run_pointer": true,
+    "receipts_are_evidence_only": true,
+    "fresh_github_only": [
+      "CI_STATUS",
+      "REVIEWS",
+      "UNRESOLVED_THREADS",
+      "MERGEABILITY"
+    ],
+    "maximum_active_runs": 1,
+    "stale_writer_disposition": "STOP",
+    "transition_collision_disposition": "STOP",
+    "exact_replay_is_idempotent": true,
+    "write_preflight_contract": "WRITE_PREFLIGHT_COMPACT_V1",
+    "authority_unchanged": true,
+    "queue_vnext_96_activated": false
   }
 }
