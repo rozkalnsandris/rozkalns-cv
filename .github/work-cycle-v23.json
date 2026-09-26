@@ -1,0 +1,47 @@
+{
+  "schema": "rozkalns.work-cycle-consumer.v2.3",
+  "repository": "rozkalnsandris/rozkalns-cv",
+  "shared_revision": "274d58f2d9d3cb86feded2751b8f9009a4501f6b",
+  "tracking": {
+    "roadmap_issue": 119,
+    "rollout_issue": 124
+  },
+  "start_contract": {
+    "status": "ADOPTED",
+    "bootstrap_manifest": ".github/agent-bootstrap.json",
+    "safe_auto_continuation": true,
+    "compact_response": true,
+    "single_current_lane": true,
+    "local_rules_override_when_stricter": true
+  },
+  "write_preflight": {
+    "status": "ADOPTED",
+    "contract": "WRITE_PREFLIGHT_COMPACT_V1",
+    "adapter": ".github/github-api-access-v1.json",
+    "duplicate_local_framework": false
+  },
+  "auto_run_full": {
+    "status": "ADOPTED",
+    "supported": true,
+    "local_contract": ".github/source-only-full.json",
+    "controller_issue": 489,
+    "new_explicit_runs_use_normalized_state_v2": true,
+    "legacy_active_or_historical_state_read_only": true,
+    "rewrite_legacy_state_in_place": false
+  },
+  "authority": {
+    "normal_merge_requires_explicit_owner_authorization": true,
+    "source_only_full_merge_authority_unchanged": true,
+    "merge_implies_live": false,
+    "live_runtime_requires_separate_exact_authority": true,
+    "public_repository_privacy_boundary_unchanged": true,
+    "queue_vnext_96_activated": false
+  },
+  "rollout": {
+    "source_governance_only": true,
+    "production_deploy": false,
+    "runtime_mutation": false,
+    "simple_deploy_model_unchanged_for_deployable_source": true,
+    "governance_only_merge_excluded_from_simple_deploy": true
+  }
+}
