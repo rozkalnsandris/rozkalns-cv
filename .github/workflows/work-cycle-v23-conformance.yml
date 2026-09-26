@@ -33,7 +33,6 @@ jobs:
           curl -fsSL "$base/.github/workflows/simple-deploy.yml" -o /tmp/simple-deploy.yml
           curl -fsSL "$shared/scripts/agent_bootstrap_manifest.py" -o /tmp/agent_bootstrap_manifest.py
           curl -fsSL "$shared/policy/auto-run-full-single-issue-state-v2.json" -o /tmp/auto-run-full-single-issue-state-v2.json
-          curl -fsSL 'https://api.github.com/repos/rozkalnsandris/rozkalns-cv/issues/489' -o /tmp/controller.json
           python - <<'PY'
           import importlib.util
           import json
@@ -50,7 +49,6 @@ jobs:
           full = json.loads(Path('/tmp/source-only-full.json').read_text())
           api = json.loads(Path('/tmp/github-api-access-v1.json').read_text())
           shared = json.loads(Path('/tmp/auto-run-full-single-issue-state-v2.json').read_text())
-          controller = json.loads(Path('/tmp/controller.json').read_text())
           deploy = Path('/tmp/simple-deploy.yml').read_text()
 
           assert manifest['repository'] == 'rozkalnsandris/rozkalns-cv'
@@ -80,6 +78,7 @@ jobs:
           assert normalized['contract'] == 'AUTO_RUN_FULL_SINGLE_ISSUE_STATE_V2'
           assert normalized['shared_revision'] == '274d58f2d9d3cb86feded2751b8f9009a4501f6b'
           assert normalized['controller_issue'] == 489
+          assert normalized['controller_issue'] == adapter['auto_run_full']['controller_issue']
           assert normalized['activation_mode'] == 'NEW_EXPLICIT_RUNS_ONLY'
           assert normalized['target_issue_owns_mutable_run_state'] is True
           assert normalized['controller_owns_only_lock_and_active_run_pointer'] is True
@@ -102,10 +101,9 @@ jobs:
           assert shared['authority']['changes_merge_authority'] is False
           assert shared['authority']['changes_live_authority'] is False
 
-          assert controller['state'] == 'open'
-          body = controller['body']
-          assert 'rozkalns.auto-run-full-single-issue-controller.v2' in body
-          assert 'CONTROLLER_STATE: IDLE' in body
+          # Mutable controller state is intentionally not fetched here. Conformance validates
+          # the stable controller binding; current IDLE/ACTIVE/STOPPED state is runtime evidence
+          # and must be read fresh only when an explicit FULL run needs it.
 
           assert "paths-ignore:" in deploy
           assert "- '.github/**'" in deploy
