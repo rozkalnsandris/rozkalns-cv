@@ -49,14 +49,13 @@
 .project-list { display:grid; grid-template-columns:1fr; gap:14px; border:0; }
 .project-entry { min-width:0; }
 .project-card.project-entry.primary { display:grid; gap:0; padding:18px; border:1px solid var(--border); border-radius:var(--radius-lg); background:var(--surface); box-shadow:var(--shadow-sm); }
-.project-card.project-entry.primary:hover { border-color:var(--accent-line); box-shadow:var(--shadow-md); }
 .project-card-top { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
 .project-card .project-no { padding:0; color:var(--accent); font:800 11px/1 var(--sans); letter-spacing:.12em; }
 .project-icon { width:48px; height:48px; display:grid; place-items:center; flex:0 0 auto; border:1px solid var(--accent-line); border-radius:var(--radius-lg); background:var(--accent-soft); color:var(--accent); }
 .project-icon svg { width:24px; height:24px; }
 .project-copy h3 { margin:0; color:var(--text); font:700 19px/1.25 var(--serif); letter-spacing:-.015em; }
 .project-copy p { max-width:65ch; margin:7px 0 0; color:var(--text-dim); font-size:13.5px; line-height:1.58; }
-.project-card .project-learning { padding-top:8px; border-top:1px solid var(--border-soft); color:var(--text-faint); }
+.project-card .project-learning { color:var(--text-faint); }
 .tech-tags { display:flex; flex-wrap:wrap; gap:7px; margin-top:13px; }
 .tech-tag { display:inline-flex; align-items:center; gap:6px; min-height:30px; padding:5px 9px; border:1px solid var(--border-soft); border-radius:999px; background:var(--surface-2); color:var(--text-dim); font:650 11px/1.35 var(--sans); }
 .tech-tag::before { content:""; width:4px; height:4px; border-radius:50%; background:var(--accent); opacity:.75; }
@@ -65,10 +64,8 @@
 .github-row { text-decoration:none; }
 .github-row:after { content:"↗"; margin-left:auto; }
 .github-row svg { box-shadow:0 0 0 4px var(--accent-soft); }
-.supporting-projects { margin-top:16px; padding:15px 17px; border:1px solid var(--border); border-radius:var(--radius-lg); background:rgba(255,255,255,.58); }
-.project-evidence-card.project-entry.secondary { display:grid; grid-template-columns:42px minmax(0,1fr); gap:13px; padding:0; border:0; }
-.project-evidence-card .project-icon { width:42px; height:42px; border-radius:var(--radius-md); }
-.project-evidence-card .project-copy h3 { font-size:16px; }
+.supporting-projects { margin-top:16px; }
+.project-evidence-card.project-entry.secondary { display:grid; grid-template-columns:42px minmax(0,1fr); gap:13px; padding:14px 0; border-bottom:1px solid var(--border); }
 .skill-list { margin: 0; gap: 0; border-top: 1px solid var(--border); }
 .skill-row { display: grid; grid-template-columns: 1fr; gap: 7px; padding: 13px 0; border-bottom: 1px solid var(--border); }
 .skill-row dt { color: var(--accent-strong); font: 800 10.5px/1.4 var(--sans); letter-spacing: .08em; text-transform: uppercase; }
