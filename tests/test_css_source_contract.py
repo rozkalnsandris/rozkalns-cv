@@ -86,7 +86,7 @@ class CssSourceContractTests(unittest.TestCase):
         responsive = (STYLES / "responsive.css").read_text(encoding="utf-8")
         components = (STYLES / "components.css").read_text(encoding="utf-8")
         app = (ROOT / "frontend" / "app.mjs").read_text(encoding="utf-8")
-        compact = re.sub(r"\\s+", "", responsive)
+        compact = re.sub(r"\s+", "", responsive)
         self.assertIn('grid-template-areas:"projects""rail""experience";', compact)
         self.assertIn("#skills{grid-area:rail;}", compact)
         self.assertIn("#projects.project-list", compact)
