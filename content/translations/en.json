@@ -160,7 +160,7 @@
   "privacy_turnstile_title": "Bot protection / Cloudflare Turnstile",
   "privacy_turnstile_body": "Turnstile is used when you enter the assistant or verify protected contact details. Cloudflare processes security and browser/network signals to distinguish people from automated traffic and states that Turnstile does not access, store or transmit form entries or user communications.",
   "privacy_analytics_title": "Cloudflare Web Analytics",
-  "privacy_analytics_body": "Cloudflare Web Analytics is enabled for aggregate page and performance measurement. Cloudflare states that Web Analytics does not collect or use visitors' personal data.",
+  "privacy_analytics_body": "If Cloudflare Web Analytics is active, it is used only for aggregate page and performance measurement. Cloudflare states that Web Analytics does not collect or use visitors' personal data.",
   "privacy_local_title": "Local retention & operational data",
   "privacy_local_body": "The assistant reports its active local chat-retention setting to the browser. The privacy-minimizing source default is 0 days, so completed question/answer text is not stored locally. Pseudonymous rate-limit timestamps and aggregate daily counters remain for abuse control. Operational Telegram notifications use a pseudonymous interaction identifier by default and do not include question/answer text. The protected phone number is returned only after successful Turnstile verification and is not embedded in the static site.",
   "privacy_basis_title": "Legal basis & transfers",
