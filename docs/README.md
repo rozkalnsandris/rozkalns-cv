@@ -16,7 +16,6 @@ current **source documentation**, not a production receipt.
 
 - [`FAST_LANE_V2_2.md`](FAST_LANE_V2_2.md) — active repository work-cycle contract.
 - [`WORK_CYCLE_V23_ADOPTION.md`](WORK_CYCLE_V23_ADOPTION.md) — FAST-LANE v2.3 rollout/adoption contract layered on the local repository rules.
-- [`ui-v2/IMPLEMENTATION_PLAN.md`](ui-v2/IMPLEMENTATION_PLAN.md) — active UI-v2 implementation workspace plan; source-level guidance only and not merge/deploy authority.
 - [`PROJECT_KNOWLEDGE.md`](PROJECT_KNOWLEDGE.md) — consolidated application ownership,
   architecture and source/deployment-boundary documentation.
 
@@ -28,6 +27,7 @@ current **source documentation**, not a production receipt.
 - [`SIMPLE_DEPLOY_V1.md`](SIMPLE_DEPLOY_V1.md) — source-only SIMPLE-DEPLOY v1 candidate
   contract; production activation remains separately gated.
 - [`FRONTEND.md`](FRONTEND.md) — frontend source/build organization.
+- [`ui-v2/IMPLEMENTATION_PLAN.md`](ui-v2/IMPLEMENTATION_PLAN.md) — active UI-v2 implementation workspace plan; source-level guidance only and not merge/deploy authority.
 - [`CONTENT_AUTHORING.md`](CONTENT_AUTHORING.md) — canonical content and localization
   authoring rules.
 - [`ACCESSIBILITY_TESTING.md`](ACCESSIBILITY_TESTING.md) — accessibility validation
