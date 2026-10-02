@@ -39,11 +39,13 @@ class FakeResponse:
         self.lines = SUCCESS_LINES if lines is None else lines
         self.error = error
         self.http_status = http_status
+        self.exit_calls = 0
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc, traceback):
+        self.exit_calls += 1
         return False
 
     def raise_for_status(self) -> None:
@@ -201,6 +203,25 @@ class ProviderCapacityTests(unittest.TestCase):
         self.assertEqual(provider.calls, 1)
         response.close()
         response.close()
+        self._assert_all_capacity_available(flask_app, limit=1)
+
+    def test_client_disconnect_closes_upstream_context_and_returns_capacity_once(self) -> None:
+        upstream = FakeResponse()
+        flask_app, provider = self._app(FakeProvider(upstream), limit=1)
+        response = self._post_chat(flask_app, buffered=False)
+        iterator = iter(response.response)
+
+        first_chunk = next(iterator)
+        self.assertTrue(first_chunk)
+        self.assertEqual(provider.calls, 1)
+        self.assertEqual(upstream.exit_calls, 0)
+
+        response.close()
+        self.assertEqual(upstream.exit_calls, 1)
+        self._assert_all_capacity_available(flask_app, limit=1)
+
+        response.close()
+        self.assertEqual(upstream.exit_calls, 1)
         self._assert_all_capacity_available(flask_app, limit=1)
 
 

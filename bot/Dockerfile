@@ -4,7 +4,7 @@ ARG APP_UID=10001
 ARG APP_GID=10001
 ARG VCS_REF=unresolved
 ARG BUILD_INPUT_SHA256=unresolved
-ARG OPENSSL_APK_VERSION=3.5.8-r0
+ARG OPENSSL_APK_VERSION=3.5.9-r0
 ARG LIBUUID_APK_VERSION=2.42.3-r1
 
 LABEL org.opencontainers.image.source="https://github.com/rozkalnsandris/rozkalns-cv" \

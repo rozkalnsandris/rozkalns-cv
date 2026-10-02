@@ -3,7 +3,7 @@ FROM python:3.12.13-alpine3.24@sha256:6d43704baacd1bfbe7c295d7f13079d5d8104ed335
 ARG APP_UID=10001
 ARG APP_GID=10001
 ARG NGINX_APK_VERSION=1.30.4-r1
-ARG OPENSSL_APK_VERSION=3.5.8-r0
+ARG OPENSSL_APK_VERSION=3.5.9-r0
 ARG LIBUUID_APK_VERSION=2.42.3-r1
 
 LABEL org.opencontainers.image.source="https://github.com/rozkalnsandris/rozkalns-cv"
