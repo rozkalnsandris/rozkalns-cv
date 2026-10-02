@@ -69,3 +69,49 @@
   #experience .entry { grid-template-columns: 170px minmax(0,1fr); gap: 30px; }
   .education-list { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 0 24px; }
 }
+
+
+/* UI v2 responsive composition */
+@media (min-width: 900px) {
+  .work-layout {
+    grid-template-columns: minmax(0,1fr);
+    grid-template-areas:
+      "projects"
+      "rail"
+      "experience";
+    gap: clamp(34px,5vw,54px);
+  }
+  #skills .skill-list {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+    gap: 12px;
+    border-top: 0;
+  }
+  #skills .skill-row {
+    min-width: 0;
+    padding: 15px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: rgba(255,255,255,.55);
+  }
+  #skills #github-projects { grid-column: 1 / -1; }
+}
+
+@media (min-width: 1120px) {
+  .featured-projects .project-list {
+    grid-template-columns: repeat(3,minmax(0,1fr));
+    align-items: stretch;
+  }
+  .project-card.project-entry.primary { min-height: 100%; }
+  .project-card .project-copy { display: flex; flex-direction: column; }
+  .project-card .tech-tags { margin-top: auto; padding-top: 15px; }
+  .project-visual { min-height: 166px; }
+  .supporting-projects { margin-top: 20px; }
+  #skills .skill-list { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  #skills #github-projects { grid-column: 1 / -1; }
+}
+
+@media (max-width: 639px) {
+  .project-card .project-copy { padding: 16px 16px 18px; }
+  .project-visual { min-height: 132px; }
+  .supporting-projects { padding: 15px; }
+}
