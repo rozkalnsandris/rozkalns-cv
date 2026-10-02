@@ -103,7 +103,7 @@ Use Codex on the already-working implementation instead of rebuilding from scrat
 
 Codex task:
 
-> Compare the current UI v2 implementation against the preserved desktop/mobile/case-study references. Keep the existing architecture and functionality. Refactor generated markup/CSS where necessary, fix responsive differences, accessibility problems and visual inconsistencies, then iterate with browser screenshots until the implementation is close to the references.
+> Compare the current UI v2 implementation against the verified desktop/mobile/case-study reference mockups. Keep the existing architecture and functionality. Refactor generated markup/CSS where necessary, fix responsive differences, accessibility problems and visual inconsistencies, then iterate with browser screenshots until the implementation is close to the references.
 
 Target after this phase: approximately **90–95% visual fidelity**, with maintainable source rather than screenshot-specific hacks.
 
