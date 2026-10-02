@@ -10,6 +10,20 @@ This is the active local FAST-LANE startup contract. The older versioned filenam
 
 `START`, `turpini`, or equivalent continuation may carry safe source work from fresh canonical GitHub state through Ready. Documentation/content, site/application source, tests and deterministic refactors may proceed in one batch, including branch, PR, CI/review and up to two scope-preserving corrections. Batch 2-5 related same-risk items when coherent. Merge remains explicit.
 
+## Simple source delivery
+
+Use one branch and one PR against `main` for one active source lane.
+
+If CI or review discovers a prerequisite/correction that is required for that same delivery and does not introduce a new trust boundary, risk class or owner decision, fix it in the same PR. Do not create sibling prerequisite PRs, stacked PR chains, validation-only PRs, retarget loops or empty-commit validation triggers as the normal path.
+
+Split into another PR only for independently deliverable work or a real scope/risk/trust-boundary change. In that case, stop at `NEW_SCOPE_OR_RISK` unless the owner has already selected the separate lane.
+
+Normal source flow is intentionally linear:
+
+`branch → one PR → exact-head CI/CodeQL/review → Ready → explicit MERGE`
+
+Deployment remains a separate SIMPLE-DEPLOY / LIVE concern after merge.
+
 ## Human gate budget and Composite STRICT
 
 Normal delivery has at most two owner gates: **MERGE**, then **COMPOSITE LIVE** only when production/live mutation is required. Before the live gate, gather all read-only evidence. One bounded authorization binds exact SHA, exact target, allowed mutation categories, limits, exclusions and expected baseline; preflight and verification execute inside one fail-closed one-shot.
