@@ -193,10 +193,5 @@
   "skill_group_networking_web_items": "Tīklu pamati · DNS · SSL/TLS · Nginx",
   "skill_group_containers_monitoring_items": "Docker · Docker Compose · Prometheus · Grafana",
   "skill_group_application_support_items": "REST API · SQL pamati (apgūstu) · HTML/CSS",
-  "skill_group_automation_git_items": "Bash · Python · YAML · Git",
-  "projects_featured_title": "Izceļamie projekti",
-  "projects_supporting_title": "Vairāk tehnisko pierādījumu",
-  "project_status_in_progress": "Izstrādē",
-  "project_status_active": "Aktīva laboratorija",
-  "project_status_live": "Publiski pieejams"
+  "skill_group_automation_git_items": "Bash · Python · YAML · Git"
 }
