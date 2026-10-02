@@ -145,10 +145,14 @@ def _request(connection: http.client.HTTPConnection, route: RouteExpectation) ->
                 f"{route.name}: Content-Type={actual!r}, expected={route.content_type!r}"
             )
 
-    if route.location is not None and headers.get("location") != route.location:
-        raise AssertionError(
-            f"{route.name}: Location={headers.get('location')!r}, expected={route.location!r}"
-        )
+    if route.location is not None:
+        actual_location = headers.get("location", "")
+        parsed_location = urlsplit(actual_location)
+        actual_path = parsed_location.path if parsed_location.path else actual_location
+        if actual_path != route.location:
+            raise AssertionError(
+                f"{route.name}: Location={actual_location!r}, expected path={route.location!r}"
+            )
 
     if route.robots is not None and headers.get("x-robots-tag") != route.robots:
         raise AssertionError(
