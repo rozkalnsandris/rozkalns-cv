@@ -16,6 +16,7 @@ current **source documentation**, not a production receipt.
 
 - [`FAST_LANE_V2_2.md`](FAST_LANE_V2_2.md) — active repository work-cycle contract.
 - [`WORK_CYCLE_V23_ADOPTION.md`](WORK_CYCLE_V23_ADOPTION.md) — FAST-LANE v2.3 rollout/adoption contract layered on the local repository rules.
+- [`ui-v2/IMPLEMENTATION_PLAN.md`](ui-v2/IMPLEMENTATION_PLAN.md) — active UI-v2 implementation workspace plan; source-level guidance only and not merge/deploy authority.
 - [`PROJECT_KNOWLEDGE.md`](PROJECT_KNOWLEDGE.md) — consolidated application ownership,
   architecture and source/deployment-boundary documentation.
 
