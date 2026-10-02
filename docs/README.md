@@ -50,6 +50,9 @@ These documents are useful proof of engineering work but are not current runtime
 
 - [`TROUBLESHOOTING_CASE_STUDY.md`](TROUBLESHOOTING_CASE_STUDY.md) — public,
   evidence-backed troubleshooting/release case study.
+- [`ui-v2/PORTFOLIO_CASE_STUDY_REFERENCE.md`](ui-v2/PORTFOLIO_CASE_STUDY_REFERENCE.md) —
+  recruiter-first portfolio/case-study visual direction and factual/privacy implementation
+  boundary; design reference only, not a source of CV facts or runtime truth.
 
 ## Historical audits / evidence
 
