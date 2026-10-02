@@ -136,7 +136,10 @@ class FrontendContractTests(unittest.TestCase):
         for key in ('p8_ops', 'p1_ops', 'p7_ops', 'p3_ops'):
             self.assertIn(f'data-i18n="{key}"', source_html)
         self.assertEqual(source_html.count('class="project-icon"'), 4)
-        self.assertEqual(source_html.count('class="tech-tag"'), 16)
+        project_source = source_html.split('<section id="projects">', 1)[1].split(
+            '<section id="skills">', 1
+        )[0]
+        self.assertEqual(project_source.count('class="tech-tag"'), 16)
         self.assertEqual(html.count('class="skill-chip"'), 18)
         self.assertIn('class="work-layout"', html)
         self.assertNotIn('class="work-rail"', html)
@@ -149,7 +152,7 @@ class FrontendContractTests(unittest.TestCase):
         self.assertLess(html.index('id="skills"'), html.index('id=github-projects'))
         self.assertLess(html.index('id=github-projects'), html.index('id="experience"'))
         self.assertLess(html.index('id="experience"'), html.index('id="stats"'))
-        compact_responsive = re.sub(r"\\s+", "", responsive)
+        compact_responsive = re.sub(r"\s+", "", responsive)
         self.assertIn('grid-template-areas:"projects""rail""experience";', compact_responsive)
         self.assertIn("#skills{grid-area:rail;}", compact_responsive)
         self.assertIn("#projects.project-list{grid-template-columns:repeat(3,minmax(0,1fr));", compact_responsive)
