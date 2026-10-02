@@ -31,9 +31,6 @@
   #skills { grid-area:rail; }
   #experience { grid-area:experience; }
   #skills .section-heading, #experience .section-heading { margin-block-end:14px; }
-  #skills .skill-list { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; border:0; }
-  #skills .skill-row { padding:15px 16px; border:1px solid var(--border); border-radius:var(--radius-md); }
-  #skills #github-projects { grid-column:1/-1; }
   #experience .timeline { grid-template-columns:1fr; }
   #experience .entry { grid-template-columns: 150px minmax(0,1fr); gap: 24px; }
 }
@@ -69,11 +66,10 @@
   .contact-verify { align-self: center; justify-self: end; max-width: 220px; }
   .contact-reveal { width: auto; min-height: 40px; padding: 8px 11px; border-radius: 999px; font-size: 11.5px; }
   .contact-verify-status { max-width: 220px; }
-  .featured-projects .project-list { grid-template-columns:repeat(3,minmax(0,1fr)); align-items:stretch; }
+  #projects .project-list { grid-template-columns:repeat(3,minmax(0,1fr)); align-items:stretch; }
   .project-card.project-entry.primary { min-height:100%; }
   .project-card .project-copy { display:flex; flex-direction:column; flex:1; }
   .project-card .tech-tags { margin-top:auto; padding-top:14px; }
-  #skills .skill-list { grid-template-columns:repeat(3,minmax(0,1fr)); }
   #experience .entry { grid-template-columns:170px minmax(0,1fr); gap:30px; }
   .education-list { grid-template-columns:repeat(3,minmax(0,1fr)); gap:0 24px; }
 }
