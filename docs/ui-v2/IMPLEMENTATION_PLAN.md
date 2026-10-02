@@ -16,6 +16,21 @@ The visual direction is preserved separately in the current design-reference wor
 
 The mockups are visual/layout references only. They are not factual sources for CV content, metrics, dates, infrastructure details or employment claims.
 
+## Dependency and reference asset status
+
+PR #493 is a separate sibling Draft PR based on `main`; it is **not** an ancestor of this branch.
+
+Until that reference work is merged and this branch is updated from the resulting `main`, the implementation must treat PR #493 as the external design-reference dependency.
+
+The three original PNG mockups are not currently stored in this branch or on `main`. Their filenames, dimensions and SHA-256 provenance are recorded in PR #493. Do not describe the PNG bytes as repository-preserved until they are actually committed.
+
+Before the Codex visual-polish phase, prefer storing verified copies under:
+
+`docs/ui-v2/references/`
+
+and verify their SHA-256 values against the provenance recorded in PR #493. Use a safe binary upload path; do not reconstruct images from filenames, descriptions or hashes.
+
+
 ## Working branch
 
 All redesign implementation work belongs on:
