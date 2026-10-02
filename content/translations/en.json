@@ -193,5 +193,10 @@
   "skill_group_networking_web_items": "Networking · DNS · SSL/TLS · Nginx",
   "skill_group_containers_monitoring_items": "Docker · Docker Compose · Prometheus · Grafana",
   "skill_group_application_support_items": "REST APIs · Basic SQL (learning) · HTML/CSS",
-  "skill_group_automation_git_items": "Bash · Python · YAML · Git"
+  "skill_group_automation_git_items": "Bash · Python · YAML · Git",
+  "projects_featured_title": "Featured Projects",
+  "projects_supporting_title": "More engineering evidence",
+  "project_status_in_progress": "In progress",
+  "project_status_active": "Active lab",
+  "project_status_live": "Live site"
 }
