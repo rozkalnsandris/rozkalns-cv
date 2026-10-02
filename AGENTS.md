@@ -11,6 +11,8 @@ Read `docs/FAST_LANE_V2_2.md` as the active local startup contract.
 
 - `START`, `turpini`, or equivalent continuation may carry safe documentation/content, application source, tests and deterministic CI-safe work through Ready when it does not deploy or expand a production trust boundary.
 - FAST may batch **2-5 closely related same-risk work items** and use up to **two scope-preserving corrective commits** for CI/review findings.
+- **Single delivery PR is the default:** one active source lane uses one branch/PR targeting `main`. If CI/review exposes a prerequisite or correction that stays in the same lane, same risk class and same trust boundary, apply it to that PR instead of creating sibling prerequisite PRs, stacked PR chains or validation-only PRs.
+- Split work into another PR only when it is independently deliverable or introduces a different risk/ownership/trust boundary. Otherwise keep the delivery linear: branch → one PR → exact-head checks → Ready → explicit MERGE.
 - Normal delivery has at most two owner gates: explicit **MERGE**, then one bounded **COMPOSITE LIVE** only when production/live mutation is required.
 - Read-only validation, evidence refresh, CI/review inspection, candidate verification and reconciliation are technical steps, not owner gates.
 - Composite Live must bind exact SHA, exact target, allowed mutation categories, practical limits, explicit exclusions and expected baseline when relevant.
