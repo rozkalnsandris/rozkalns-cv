@@ -43,5 +43,16 @@
     "runtime_mutation": false,
     "simple_deploy_model_unchanged_for_deployable_source": true,
     "governance_only_merge_excluded_from_simple_deploy": true
+  },
+  "source_delivery": {
+    "single_delivery_pr_default": true,
+    "target_branch": "main",
+    "same_lane_ci_prerequisites_stay_in_current_pr": true,
+    "same_lane_review_corrections_stay_in_current_pr": true,
+    "stacked_prs_default": false,
+    "validation_only_prs_default": false,
+    "split_only_for_independent_delivery_or_new_risk_boundary": true,
+    "merge_authority_unchanged": true,
+    "live_authority_unchanged": true
   }
 }
