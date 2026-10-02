@@ -19,10 +19,10 @@ class ProjectTechIconTests(unittest.TestCase):
         self.assertIn('enhanceIconPill(tag, root, { hideFallback: true })', icons)
 
         self.assertIn(".tech-tag.has-tech-icon::before", styles)
-        self.assertIn("display: none", styles)
+        self.assertRegex(styles, r"display:\s*none")
         self.assertIn(".tech-tag svg", styles)
-        self.assertIn("width: 12px", styles)
-        self.assertIn("height: 12px", styles)
+        self.assertRegex(styles, r"width:\s*12px")
+        self.assertRegex(styles, r"height:\s*12px")
 
     def test_visible_project_technologies_have_meaningful_icon_families(self) -> None:
         icons = (ROOT / "frontend/ui/icons.mjs").read_text(encoding="utf-8")
@@ -43,14 +43,14 @@ class ProjectTechIconTests(unittest.TestCase):
                 "Docker Compose",
                 "systemd",
                 "DNS/TLS",
-                "Prometheus",
-                "Grafana",
-                "Bash",
-                "Health checks",
                 "Linux",
                 "Python",
                 "Browser tests",
                 "PDF",
+                "Prometheus",
+                "Grafana",
+                "Bash",
+                "Health checks",
             ],
         )
 
