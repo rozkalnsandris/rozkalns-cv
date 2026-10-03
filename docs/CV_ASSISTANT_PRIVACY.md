@@ -59,6 +59,27 @@ sudo python3 scripts/purge-chat-data.py --older-than-days 2
 
 The utility deletes only rows from the local `chats` table. Rate-limit state remains intact so deleting conversation content cannot reset abuse controls. These commands do not delete any provider-side abuse-monitoring data.
 
+## German provider identification / Impressum publication boundary
+
+For source planning, treat the public recruiter-facing portfolio conservatively as requiring the § 18(1) MStV provider-identification path unless authoritative legal advice establishes that the site falls within the exclusively personal/family exception. This is a compliance-planning rule, not a claim that repository automation can make a binding legal classification.
+
+Authoritative references:
+
+- current MStV § 18: https://www.die-medienanstalten.de/fileadmin/user_upload/Rechtsgrundlagen/Gesetze_Staatsvertraege/Medienstaatsvertrag_MStV.pdf
+- Landesanstalt für Medien NRW provider-identification guidance: https://www.medienanstalt-nrw.de/aufsicht/transparenz-im-internet.html
+- current DDG § 5: https://www.gesetze-im-internet.de/ddg/__5.html
+
+The implementation contract is:
+
+- § 18(1) MStV requires `Name und Anschrift` for telemedia that do not serve exclusively personal or family purposes.
+- The NRW media authority states that an address must include street, postal code and city; a post-office box is not sufficient because it is not serviceable.
+- The same authority expressly allows a privacy-preserving route when the operator does not want to publish the private home address: appoint a trusted recipient (for example a lawyer) or a commercial `Zustellungsbevollmächtigter` and use the authorized serviceable address.
+- DDG § 5 can add further information duties when its separate businesslike/typically-remunerated threshold applies. Do not use uncertainty about DDG § 5 to weaken the § 18 MStV publication boundary.
+- The repository must not contain a residential address, an inferred address, a placeholder address, `address on request`, or a PO box as a substitute for a required serviceable address.
+- `ADDRESS_PUBLICATION_AUTHORIZED=false` remains authoritative until the owner explicitly approves one exact public service address / authorized recipient.
+- Do not publish or present an Impressum as complete before that exact public input exists.
+- Once an owner-approved serviceable address exists, implement the smallest public Impressum change, keep it directly reachable, add strict regression coverage, and handle any production publication as a separate LIVE/deploy gate.
+
 ## Public disclosure
 
 The frontend must disclose LLM processing and the active local retention period before the visitor sends the first message. The public Privacy / Datenschutz notice must match the actual OpenAI and Cloudflare configuration at rollout time.
@@ -67,7 +88,7 @@ Before a production rollout that changes or republishes this notice, read-only p
 
 - the active `CHAT_RETENTION_DAYS` value matches the local-retention wording;
 - `TELEGRAM_INCLUDE_CONTENT` remains `false` if the notice says question/answer text is not forwarded in operational notifications;
-- Cloudflare Web Analytics is actually enabled if the notice says it is enabled;
+- Cloudflare Web Analytics activation is confirmed only when public copy makes an activation-dependent or unconditional enablement claim; the current conditional wording must not be treated as evidence that account-level analytics is enabled;
 - no OpenAI Zero Data Retention, Modified Abuse Monitoring, or EU data-residency feature is claimed unless fresh account evidence confirms it.
 
 A mismatch is a rollout blocker and requires a source/privacy correction or an explicitly authorized runtime-policy change before LIVE.
