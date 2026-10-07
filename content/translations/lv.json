@@ -160,7 +160,7 @@
   "privacy_turnstile_title": "Aizsardzība pret botiem / Cloudflare Turnstile",
   "privacy_turnstile_body": "Turnstile tiek izmantots, kad atverat asistentu vai pārbaudāt aizsargātos kontaktus. Cloudflare apstrādā drošības un pārlūka/tīkla signālus, lai atšķirtu cilvēkus no automatizētas datplūsmas, un norāda, ka Turnstile nepiekļūst veidlapu ievadei vai lietotāju saziņai, to neglabā un nepārsūta.",
   "privacy_analytics_title": "Cloudflare Web Analytics",
-  "privacy_analytics_body": "Cloudflare Web Analytics ir ieslēgts apkopotai lapu un veiktspējas mērīšanai. Cloudflare norāda, ka Web Analytics nevāc un neizmanto apmeklētāju personas datus.",
+  "privacy_analytics_body": "Ja Cloudflare Web Analytics ir aktīvs, tas tiek izmantots tikai apkopotiem lapu un veiktspējas mērījumiem. Cloudflare norāda, ka Web Analytics nevāc un neizmanto apmeklētāju personas datus.",
   "privacy_local_title": "Lokālā glabāšana un darbības dati",
   "privacy_local_body": "Asistents pārlūkam paziņo aktīvo lokālās tērzēšanas glabāšanas iestatījumu. Privātumu saudzējošā source noklusējuma vērtība ir 0 dienas, tādēļ pabeigtu jautājumu/atbilžu teksts lokāli netiek glabāts. Pseidonimizēti ātruma ierobežojumu laika zīmogi un apkopoti dienas skaitītāji paliek aizsardzībai pret ļaunprātīgu izmantošanu. Operatīvie Telegram paziņojumi pēc noklusējuma izmanto tikai pseidonīmu mijiedarbības identifikatoru un neietver jautājumu/atbilžu tekstu. Aizsargātais tālruņa numurs tiek atdots tikai pēc sekmīgas Turnstile pārbaudes un nav iegults statiskajā vietnē.",
   "privacy_basis_title": "Juridiskais pamats un datu pārsūtīšana",

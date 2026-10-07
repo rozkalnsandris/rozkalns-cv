@@ -125,7 +125,7 @@ class SupplyChainContractTests(unittest.TestCase):
 
     def test_cvbot_pins_alpine_openssl_security_update(self) -> None:
         dockerfile = DOCKERFILE.read_text(encoding="utf-8")
-        self.assertIn("ARG OPENSSL_APK_VERSION=3.5.8-r0", dockerfile)
+        self.assertIn("ARG OPENSSL_APK_VERSION=3.5.9-r0", dockerfile)
         self.assertIn("apk add --no-cache --upgrade", dockerfile)
         self.assertIn('"libcrypto3=${OPENSSL_APK_VERSION}"', dockerfile)
         self.assertIn('"libssl3=${OPENSSL_APK_VERSION}"', dockerfile)

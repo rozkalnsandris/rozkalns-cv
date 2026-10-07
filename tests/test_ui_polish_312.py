@@ -38,12 +38,15 @@ class RecruiterUiPolishTest(unittest.TestCase):
         self.assertNotIn('/smarthome.html', markup)
 
     def test_primary_projects_are_support_first_case_studies_with_direct_proof(self) -> None:
-        projects = re.findall(r'<article class="project-entry primary"[^>]*>.*?</article>', INDEX, re.S)
-        self.assertEqual(len(projects), 4)
+        projects = re.findall(
+            r'<article class="project-entry primary project-card"[^>]*>.*?</article>',
+            INDEX,
+            re.S,
+        )
+        self.assertEqual(len(projects), 3)
         expected = (
             ("p8_title", "linux-operations-lab", "p8_ops"),
             ("p1_title", "RPi5_main", "p1_ops"),
-            ("p3_title", "RPi5_main", "p3_ops"),
             ("p7_title", "rozkalns-cv", "p7_ops"),
         )
         for project, (title_key, repo, ops_key) in zip(projects, expected):
@@ -52,14 +55,23 @@ class RecruiterUiPolishTest(unittest.TestCase):
             self.assertIn(f"//github.com/rozkalnsandris/{repo}", project)
             self.assertIn('class="tech-tag github-row"', project)
 
-        secondary = re.findall(r'<article class="project-entry secondary">.*?</article>', INDEX, re.S)
-        self.assertEqual(secondary, [])
+        secondary = re.findall(
+            r'<article class="project-entry secondary project-evidence-card"[^>]*>.*?</article>',
+            INDEX,
+            re.S,
+        )
+        self.assertEqual(len(secondary), 1)
+        self.assertIn('data-i18n="p3_title"', secondary[0])
+        self.assertIn('//github.com/rozkalnsandris/RPi5_main', secondary[0])
 
     def test_compact_nav_is_mobile_first_and_desktop_experience_is_linear(self) -> None:
         self.assertNotIn('@media (max-width:', RESPONSIVE)
         self.assertIn('.site-nav a:first-child, .site-nav a:last-child { display: none; }', COMPONENTS)
         self.assertIn('.site-nav a:first-child, .site-nav a:last-child { display: inline-flex; }', RESPONSIVE)
-        self.assertIn('#experience .timeline { grid-template-columns: 1fr; }', RESPONSIVE)
+        self.assertRegex(
+            RESPONSIVE,
+            r"#experience\s+\.timeline\s*\{\s*grid-template-columns:\s*1fr;",
+        )
         self.assertNotIn('#experience .timeline { grid-template-columns: repeat(2,minmax(0,1fr));', RESPONSIVE)
 
     def test_faint_text_meets_aa_on_light_surfaces(self) -> None:

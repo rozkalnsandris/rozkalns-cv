@@ -63,6 +63,15 @@ jobs:
           assert adapter['write_preflight']['status'] == 'ADOPTED'
           assert adapter['write_preflight']['adapter'] == '.github/github-api-access-v1.json'
           assert adapter['write_preflight']['duplicate_local_framework'] is False
+          assert adapter['source_delivery']['single_delivery_pr_default'] is True
+          assert adapter['source_delivery']['target_branch'] == 'main'
+          assert adapter['source_delivery']['same_lane_ci_prerequisites_stay_in_current_pr'] is True
+          assert adapter['source_delivery']['same_lane_review_corrections_stay_in_current_pr'] is True
+          assert adapter['source_delivery']['stacked_prs_default'] is False
+          assert adapter['source_delivery']['validation_only_prs_default'] is False
+          assert adapter['source_delivery']['split_only_for_independent_delivery_or_new_risk_boundary'] is True
+          assert adapter['source_delivery']['merge_authority_unchanged'] is True
+          assert adapter['source_delivery']['live_authority_unchanged'] is True
           assert adapter['auto_run_full']['status'] == 'ADOPTED'
           assert adapter['auto_run_full']['supported'] is True
           assert adapter['auto_run_full']['controller_issue'] == 489

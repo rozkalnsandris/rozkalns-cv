@@ -12,6 +12,21 @@ Mutable SHA, PR, CI, review, runtime, deployment and one-time authorization stat
 
 `WRITE_PREFLIGHT_COMPACT_V1` is adopted through the existing `.github/github-api-access-v1.json` mechanism. No second local write-preflight framework is created. Branch, PR and durable-state collisions remain fail-closed/no-op according to the shared contract and local stricter rules.
 
+## Simple source delivery
+
+The repository uses a single-delivery-PR default for ordinary source work:
+
+1. branch from fresh `main`;
+2. open one PR for the current lane;
+3. keep same-lane CI/review prerequisites and bounded corrections in that PR;
+4. obtain exact-head CI, CodeQL and review convergence;
+5. mark Ready;
+6. merge only with the existing explicit merge authority.
+
+Sibling prerequisite PRs, stacked PR chains and validation-only PRs are exceptions, not a normal delivery mechanism. They are used only when work is independently deliverable or crosses a different risk, ownership or trust boundary.
+
+This simplification changes workflow shape only. Existing security checks, fail-closed mutation rules, merge authority and LIVE/deploy authority are unchanged.
+
 ## Source-only AUTO-RUN FULL
 
 The existing `.github/source-only-full.json` remains the repository-local authority contract. FULL stays off by default and requires an exact owner command for one open issue.

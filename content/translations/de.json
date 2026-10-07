@@ -160,7 +160,7 @@
   "privacy_turnstile_title": "Bot-Schutz / Cloudflare Turnstile",
   "privacy_turnstile_body": "Turnstile wird verwendet, wenn Sie den Assistenten starten oder geschützte Kontaktdaten freischalten. Cloudflare verarbeitet Sicherheits- sowie Browser-/Netzwerksignale, um Menschen von automatisiertem Verkehr zu unterscheiden, und gibt an, dass Turnstile keine Formulareingaben oder Nutzerkommunikation abruft, speichert oder überträgt.",
   "privacy_analytics_title": "Cloudflare Web Analytics",
-  "privacy_analytics_body": "Cloudflare Web Analytics ist für aggregierte Seiten- und Performance-Messungen aktiviert. Cloudflare gibt an, dass Web Analytics keine personenbezogenen Daten der Besucher erhebt oder verwendet.",
+  "privacy_analytics_body": "Wenn Cloudflare Web Analytics aktiv ist, wird es nur für aggregierte Seiten- und Leistungsmessungen verwendet. Cloudflare gibt an, dass Web Analytics keine personenbezogenen Daten von Besuchern erhebt oder verwendet.",
   "privacy_local_title": "Lokale Aufbewahrung & Betriebsdaten",
   "privacy_local_body": "Der Assistent meldet dem Browser seine aktive lokale Chat-Aufbewahrung. Die datensparsame Source-Voreinstellung beträgt 0 Tage; abgeschlossene Frage-/Antworttexte werden dann lokal nicht gespeichert. Pseudonyme Zeitstempel für Rate-Limits und aggregierte Tageszähler bleiben zur Missbrauchsabwehr erhalten. Operative Telegram-Benachrichtigungen verwenden standardmäßig nur eine pseudonyme Interaktionskennung und enthalten keine Frage-/Antworttexte. Die geschützte Telefonnummer wird erst nach erfolgreicher Turnstile-Prüfung ausgegeben und ist nicht in der statischen Website eingebettet.",
   "privacy_basis_title": "Rechtsgrundlage & Übermittlungen",
