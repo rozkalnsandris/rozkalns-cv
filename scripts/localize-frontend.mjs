@@ -209,6 +209,33 @@ function localizePdf(html, language) {
   return replaceAttributeById(html, "pdfLink", "href", PDFS[language]);
 }
 
+function replaceContentText(html, binding, messages) {
+  const pattern = new RegExp(`(<([a-z][a-z0-9-]*)\\b[^>]*\\b${binding}="([^"]+)"[^>]*>)([^<]*)(<\\/\\2>)`, "gi");
+  return html.replace(pattern, (_match, open, _tag, key, _text, close) => {
+    if (typeof messages[key] !== "string") throw new Error(`missing ${binding}: ${key}`);
+    return `${open}${escapeHtml(messages[key])}${close}`;
+  });
+}
+
+function localizeProjectLinks(html, language) {
+  return html.replace(/<a\b[^>]*\bdata-local-route="([^"]+)"[^>]*>/g, (tag, route) => {
+    if (!/^(lab|proof)\/(#[a-z-]+)?$/.test(route)) throw new Error(`invalid project route: ${route}`);
+    return tag.replace(/href="[^"]*"/, `href="/${language}/${route}"`);
+  });
+}
+
+function renderLabPage(template, language, messages, lab) {
+  let html = template.replace(/<html lang="[^"]+">/, `<html lang="${language}">`);
+  html = replaceBoundText(html, messages);
+  html = replaceContentText(html, "data-lab-i18n", lab);
+  html = replaceLanguageState(html, language);
+  html = html.replace(/<a\b[^>]*\bdata-lab-(home|back)[^>]*>/g, (tag, kind) =>
+    tag.replace(/href="[^"]*"/, `href="/${language}/${kind === "back" ? "#projects" : ""}"`));
+  html = html.replace(/<title>[\s\S]*?<\/title>/, `<title>${escapeHtml(lab.title)} · Andris Rožkalns</title>`);
+  html = replaceMetaContent(html, "name", "description", lab.intro);
+  return replaceCanonical(html, routeUrl(language, "lab/"), "lab/");
+}
+
 function renderPage(template, language, messages, proofMessages) {
   const url = routeUrl(language);
   const title = titleFor(messages);
@@ -264,7 +291,7 @@ function renderProofPage(template, language, messages, proofMessages, skillLabel
 }
 
 function sitemapXml() {
-  const routeSuffixes = ["", "proof/"];
+  const routeSuffixes = ["", "proof/", "lab/"];
   const rows = routeSuffixes.flatMap((suffix) => LOCALIZED_LANGUAGES.map((language) => {
     const url = routeUrl(language, suffix);
     const links = [
@@ -281,11 +308,14 @@ function sitemapXml() {
 }
 
 export async function renderLocalizedPages({ root, htmlRoot }) {
-  const [template, proofTemplate, proofConfig, skillLabels] = await Promise.all([
+  const [template, proofTemplate, proofConfig, skillLabels, labTemplate, labConfig, uiConfig] = await Promise.all([
     readFile(resolve(htmlRoot, "index.html"), "utf8"),
     readFile(resolve(htmlRoot, "proof.html"), "utf8"),
     readFile(resolve(root, "content", "proof.json"), "utf8").then(JSON.parse),
-    readFile(resolve(root, "content", "skill-labels.json"), "utf8").then(JSON.parse)
+    readFile(resolve(root, "content", "skill-labels.json"), "utf8").then(JSON.parse),
+    readFile(resolve(htmlRoot, "lab.html"), "utf8"),
+    readFile(resolve(root, "content", "lab.json"), "utf8").then(JSON.parse),
+    readFile(resolve(root, "content", "ui-v2.json"), "utf8").then(JSON.parse)
   ]);
   for (const language of LOCALIZED_LANGUAGES) {
     const messages = JSON.parse(
@@ -296,7 +326,11 @@ export async function renderLocalizedPages({ root, htmlRoot }) {
     const directory = resolve(htmlRoot, language);
     const proofDirectory = resolve(directory, "proof");
     await mkdir(proofDirectory, { recursive: true });
-    await writeFile(resolve(directory, "index.html"), renderPage(template, language, messages, proofMessages));
+    const home = replaceContentText(localizeProjectLinks(renderPage(template, language, messages, proofMessages), language), "data-ui-i18n", uiConfig.i18n[language]);
+    await writeFile(resolve(directory, "index.html"), home);
+    const labDirectory = resolve(directory, "lab");
+    await mkdir(labDirectory, { recursive: true });
+    await writeFile(resolve(labDirectory, "index.html"), renderLabPage(labTemplate, language, messages, labConfig.i18n[language]));
     await writeFile(resolve(proofDirectory, "index.html"), renderProofPage(proofTemplate, language, messages, proofMessages, skillLabels));
   }
   await writeFile(resolve(htmlRoot, "proof.html"), renderProofPage(
@@ -306,6 +340,7 @@ export async function renderLocalizedPages({ root, htmlRoot }) {
     proofConfig.i18n.en,
     skillLabels
   ));
+  await writeFile(resolve(htmlRoot, "lab.html"), renderLabPage(labTemplate, "en", JSON.parse(await readFile(resolve(root, "content", "translations", "en.json"), "utf8")), labConfig.i18n.en));
   await writeFile(resolve(htmlRoot, "sitemap.xml"), sitemapXml());
   console.log(`FRONTEND_LOCALIZED_PAGES=${LOCALIZED_LANGUAGES.join(",")}`);
   console.log(`FRONTEND_LOCALIZED_PROOF=${LOCALIZED_LANGUAGES.join(",")}`);

@@ -43,14 +43,8 @@ export function updateChatLauncherPlacement({ documentLike = globalThis.document
   const backdrop = documentLike?.querySelector?.("#chatBackdrop");
   if (!launcher || !backdrop || !documentLike?.body) return false;
 
-  let dock = documentLike.querySelector?.("#chatLauncherDock");
-  if (!dock) {
-    dock = documentLike.createElement("div");
-    dock.id = "chatLauncherDock";
-    dock.className = "actions chat-launcher-dock";
-    dock.style.cssText = "position:fixed;right:18px;bottom:18px;z-index:40";
-    documentLike.body.insertBefore(dock, backdrop);
-  }
+  const dock = documentLike.querySelector?.("#chatLauncherDock");
+  if (!dock) return false;
   launcher.dataset.placement = "inline";
   dock.append(launcher);
   return true;
@@ -172,7 +166,30 @@ function requestedWhatsAppContact() {
   }
 }
 
+function installMobileNavigation() {
+  const button = document.querySelector("#menuToggle");
+  const bar = document.querySelector(".topbar");
+  const nav = document.querySelector("#siteNavigation");
+  if (!button || !bar || !nav) return;
+  button.hidden = false;
+  bar.dataset.enhanced = "";
+  function close() {
+    bar.removeAttribute("data-menu-open");
+    button.setAttribute("aria-expanded", "false");
+  }
+  button.addEventListener("click", () => {
+    const open = button.getAttribute("aria-expanded") !== "true";
+    button.setAttribute("aria-expanded", String(open));
+    bar.toggleAttribute("data-menu-open", open);
+  });
+  nav.addEventListener("click", (event) => { if (event.target.closest("a")) close(); });
+  bar.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && button.getAttribute("aria-expanded") === "true") { close(); button.focus(); }
+  });
+}
+
 async function init() {
+  installMobileNavigation();
   enhanceSkillIcons();
   const languageController = createLanguageController({
     pdfs: PDFS,

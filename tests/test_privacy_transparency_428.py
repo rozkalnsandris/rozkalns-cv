@@ -65,7 +65,7 @@ class PrivacyTransparency428Tests(unittest.TestCase):
             self.assertNotIn("{days}", data["chat_privacy_zero"])
 
     def test_privacy_notice_is_not_added_to_print_cv(self) -> None:
-        css = (ROOT / "frontend/styles/print.css").read_text(encoding="utf-8")
+        css = (ROOT / "frontend/styles/v2/print.css").read_text(encoding="utf-8")
         self.assertIn(".privacy-panel { display: none !important; }", css)
 
 

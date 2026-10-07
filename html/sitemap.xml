@@ -42,4 +42,25 @@
     <xhtml:link rel="alternate" hreflang="lv" href="https://rozkalns.net/lv/proof/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://rozkalns.net/en/proof/"/>
   </url>
+  <url>
+    <loc>https://rozkalns.net/en/lab/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://rozkalns.net/en/lab/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://rozkalns.net/de/lab/"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://rozkalns.net/lv/lab/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://rozkalns.net/en/lab/"/>
+  </url>
+  <url>
+    <loc>https://rozkalns.net/de/lab/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://rozkalns.net/en/lab/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://rozkalns.net/de/lab/"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://rozkalns.net/lv/lab/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://rozkalns.net/en/lab/"/>
+  </url>
+  <url>
+    <loc>https://rozkalns.net/lv/lab/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://rozkalns.net/en/lab/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://rozkalns.net/de/lab/"/>
+    <xhtml:link rel="alternate" hreflang="lv" href="https://rozkalns.net/lv/lab/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://rozkalns.net/en/lab/"/>
+  </url>
 </urlset>

@@ -1,0 +1,20 @@
+@media print {
+  body { background: white; color: #111; font-size: 11px; }
+  .page { width: 100%; padding: 0; }
+  .topbar, .site-nav, .language-switcher, .actions, .chat-launcher, .contact-verify, .dialog-backdrop, .privacy-panel { display: none !important; }
+  .hero-shell { display: block; padding: 0 0 20px; }
+  .hero-shell::before { display: none; }
+  .hero-shell h1 { font-size: 34px; }
+  .hero-shell .profile-photo { float: right; width: 90px; height: 110px; }
+  .role, .tagline, .hero-meta { margin: 10px 0; }
+  .hero-note, .capability-strip { display: none; }
+  .v2-main { display: block; }
+  .v2-main > section, .overview-grid { margin-block: 18px; }
+  .project-list, .overview-grid, .lab-grid { display: block; }
+  .project-card, .lab-panel, .entry, .education-row { break-inside: avoid; margin-bottom: 12px; box-shadow: none; }
+  .project-preview { display: none; }
+  .project-learning-details { display: none; }
+  .project-facts { display: grid; }
+  .lab-preview { background: #f5f5f5; color: #111; }
+  a { color: #111; }
+}

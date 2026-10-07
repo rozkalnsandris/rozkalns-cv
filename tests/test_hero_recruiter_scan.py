@@ -57,21 +57,21 @@ class HeroRecruiterScanTests(unittest.TestCase):
         self.assertIn('fetchImpl(`/stats.json?_=${Date.now()}`', stats)
 
     def test_recruiter_scan_has_mobile_and_desktop_grid_areas(self) -> None:
-        layout = (ROOT / "frontend/styles/layout.css").read_text(encoding="utf-8")
-        responsive = (ROOT / "frontend/styles/responsive.css").read_text(
+        layout = (ROOT / "frontend/styles/v2/layout.css").read_text(encoding="utf-8")
+        responsive = (ROOT / "frontend/styles/v2/responsive.css").read_text(
             encoding="utf-8"
         )
-        components = (ROOT / "frontend/styles/components.css").read_text(
+        components = (ROOT / "frontend/styles/v2/components.css").read_text(
             encoding="utf-8"
         )
 
         self.assertIn('"capabilities capabilities"', layout)
         self.assertIn('"meta meta"', layout)
-        self.assertIn('"live live"', layout)
+        self.assertIn('#contact', layout)
 
-        self.assertIn('"capabilities capabilities capabilities photo"', responsive)
-        self.assertIn('"meta meta meta photo"', responsive)
-        self.assertIn('"live live live photo"', responsive)
+        self.assertIn('"tagline capabilities photo"', responsive)
+        self.assertIn('"meta capabilities photo"', responsive)
+        self.assertIn('"actions actions photo"', responsive)
 
         self.assertIn(".capability-strip { grid-area: capabilities;", components)
         self.assertIn(".hero-meta { grid-area: meta;", components)
