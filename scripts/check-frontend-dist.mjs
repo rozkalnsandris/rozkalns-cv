@@ -38,6 +38,9 @@ const expectedLocalizedIdentity = Object.freeze({
   proof_en: "en/proof/index.html",
   proof_de: "de/proof/index.html",
   proof_lv: "lv/proof/index.html",
+  lab_en: "en/lab/index.html",
+  lab_de: "de/lab/index.html",
+  lab_lv: "lv/lab/index.html",
   sitemap: "sitemap.xml"
 });
 assert.deepEqual(
@@ -88,6 +91,10 @@ assert.deepEqual(
 const indexHtml = await readFile(resolve(htmlRoot, "index.html"), "utf8");
 const smartHtml = await readFile(resolve(htmlRoot, "smarthome.html"), "utf8");
 const proofHtml = await readFile(resolve(htmlRoot, "proof.html"), "utf8");
+const labHtml = await readFile(resolve(htmlRoot, "lab.html"), "utf8");
+const localizedLabHtml = Object.fromEntries(await Promise.all(["en", "de", "lv"].map(async (language) => [
+  `lab_${language}`, await readFile(resolve(htmlRoot, language, "lab", "index.html"), "utf8")
+])));
 const localizedHtml = Object.fromEntries(await Promise.all(
   ["en", "de", "lv"].map(async (language) => [
     language,
@@ -100,7 +107,7 @@ const localizedProofHtml = Object.fromEntries(await Promise.all(
     await readFile(resolve(htmlRoot, language, "proof", "index.html"), "utf8")
   ])
 ));
-for (const [name, text] of [["index", indexHtml], ["smarthome", smartHtml], ["proof", proofHtml], ...Object.entries(localizedHtml), ...Object.entries(localizedProofHtml)]) {
+for (const [name, text] of [["index", indexHtml], ["smarthome", smartHtml], ["proof", proofHtml], ["lab", labHtml], ...Object.entries(localizedLabHtml), ...Object.entries(localizedHtml), ...Object.entries(localizedProofHtml)]) {
   assert.doesNotMatch(text, /(?:src|href)="\.\//, `${name} HTML still contains source-relative frontend references`);
   for (const path of text.matchAll(/(?:src|href)="\/(assets\/[^"?#]+)/g)) {
     assert.ok(referenced.has(path[1]), `${name} HTML references an asset outside the manifest: ${path[1]}`);
@@ -126,6 +133,7 @@ assert.doesNotMatch(smartHtml, /\?cfg=[0-9a-f]{12}/, "Smart Home HTML has an une
 for (const source of [
   "frontend/index.html",
   "frontend/proof.html",
+  "frontend/lab.html",
   "frontend/smarthome.html",
   "frontend/app.mjs",
   "frontend/enhancements.mjs",
@@ -136,16 +144,16 @@ for (const source of [
   "frontend/features/contact.mjs",
   "frontend/ui/icons.mjs",
   "frontend/styles/index.css",
-  "frontend/styles/tokens.css",
-  "frontend/styles/base.css",
-  "frontend/styles/layout.css",
-  "frontend/styles/components.css",
-  "frontend/styles/features/stats.css",
-  "frontend/styles/features/chat.css",
-  "frontend/styles/features/contact.css",
-  "frontend/styles/features/smarthome.css",
-  "frontend/styles/responsive.css",
-  "frontend/styles/print.css",
+  "frontend/styles/v2/tokens.css",
+  "frontend/styles/v2/base.css",
+  "frontend/styles/v2/layout.css",
+  "frontend/styles/v2/components.css",
+  "frontend/styles/v2/features/stats.css",
+  "frontend/styles/v2/features/chat.css",
+  "frontend/styles/v2/features/contact.css",
+  "frontend/styles/v2/features/smarthome.css",
+  "frontend/styles/v2/responsive.css",
+  "frontend/styles/v2/print.css",
   "scripts/localize-frontend.mjs",
   "scripts/bind-engineering-proof.mjs"
 ]) {
@@ -166,15 +174,18 @@ assert.equal(images.length, 1, "exactly one hashed WebP profile asset is require
 assert.match(images[0], /^assets\/photo\.[0-9a-f]{12}\.webp$/);
 const nginxSource = await readFile(resolve(root, "nginx.conf"), "utf8");
 assert.match(nginxSource, /\(\?:css\|json\|webp\)\$\"/);
+// UI v2 adds the static case-study styles and a bounded mobile navigation handler.
+// The existing 128 KiB initial page budget remains unchanged.
 const budgets = {
-  javascript: [await totalBytes(js), 26_000],
-  css: [await totalBytes(css), 24_000],
+  ...Object.fromEntries(Object.entries(localizedLabHtml).map(([name, text]) => [name, [Buffer.byteLength(text), 10_000]])),
+  javascript: [await totalBytes(js), 27_000],
+  css: [await totalBytes(css), 28_000],
   images: [await totalBytes(images), 13_000],
   translations: [await totalBytes(actualI18n), 40_000],
-  indexHtml: [(await stat(resolve(htmlRoot, "index.html"))).size, 32_000],
-  englishHtml: [(await stat(resolve(htmlRoot, "en", "index.html"))).size, 32_000],
-  germanHtml: [(await stat(resolve(htmlRoot, "de", "index.html"))).size, 32_000],
-  latvianHtml: [(await stat(resolve(htmlRoot, "lv", "index.html"))).size, 32_000],
+  indexHtml: [(await stat(resolve(htmlRoot, "index.html"))).size, 38_000],
+  englishHtml: [(await stat(resolve(htmlRoot, "en", "index.html"))).size, 38_000],
+  germanHtml: [(await stat(resolve(htmlRoot, "de", "index.html"))).size, 38_000],
+  latvianHtml: [(await stat(resolve(htmlRoot, "lv", "index.html"))).size, 38_000],
   smartHomeHtml: [(await stat(resolve(htmlRoot, "smarthome.html"))).size, 5_000],
   proofHtml: [(await stat(resolve(htmlRoot, "proof.html"))).size, 18_000],
   proofEnglishHtml: [(await stat(resolve(htmlRoot, "en", "proof", "index.html"))).size, 18_000],

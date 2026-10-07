@@ -264,6 +264,8 @@ class HtmlSemanticTests(unittest.TestCase):
                 expected_hrefs = (
                     {"en": "/en/proof/", "de": "/de/proof/", "lv": "/lv/proof/"}
                     if path.name == "proof.html"
+                    else {"en": "/en/lab/", "de": "/de/lab/", "lv": "/lv/lab/"}
+                    if path.name == "lab.html"
                     else {"en": "/en/", "de": "/de/", "lv": "/lv/"}
                 )
                 self.assertEqual(

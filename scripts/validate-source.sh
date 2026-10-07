@@ -55,16 +55,16 @@ for required in \
     frontend/features/contact.mjs \
     frontend/ui/icons.mjs \
     frontend/styles/index.css \
-    frontend/styles/tokens.css \
-    frontend/styles/base.css \
-    frontend/styles/layout.css \
-    frontend/styles/components.css \
-    frontend/styles/features/stats.css \
-    frontend/styles/features/chat.css \
-    frontend/styles/features/contact.css \
-    frontend/styles/features/smarthome.css \
-    frontend/styles/responsive.css \
-    frontend/styles/print.css \
+    frontend/styles/v2/tokens.css \
+    frontend/styles/v2/base.css \
+    frontend/styles/v2/layout.css \
+    frontend/styles/v2/components.css \
+    frontend/styles/v2/features/stats.css \
+    frontend/styles/v2/features/chat.css \
+    frontend/styles/v2/features/contact.css \
+    frontend/styles/v2/features/smarthome.css \
+    frontend/styles/v2/responsive.css \
+    frontend/styles/v2/print.css \
     frontend-dist-manifest.json \
     package.json \
     package-lock.json \

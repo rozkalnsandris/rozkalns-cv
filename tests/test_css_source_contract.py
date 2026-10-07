@@ -5,19 +5,19 @@ import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-STYLES = ROOT / "frontend" / "styles"
-ENTRY = STYLES / "index.css"
+STYLES = ROOT / "frontend" / "styles" / "v2"
+ENTRY = STYLES.parent / "index.css"
 EXPECTED_IMPORTS = [
-    "./tokens.css",
-    "./base.css",
-    "./layout.css",
-    "./components.css",
-    "./features/stats.css",
-    "./features/chat.css",
-    "./features/contact.css",
-    "./features/smarthome.css",
-    "./responsive.css",
-    "./print.css",
+    "./v2/tokens.css",
+    "./v2/base.css",
+    "./v2/layout.css",
+    "./v2/components.css",
+    "./v2/features/stats.css",
+    "./v2/features/chat.css",
+    "./v2/features/contact.css",
+    "./v2/features/smarthome.css",
+    "./v2/responsive.css",
+    "./v2/print.css",
 ]
 
 
@@ -87,16 +87,15 @@ class CssSourceContractTests(unittest.TestCase):
         components = (STYLES / "components.css").read_text(encoding="utf-8")
         app = (ROOT / "frontend" / "app.mjs").read_text(encoding="utf-8")
         compact = re.sub(r"\s+", "", responsive)
-        self.assertIn('grid-template-areas:"projects""rail""experience";', compact)
-        self.assertIn("#skills{grid-area:rail;}", compact)
-        self.assertIn("#projects.project-list", compact)
+        self.assertIn('.overview-grid{grid-template-columns:repeat(2,minmax(0,1fr));}', compact)
+        self.assertIn(".project-list", compact)
         self.assertIn("grid-template-columns:repeat(3,minmax(0,1fr))", compact)
         self.assertNotIn(".work-rail", layout)
         self.assertNotIn(".work-rail", responsive)
         self.assertIn("#experience.timeline{grid-template-columns:1fr;}", compact)
         self.assertIn("#experience.entry{grid-template-columns:150pxminmax(0,1fr);", compact)
         self.assertNotIn(".chat-launcher-dock", responsive)
-        self.assertIn("position:fixed;right:18px;bottom:18px;z-index:40", app)
+        self.assertNotIn("position:fixed;right:18px;bottom:18px;z-index:40", app)
         self.assertNotIn('content: "AI"', responsive)
         self.assertIn(".project-card.project-entry.primary", components)
 

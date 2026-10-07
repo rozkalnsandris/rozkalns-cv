@@ -860,7 +860,7 @@ async function runBrowserSmoke(baseUrl, state) {
           `responsive ${viewport.width}px ${locale.label} launcher placement`
         );
         const githubProof = await cdp.evaluate(`(() => ({
-          profile: document.querySelector('a[rel="me"]')?.textContent.trim(),
+          profile: document.querySelector('#contact a[rel="me"]')?.textContent.trim(),
           selected: [...document.querySelectorAll('#github-projects > dd > a.github-row')].map((link) => link.textContent.trim()),
           iconSizes: [...document.querySelectorAll('#github-projects a svg')].map((icon) => {
             const rect = icon.getBoundingClientRect();
@@ -1043,25 +1043,8 @@ async function runBrowserSmoke(baseUrl, state) {
           assert.equal(layout.launcher.placement, "inline", `${context} launcher placement`);
           assert.equal(layout.launcher.position, "static", `${context} inline launcher position`);
           assert.match(layout.launcher.parentClass, /(^|\s)actions(\s|$)/, `${context} inline launcher parent`);
-          if (/(^|\s)chat-launcher-dock(\s|$)/.test(layout.launcher.parentClass)) {
-            assert.equal(layout.launcher.parentPosition, "fixed", `${context} launcher dock position`);
-            assert.ok(
-              layout.launcher.right <= layout.documentClientWidth + 0.5 &&
-                layout.launcher.right >= layout.documentClientWidth - 48,
-              `${context} launcher dock not at right edge: ${JSON.stringify(layout.launcher)}`
-            );
-            assert.ok(
-              layout.launcher.bottom <= viewport.height + 0.5 &&
-                layout.launcher.bottom >= viewport.height - 48,
-              `${context} launcher dock not at bottom edge: ${JSON.stringify(layout.launcher)}`
-            );
-          } else {
-            assert.ok(
-              layout.launcher.left >= layout.page.left - 0.5 &&
-                layout.launcher.right <= layout.page.right + 0.5,
-              `${context} inline launcher outside page: ${JSON.stringify(layout.launcher)}`
-            );
-          }
+          assert.equal(layout.launcher.parentPosition, "static", `${context} contact assistant stays in the page flow`);
+          assert.ok(layout.launcher.left >= layout.page.left - 0.5 && layout.launcher.right <= layout.page.right + 0.5, `${context} inline assistant overflow`);
         }
         assert.ok(layout.location, `${context} location row missing`);
         assert.ok(
@@ -1106,7 +1089,7 @@ async function runBrowserSmoke(baseUrl, state) {
     await cdp.key("Tab");
     assert.equal(await cdp.evaluate(`document.activeElement?.matches('.skip-link')`), true);
     const expectedFocusHrefs = [
-      "#about", "#projects", "#skills", "#experience", "#stats", "#education", "/en/"
+      "#", "#", "#projects", "#skills", "#stats", "#about", "#contact", "/en/"
     ];
     for (const expectedHref of expectedFocusHrefs) {
       await cdp.key("Tab");
