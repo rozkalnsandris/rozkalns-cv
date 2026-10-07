@@ -121,6 +121,108 @@ validate_candidate_runtime_prerequisites() {
         printf 'TARGET_RUNTIME_PREREQUISITES=NO_SECRET_REQUIRED\n'
     fi
 }
+ROLLBACK_CVBOT_IMAGE_REF=''
+ROLLBACK_CVBOT_IMAGE_ID=''
+ROLLBACK_CVBOT_BUILD_INPUT_SHA256=''
+
+validate_legacy_cv_port_owner() {
+    local rows name project service ports legacy_count
+    legacy_count=0
+    rows="$(
+        docker ps --filter publish=8088 \
+            --format '{{.Names}}|{{.Label "com.docker.compose.project"}}|{{.Label "com.docker.compose.service"}}|{{.Ports}}'
+    )" || return 1
+    if [[ -z "$rows" ]]; then
+        printf 'CV_PORT_OWNER_PREFLIGHT=FAIL reason=no-owner\n'
+        return 1
+    fi
+
+    while IFS='|' read -r name project service ports; do
+        if [[ "$project" == 'rozkalns-cv' && "$service" == 'cv' ]]; then
+            printf 'CV_PORT_OWNER_PREFLIGHT=FAIL reason=simple-deploy-owner\n'
+            return 1
+        fi
+        if [[ "$name" != 'cv' || "$ports" != *'127.0.0.1:8088->80/tcp'* ]]; then
+            printf 'CV_PORT_OWNER_PREFLIGHT=FAIL reason=unexpected-owner\n'
+            return 1
+        fi
+        legacy_count=$((legacy_count + 1))
+    done <<<"$rows"
+
+    if [[ "$legacy_count" -ne 1 ]]; then
+        printf 'CV_PORT_OWNER_PREFLIGHT=FAIL reason=owner-count\n'
+        return 1
+    fi
+    printf 'CV_PORT_OWNER_PREFLIGHT=PASS owner=legacy-cv\n'
+}
+
+validate_rollback_cvbot_image_preflight() {
+    local image_ref image_id revision build_input expected_build_input
+    [[ "$OLD_SHA" =~ ^[0-9a-f]{40}$ ]] || return 1
+    [[ -f "$RUNTIME/bot/Dockerfile" && ! -L "$RUNTIME/bot/Dockerfile" ]] || return 1
+    [[ -f "$RUNTIME/scripts/build-input-id.py" && ! -L "$RUNTIME/scripts/build-input-id.py" ]] || return 1
+    grep -Fq 'net.rozkalns.cv.build-input-sha256' "$RUNTIME/bot/Dockerfile" || return 1
+
+    expected_build_input="$(python3 "$RUNTIME/scripts/build-input-id.py" "$RUNTIME")" || return 1
+    [[ "$expected_build_input" =~ ^[0-9a-f]{64}$ ]] || return 1
+    image_ref="rozkalns-cv-cvbot:${OLD_SHA}"
+    image_id="$(docker image inspect "$image_ref" --format '{{.Id}}')" || return 1
+    revision="$(
+        docker image inspect "$image_ref" \
+            --format '{{index .Config.Labels "org.opencontainers.image.revision"}}'
+    )" || return 1
+    build_input="$(
+        docker image inspect "$image_ref" \
+            --format '{{index .Config.Labels "net.rozkalns.cv.build-input-sha256"}}'
+    )" || return 1
+
+    [[ "$image_id" =~ ^sha256:[0-9a-f]{64}$ ]] || return 1
+    [[ "$revision" == "$OLD_SHA" ]] || return 1
+    [[ "$build_input" == "$expected_build_input" ]] || return 1
+
+    ROLLBACK_CVBOT_IMAGE_REF="$image_ref"
+    ROLLBACK_CVBOT_IMAGE_ID="$image_id"
+    ROLLBACK_CVBOT_BUILD_INPUT_SHA256="$expected_build_input"
+    printf 'ROLLBACK_CVBOT_IMAGE_PREFLIGHT=PASS\n'
+}
+
+reuse_verified_rollback_cvbot_image() {
+    local actual_id
+    [[ "$ROLLBACK_ATTEMPTED" == true ]] || return 1
+    [[ "$ROLLBACK_CVBOT_IMAGE_REF" == "rozkalns-cv-cvbot:${CVBOT_VCS_REF}" ]] || return 1
+    [[ "$CVBOT_BUILD_INPUT_SHA256" == "$ROLLBACK_CVBOT_BUILD_INPUT_SHA256" ]] || return 1
+    actual_id="$(
+        docker image inspect "$ROLLBACK_CVBOT_IMAGE_REF" --format '{{.Id}}'
+    )" || return 1
+    [[ "$actual_id" == "$ROLLBACK_CVBOT_IMAGE_ID" ]] || return 1
+    printf 'CVBOT_IMAGE_BUILD=REUSE_VERIFIED_ROLLBACK_IMAGE\n'
+}
+
+# Pull transport override: target deploys still build the target image. Rollback
+# reuses only the exact local image verified before mutation, so historical
+# source is never rebuilt against mutable external package repositories.
+deploy_runtime() {
+    normalize_managed_permissions "$RUNTIME" || return 1
+    validate_cvbot_runtime_secret || return 1
+    prepare_cvbot_data || return 1
+    prepare_cvbot_build_identity || return 1
+    validate_rendered_network "$RUNTIME" || return 1
+    validate_existing_network || return 1
+    compose_runtime config --quiet || return 1
+    if [[ "$ROLLBACK_ATTEMPTED" == true ]]; then
+        reuse_verified_rollback_cvbot_image || return 1
+    else
+        compose_runtime build cvbot || return 1
+    fi
+    verify_cvbot_image_identity || return 1
+    compose_runtime up -d --no-deps cvbot || return 1
+    wait_healthy cvbot 60 2 || return 1
+    verify_cvbot_runtime_security || return 1
+    compose_runtime up -d --no-deps cv || return 1
+    wait_running cv 30 2 || return 1
+    http_ok "$LOCAL_URL" 10 3 || return 1
+    http_ok "$PUBLIC_URL" 10 5 || return 1
+}
 
 [[ "${SUDO_USER:-}" == "$PULL_CALLER" ]] \
     || fail 'pull-deploy helper must be invoked by the dedicated local controller'
@@ -391,6 +493,16 @@ prepare_candidate || fail 'candidate preparation failed'
 if ! validate_candidate_runtime_prerequisites \
     >"$EVIDENCE_DIR/target-prerequisites.log" 2>&1; then
     fail 'target runtime prerequisites failed before production mutation'
+fi
+
+if ! validate_legacy_cv_port_owner \
+    >"$EVIDENCE_DIR/port-owner-preflight.log" 2>&1; then
+    fail 'legacy CV port owner preflight failed before production mutation'
+fi
+
+if ! validate_rollback_cvbot_image_preflight \
+    >"$EVIDENCE_DIR/rollback-image-preflight.log" 2>&1; then
+    fail 'rollback cvbot image preflight failed before production mutation'
 fi
 
 BACKUP="$BACKUP_ROOT/${STAMP}-${OLD_SHA:-unknown}"

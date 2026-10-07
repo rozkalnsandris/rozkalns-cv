@@ -257,5 +257,95 @@ fi
             self.assertNotIn(forbidden, self.installer)
 
 
+    def test_failed_rollout_guards_run_before_first_application_mutation(self) -> None:
+        for marker in (
+            "validate_legacy_cv_port_owner()",
+            "CV_PORT_OWNER_PREFLIGHT=FAIL reason=simple-deploy-owner",
+            "CV_PORT_OWNER_PREFLIGHT=PASS owner=legacy-cv",
+            "validate_rollback_cvbot_image_preflight()",
+            "ROLLBACK_CVBOT_IMAGE_PREFLIGHT=PASS",
+            "reuse_verified_rollback_cvbot_image()",
+            "CVBOT_IMAGE_BUILD=REUSE_VERIFIED_ROLLBACK_IMAGE",
+            "legacy CV port owner preflight failed before production mutation",
+            "rollback cvbot image preflight failed before production mutation",
+        ):
+            self.assertIn(marker, self.pull)
+
+        port_gate = self.pull.index("if ! validate_legacy_cv_port_owner")
+        image_gate = self.pull.index("if ! validate_rollback_cvbot_image_preflight")
+        backup = self.pull.index(
+            'BACKUP="$BACKUP_ROOT/${STAMP}-${OLD_SHA:-unknown}"'
+        )
+        mutation = self.pull.index("MUTATION_STARTED=true")
+        self.assertLess(port_gate, image_gate)
+        self.assertLess(image_gate, backup)
+        self.assertLess(backup, mutation)
+
+    def test_port_owner_guard_rejects_simple_deploy_and_accepts_exact_legacy_owner(self) -> None:
+        marker = "validate_legacy_cv_port_owner() {"
+        body = self.pull.split(marker, 1)[1].split("\n}\n", 1)[0]
+        function_source = marker + body + "\n}\n"
+
+        accepted = subprocess.run(
+            [
+                "bash",
+                "-c",
+                (
+                    "set -Eeuo pipefail\n"
+                    "docker() { printf '%s\\n' 'cv|||127.0.0.1:8088->80/tcp'; }\n"
+                    + function_source
+                    + "validate_legacy_cv_port_owner"
+                ),
+            ],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+        )
+        self.assertEqual(accepted.returncode, 0, accepted.stdout)
+        self.assertIn("CV_PORT_OWNER_PREFLIGHT=PASS owner=legacy-cv", accepted.stdout)
+
+        rejected = subprocess.run(
+            [
+                "bash",
+                "-c",
+                (
+                    "set -Eeuo pipefail\n"
+                    "docker() { printf '%s\\n' 'rozkalns-cv-cv-1|rozkalns-cv|cv|127.0.0.1:8088->8080/tcp'; }\n"
+                    + function_source
+                    + "if validate_legacy_cv_port_owner; then exit 91; fi"
+                ),
+            ],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            check=False,
+        )
+        self.assertEqual(rejected.returncode, 0, rejected.stdout)
+        self.assertIn("reason=simple-deploy-owner", rejected.stdout)
+
+    def test_rollback_path_reuses_preverified_image_instead_of_rebuilding(self) -> None:
+        for marker in (
+            'image_ref="rozkalns-cv-cvbot:${OLD_SHA}"',
+            '[[ "$revision" == "$OLD_SHA" ]]',
+            '[[ "$build_input" == "$expected_build_input" ]]',
+            '[[ "$actual_id" == "$ROLLBACK_CVBOT_IMAGE_ID" ]]',
+            'if [[ "$ROLLBACK_ATTEMPTED" == true ]]; then',
+            "reuse_verified_rollback_cvbot_image || return 1",
+            "compose_runtime build cvbot || return 1",
+        ):
+            self.assertIn(marker, self.pull)
+
+        override = self.pull.index("# Pull transport override:")
+        branch = self.pull.index(
+            'if [[ "$ROLLBACK_ATTEMPTED" == true ]]; then', override
+        )
+        reuse = self.pull.index(
+            "reuse_verified_rollback_cvbot_image || return 1", branch
+        )
+        build = self.pull.index("compose_runtime build cvbot || return 1", branch)
+        self.assertLess(branch, reuse)
+        self.assertLess(reuse, build)
+
 if __name__ == "__main__":
     unittest.main()

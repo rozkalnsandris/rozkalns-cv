@@ -100,6 +100,15 @@ The release helper deploys only the CV application components (`cv` and `cvbot`)
 
 Merge authorization never implies production-deploy authorization. Read-only production/preflight evidence is not a live mutation.
 
+## Failed-rollout hardening
+
+Incident #511 adds three fail-closed protections to the legacy/manual two-container rollout:
+
+- `docker-compose.yml` explicitly sets the reviewed non-secret `LLM_MODEL=gpt-5.6-luna` for `cvbot`, so the private env file cannot select an incompatible model;
+- before first application mutation, the pull transport requires the exact pre-deploy cvbot image for the production SHA, verifies its OCI revision/build-input labels and immutable local image ID, and rollback reuses that same verified image instead of rebuilding historical source against mutable package repositories;
+- before first application mutation, bounded Docker metadata must show exactly the legacy `cv` container owning the loopback `8088 -> 80` publish. If the SIMPLE-DEPLOY `rozkalns-cv` Compose service already owns the port, or ownership is otherwise unexpected, the legacy rollout stops before touching application runtime.
+
+These checks do not authorize deployment, rollback or cleanup. They prevent the legacy lane from competing with an already-adopted SIMPLE-DEPLOY runtime and keep its pre-authorized rollback independent of historical Alpine package availability.
 ## Failure handling
 
 After an authorized mutation starts, any tool error, timeout, unexpected state, head drift or authorization uncertainty requires fail-closed handling: gather only the necessary read-only evidence and stop. Do not retry, roll back, clean up or switch mutation paths without new explicit authorization unless that behavior was explicitly pre-authorized by the governing rollout contract.
