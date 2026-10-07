@@ -54,6 +54,8 @@ services:
       - /tmp:rw,noexec,nosuid,nodev,size=16m,mode=1777
     env_file:
       - ./bot/.env
+    environment:
+      LLM_MODEL: gpt-5.6-luna
     volumes:
       - ./bot/data:/app/data:rw
     expose:
