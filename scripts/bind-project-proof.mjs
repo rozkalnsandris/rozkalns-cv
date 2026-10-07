@@ -64,7 +64,7 @@ export async function bindProjectProof({ root, htmlPath }) {
       for (const projectId of projectIds) {
         if (linkedProjects.has(projectId)) coveredProjects.add(projectId);
       }
-      return `<a class="tech-tag github-row project-proof-link" data-proof-evidence-id="${escapeHtml(evidenceId)}" href="${escapeHtml(item.url)}">${escapeHtml(evidenceLabel(item))} ↗</a>`;
+      return `<a class="tech-tag github-row project-proof-link" data-proof-evidence-id="${escapeHtml(evidenceId)}" href="${escapeHtml(item.url)}">${escapeHtml(evidenceLabel(item))}</a>`;
     });
     for (const projectId of projectIds) {
       if (!canonicalProjects.has(projectId)) throw new Error(`unknown canonical project id: ${projectId}`);

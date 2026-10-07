@@ -68,6 +68,8 @@ class RecruiterUiPolishTest(unittest.TestCase):
         self.assertNotIn('@media (max-width:', RESPONSIVE)
         self.assertIn('.topbar[data-enhanced] .site-nav { display: none; }', COMPONENTS)
         self.assertIn('.topbar[data-enhanced] .site-nav { display: flex;', RESPONSIVE)
+        self.assertIn('grid-template-columns: repeat(2,minmax(0,1fr));', COMPONENTS)
+        self.assertIn('.hero-shell .actions .button:first-child { grid-column: 1 / -1; }', COMPONENTS)
         self.assertRegex(
             RESPONSIVE,
             r"#experience\s+\.timeline\s*\{\s*grid-template-columns:\s*1fr;",
