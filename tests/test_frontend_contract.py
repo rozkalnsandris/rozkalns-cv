@@ -194,17 +194,12 @@ class FrontendContractTests(unittest.TestCase):
         self.assertTrue(FAVICON.is_file())
         self.assertIn('<link rel="icon" href="/favicon.svg" type="image/svg+xml">', text)
 
-    def test_accessible_dialog_contract(self) -> None:
-        text = INDEX.read_text(encoding="utf-8")
-        for marker in (
-            'role="dialog"', 'aria-modal="true"', 'aria-labelledby="chatTitle"',
-            'aria-describedby="chatPrivacy"', 'role="log"', 'aria-live="polite"',
-            'aria-busy="false"', 'aria-current="page"',
-        ):
-            self.assertIn(marker, text)
-        chat = SOURCE_CHAT.read_text(encoding="utf-8")
-        for marker in ('event.key === "Escape"', 'event.key !== "Tab"', "shell.inert = true", "returnFocus?.focus()"):
-            self.assertIn(marker, chat)
+    def test_public_home_has_no_assistant_modal(self) -> None:
+        for page in (SOURCE_INDEX, INDEX, *(ROOT / f"html/{lang}/index.html" for lang in ("en", "de", "lv"))):
+            data = page.read_text(encoding="utf-8")
+            for forbidden in ("chatLauncher", "chatBackdrop", "chatDialog", "chatForm"):
+                self.assertNotIn(forbidden, data)
+            self.assertIn('id="contactReveal"', data)
 
     def test_shared_i18n_is_used_by_both_entry_points(self) -> None:
         core = SOURCE_I18N.read_text(encoding="utf-8")

@@ -446,13 +446,7 @@ async function runBrowserSmoke(baseUrl, state) {
       ]
     });
     await cdp.navigate(`${baseUrl}/de/`);
-    assert.deepEqual(
-      await cdp.evaluate(`(() => ({
-        placeholder: document.querySelector('#chatInput')?.getAttribute('placeholder'),
-        binding: document.querySelector('#chatInput')?.getAttribute('data-i18n-placeholder')
-      }))()`),
-      { placeholder: "Frage zu Andris' Erfahrung", binding: "chat_input" }
-    );
+    assert.equal(await cdp.evaluate("document.querySelector(\x27#chatInput\x27)"), null);
 
     await cdp.send("Network.setBlockedURLs", {
       urls: ["*://static.cloudflareinsights.com/*", "*://cloudflareinsights.com/*"]
@@ -503,8 +497,7 @@ async function runBrowserSmoke(baseUrl, state) {
       title: document.title,
       role: document.querySelector('[data-i18n="role"]')?.textContent,
       pdf: document.querySelector('#pdfLink')?.getAttribute('href'),
-      dialogModal: document.querySelector('#chatDialog')?.getAttribute('aria-modal'),
-      privacy: document.querySelector('[data-i18n="chat_privacy"]')?.textContent,
+      assistantAbsent: document.querySelector('#chatDialog') === null,
       photoSrc: document.querySelector('.profile-photo')?.currentSrc,
       photoAlt: document.querySelector('.profile-photo')?.getAttribute('alt'),
       profileHeading: document.querySelector('.hero-shell h1')?.textContent,
@@ -521,15 +514,8 @@ async function runBrowserSmoke(baseUrl, state) {
     assert.equal(initialContract.photoNaturalWidth, 480);
     assert.equal(initialContract.photoNaturalHeight, 480);
     assert.equal(initialContract.pdf, "/cv.pdf");
-    assert.equal(initialContract.dialogModal, "true");
-    assert.match(initialContract.privacy, /raw IP addresses are not stored/i);
-    assert.deepEqual(
-      await cdp.evaluate(`(() => ({
-        placeholder: document.querySelector('#chatInput')?.getAttribute('placeholder'),
-        binding: document.querySelector('#chatInput')?.getAttribute('data-i18n-placeholder')
-      }))()`),
-      { placeholder: "Ask about Andris's experience", binding: "chat_input" }
-    );
+    assert.equal(initialContract.assistantAbsent, true);
+    assert.equal(await cdp.evaluate("document.querySelector(\x27#chatInput\x27)"), null);
     const initialLanguageState = await cdp.evaluate(`(() => ({
       groupRole: document.querySelector('.language-switcher')?.getAttribute('role'),
       groupLabel: document.querySelector('.language-switcher')?.getAttribute('aria-label'),
@@ -539,8 +525,6 @@ async function runBrowserSmoke(baseUrl, state) {
         href: control.getAttribute('href'),
         current: control.getAttribute('aria-current')
       })),
-      logLive: document.querySelector('#chatLog')?.getAttribute('aria-live'),
-      statusRole: document.querySelector('#chatStatus')?.getAttribute('role'),
       profileListRole: document.querySelector('.profile-languages')?.getAttribute('role'),
       profileListLabel: document.querySelector('.profile-languages')?.getAttribute('aria-label'),
       profileListItems: [...document.querySelectorAll('.profile-languages .profile-language')].map((item) => item.getAttribute('role'))
@@ -552,8 +536,6 @@ async function runBrowserSmoke(baseUrl, state) {
       { language: "de", label: "Deutsch", href: "/de/", current: null },
       { language: "lv", label: "Latviešu", href: "/lv/", current: null }
     ]);
-    assert.equal(initialLanguageState.logLive, "polite");
-    assert.equal(initialLanguageState.statusRole, "status");
     assert.equal(initialLanguageState.profileListRole, "list");
     assert.equal(initialLanguageState.profileListLabel, "Languages");
     assert.deepEqual(initialLanguageState.profileListItems, ["listitem", "listitem", "listitem"]);
@@ -570,13 +552,7 @@ async function runBrowserSmoke(baseUrl, state) {
       await cdp.evaluate(`document.querySelector('#profileLocation')?.textContent`),
       "Dortmund, Deutschland"
     );
-    assert.deepEqual(
-      await cdp.evaluate(`(() => ({
-        placeholder: document.querySelector('#chatInput')?.getAttribute('placeholder'),
-        binding: document.querySelector('#chatInput')?.getAttribute('data-i18n-placeholder')
-      }))()`),
-      { placeholder: "Frage zu Andris' Erfahrung", binding: "chat_input" }
-    );
+    assert.equal(await cdp.evaluate("document.querySelector(\x27#chatInput\x27)"), null);
     await assertWcagAxeClean(cdp, "German main CV");
 
     const latvianLoaded = cdp.waitForEvent("Page.loadEventFired", 15_000);
@@ -595,13 +571,7 @@ async function runBrowserSmoke(baseUrl, state) {
       await cdp.evaluate(`document.querySelector('#profileLocation')?.textContent`),
       "Dortmund, Vācija"
     );
-    assert.deepEqual(
-      await cdp.evaluate(`(() => ({
-        placeholder: document.querySelector('#chatInput')?.getAttribute('placeholder'),
-        binding: document.querySelector('#chatInput')?.getAttribute('data-i18n-placeholder')
-      }))()`),
-      { placeholder: "Jautājums par Andra pieredzi", binding: "chat_input" }
-    );
+    assert.equal(await cdp.evaluate("document.querySelector(\x27#chatInput\x27)"), null);
     assert.deepEqual(
       await cdp.evaluate(`[...document.querySelectorAll('.language-switcher [data-lang]')].map((control) => [control.dataset.lang, control.getAttribute('aria-current')])`),
       [["en", null], ["de", null], ["lv", "page"]]
@@ -628,126 +598,11 @@ async function runBrowserSmoke(baseUrl, state) {
     }
   );
 
-    await cdp.evaluate(`(() => {
-      const launcher = document.querySelector('#chatLauncher');
-      launcher.focus();
-      launcher.click();
-    })()`);
-    await cdp.waitFor(
-      `document.querySelector('#chatBackdrop').hidden === false && document.activeElement?.id === "chatInput" && document.querySelector('#pageShell').inert === true`,
-      5_000,
-      "accessible dialog focus"
-    );
-    await cdp.evaluate(`document.querySelector('#chatClose').focus()`);
-    await cdp.key("Tab", 8);
-    assert.equal(await cdp.evaluate(`document.activeElement?.id`), "chatSend");
-    await cdp.key("Tab");
-    assert.equal(await cdp.evaluate(`document.activeElement?.id`), "chatClose");
-    await cdp.key("Escape");
-    await cdp.waitFor(
-      `document.querySelector('#chatBackdrop').hidden === true && document.activeElement?.id === "chatLauncher" && document.querySelector('#pageShell').inert === false`,
-      5_000,
-      "Escape dialog dismissal"
-    );
+    assert.equal(await cdp.evaluate("document.querySelector('#chatLauncher')"), null);
+    assert.equal(await cdp.evaluate("document.querySelector('#chatDialog')"), null);
+    assert.equal(state.chatRequests.length, 0);
+    assert.equal(state.chatAdmissionRequests.length, 0);
 
-    await cdp.evaluate(`(() => {
-      const launcher = document.querySelector('#chatLauncher');
-      launcher.focus();
-      launcher.click();
-    })()`);
-    await cdp.waitFor(`document.activeElement?.id === "chatInput"`, 5_000, "chat input focus");
-    await cdp.evaluate(`(() => {
-      window.turnstile = {
-        render(mount, options) {
-          const frame = document.createElement('iframe');
-          frame.title = 'Synthetic Chat Turnstile';
-          frame.tabIndex = 0;
-          mount.append(frame);
-          setTimeout(() => options.callback('synthetic-chat-turnstile-token'), 0);
-          return 'fixture-chat-widget';
-        },
-        reset() {}
-      };
-    })()`);
-
-    async function submit(message, expectedStatus) {
-      await cdp.evaluate(`(() => {
-        const input = document.querySelector('#chatInput');
-        input.value = ${JSON.stringify(message)};
-        document.querySelector('#chatForm').requestSubmit();
-      })()`);
-      await cdp.waitFor(
-        `document.querySelector('#chatStatus')?.textContent === ${JSON.stringify(expectedStatus)} && document.querySelector('#chatForm')?.getAttribute('aria-busy') === "false"`,
-        10_000,
-        `chat completion for ${message}`
-      );
-    }
-
-    await submit("First question", "Atbilde pabeigta.");
-    const announcementContract = await cdp.evaluate(`(() => ({
-      answerLive: document.querySelector('#chatLog .message.bot:last-child')?.getAttribute('aria-live'),
-      logLive: document.querySelector('#chatLog')?.getAttribute('aria-live'),
-      statusRole: document.querySelector('#chatStatus')?.getAttribute('role'),
-      statusLive: document.querySelector('#chatStatus')?.getAttribute('aria-live')
-    }))()`);
-    assert.equal(announcementContract.answerLive, "off");
-    assert.equal(announcementContract.logLive, "polite");
-    assert.equal(announcementContract.statusRole, "status");
-    assert.equal(announcementContract.statusLive, "polite");
-    assert.deepEqual(state.chatAdmissionRequests, [{ token: "synthetic-chat-turnstile-token" }]);
-    assert.deepEqual(state.chatAdmissionHeaders, ["fixture-chat-session"]);
-    assert.deepEqual(state.chatRequests[0], {
-      message: "First question",
-      history: []
-    });
-
-    await submit("Second question", "Atbilde pabeigta.");
-    assert.deepEqual(state.chatRequests[1], {
-      message: "Second question",
-      history: [
-        { role: "user", content: "First question" },
-        { role: "assistant", content: "Browser reply" }
-      ]
-    });
-
-    await submit(
-      "Trigger failure",
-      "Savienojuma kļūda — lūdzu, rakstiet Andrim e-pastā."
-    );
-    const failureBubble = await cdp.evaluate(
-      `document.querySelector('#chatLog .message.bot:last-child')?.textContent`
-    );
-    assert.equal(failureBubble, "Synthetic chat failure");
-
-    await submit("After failure", "Atbilde pabeigta.");
-    assert.equal(state.chatRequests.length, 4);
-    assert.deepEqual(state.chatAdmissionRequests, [{ token: "synthetic-chat-turnstile-token" }]);
-    assert.deepEqual(state.chatAdmissionHeaders, [
-      "fixture-chat-session",
-      "fixture-chat-session",
-      "fixture-chat-session",
-      "fixture-chat-session"
-    ]);
-    assert.deepEqual(state.chatRequests[3], {
-      message: "After failure",
-      history: [
-        { role: "user", content: "First question" },
-        { role: "assistant", content: "Browser reply" },
-        { role: "user", content: "Second question" },
-        { role: "assistant", content: "Browser reply" }
-      ]
-    });
-    assert.equal(
-      state.chatRequests[3].history.some((row) => row.content === "Trigger failure"),
-      false
-    );
-
-    await cdp.key("Escape");
-    await cdp.waitFor(
-      `document.querySelector('#chatBackdrop').hidden === true && document.activeElement?.id === "chatLauncher"`,
-      5_000,
-      "chat focus return before contact verification"
-    );
     assert.equal(
       await cdp.evaluate(`document.querySelector('#contactEmail')?.getAttribute('href')`),
       "mailto:andris@rozkalns.net"
@@ -854,11 +709,7 @@ async function runBrowserSmoke(baseUrl, state) {
           10_000,
           `responsive ${viewport.width}px ${locale.label} restoration`
         );
-        await cdp.waitFor(
-          `["rail", "inline"].includes(document.querySelector('#chatLauncher')?.dataset.placement)`,
-          10_000,
-          `responsive ${viewport.width}px ${locale.label} launcher placement`
-        );
+        assert.equal(await cdp.evaluate("document.querySelector('#chatLauncher')"), null);
         const githubProof = await cdp.evaluate(`(() => ({
           profile: document.querySelector('#contact a[rel="me"]')?.textContent.trim(),
           selected: [...document.querySelectorAll('#github-projects > dd > a.github-row')].map((link) => link.textContent.trim()),
@@ -1031,27 +882,13 @@ async function runBrowserSmoke(baseUrl, state) {
             `${context} language switcher outside hero: ${JSON.stringify(layout.languageSwitcher)}`
           );
         }
-        assert.ok(layout.launcher, `${context} chat launcher missing`);
-        assert.notEqual(layout.launcher.text, "AI", `${context} ambiguous launcher label`);
-        if (layout.launcher.placement === "rail") {
-          assert.equal(layout.launcher.position, "fixed", `${context} rail launcher position`);
-          assert.ok(
-            layout.launcher.left >= layout.page.right - 0.5,
-            `${context} rail launcher overlaps page: ${JSON.stringify(layout.launcher)}`
-          );
-        } else {
-          assert.equal(layout.launcher.placement, "inline", `${context} launcher placement`);
-          assert.equal(layout.launcher.position, "static", `${context} inline launcher position`);
-          assert.match(layout.launcher.parentClass, /(^|\s)actions(\s|$)/, `${context} inline launcher parent`);
-          assert.equal(layout.launcher.parentPosition, "static", `${context} contact assistant stays in the page flow`);
-          assert.ok(layout.launcher.left >= layout.page.left - 0.5 && layout.launcher.right <= layout.page.right + 0.5, `${context} inline assistant overflow`);
-        }
+        assert.equal(layout.launcher, null);
         assert.ok(layout.location, `${context} location row missing`);
         assert.ok(
           layout.location.scrollWidth <= layout.location.clientWidth,
           `${context} location overflow: ${JSON.stringify(layout.location)}`
         );
-        assert.ok(layout.primaryTargets.length >= 7, `${context} primary targets missing`);
+        assert.ok(layout.primaryTargets.length >= 6, `${context} primary targets missing`);
         for (const target of layout.primaryTargets) {
           assert.ok(target.height >= 48, `${context} target below 48px: ${JSON.stringify(target)}`);
         }

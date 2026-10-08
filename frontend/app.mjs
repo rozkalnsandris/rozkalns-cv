@@ -24,37 +24,6 @@ export function updateMainDocumentTitle({ messages }, { documentLike = globalThi
   return true;
 }
 
-export function updateChatLauncherLabel({ messages }, {
-  documentLike = globalThis.document,
-  viewportWidth = globalThis.innerWidth
-} = {}) {
-  const launcher = documentLike?.querySelector?.("#chatLauncher");
-  const width = Number(viewportWidth);
-  if (!launcher || !Number.isFinite(width)) return false;
-  const key = launcher.dataset?.nudge ? "chat_nudge" : width >= 720 && width < 1560 ? "chat_title" : "chat_open";
-  const label = messages?.[key];
-  if (typeof label !== "string" || !label.trim()) return false;
-  launcher.textContent = label;
-  return true;
-}
-
-export function updateChatLauncherPlacement({ documentLike = globalThis.document } = {}) {
-  const launcher = documentLike?.querySelector?.("#chatLauncher");
-  const backdrop = documentLike?.querySelector?.("#chatBackdrop");
-  if (!launcher || !backdrop || !documentLike?.body) return false;
-
-  const dock = documentLike.querySelector?.("#chatLauncherDock");
-  if (!dock) return false;
-  launcher.dataset.placement = "inline";
-  dock.append(launcher);
-  return true;
-}
-
-function syncChatLauncher(messages) {
-  updateChatLauncherLabel({ messages });
-  updateChatLauncherPlacement();
-}
-
 export function installPreloadErrorRecovery(windowLike = globalThis.window) {
   if (
     typeof windowLike?.addEventListener !== "function" ||
@@ -76,7 +45,7 @@ export function installPreloadErrorRecovery(windowLike = globalThis.window) {
   return recover;
 }
 
-function createNavigationObserver(languageController) {
+function createNavigationObserver() {
   if (!("IntersectionObserver" in window)) return;
   const links = [...document.querySelectorAll(".site-nav a")];
   const observer = new IntersectionObserver((entries) => {
@@ -91,40 +60,6 @@ function createNavigationObserver(languageController) {
     }
   }, { rootMargin: "-30% 0px -60% 0px" });
   document.querySelectorAll("main section[id]").forEach((section) => observer.observe(section));
-
-  const launcher = document.querySelector("#chatLauncher");
-  const footer = document.querySelector(".footer-card");
-  if (launcher && footer) new IntersectionObserver(([entry]) => {
-    launcher.dataset.nudge = entry.isIntersecting ? "1" : "";
-    updateChatLauncherLabel({ messages: languageController.messages });
-  }).observe(footer);
-}
-
-function installLazyChat(languageController) {
-  const launcher = document.querySelector("#chatLauncher");
-  if (!launcher) return;
-  launcher.hidden = false;
-  let loading = null;
-
-  async function activate() {
-    if (loading) return loading;
-    loading = import("./features/chat.mjs")
-      .then(({ createChatController, createDialogController }) => {
-        const dialog = createDialogController();
-        const chat = createChatController(languageController);
-        if (!dialog || !chat) throw new Error("chat controls unavailable");
-        launcher.removeEventListener("click", activate);
-        dialog.open();
-        return { dialog, chat };
-      })
-      .catch(() => {
-        loading = null;
-        return null;
-      });
-    return loading;
-  }
-
-  launcher.addEventListener("click", activate);
 }
 
 function installLazyContact(languageController) {
@@ -195,7 +130,6 @@ async function init() {
     pdfs: PDFS,
     onApplied(state) {
       updateMainDocumentTitle(state);
-      syncChatLauncher(state.messages);
     },
     initialLanguage: document.documentElement.lang
   });
@@ -207,9 +141,7 @@ async function init() {
   const activateContact = installLazyContact(languageController);
   if (requestedWhatsAppContact()) await activateContact?.();
 
-  installLazyChat(languageController);
-  window.addEventListener("resize", () => syncChatLauncher(languageController.messages), { passive: true });
-  createNavigationObserver(languageController);
+  createNavigationObserver();
 }
 
 if (typeof document !== "undefined") {

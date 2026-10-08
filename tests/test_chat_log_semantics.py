@@ -10,7 +10,7 @@ class ChatLogSemanticsTest(unittest.TestCase):
     def test_source_and_generated_transcript_keep_log_semantics_without_listitems(self):
         for relative in ("frontend/index.html", "html/index.html"):
             html = (ROOT / relative).read_text(encoding="utf-8")
-            self.assertEqual(html.count(LOG_MARKUP), 1, relative)
+            self.assertEqual(html.count(LOG_MARKUP), 0, relative)
             self.assertNotIn('class="message bot" role="listitem"', html, relative)
             self.assertNotIn('class="message user" role="listitem"', html, relative)
 

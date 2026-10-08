@@ -13,7 +13,6 @@ EXPECTED_IMPORTS = [
     "./v2/layout.css",
     "./v2/components.css",
     "./v2/features/stats.css",
-    "./v2/features/chat.css",
     "./v2/features/contact.css",
     "./v2/features/smarthome.css",
     "./v2/responsive.css",
