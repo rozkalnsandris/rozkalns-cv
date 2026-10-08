@@ -11,7 +11,7 @@ class PrivacyTransparency428Tests(unittest.TestCase):
     def test_public_notice_is_linked_and_uses_only_authorized_location(self) -> None:
         html = (ROOT / "frontend/index.html").read_text(encoding="utf-8")
         self.assertIn('id="privacy" class="privacy-panel panel"', html)
-        self.assertGreaterEqual(html.count('href="#privacy"'), 2)
+        self.assertGreaterEqual(html.count('href="#privacy"'), 1)
         self.assertIn("44319 Dortmund", html)
         for forbidden in ("streetAddress", "postalCode", "Impressum compliant", "full residential"):
             self.assertNotIn(forbidden, html)

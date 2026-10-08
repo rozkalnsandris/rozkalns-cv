@@ -31,6 +31,7 @@ ARCHITECTURE_OPERATIONS = {
     "SIMPLE_DEPLOY_V1.md",
     "live-stats-scheduler.md",
     "ui-v2/IMPLEMENTATION_PLAN.md",
+    "ui-v2/SIMPLE_FIRST_ASSISTANT_DEFERRED.md",
 }
 SECURITY_PRIVACY = {
     "CV_ASSISTANT_PRIVACY.md",
