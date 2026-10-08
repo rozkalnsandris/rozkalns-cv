@@ -4,7 +4,9 @@ Issue: #513. This is source work, not a production receipt.
 
 Preserve UI v2, EN/DE/LV, CV PDFs, Linux Lab, accessibility and protected contact.
 The public CV Assistant launcher/dialog and lazy import are removed from
-frontend source and built language routes. SIMPLE-DEPLOY Nginx rejects exactly
+frontend source and built language routes.
+The public privacy page shows a localized EN/DE/LV pause notice using UI-only
+copy, without regenerating canonical CV/PDF profile translations. SIMPLE-DEPLOY Nginx rejects exactly
 the three assistant routes with HTTP 404: chat, chat-config and chat-admission.
 Contact and health APIs remain proxied and covered by tests.
 

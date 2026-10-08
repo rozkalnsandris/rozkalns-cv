@@ -11,6 +11,17 @@ class SimpleFirstAssistantDeferredTests(unittest.TestCase):
         self.assertIn("location /api/ {",config)
         self.assertIn("proxy_pass http://127.0.0.1:5000/;",config)
 
+    def test_localized_assistant_deferral_notice(self):
+        import json
+        messages=json.loads((ROOT/"content/ui-v2.json").read_text(encoding="utf-8"))
+        for language in ("en","de","lv"):
+            message=messages["i18n"][language]["v2_assistant_deferred"]
+            assert message
+            html=(ROOT/f"html/{language}/index.html").read_text(encoding="utf-8")
+            self.assertIn(f'data-ui-i18n="v2_assistant_deferred">{message}</p>',html)
+            self.assertNotIn('id="chatLauncher"',html)
+            self.assertIn('id="contactReveal"',html)
+
     def test_chat_not_in_home_source(self):
         html=(ROOT/"frontend/index.html").read_text()
         app=(ROOT/"frontend/app.mjs").read_text()
