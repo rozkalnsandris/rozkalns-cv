@@ -70,7 +70,7 @@ def normalize_token(value: object) -> str:
 
 def verify_turnstile(
     token: str,
-    remote_ip: str,
+    remote_ip: str | None,
     config: ContactConfig,
     *,
     post: Callable[..., requests.Response] = requests.post,

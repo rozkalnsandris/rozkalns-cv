@@ -71,6 +71,19 @@ class ContactVerificationTests(unittest.TestCase):
         self.assertEqual(calls[0][1]["data"]["response"], "token")
         self.assertEqual(calls[0][1]["data"]["remoteip"], "203.0.113.9")
 
+    def test_missing_ip_does_not_send_gateway_or_forwarded_identity(self) -> None:
+        sent = []
+        def post(url, **kwargs):
+            sent.append(kwargs["data"])
+            return FakeSiteverifyResponse({
+                "success": True, "action": contact.TURNSTILE_ACTION,
+                "hostname": "rozkalns.net",
+            })
+        self.assertTrue(contact.verify_turnstile(
+            "valid-token", None, self.config(), post=post
+        ))
+        self.assertNotIn("remoteip", sent[0])
+
     def test_wrong_action_or_hostname_fails_closed(self) -> None:
         for payload in (
             {"success": True, "action": "login", "hostname": "rozkalns.net"},

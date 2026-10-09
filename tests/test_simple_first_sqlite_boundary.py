@@ -105,7 +105,11 @@ class SimpleFirstSQLiteBoundaryTests(unittest.TestCase):
             self.assertEqual(first.get_json()["phone_uri"], CONTACT.phone_uri)
             self.assertEqual(second.status_code, 200)
             self.assertEqual(verify.call_count, 2)
-            # HTTP request throttling is enforced by the Nginx ingress,
+            self.assertEqual(
+                [call.args[1] for call in verify.call_args_list],
+                [None, None],
+            )
+            # HTTP request throttling is enforced by Nginx and at the edge,
             # not by per-process Flask/SQLite state.
             self.assertFalse(path.parent.exists())
 
@@ -122,6 +126,25 @@ class SimpleFirstSQLiteBoundaryTests(unittest.TestCase):
                 denied = client.post("/contact-reveal", json={"token": "valid-token"})
             self.assertEqual(denied.status_code, 403)
             self.assertNotIn(CONTACT.phone_uri, denied.get_data(as_text=True))
+            self.assertFalse(path.exists())
+
+    def test_forged_client_headers_cannot_supply_public_siteverify_ip(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "assistant.sqlite3"
+            app = make_public(path)
+            self.addCleanup(app_module.close_app_services, app)
+            with patch.object(app_module, "verify_turnstile", return_value=True) as verify:
+                response = app.test_client().post(
+                    "/contact-reveal", json={"token": "valid-token"},
+                    headers={
+                        "CF-Connecting-IP": "198.51.100.77",
+                        "X-Real-IP": "198.51.100.88",
+                        "X-Forwarded-For": "198.51.100.99",
+                    },
+                    environ_base={"REMOTE_ADDR": "172.23.0.1"},
+                )
+            self.assertEqual(response.status_code, 200)
+            verify.assert_called_once_with("valid-token", None, CONTACT)
             self.assertFalse(path.exists())
 
     def test_siteverify_failure_fails_closed_without_sqlite(self):
