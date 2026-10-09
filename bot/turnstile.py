@@ -29,7 +29,7 @@ def normalize_siteverify_token(value: object) -> str | None:
 
 def verify_siteverify(
     token: object,
-    remote_ip: str,
+    remote_ip: str | None,
     secret_key: str,
     *,
     post: Callable[..., requests.Response] = requests.post,
@@ -57,10 +57,11 @@ def verify_siteverify(
         "response": normalized_token,
         "idempotency_key": idempotency_key,
     }
-    try:
-        data["remoteip"] = ipaddress.ip_address(remote_ip).compressed
-    except ValueError:
-        pass
+    if remote_ip is not None:
+        try:
+            data["remoteip"] = ipaddress.ip_address(remote_ip).compressed
+        except ValueError:
+            pass
 
     # Two attempts share one logical eight-second budget. Requests applies the
     # tuple independently to connect and read phases, so each retry gets a

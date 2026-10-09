@@ -15,12 +15,12 @@ class SimpleFirstNginxContactQuotaTests(unittest.TestCase):
     def setUpClass(cls):
         cls.conf = CONF.read_text(encoding="utf-8")
 
-    def test_shared_memory_quotas_and_global_backstop(self):
-        for rule in (
-            "limit_req_zone $binary_remote_addr zone=cv_contact_per_ip:5m rate=6r/m;",
+    def test_origin_global_backstop_uses_no_spoofable_client_header(self):
+        self.assertIn(
             "limit_req_zone $server_name zone=cv_contact_global:1m rate=60r/m;",
-        ):
-            self.assertIn(rule, self.conf)
+            self.conf,
+        )
+        self.assertNotIn("cv_contact_per_ip", self.conf)
         self.assertNotIn("limit_req_dry_run on;", self.conf)
 
     def test_exact_contact_location_is_ratelimited_before_siteverify(self):
@@ -30,7 +30,6 @@ class SimpleFirstNginxContactQuotaTests(unittest.TestCase):
         self.assertIsNotNone(match)
         route = match.group(1)
         for rule in (
-            "limit_req zone=cv_contact_per_ip burst=3 nodelay;",
             "limit_req zone=cv_contact_global burst=15 nodelay;",
             "limit_req_status 429;",
             "proxy_pass http://127.0.0.1:5000/contact-reveal;",
@@ -42,13 +41,22 @@ class SimpleFirstNginxContactQuotaTests(unittest.TestCase):
         for endpoint in ("/api/chat", "/api/chat-config", "/api/chat-admission"):
             self.assertIn("location = " + endpoint + " { return 404; }", self.conf)
 
-    def test_proxy_trust_does_not_include_entire_docker_subnet(self):
-        self.assertIn("set_real_ip_from 172.19.0.1/32;", self.conf)
-        self.assertNotIn("set_real_ip_from 172.19.0.0/16;", self.conf)
-        self.assertIn("real_ip_header CF-Connecting-IP;", self.conf)
-        self.assertIn("real_ip_recursive off;", self.conf)
-        self.assertNotIn("real_ip_header X-Forwarded-For;", self.conf)
-        self.assertIn("proxy_set_header X-Real-IP $remote_addr;", self.conf)
+    def test_docker_gateway_does_not_grant_forwarded_header_trust(self):
+        for forbidden in (
+            "set_real_ip_from", "real_ip_header", "real_ip_recursive",
+            "172.19.0.1/32", "172.23.0.1/32",
+            "$proxy_add_x_forwarded_for", "cv_contact_per_ip",
+        ):
+            self.assertNotIn(forbidden, self.conf)
+        self.assertEqual(
+            self.conf.count('proxy_set_header CF-Connecting-IP "";'), 2
+        )
+        self.assertEqual(
+            self.conf.count("proxy_set_header X-Forwarded-For $remote_addr;"), 2
+        )
+        self.assertEqual(
+            self.conf.count("proxy_set_header X-Real-IP $remote_addr;"), 2
+        )
 
     def test_no_public_sqlite_or_open_backend_port(self):
         source = APP.read_text(encoding="utf-8")

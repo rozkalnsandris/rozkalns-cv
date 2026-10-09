@@ -394,15 +394,20 @@ def create_app(
             token = normalize_token(payload.get("token"))
         except ContactVerificationError:
             return jsonify(error="Turnstile token is invalid."), 400
-        address, client_key = client_identity()
+        # Public ingress does not assert that an HTTP header contains the
+        # visitor's IP: the bridge peer is not that visitor. Siteverify's
+        # remoteip is optional, and Cloudflare edge owns per-visitor quotas.
+        remote_ip: str | None = None
         if not public_only:
+            address, client_key = client_identity()
             limited = verification_gate(client_key, response_key="error")
             if limited is not None:
                 return limited
+            remote_ip = address
         try:
             verified = verify_turnstile(
                 token,
-                address,
+                remote_ip,
                 contacts,
             )
         except ContactVerificationError as error:
