@@ -74,6 +74,7 @@ class AssistantStore:
         chat_retention_days: int,
         clock: Callable[[], float] = time.time,
         maintenance_max_sleep_seconds: float = 60.0,
+        verification_only: bool = False,
     ) -> None:
         if per_client_hour <= 0 or daily_global_cap <= 0:
             raise ValueError("rate limits must be positive")
@@ -82,6 +83,7 @@ class AssistantStore:
         if maintenance_max_sleep_seconds <= 0:
             raise ValueError("maintenance sleep must be positive")
         self.path = Path(path)
+        self._verification_only = verification_only
         self.per_client_hour = per_client_hour
         self.daily_global_cap = daily_global_cap
         self.chat_retention_days = chat_retention_days
@@ -92,12 +94,13 @@ class AssistantStore:
         self._maintenance_stop = threading.Event()
         self._maintenance_wake = threading.Event()
         self._maintenance_thread: threading.Thread | None = None
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        self._initialize()
-        # Startup maintenance makes a restart enforce the current retention
-        # policy before any new chat succeeds. A zero-day policy removes raw
-        # chat content immediately while leaving durable quota tables intact.
-        self.purge_expired_chats()
+        if not verification_only:
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            self._initialize()
+            # Full Assistant mode retains the existing chat-retention contract.
+            self.purge_expired_chats()
+        # Contact-only SIMPLE-FIRST mode does not open/create SQLite at
+        # startup, run Assistant migrations or purge chat content.
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(
@@ -278,9 +281,26 @@ class AssistantStore:
             raise ValueError("verification rate limits must be positive")
         now = float(self.clock())
         cutoff = now - 3600
+        if self._verification_only:
+            # This is reached only for an actual verification request.
+            self.path.parent.mkdir(parents=True, exist_ok=True)
         connection = self._connect()
         try:
             connection.execute("BEGIN IMMEDIATE")
+            if self._verification_only:
+                # Create only contact-attempt quota state, never chat tables.
+                connection.execute(
+                    "CREATE TABLE IF NOT EXISTS verification_events ("
+                    "client_key TEXT NOT NULL, occurred_at REAL NOT NULL)"
+                )
+                connection.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_verification_events_time "
+                    "ON verification_events(occurred_at)"
+                )
+                connection.execute(
+                    "CREATE INDEX IF NOT EXISTS idx_verification_events_client_time "
+                    "ON verification_events(client_key, occurred_at)"
+                )
             connection.execute(
                 "DELETE FROM verification_events WHERE occurred_at <= ?",
                 (cutoff,),

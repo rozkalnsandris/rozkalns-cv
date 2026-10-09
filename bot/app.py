@@ -243,8 +243,9 @@ def create_app(
     evidence_registry: EvidenceRegistry | None = None,
     verification_rate: VerificationRateConfig | None = None,
     start_maintenance: bool = True,
+    public_only: bool = False,
 ) -> Flask:
-    """Create one isolated cvbot application instance and its service graph."""
+    """Create full Assistant or contact-only SIMPLE-FIRST service."""
 
     active = Settings.from_env() if settings is None else settings
     active_verification_rate = (
@@ -262,8 +263,9 @@ def create_app(
         per_client_hour=active.rate_per_ip_hour,
         daily_global_cap=active.daily_global_cap,
         chat_retention_days=active.chat_retention_days,
+        verification_only=public_only,
     )
-    if start_maintenance:
+    if start_maintenance and not public_only:
         active_store.start_retention_maintenance()
     active_provider = provider or OpenAIResponsesProvider(
         base_url=active.llm_base_url,
@@ -348,6 +350,11 @@ def create_app(
 
     @flask_app.get("/health/ready")
     def readiness() -> Response:
+        if public_only:
+            # Passive readiness is service health, not Assistant DB/LLM health.
+            response = jsonify(ready=True)
+            response.headers["Cache-Control"] = "no-store"
+            return response
         result = check_local_readiness(
             active.db_path,
             llm_api_key=active.llm_api_key,
@@ -403,6 +410,10 @@ def create_app(
         )
         response.headers["Cache-Control"] = "no-store"
         return response
+
+    if public_only:
+        # Assistant/admission routes are never registered on SIMPLE-FIRST.
+        return flask_app
 
     @flask_app.get("/chat-config")
     def chat_config() -> Response:

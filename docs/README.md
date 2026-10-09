@@ -26,6 +26,7 @@ current **source documentation**, not a production receipt.
   deploy contract; production execution remains separately gated.
 - [`SIMPLE_DEPLOY_V1.md`](SIMPLE_DEPLOY_V1.md) — source-only SIMPLE-DEPLOY v1 candidate
   contract; production activation remains separately gated.
+- [`SIMPLE_FIRST_SQLITE_STARTUP_BOUNDARY.md`](SIMPLE_FIRST_SQLITE_STARTUP_BOUNDARY.md) — public CV contact-only startup and SQLite write-boundary contract; live activation remains separately gated.
 - [`FRONTEND.md`](FRONTEND.md) — frontend source/build organization.
 - [`ui-v2/IMPLEMENTATION_PLAN.md`](ui-v2/IMPLEMENTATION_PLAN.md) — active UI-v2 implementation workspace plan; source-level guidance only and not merge/deploy authority.
 - [`ui-v2/SIMPLE_FIRST_ASSISTANT_DEFERRED.md`](ui-v2/SIMPLE_FIRST_ASSISTANT_DEFERRED.md) — reviewed source boundary for temporarily deferred CV Assistant; not production evidence.

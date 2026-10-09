@@ -66,7 +66,7 @@ def main() -> int:
                 "127.0.0.1:5000",
                 "--timeout",
                 "90",
-                "chat_entry:create_app()",
+                "chat_entry:create_public_app()",
             ],
             cwd="/app",
         ),
