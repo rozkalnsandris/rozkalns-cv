@@ -28,7 +28,10 @@ RUN addgroup -S -g "${APP_GID}" cvbot \
     && adduser -S -D -H -u "${APP_UID}" -G cvbot cvbot
 
 COPY requirements.txt ./requirements.txt
-RUN python -m pip install --require-hashes --no-deps -r requirements.txt
+# The hash-locked installer is build-only. Do not retain pip's vendored
+# dependencies (including its embedded CycloneDX SBOM) in the runtime image.
+RUN python -m pip install --require-hashes --no-deps -r requirements.txt \
+    && python -m pip uninstall --yes pip
 
 COPY --chown=${APP_UID}:${APP_GID} \
     app.py chat_admission.py chat_entry.py chat_policy.py config.py contact.py evidence.py evidence_registry.json \

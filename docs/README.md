@@ -27,6 +27,8 @@ current **source documentation**, not a production receipt.
 - [`SIMPLE_DEPLOY_V1.md`](SIMPLE_DEPLOY_V1.md) — source-only SIMPLE-DEPLOY v1 candidate
   contract; production activation remains separately gated.
 - [`FRONTEND.md`](FRONTEND.md) — frontend source/build organization.
+- [`ui-v2/IMPLEMENTATION_PLAN.md`](ui-v2/IMPLEMENTATION_PLAN.md) — active UI-v2 implementation workspace plan; source-level guidance only and not merge/deploy authority.
+- [`ui-v2/SIMPLE_FIRST_ASSISTANT_DEFERRED.md`](ui-v2/SIMPLE_FIRST_ASSISTANT_DEFERRED.md) — reviewed source boundary for temporarily deferred CV Assistant; not production evidence.
 - [`CONTENT_AUTHORING.md`](CONTENT_AUTHORING.md) — canonical content and localization
   authoring rules.
 - [`ACCESSIBILITY_TESTING.md`](ACCESSIBILITY_TESTING.md) — accessibility validation
@@ -50,6 +52,7 @@ These documents are useful proof of engineering work but are not current runtime
 
 - [`TROUBLESHOOTING_CASE_STUDY.md`](TROUBLESHOOTING_CASE_STUDY.md) — public,
   evidence-backed troubleshooting/release case study.
+- [`ui-v2/PORTFOLIO_CASE_STUDY_REFERENCE.md`](ui-v2/PORTFOLIO_CASE_STUDY_REFERENCE.md) — recruiter-first portfolio/case-study visual direction and factual/privacy implementation boundary; design reference only, not a source of CV facts or runtime truth.
 
 ## Historical audits / evidence
 

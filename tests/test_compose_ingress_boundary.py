@@ -49,5 +49,16 @@ class ComposeIngressBoundaryTests(unittest.TestCase):
         self.assertIsNone(forbidden.search(text))
 
 
+    def test_cvbot_model_is_source_pinned_over_private_env(self) -> None:
+        block = _cvbot_service_block()
+
+        env_file = block.index("    env_file:\n")
+        environment = block.index("    environment:\n")
+        model = block.index("      LLM_MODEL: gpt-5.6-luna\n")
+        volumes = block.index("    volumes:\n")
+        self.assertLess(env_file, environment)
+        self.assertLess(environment, model)
+        self.assertLess(model, volumes)
+
 if __name__ == "__main__":
     unittest.main()

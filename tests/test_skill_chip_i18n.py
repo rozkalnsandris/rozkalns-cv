@@ -25,7 +25,7 @@ def skill_identity(value: str) -> str:
 
 def skill_rows() -> dict[str, list[str]]:
     html = INDEX.read_text(encoding="utf-8")
-    pattern = re.compile(r'<div class="skill-row"><dt data-i18n="(?P<label>skill_group_[^"]+)">.*?</dt><dd><div class="skill-chips">(?P<chips>.*?)</div></dd></div>')
+    pattern = re.compile(r'<div class="skill-row">(?:<svg[^>]*>.*?</svg>)?<dt data-i18n="(?P<label>skill_group_[^"]+)">.*?</dt><dd><div class="skill-chips">(?P<chips>.*?)</div></dd></div>')
     chip_pattern = re.compile(r'<span class="skill-chip">([^<]+)</span>')
     return {m.group("label"): chip_pattern.findall(m.group("chips")) for m in pattern.finditer(html)}
 

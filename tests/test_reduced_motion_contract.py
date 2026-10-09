@@ -8,9 +8,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class ReducedMotionContractTests(unittest.TestCase):
     def test_source_policy_covers_all_frontend_entries(self) -> None:
-        css = (ROOT / "frontend/styles/base.css").read_text(encoding="utf-8")
+        css = (ROOT / "frontend/styles/v2/base.css").read_text(encoding="utf-8")
         media_start = css.index("@media (prefers-reduced-motion: reduce)")
-        media_end = css.index("\n}\nbody {", media_start) + 2
+        media_end = css.index("\n}", media_start) + 2
         policy = css[media_start:media_end]
 
         for required in (
@@ -21,7 +21,7 @@ class ReducedMotionContractTests(unittest.TestCase):
         ):
             self.assertIn(required, policy)
 
-        for page in ("index.html", "proof.html", "smarthome.html"):
+        for page in ("index.html", "proof.html", "lab.html", "smarthome.html"):
             html = (ROOT / "frontend" / page).read_text(encoding="utf-8")
             self.assertIn('rel="stylesheet" href="./styles/index.css"', html)
 

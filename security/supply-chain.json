@@ -2,8 +2,8 @@
   "images": {
     "aquasec/trivy:0.72.0": "sha256:cffe3f5161a47a6823fbd23d985795b3ed72a4c806da4c4df16266c02accdd6f",
     "ghcr.io/gitleaks/gitleaks:v8.30.0": "sha256:691af3c7c5a48b16f187ce3446d5f194838f91238f27270ed36eef6359a574d9",
-    "nginx:1.31.5-alpine": "sha256:72ba65eb42c10344912a84ff42408db7d34f2feb642204570ab8fc5ffd29f1d3",
-    "python:3.12.13-alpine3.24": "sha256:6d43704baacd1bfbe7c295d7f13079d5d8104ed33568873133f8fc69980419df"
+    "nginx:1.31.6-alpine": "sha256:df221db836e1754089190208cee7eeda94f233197056426eda74a43ab1abeac2",
+    "python:3.13.15-alpine3.24": "sha256:79e7a9b9ff1cbceff819f856fb374477792a5967759d94df266de7b7b4120e6f"
   },
   "python_packages": {
     "blinker": {

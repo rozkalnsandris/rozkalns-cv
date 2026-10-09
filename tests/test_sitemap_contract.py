@@ -30,11 +30,12 @@ class SitemapContractTests(unittest.TestCase):
         expected_rows = [
             *(f"https://rozkalns.net/{language}/" for language in LANGUAGES),
             *(f"https://rozkalns.net/{language}/proof/" for language in LANGUAGES),
+            *(f"https://rozkalns.net/{language}/lab/" for language in LANGUAGES),
         ]
         self.assertEqual([url.find("sm:loc", NS).text for url in urls], expected_rows)
         for url in urls:
             location = url.find("sm:loc", NS).text
-            expected = alternates("proof/" if "/proof/" in location else "")
+            expected = alternates("proof/" if "/proof/" in location else "lab/" if "/lab/" in location else "")
             actual = {
                 link.attrib["hreflang"]: link.attrib["href"]
                 for link in url.findall("xhtml:link", NS)

@@ -75,7 +75,7 @@ class ContactMarkupTests(unittest.TestCase):
         self.assertNotIn("unsafe-eval", nginx)
 
     def test_skill_diamond_marker_is_disabled_by_icon_layer(self) -> None:
-        css = (ROOT / "frontend" / "styles" / "components.css").read_text(
+        css = (ROOT / "frontend" / "styles" / "v2" / "components.css").read_text(
             encoding="utf-8"
         )
         self.assertNotIn(".skill-chip::before", css)
