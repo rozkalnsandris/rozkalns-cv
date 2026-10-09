@@ -258,14 +258,19 @@ def create_app(
     active_evidence = (
         EvidenceRegistry.load() if evidence_registry is None else evidence_registry
     )
-    active_store = store or AssistantStore(
-        active.db_path,
-        per_client_hour=active.rate_per_ip_hour,
-        daily_global_cap=active.daily_global_cap,
-        chat_retention_days=active.chat_retention_days,
-        verification_only=public_only,
+    # Public contact requests use only the Nginx limiter and Turnstile.
+    # Never instantiate AssistantStore or open SQLite on the public path.
+    active_store = (
+        None
+        if public_only
+        else store or AssistantStore(
+            active.db_path,
+            per_client_hour=active.rate_per_ip_hour,
+            daily_global_cap=active.daily_global_cap,
+            chat_retention_days=active.chat_retention_days,
+        )
     )
-    if start_maintenance and not public_only:
+    if start_maintenance and active_store is not None:
         active_store.start_retention_maintenance()
     active_provider = provider or OpenAIResponsesProvider(
         base_url=active.llm_base_url,
@@ -309,6 +314,9 @@ def create_app(
 
     def client_identity() -> tuple[str, str]:
         address = _resolve_client_address(active.trusted_proxy_cidrs)
+        if public_only:
+            return address, ""  # Nginx owns public contact attempt quotas.
+        assert active_store is not None
         return address, active_store.pseudonymize(address, active.client_key_secret)
 
     def verification_gate(
@@ -387,9 +395,10 @@ def create_app(
         except ContactVerificationError:
             return jsonify(error="Turnstile token is invalid."), 400
         address, client_key = client_identity()
-        limited = verification_gate(client_key, response_key="error")
-        if limited is not None:
-            return limited
+        if not public_only:
+            limited = verification_gate(client_key, response_key="error")
+            if limited is not None:
+                return limited
         try:
             verified = verify_turnstile(
                 token,
