@@ -72,7 +72,8 @@ class ProjectProofLinksTests(unittest.TestCase):
                     filename = Path(item["path"]).name
                     self.assertIn(f'data-proof-evidence-id="{evidence_id}"', page)
                     self.assertIn(f'href="{item["url"]}"', page)
-                    self.assertIn(f'>{filename} ↗</a>', page)
+                    self.assertIn(f'>{filename}</a>', page)
+                    self.assertNotIn(f'>{filename} ↗</a>', page)
 
     def test_project_cards_declare_the_same_canonical_ids_as_their_proof_slots(self) -> None:
         for project_text, _evidence_text in self.slots:

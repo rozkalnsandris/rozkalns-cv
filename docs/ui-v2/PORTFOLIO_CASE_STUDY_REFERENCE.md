@@ -38,7 +38,7 @@ A later implementation must:
 
 ## Generated visual references
 
-The original generated PNGs were produced in the design session and remain local conversation artifacts. The active GitHub connector does not provide a safe direct binary upload path from that local runtime, so this document records deterministic provenance and the implementation contract instead of pretending the PNG bytes are present in the repository.
+The original PNGs are preserved in `references/desktop-home.png`, `references/desktop-lab.png` and `references/mobile-home.png`. The owner-supplied files were copied byte-for-byte on 7 October 2026 and verified against the SHA-256 values below. They are design references, not public factual evidence.
 
 ### A — desktop homepage concept
 

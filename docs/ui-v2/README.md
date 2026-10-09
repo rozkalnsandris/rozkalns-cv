@@ -175,13 +175,13 @@ Important repository constraint: `frontend/` is authoritative source, while gene
 
 The final redesign should remain modular around the current split:
 
-- `frontend/styles/tokens.css`
-- `frontend/styles/base.css`
-- `frontend/styles/layout.css`
-- `frontend/styles/components.css`
-- `frontend/styles/features/*`
-- `frontend/styles/responsive.css`
-- `frontend/styles/print.css`
+- `frontend/styles/v2/tokens.css`
+- `frontend/styles/v2/base.css`
+- `frontend/styles/v2/layout.css`
+- `frontend/styles/v2/components.css`
+- `frontend/styles/v2/features/*`
+- `frontend/styles/v2/responsive.css`
+- `frontend/styles/v2/print.css`
 
 Target direction:
 

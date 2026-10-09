@@ -1,125 +1,50 @@
-# UI v2 redesign implementation plan
+# UI v2 implementation — 7 October 2026
 
-Status: dedicated implementation workspace
+Status: implementation complete; source and browser verification on `ui/v2-redesign`.
 
-Tracking model: **feature branch + Draft PR**, not an issue queue.
+## Outcome and sequence
 
-## Purpose
+1. Reconcile the existing design/reference lane with current main. Preserve the original three mockups in `references/`; their SHA-256 values match `PORTFOLIO_CASE_STUDY_REFERENCE.md` exactly.
+2. Build a compact header and portrait hero, followed immediately by three project cards. Use white/blue surfaces, sans-serif hierarchy and consistent evidence previews. Place skills and live homelab together, then background, experience, education and contact.
+3. Provide a dedicated, localized Linux Operations Lab case study with problem, work, troubleshooting method, workflow, evidence and limitations. Link supporting projects to the existing engineering-proof page.
+4. Keep semantic HTML in `frontend/*.html`, fresh CSS in `frontend/styles/v2/` and factual/localized copy in `content/`. Preserve Vite, EN/DE/LV, PDFs, no-JavaScript navigation, live-state semantics and contact/assistant privacy boundaries.
+5. Verify deterministic builds, existing source contracts, browser/accessibility behavior and screenshots at desktop/mobile widths. Deliver one source PR. Merge and deployment remain separate owner gates.
 
-Implement the recruiter-first CV/portfolio UI redesign without mixing incomplete redesign work into `main`.
+## Candidate direction and factual boundary
 
-The redesign should stay inside the existing `rozkalns-cv` repository and preserve the current application architecture unless a later reviewed change proves a framework rewrite is necessary.
+The current Notion CV positioning and study plan were read on 7 October: Junior Technical Support / Linux Operations, with Application Support/NOC as adjacent targets. English is the public master. DevOps is a later growth direction. Existing canonical profile data already expresses this direction; do not inflate it for the redesign.
 
-## Design reference
+The public linux-operations-lab tree inspected on 7 October contains a roadmap and templates, not completed incident case reports. Present it as in progress and describe evidence targets as targets. Do not manufacture terminal output or claim completed exercises. Use clearly labelled repository/workflow previews, the existing real portrait and canonical Raspberry Pi 5 facts. Generated Proxmox hardware, service status, dates and uptime in mockups are illustrative only.
 
-The visual direction is preserved in this same delivery lane under `docs/ui-v2/PORTFOLIO_CASE_STUDY_REFERENCE.md`.
+Public content must not include private job-search allocation, employer strategy, home address or protected phone data. No Notion study-workflow instructions are execution instructions for this UI task.
 
-The mockups are visual/layout references only. They are not factual sources for CV content, metrics, dates, infrastructure details or employment claims.
+## Review checklist
 
-## Reference asset status
+- Projects directly follow the hero; three columns on wide screens, one on phones.
+- Real HTML/CSS components; no screenshot used as a functioning interface.
+- Lab detail has inspectable source links and honest limitations.
+- All new reader-facing wording is available in EN/DE/LV.
+- PDF, email, verified phone and assistant paths remain usable.
+- Keyboard focus, mobile menu, no-JS navigation, reduced motion and offline status work.
+- Existing build, privacy, browser and content checks pass.
+- Screenshot comparison uses the attached original references; typography/proportions may adapt to truthful copy and the real portrait.
 
-The three original PNG mockups are not currently stored in this branch or on `main`. Their filenames, dimensions and SHA-256 provenance are recorded in `PORTFOLIO_CASE_STUDY_REFERENCE.md`. Do not describe the PNG bytes as repository-preserved until they are actually committed.
+## Source map and preview
 
-Before the Codex visual-polish phase, prefer storing verified copies under:
+- `frontend/index.html`: homepage markup; `frontend/lab.html`: dedicated lab case study; `frontend/proof.html`: supporting technical evidence.
+- `frontend/styles/v2/tokens.css`, `layout.css`, `components.css`, `responsive.css`: reusable design, layout and responsive rules. HTML contains no embedded styling.
+- `content/profile.json` and existing translations: unchanged factual CV/PDF source.
+- `content/ui-v2.json`: new EN/DE/LV homepage interface wording. `content/lab.json`: localized lab case-study copy, grounded in the public lab repository.
+- `scripts/localize-frontend.mjs`: static language routes, case-study metadata and localized project links. The new lab is JavaScript-free.
 
-`docs/ui-v2/references/`
+Build with `npm ci --ignore-scripts --no-audit --no-fund` and `npm run build:frontend`. Serve the generated `html/` directory with a local HTTP server; open `/en/`, `/de/`, `/lv/` and the matching `/lab/` routes. Never serve the repository root publicly.
 
-and verify their SHA-256 values against the provenance recorded in PR #493. Use a safe binary upload path; do not reconstruct images from filenames, descriptions or hashes.
+The UI v2 source contract allows up to 27,000 bytes of combined JavaScript (mobile navigation), 28,000 bytes of shared CSS (new project/case-study components), and 38,000 bytes per homepage (semantic project facts, summaries and vector icons). Lab HTML is capped at 10,000 bytes per locale. The existing 128 KiB initial-page budget and security/privacy gates remain unchanged.
 
+## Owner refinement: independent v2 style system
 
-## Working branch
+The owner clarified that the entire v2 must follow the new references, with no legacy CSS or inherited visual components. All public entries now load only `frontend/styles/v2/` through the small style entrypoint. The former CSS modules have been removed. Contact verification, the assistant dialog, statistics, professional background, education, privacy and the supporting pages are restyled as part of the same v2 system. The assistant lives in the contact section instead of covering project content with a floating launcher. Functional IDs and data bindings are preserved for accessibility, language, content and privacy behavior; they do not import the old visual design.
 
-All redesign implementation work belongs on:
+## Verification receipt
 
-`ui/v2-redesign-simple`
-
-`main` remains the stable/canonical release line until the redesign is reviewed and explicitly merged.
-
-## Delivery strategy
-
-### Phase 1 — approximately 70–80% with screenshot-to-code tooling
-
-Use Google Stitch or another suitable screenshot-to-code workflow to reproduce:
-
-- desktop homepage;
-- mobile homepage;
-- Linux Operations Lab case-study page.
-
-Prioritize:
-
-1. semantic layout structure;
-2. responsive behavior;
-3. overall visual proportions;
-4. typography hierarchy;
-5. reusable project cards, badges, buttons and detail sections;
-6. integration with the existing content model.
-
-Do not spend time chasing 1–2 px differences in this phase.
-
-### Phase 2 — integrate into the existing CV frontend
-
-Adapt the generated prototype to the repository rather than replacing repository architecture blindly.
-
-Preserve:
-
-- Vite/static build model;
-- EN / DE / LV behavior and factual equivalence;
-- canonical content sources;
-- PDF/CV access;
-- no-JavaScript recruiter path;
-- accessibility behavior;
-- live stats semantics;
-- CV Assistant/privacy boundaries;
-- deterministic generated frontend artifacts;
-- existing CI/security gates.
-
-Avoid:
-
-- framework migration only for cosmetic reasons;
-- large duplicated markup;
-- excessive absolute positioning;
-- hard-coded mockup facts;
-- unnecessary client-side JavaScript.
-
-### Phase 3 — structural cleanup and verification
-
-Before visual polishing:
-
-- normalize HTML semantics;
-- consolidate CSS variables and reusable classes;
-- verify desktop and mobile breakpoints;
-- remove generated-code duplication;
-- check keyboard/focus behavior;
-- run existing frontend/CI checks;
-- verify privacy-safe screenshots and assets.
-
-### Phase 4 — Codex polish when quota is available
-
-Use Codex on the already-working implementation instead of rebuilding from scratch.
-
-Codex task:
-
-> Compare the current UI v2 implementation against the verified desktop/mobile/case-study reference mockups. Keep the existing architecture and functionality. Refactor generated markup/CSS where necessary, fix responsive differences, accessibility problems and visual inconsistencies, then iterate with browser screenshots until the implementation is close to the references.
-
-Target after this phase: approximately **90–95% visual fidelity**, with maintainable source rather than screenshot-specific hacks.
-
-### Phase 5 — release gate
-
-The redesign is ready for owner review when:
-
-- desktop and mobile layouts closely match the references;
-- the strongest projects are visible early in the recruiter scan;
-- case-study pages show problem → action → proof clearly;
-- all published claims come from canonical evidence;
-- EN / DE / LV remain coherent;
-- no horizontal overflow or major layout shifts remain;
-- accessibility/browser checks pass;
-- deterministic frontend/build checks pass;
-- no secrets/private infrastructure data appear in assets;
-- the implementation PR is reviewable as one coherent UI change.
-
-Merge and LIVE/deployment remain separate owner-authorized steps.
-
-## Scope rule
-
-Keep this branch focused on the UI v2 redesign. Unrelated CV content, infrastructure, runtime and deployment work should remain outside this branch unless directly required by the redesign and explicitly reviewed.
+Local verification: 482 Python tests and 35 Node tests pass; source validation, content/PDF consistency, secret/public-artifact privacy checks and deterministic frontend rebuild pass. Chromium smoke, EN/DE/LV case-study accessibility, no-JavaScript behavior, layout stability and runtime-error suites pass. Desktop and 390px screenshots were visually inspected; the mobile menu opens and closes using Escape. Initial localized pages remain below 128 KiB. Live service status is unavailable in a local preview, so no production health is inferred.

@@ -11,6 +11,7 @@ const ROOT = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const HTML_ROOT = join(ROOT, "html");
 const CHROME_BIN = process.env.CHROME_BIN;
 const MAX_SUPPORT_CLS = 0.05;
+const AXE_SOURCE = await readFile(join(ROOT, "node_modules", "axe-core", "axe.min.js"), "utf8");
 
 if (!CHROME_BIN) throw new Error("CHROME_BIN is required");
 if (typeof WebSocket !== "function") {
@@ -27,6 +28,7 @@ const MIME_TYPES = new Map([
 ]);
 
 const MATRIX = [
+  ...["en", "de", "lv"].flatMap((language) => [390, 1280].map((width) => ({ kind: "lab", path: `/${language}/lab/`, language, width, height: 900, maxRequests: 5, maxBytes: 56 * 1024 }))),
   { kind: "proof", path: "/en/proof/", language: "en", width: 1280, height: 900, maxRequests: 5, maxBytes: 56 * 1024 },
   { kind: "proof", path: "/en/proof/", language: "en", width: 390, height: 844, maxRequests: 5, maxBytes: 56 * 1024 },
   { kind: "proof", path: "/de/proof/", language: "de", width: 1280, height: 900, maxRequests: 5, maxBytes: 56 * 1024 },
@@ -263,6 +265,9 @@ async function readSurfaceState(cdp) {
       clsSupported: globalThis.__supportLayoutObserverSupported === true,
       cls: (globalThis.__supportLayoutShifts || []).reduce((sum, value) => sum + value, 0),
       stylesLoaded: [...document.styleSheets].some((sheet) => sheet.href && /\\/assets\\/styles\\.[0-9a-f]{12}\\.css$/.test(new URL(sheet.href).pathname)),
+      labPanels: document.querySelectorAll(".lab-panel").length,
+      labEvidence: document.querySelectorAll(".evidence-list a").length,
+      labStatus: document.querySelector("[data-lab-i18n=progress]")?.textContent,
       proofProjects: document.querySelectorAll('[data-proof-project-id]').length,
       proofEvidenceLinks: document.querySelectorAll('.proof-evidence-link').length,
       smartDevices: document.querySelectorAll('.demo-device').length,
@@ -313,10 +318,15 @@ function assertSurfaceState(result, scenario, context) {
   assert.equal(result.clsSupported, true, `${context}: layout-shift observer unavailable`);
   assert.ok(result.cls <= MAX_SUPPORT_CLS, `${context}: synthetic CLS ${result.cls.toFixed(6)} > ${MAX_SUPPORT_CLS}`);
 
+  if (scenario.kind === "lab") {
+    assert.equal(result.labPanels, 9, `${context}: case-study sections`);
+    assert.equal(result.labEvidence, 4, `${context}: focused public evidence links`);
+    assert.ok(result.labStatus, `${context}: honest project status`);
+  }
   if (scenario.kind === "proof") {
     assert.equal(result.proofProjects, 3, `${context}: expected three proof projects`);
     assert.ok(result.proofEvidenceLinks >= 6, `${context}: expected public evidence links`);
-  } else {
+  } else if (scenario.kind === "smarthome") {
     assert.equal(result.smartDevices, 8, `${context}: expected eight smart-home device cards`);
     assert.equal(result.smartLanguageButtons, 3, `${context}: expected three language controls`);
     assert.equal(result.smartActiveLanguages, 1, `${context}: expected one active language control`);
@@ -387,6 +397,11 @@ async function runSupportingSurfaceLab(baseUrl, state) {
       const result = await readSurfaceState(cdp);
       const context = `${scenario.path} ${scenario.width}px`;
       assertSurfaceState(result, scenario, context);
+      if (scenario.kind === "lab") {
+        await cdp.evaluate(AXE_SOURCE);
+        const a11y = await cdp.evaluate(`axe.run(document, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21aa"] } }).then(result => result.violations.map(item => ({ id: item.id, targets: item.nodes.map(node => node.target) })))`);
+        assert.deepEqual(a11y, [], `${context}: accessibility violations`);
+      }
       const resources = assertResourceBudget([...state.staticRequests], scenario, context);
       console.log(
         `LAB_SUPPORT_SURFACE ${context} cls=${result.cls.toFixed(6)} overflow=${result.overflowPx} requests=${resources.requests} bytes=${resources.bytes}`

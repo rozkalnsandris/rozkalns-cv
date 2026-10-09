@@ -210,30 +210,15 @@ class HtmlSemanticTests(unittest.TestCase):
                     for forbidden in ("onclick", "onkeydown", "onkeyup", "oninput"):
                         self.assertNotIn(forbidden, row.attrs)
 
-    def test_cv_dialog_has_complete_modal_contract(self) -> None:
-        parsed = parse(HTML_ROOT / "index.html")
-        by_id = {
-            row.attrs["id"]: row
-            for row in parsed.elements
-            if row.attrs.get("id")
-        }
-        dialog = by_id["chatDialog"]
-        self.assertEqual(dialog.attrs.get("role"), "dialog")
-        self.assertEqual(dialog.attrs.get("aria-modal"), "true")
-        self.assertIn(dialog.attrs.get("aria-labelledby"), by_id)
-        self.assertIn(dialog.attrs.get("aria-describedby"), by_id)
-        self.assertEqual(by_id["chatStatus"].attrs.get("role"), "status")
-        self.assertEqual(by_id["chatLog"].attrs.get("role"), "log")
-        self.assertEqual(by_id["chatLog"].attrs.get("aria-live"), "polite")
-        self.assertEqual(by_id["chatLog"].attrs.get("aria-relevant"), "additions")
-        self.assertEqual(by_id["chatLog"].attrs.get("aria-atomic"), "false")
-        self.assertEqual(by_id["chatStatus"].attrs.get("aria-live"), "polite")
-        skip_links = [
-            row
-            for row in parsed.elements
-            if row.tag == "a" and row.attrs.get("href") == "#main"
-        ]
-        self.assertEqual(len(skip_links), 1)
+    def test_assistant_deferred_contact_and_skip_link_preserved(self) -> None:
+        for page in (HTML_ROOT / "index.html", *(HTML_ROOT / lang / "index.html" for lang in ("en", "de", "lv"))):
+            parsed = parse(page)
+            by_id = {row.attrs["id"]: row for row in parsed.elements if row.attrs.get("id")}
+            for forbidden in ("chatLauncher", "chatDialog", "chatLog", "chatStatus", "chatForm"):
+                self.assertNotIn(forbidden, by_id)
+            self.assertIn("contactReveal", by_id)
+            self.assertIn("contactPhone", by_id)
+            self.assertEqual(len([row for row in parsed.elements if row.tag == "a" and row.attrs.get("href") == "#main"]), 1)
 
     def test_language_switchers_are_named_and_stateful(self) -> None:
         expected_labels = {"en": "English", "de": "Deutsch", "lv": "Latviešu"}
@@ -264,6 +249,8 @@ class HtmlSemanticTests(unittest.TestCase):
                 expected_hrefs = (
                     {"en": "/en/proof/", "de": "/de/proof/", "lv": "/lv/proof/"}
                     if path.name == "proof.html"
+                    else {"en": "/en/lab/", "de": "/de/lab/", "lv": "/lv/lab/"}
+                    if path.name == "lab.html"
                     else {"en": "/en/", "de": "/de/", "lv": "/lv/"}
                 )
                 self.assertEqual(

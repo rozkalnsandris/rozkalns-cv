@@ -16,7 +16,7 @@ class AccessibleLabelI18nTests(unittest.TestCase):
             html,
         )
         self.assertNotIn('class="focus-tags"', html)
-        self.assertIn('<nav class="site-nav" aria-label="CV">', html)
+        self.assertRegex(html, r'<nav class="site-nav"[^>]*aria-label="CV">')
         self.assertIn(
             'class="profile-languages" role="list" data-i18n-label="profile_languages_label" aria-label="Languages"',
             html,

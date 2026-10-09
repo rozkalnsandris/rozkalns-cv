@@ -7,10 +7,10 @@ import unittest
 # Browser smoke independently verifies the same hierarchy in real Chromium viewports.
 ROOT = Path(__file__).resolve().parents[1]
 INDEX = (ROOT / "frontend" / "index.html").read_text(encoding="utf-8")
-LAYOUT = (ROOT / "frontend" / "styles" / "layout.css").read_text(encoding="utf-8")
-COMPONENTS = (ROOT / "frontend" / "styles" / "components.css").read_text(encoding="utf-8")
-RESPONSIVE = (ROOT / "frontend" / "styles" / "responsive.css").read_text(encoding="utf-8")
-TOKENS = (ROOT / "frontend" / "styles" / "tokens.css").read_text(encoding="utf-8")
+LAYOUT = (ROOT / "frontend" / "styles" / "v2" / "layout.css").read_text(encoding="utf-8")
+COMPONENTS = (ROOT / "frontend" / "styles" / "v2" / "components.css").read_text(encoding="utf-8")
+RESPONSIVE = (ROOT / "frontend" / "styles" / "v2" / "responsive.css").read_text(encoding="utf-8")
+TOKENS = (ROOT / "frontend" / "styles" / "v2" / "tokens.css").read_text(encoding="utf-8")
 
 
 def relative_luminance(hex_color: str) -> float:
@@ -66,8 +66,10 @@ class RecruiterUiPolishTest(unittest.TestCase):
 
     def test_compact_nav_is_mobile_first_and_desktop_experience_is_linear(self) -> None:
         self.assertNotIn('@media (max-width:', RESPONSIVE)
-        self.assertIn('.site-nav a:first-child, .site-nav a:last-child { display: none; }', COMPONENTS)
-        self.assertIn('.site-nav a:first-child, .site-nav a:last-child { display: inline-flex; }', RESPONSIVE)
+        self.assertIn('.topbar[data-enhanced] .site-nav { display: none; }', COMPONENTS)
+        self.assertIn('.topbar[data-enhanced] .site-nav { display: flex;', RESPONSIVE)
+        self.assertIn('grid-template-columns: repeat(2,minmax(0,1fr));', COMPONENTS)
+        self.assertIn('.hero-shell .actions .button:first-child { grid-column: 1 / -1; }', COMPONENTS)
         self.assertRegex(
             RESPONSIVE,
             r"#experience\s+\.timeline\s*\{\s*grid-template-columns:\s*1fr;",

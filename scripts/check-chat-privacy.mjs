@@ -11,9 +11,11 @@ const messages = Object.fromEntries(await Promise.all(
   ])
 ));
 const source = await readFile(resolve(rootDir, "frontend", "index.html"), "utf8");
-assert.match(source, /id="chatPrivacy"/);
-assert.match(source, /id="chatPrivacyText"[^>]*data-i18n="chat_privacy"/);
-assert.match(source, /id="chatPrivacy"[\s\S]*?href="#privacy"/);
+// Assistant is deferred on the public page; retain dormant privacy behavior tests.
+assert.doesNotMatch(source, /id="chatPrivacy"/);
+assert.doesNotMatch(source, /id="chatDialog"/);
+assert.match(source, /id="privacy"/);
+assert.match(source, /id="contactReveal"/);
 for (const [language, copy] of Object.entries(messages)) {
   assert.doesNotMatch(copy.chat_privacy, /\b7\b/, `${language} fallback hard-codes the old duration`);
   assert.ok(copy.chat_privacy_zero, `${language} zero-retention copy missing`);

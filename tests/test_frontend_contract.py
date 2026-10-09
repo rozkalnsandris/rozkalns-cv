@@ -16,9 +16,9 @@ NGINX = ROOT / "nginx.conf"
 COMPOSE = ROOT / "docker-compose.yml"
 MANIFEST = ROOT / "frontend-dist-manifest.json"
 SOURCE_INDEX = ROOT / "frontend" / "index.html"
-SOURCE_LAYOUT = ROOT / "frontend" / "styles" / "layout.css"
-SOURCE_BASE = ROOT / "frontend" / "styles" / "base.css"
-SOURCE_RESPONSIVE = ROOT / "frontend" / "styles" / "responsive.css"
+SOURCE_LAYOUT = ROOT / "frontend" / "styles" / "v2" / "layout.css"
+SOURCE_BASE = ROOT / "frontend" / "styles" / "v2" / "base.css"
+SOURCE_RESPONSIVE = ROOT / "frontend" / "styles" / "v2" / "responsive.css"
 SOURCE_APP = ROOT / "frontend" / "app.mjs"
 SOURCE_CHAT = ROOT / "frontend" / "features" / "chat.mjs"
 SOURCE_I18N = ROOT / "frontend" / "core" / "i18n.mjs"
@@ -68,7 +68,7 @@ class Parser(HTMLParser):
 
 class FrontendContractTests(unittest.TestCase):
     def test_html_has_no_inline_code_or_styles(self) -> None:
-        for path in (INDEX, SMART, PROOF, *(ROOT / f"html/{language}/proof/index.html" for language in ("en", "de", "lv"))):
+        for path in (INDEX, SMART, PROOF, ROOT / "html/lab.html", *(ROOT / f"html/{language}/lab/index.html" for language in ("en", "de", "lv")), *(ROOT / f"html/{language}/proof/index.html" for language in ("en", "de", "lv"))):
             parser = Parser()
             text = path.read_text(encoding="utf-8")
             parser.feed(text)
@@ -128,20 +128,20 @@ class FrontendContractTests(unittest.TestCase):
         secondary = re.findall(r'<article class="project-entry secondary project-evidence-card"[^>]*>', source_html)
         self.assertEqual(len(primary), 3)
         self.assertEqual(len(secondary), 1)
-        for number in ('01', '02', '03'):
-            self.assertIn(f'<span class="project-no">{number}</span>', source_html)
+        self.assertEqual(source_html.count('class="project-preview '), 3)
+        self.assertEqual(source_html.count('class="project-facts"'), 3)
         title_keys = ('p8_title', 'p1_title', 'p7_title', 'p3_title')
         title_positions = [source_html.index(f'data-i18n="{key}"') for key in title_keys]
         self.assertEqual(title_positions, sorted(title_positions))
         for key in ('p8_ops', 'p1_ops', 'p7_ops', 'p3_ops'):
             self.assertIn(f'data-i18n="{key}"', source_html)
-        self.assertEqual(source_html.count('class="project-icon"'), 4)
+        self.assertEqual(source_html.count('class="project-icon"'), 1)
         project_source = source_html.split('<section id="projects">', 1)[1].split(
             '<section id="skills">', 1
         )[0]
         self.assertEqual(project_source.count('class="tech-tag"'), 16)
         self.assertEqual(html.count('class="skill-chip"'), 18)
-        self.assertIn('class="work-layout"', html)
+        self.assertIn('class="overview-grid"', html)
         self.assertNotIn('class="work-rail"', html)
         self.assertNotIn('.work-rail', layout)
         self.assertIn('<ol class="timeline">', html)
@@ -151,11 +151,10 @@ class FrontendContractTests(unittest.TestCase):
         self.assertLess(html.index('id="projects"'), html.index('id="skills"'))
         self.assertLess(html.index('id="skills"'), html.index('id=github-projects'))
         self.assertLess(html.index('id=github-projects'), html.index('id="experience"'))
-        self.assertLess(html.index('id="experience"'), html.index('id="stats"'))
+        self.assertLess(html.index('id="stats"'), html.index('id="experience"'))
         compact_responsive = re.sub(r"\s+", "", responsive)
-        self.assertIn('grid-template-areas:"projects""rail""experience";', compact_responsive)
-        self.assertIn("#skills{grid-area:rail;}", compact_responsive)
-        self.assertIn("#projects.project-list{grid-template-columns:repeat(3,minmax(0,1fr));", compact_responsive)
+        self.assertIn('.overview-grid{grid-template-columns:repeat(2,minmax(0,1fr));}', compact_responsive)
+        self.assertIn(".project-list{grid-template-columns:repeat(3,minmax(0,1fr));", compact_responsive)
         self.assertNotIn(".work-rail", responsive)
         self.assertIn('class="profile-languages"', html)
         stats = html[html.index('id="stats"'):html.index('id="education"')]
@@ -169,12 +168,12 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn('class="brand"', html)
         self.assertLess(html.index('class="brand"'), html.index('class="site-nav"'))
         self.assertLess(html.index('class="site-nav"'), html.index('class="language-switcher"'))
-        self.assertIn('"brand lang"', layout)
-        self.assertIn('"photo name"', layout)
-        self.assertIn('padding-inline: 18px', layout)
-        self.assertIn('grid-template-columns: auto minmax(0,1fr) auto 260px;', responsive)
-        self.assertIn('"brand nav lang ."', responsive)
-        self.assertIn('"name name name photo"', responsive)
+        self.assertIn('.topbar', layout)
+        self.assertIn('"name photo"', layout)
+        self.assertIn('min(calc(100% - 32px)', layout)
+        self.assertIn('grid-template-columns: minmax(0,1fr) 190px 330px;', responsive)
+        self.assertIn('.topbar { flex-wrap: nowrap;', responsive)
+        self.assertIn('"name note photo"', responsive)
 
     def test_v3_accessibility_closeout_contract(self) -> None:
         base = SOURCE_BASE.read_text(encoding="utf-8")
@@ -195,17 +194,12 @@ class FrontendContractTests(unittest.TestCase):
         self.assertTrue(FAVICON.is_file())
         self.assertIn('<link rel="icon" href="/favicon.svg" type="image/svg+xml">', text)
 
-    def test_accessible_dialog_contract(self) -> None:
-        text = INDEX.read_text(encoding="utf-8")
-        for marker in (
-            'role="dialog"', 'aria-modal="true"', 'aria-labelledby="chatTitle"',
-            'aria-describedby="chatPrivacy"', 'role="log"', 'aria-live="polite"',
-            'aria-busy="false"', 'aria-current="page"',
-        ):
-            self.assertIn(marker, text)
-        chat = SOURCE_CHAT.read_text(encoding="utf-8")
-        for marker in ('event.key === "Escape"', 'event.key !== "Tab"', "shell.inert = true", "returnFocus?.focus()"):
-            self.assertIn(marker, chat)
+    def test_public_home_has_no_assistant_modal(self) -> None:
+        for page in (SOURCE_INDEX, INDEX, *(ROOT / f"html/{lang}/index.html" for lang in ("en", "de", "lv"))):
+            data = page.read_text(encoding="utf-8")
+            for forbidden in ("chatLauncher", "chatBackdrop", "chatDialog", "chatForm"):
+                self.assertNotIn(forbidden, data)
+            self.assertIn('id="contactReveal"', data)
 
     def test_shared_i18n_is_used_by_both_entry_points(self) -> None:
         core = SOURCE_I18N.read_text(encoding="utf-8")
@@ -243,11 +237,11 @@ class FrontendContractTests(unittest.TestCase):
         assets = generated_assets()
         js_bytes = sum((ROOT / "html" / path).stat().st_size for path in assets if path.endswith((".mjs", ".js")))
         css_bytes = sum((ROOT / "html" / path).stat().st_size for path in assets if path.endswith(".css"))
-        limits = {INDEX: 32_000, SMART: 5_000}
+        limits = {INDEX: 38_000, SMART: 5_000}
         for path, limit in limits.items():
             self.assertLess(path.stat().st_size, limit, path)
-        self.assertLess(js_bytes, 26_000)
-        self.assertLess(css_bytes, 24_000)
+        self.assertLess(js_bytes, 27_000)
+        self.assertLess(css_bytes, 28_000)
 
 
 if __name__ == "__main__":
