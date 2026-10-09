@@ -15,21 +15,37 @@ through "deploy/simple-deploy/supervise.py". The regular Assistant entrypoint
 - No Assistant chat/config/admission routes are registered on the public
   application, in addition to the image's Nginx 404 rules.
 
-## Contact attempt boundary
+## Public contact / DB-free boundary
 
-- A real, validated POST /contact-reveal invokes the existing Turnstile
-  verification and pseudonymous per-client/global quota checks. Only this
-  explicit request can lazily create the quota's verification_events table
-  and indexes in the existing SQLite location, prune expired verification
-  attempt records, and insert one attempt.
-- Invalid requests never open SQLite. On quota/storage failure the endpoint
-  returns 503 (fail-closed), not a verification bypass.
-- Quota state is durable across requests and restarts. No chat table creation,
-  chat-content DELETE or automatic Assistant retention is performed by the
-  public-only application. Full Assistant behavior remains unchanged.
-- The request-triggered quota writes are separate from startup but are still
-  application-data mutations requiring a separate owner decision before
-  LIVE rollout, in accordance with the RPi5 target's forbidden-operation
-  registry. This source issue does not authorize those LIVE writes.
+- Public SIMPLE-FIRST app creation does not instantiate AssistantStore.
+  No database is opened on startup, passive GET or any POST /contact-reveal,
+  including successful Turnstile verification or Siteverify errors.
+- Contact disclosure still requires a bounded token, server-side Turnstile
+  Siteverify (single-use, five-minute tokens), an allowed action and hostname.
+  Invalid tokens and upstream errors fail closed without returning phone data.
+- The combined-image Nginx ingress has a dedicated exact-match
+  /api/contact-reveal route. Its shared-memory request limit zones use
+  normalized client address (6 requests/minute, burst 3) and a global
+  server cap (60 requests/minute, burst 15). Nginx returns 429 over quota.
+  Both zones are in memory, across workers; restart resets these quotas.
+- Source trusts CF-Connecting-IP only from 172.19.0.1/32 (reviewed source
+  bridge gateway). The entire Docker subnet is NOT trusted. The actual
+  source address seen by this combined-image Nginx and the upstream's
+  sanitization of CF-Connecting-IP MUST be independently confirmed with
+  scoped read-only RPi5/edge evidence before any deployment. If the RPi5
+  Docker gateway differs or an upstream forwards arbitrary user-controlled
+  CF-Connecting-IP, the LIVE contract is BLOCKED, not silently adjusted.
+  Fallback to the TCP peer may aggregate all users into one rate bucket.
+- The request guard is deliberately at Nginx, not the Flask route. Gunicorn
+  remains bound to container loopback 127.0.0.1:5000. Exposing Gunicorn
+  directly would bypass this guard and requires a separate security review.
+- The full (non-public) Assistant factory retains SQLite-backed chat and
+  verification quotas unchanged; no migration/deletion of existing durable
+  chat data is authorized by this source change.
+- Existing RPi5 target/Compose binds preserved /app/data. This PR does NOT
+  remove it or delete data; that requires independent LIVE scope.
 
-Official SQLite WAL semantics: https://www.sqlite.org/wal.html
+Official references:
+- https://nginx.org/en/docs/http/ngx_http_limit_req_module.html
+- https://nginx.org/en/docs/http/ngx_http_realip_module.html
+- https://developers.cloudflare.com/turnstile/get-started/server-side-validation/

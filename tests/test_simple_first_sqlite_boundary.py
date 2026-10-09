@@ -87,31 +87,27 @@ class SimpleFirstSQLiteBoundaryTests(unittest.TestCase):
                 count = connection.execute("SELECT COUNT(*) FROM chats").fetchone()
             self.assertEqual(count, (1,))
 
-    def test_contact_attempt_lazily_creates_only_verification_quota(self):
+    def test_verified_public_contact_never_opens_sqlite(self):
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "assistant.sqlite3"
+            path = Path(directory) / "absent" / "assistant.sqlite3"
             app = make_public(path, per_hour=1)
             self.addCleanup(app_module.close_app_services, app)
-            client = app.test_client()
-            self.assertFalse(path.exists())
+            self.assertIsNone(app.extensions["cvbot"]["store"])
+            self.assertFalse(path.parent.exists())
             with patch.object(app_module, "verify_turnstile", return_value=True) as verify:
-                success = client.post("/contact-reveal", json={"token": "valid-token"})
-                throttled = client.post("/contact-reveal", json={"token": "valid-token"})
-            self.assertEqual(success.status_code, 200)
-            self.assertEqual(success.get_json()["phone_uri"], CONTACT.phone_uri)
-            self.assertEqual(throttled.status_code, 429)
-            verify.assert_called_once()
-            with sqlite3.connect(path) as conn:
-                tables = {
-                    r[0] for r in conn.execute(
-                        "SELECT name FROM sqlite_master WHERE type = 'table'"
-                    )
-                }
-                number = conn.execute(
-                    "SELECT COUNT(*) FROM verification_events"
-                ).fetchone()
-            self.assertEqual(tables, {"verification_events"})
-            self.assertEqual(number, (1,))
+                first = app.test_client().post(
+                    "/contact-reveal", json={"token": "valid-token"}
+                )
+                second = app.test_client().post(
+                    "/contact-reveal", json={"token": "fresh-token"}
+                )
+            self.assertEqual(first.status_code, 200)
+            self.assertEqual(first.get_json()["phone_uri"], CONTACT.phone_uri)
+            self.assertEqual(second.status_code, 200)
+            self.assertEqual(verify.call_count, 2)
+            # HTTP request throttling is enforced by the Nginx ingress,
+            # not by per-process Flask/SQLite state.
+            self.assertFalse(path.parent.exists())
 
     def test_denied_contact_and_invalid_token_do_not_leak_information(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -126,22 +122,22 @@ class SimpleFirstSQLiteBoundaryTests(unittest.TestCase):
                 denied = client.post("/contact-reveal", json={"token": "valid-token"})
             self.assertEqual(denied.status_code, 403)
             self.assertNotIn(CONTACT.phone_uri, denied.get_data(as_text=True))
+            self.assertFalse(path.exists())
 
-    def test_contact_store_unavailable_is_fail_closed(self):
+    def test_siteverify_failure_fails_closed_without_sqlite(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "assistant.sqlite3"
             app = make_public(path)
             self.addCleanup(app_module.close_app_services, app)
             with patch.object(
-                app.extensions["cvbot"]["store"],
-                "reserve_verification",
-                side_effect=sqlite3.OperationalError("unavailable"),
-            ), patch.object(app_module, "verify_turnstile") as verified:
+                app_module, "verify_turnstile",
+                side_effect=app_module.ContactVerificationError("unavailable"),
+            ):
                 response = app.test_client().post(
                     "/contact-reveal", json={"token": "valid-token"}
                 )
             self.assertEqual(response.status_code, 503)
-            verified.assert_not_called()
+            self.assertFalse(path.exists())
 
     def test_runtime_entrypoint_explicit_and_full_mode_unchanged(self):
         supervisor = (ROOT / "deploy/simple-deploy/supervise.py").read_text("utf-8")
@@ -150,6 +146,7 @@ class SimpleFirstSQLiteBoundaryTests(unittest.TestCase):
         self.assertIn('"chat_entry:create_public_app()"', supervisor)
         self.assertIn("create_base_app(public_only=True)", entry)
         self.assertIn("create_base_app()", entry)
+        self.assertIn("if public_only:", (ROOT / "bot/app.py").read_text("utf-8"))
         for route in ("/api/chat", "/api/chat-config", "/api/chat-admission"):
             self.assertIn("location = " + route + " { return 404; }", nginx)
 
