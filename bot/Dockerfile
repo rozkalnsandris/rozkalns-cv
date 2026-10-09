@@ -1,4 +1,4 @@
-FROM python:3.12.13-alpine3.24@sha256:6d43704baacd1bfbe7c295d7f13079d5d8104ed33568873133f8fc69980419df
+FROM python:3.13.15-alpine3.24@sha256:79e7a9b9ff1cbceff819f856fb374477792a5967759d94df266de7b7b4120e6f
 
 ARG APP_UID=10001
 ARG APP_GID=10001
@@ -28,7 +28,10 @@ RUN addgroup -S -g "${APP_GID}" cvbot \
     && adduser -S -D -H -u "${APP_UID}" -G cvbot cvbot
 
 COPY requirements.txt ./requirements.txt
-RUN python -m pip install --require-hashes --no-deps -r requirements.txt
+# The hash-locked installer is build-only. Do not retain pip's vendored
+# dependencies (including its embedded CycloneDX SBOM) in the runtime image.
+RUN python -m pip install --require-hashes --no-deps -r requirements.txt \
+    && python -m pip uninstall --yes pip
 
 COPY --chown=${APP_UID}:${APP_GID} \
     app.py chat_admission.py chat_entry.py chat_policy.py config.py contact.py evidence.py evidence_registry.json \

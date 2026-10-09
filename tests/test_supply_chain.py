@@ -9,6 +9,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 DOCKERFILE = ROOT / "bot" / "Dockerfile"
+SIMPLE_DOCKERFILE = ROOT / "Dockerfile.simple-deploy"
 COMPOSE = ROOT / "docker-compose.yml"
 DIRECT = ROOT / "bot" / "requirements.in"
 LOCK = ROOT / "bot" / "requirements.txt"
@@ -84,11 +85,12 @@ class SupplyChainContractTests(unittest.TestCase):
     def test_runtime_images_are_immutable_and_audited(self) -> None:
         compose = COMPOSE.read_text(encoding="utf-8")
         dockerfile = DOCKERFILE.read_text(encoding="utf-8")
+        simple_dockerfile = SIMPLE_DOCKERFILE.read_text(encoding="utf-8")
         manifest = json.loads(SUPPLY.read_text(encoding="utf-8"))
         self.assertEqual(manifest["schema_version"], 1)
         images = manifest["images"]
         expected_non_nginx = {
-            "python:3.12.13-alpine3.24",
+            "python:3.13.15-alpine3.24",
             "aquasec/trivy:0.72.0",
             "ghcr.io/gitleaks/gitleaks:v8.30.0",
         }
@@ -102,6 +104,7 @@ class SupplyChainContractTests(unittest.TestCase):
             self.assertRegex(digest, r"^sha256:[0-9a-f]{64}$")
             if reference.startswith("python:"):
                 self.assertIn(f"FROM {reference}@{digest}", dockerfile)
+                self.assertIn(f"FROM {reference}@{digest}", simple_dockerfile)
             elif reference.startswith("nginx:"):
                 self.assertRegex(reference, r"^nginx:[A-Za-z0-9._-]+$")
                 self.assertIn(f"image: {reference}@{digest}", compose)
@@ -122,6 +125,14 @@ class SupplyChainContractTests(unittest.TestCase):
             ci,
             r"nginx:[0-9]+\.[0-9]+\.[0-9]+-alpine@sha256:[0-9a-f]{64}",
         )
+
+    def test_runtime_excludes_build_only_pip_vendor_dependencies(self) -> None:
+        for path in (DOCKERFILE, SIMPLE_DOCKERFILE):
+            with self.subTest(path=path.name):
+                dockerfile = path.read_text(encoding="utf-8")
+                self.assertIn("python -m pip install --require-hashes --no-deps -r requirements.txt", dockerfile)
+                self.assertIn("&& python -m pip uninstall --yes pip", dockerfile)
+                self.assertNotIn("--skip-files", dockerfile)
 
     def test_cvbot_pins_alpine_openssl_security_update(self) -> None:
         dockerfile = DOCKERFILE.read_text(encoding="utf-8")

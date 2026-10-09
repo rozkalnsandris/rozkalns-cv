@@ -44,6 +44,13 @@ Never edit individual hashes or transitive versions by hand. Do not let the
 hosted runner's preinstalled `pip` version implicitly select the resolver
 behavior; the resolver toolchain is part of the reproducibility boundary.
 
+Both Python-based CV images use pip strictly at build time for hash-locked
+installation, then uninstall pip from the final runtime layer. This removes
+pip's independently vendored libraries and their embedded CycloneDX SBOM;
+the final image retains application dependencies and is scanned by the
+unchanged Trivy HIGH/CRITICAL image gate. Do not replace this with an
+SBOM exclusion, ignore rule or weakened vulnerability scanner.
+
 ## Updating container images
 
 1. Resolve the multi-platform manifest digest from the image's official registry.
