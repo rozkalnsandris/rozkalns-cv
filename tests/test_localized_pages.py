@@ -57,6 +57,27 @@ class LocalizedPageContractTests(unittest.TestCase):
             self.assertNotIn('id="chatClose"', document, language)
             self.assertIn('id="contactReveal"', document, language)
 
+    def test_homepage_proof_links_keep_the_active_language_without_javascript(self):
+        for language in EXPECTED:
+            with self.subTest(language=language):
+                document = (ROOT / f"html/{language}/index.html").read_text(encoding="utf-8")
+                destinations = re.findall(
+                    r'<a\b[^>]*\bhref="(/(?:en|de|lv)/proof/(?:#[^"]*)?)"[^>]*>',
+                    document,
+                )
+                self.assertEqual(len(destinations), 4)
+                self.assertTrue(
+                    all(destination.startswith(f"/{language}/proof/") for destination in destinations),
+                    destinations,
+                )
+                card = re.search(
+                    r'<a class="tech-tag github-row" href="([^"]+)" '
+                    r'data-local-route="proof/" data-proof-i18n="link_label">',
+                    document,
+                )
+                self.assertIsNotNone(card)
+                self.assertEqual(card.group(1), f"/{language}/proof/")
+
     def test_root_alias_is_english_but_not_a_sitemap_canonical(self):
         root_html = (ROOT / "html/index.html").read_text(encoding="utf-8")
         self.assertIn('<html lang="en">', root_html)
