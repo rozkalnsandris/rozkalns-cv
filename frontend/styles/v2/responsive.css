@@ -19,10 +19,9 @@
   .privacy-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
 }
 @media (min-width: 900px) {
-  .topbar { flex-wrap: nowrap; min-height: 86px; gap: 20px; }
-  .site-nav, .topbar[data-enhanced] .site-nav { display: flex; order: 0; width: auto; margin-inline: auto; gap: 18px; }
+  .topbar { flex-wrap: wrap; min-height: 86px; gap: 8px 20px; }
+  .site-nav, .topbar[data-enhanced] .site-nav { display: flex; order: 3; width: 100%; margin-inline: 0; justify-content: space-between; gap: 8px 12px; }
   .site-nav a { font-size: 12px; }
-  .site-nav a[href="#experience"], .site-nav a[href="#education"] { display: none; }
   .menu-toggle { display: none; }
   .language-switcher { margin-left: 0; }
   .hero-shell { grid-template-columns: minmax(0,1fr) 310px; grid-template-areas: "role photo" "name photo" "tagline photo" "capabilities photo" "meta photo" "actions photo"; padding-block: 36px 38px; gap: 16px 30px; }

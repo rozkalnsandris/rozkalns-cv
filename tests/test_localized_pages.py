@@ -78,6 +78,33 @@ class LocalizedPageContractTests(unittest.TestCase):
                 self.assertIsNotNone(card)
                 self.assertEqual(card.group(1), f"/{language}/proof/")
 
+    def test_primary_navigation_links_to_experience_and_education_in_every_locale(self):
+        source = (ROOT / "frontend/index.html").read_text(encoding="utf-8")
+        self.assertIn('href="#experience" data-ui-i18n="v2_nav_experience"', source)
+        self.assertIn('href="#education" data-ui-i18n="v2_nav_education"', source)
+        responsive = (ROOT / "frontend/styles/v2/responsive.css").read_text(encoding="utf-8")
+        self.assertNotIn('.site-nav a[href="#experience"], .site-nav a[href="#education"] { display: none; }', responsive)
+        for language in EXPECTED:
+            with self.subTest(language=language):
+                ui = json.loads((ROOT / "content/ui-v2.json").read_text(encoding="utf-8"))["i18n"][language]
+                html = (ROOT / f"html/{language}/index.html").read_text(encoding="utf-8")
+                nav = re.search(r'<nav class="site-nav"[^>]*>(.*?)</nav>', html, re.DOTALL)
+                self.assertIsNotNone(nav)
+                links = nav.group(1)
+                for section, key in (("experience", "v2_nav_experience"), ("education", "v2_nav_education")):
+                    self.assertIn(
+                        f'<a href="#{section}" data-ui-i18n="{key}">{ui[key]}</a>',
+                        links,
+                    )
+                    self.assertIn(f'id="{section}"', html)
+                self.assertLess(links.index('href="#about"'), links.index('href="#experience"'))
+                self.assertLess(links.index('href="#experience"'), links.index('href="#education"'))
+                self.assertLess(links.index('href="#education"'), links.index('href="#contact"'))
+                self.assertIn('href="#" data-ui-i18n="v2_home"', links)
+                self.assertLess(links.index('data-ui-i18n="v2_home"'), links.index('href="#projects"'))
+                self.assertIn('aria-controls="siteNavigation"', html)
+                self.assertIn('aria-expanded="false"', html)
+
     def test_root_alias_is_english_but_not_a_sitemap_canonical(self):
         root_html = (ROOT / "html/index.html").read_text(encoding="utf-8")
         self.assertIn('<html lang="en">', root_html)
