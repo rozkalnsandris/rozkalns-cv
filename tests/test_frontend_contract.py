@@ -172,7 +172,9 @@ class FrontendContractTests(unittest.TestCase):
         self.assertIn('"name photo"', layout)
         self.assertIn('min(calc(100% - 32px)', layout)
         self.assertIn('grid-template-columns: minmax(0,1fr) 190px 330px;', responsive)
-        self.assertIn('.topbar { flex-wrap: nowrap;', responsive)
+        self.assertIn('.topbar { flex-wrap: wrap;', responsive)
+        self.assertIn('justify-content: space-between;', responsive)
+        self.assertNotIn('.site-nav a[href="#experience"], .site-nav a[href="#education"] { display: none; }', responsive)
         self.assertIn('"name note photo"', responsive)
 
     def test_v3_accessibility_closeout_contract(self) -> None:

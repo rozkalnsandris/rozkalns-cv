@@ -926,7 +926,7 @@ async function runBrowserSmoke(baseUrl, state) {
     await cdp.key("Tab");
     assert.equal(await cdp.evaluate(`document.activeElement?.matches('.skip-link')`), true);
     const expectedFocusHrefs = [
-      "#", "#", "#projects", "#skills", "#stats", "#about", "#contact", "/en/"
+      "#", "#", "#projects", "#skills", "#stats", "#about", "#experience", "#education", "#contact", "/en/"
     ];
     for (const expectedHref of expectedFocusHrefs) {
       await cdp.key("Tab");
