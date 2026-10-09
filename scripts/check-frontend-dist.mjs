@@ -15,15 +15,18 @@ assert.equal(smartEntry?.isEntry, true, "manifest smarthome.html entry is missin
 assert.match(indexEntry.file, /^assets\/app\.[0-9a-f]{12}\.mjs$/);
 assert.match(smartEntry.file, /^assets\/smarthome\.[0-9a-f]{12}\.mjs$/);
 
-for (const feature of ["features/chat.mjs", "features/contact.mjs"]) {
+for (const feature of ["features/contact.mjs"]) {
   const row = manifest[feature];
   assert.equal(row?.isDynamicEntry, true, `${feature} is not a dynamic entry`);
   assert.ok(
     indexEntry.dynamicImports?.includes(feature),
     `${feature} is missing from index dynamic imports`
   );
-  assert.match(row.file, /^assets\/(?:chat|contact)\.[0-9a-f]{12}\.mjs$/);
+  assert.match(row.file, /^assets\/contact\.[0-9a-f]{12}\.mjs$/);
 }
+
+assert.ok(!manifest["features/chat.mjs"], "deferred assistant must not have a build entry");
+assert.ok(!indexEntry.dynamicImports?.includes("features/chat.mjs"), "deferred assistant must not load");
 
 for (const language of ["en", "de", "lv"]) {
   const row = manifest[`../content/translations/${language}.json`];

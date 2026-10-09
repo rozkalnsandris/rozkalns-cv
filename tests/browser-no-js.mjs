@@ -346,8 +346,10 @@ async function runNoJsLab(baseUrl, state) {
       await assertLink(cdp, "#proofLink", `/${scenario.language}/proof/`, `${path} engineering proof action`);
 
       assertHidden(await computedStyle(cdp, await queryNode(cdp, "#contactReveal")), `${path} contact verification`);
-      assertHidden(await computedStyle(cdp, await queryNode(cdp, "#chatLauncher")), `${path} CV assistant launcher`);
-      assertHidden(await computedStyle(cdp, await queryNode(cdp, "#chatBackdrop")), `${path} CV assistant dialog`);
+      const rootNode = await documentRoot(cdp);
+      for (const selector of ["#chatLauncher", "#chatBackdrop", "#chatDialog"]) {
+        assert.equal((await cdp.send("DOM.querySelector", { nodeId: rootNode, selector })).nodeId, 0);
+      }
 
       console.log(`LAB_NO_JS ${scenario.language} ${scenario.width}px recruiter_content=PASS static_actions=PASS js_only_controls=HIDDEN`);
     }

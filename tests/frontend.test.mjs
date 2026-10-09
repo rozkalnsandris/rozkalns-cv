@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import test from "node:test";
-import { installPreloadErrorRecovery, updateChatLauncherLabel, updateMainDocumentTitle } from "../frontend/app.mjs";
+import { installPreloadErrorRecovery, updateMainDocumentTitle } from "../frontend/app.mjs";
 import {
   applyRegionDisplayNames,
   applySkillTranslations,
@@ -88,22 +88,6 @@ test("Vite preload recovery reloads a stale document at most once", async () => 
     source,
     /installPreloadErrorRecovery\(window\);\s*window\.addEventListener\("DOMContentLoaded"/
   );
-});
-
-test("chat launcher uses descriptive responsive translated labels", () => {
-  const launcher = { textContent: "" };
-  const documentLike = { querySelector: (selector) => selector === "#chatLauncher" ? launcher : null };
-  const messages = { chat_open: "Ask the CV assistant", chat_title: "CV assistant" };
-
-  assert.equal(updateChatLauncherLabel({ messages }, { documentLike, viewportWidth: 639 }), true);
-  assert.equal(launcher.textContent, "Ask the CV assistant");
-  updateChatLauncherLabel({ messages }, { documentLike, viewportWidth: 720 });
-  assert.equal(launcher.textContent, "CV assistant");
-  updateChatLauncherLabel({ messages }, { documentLike, viewportWidth: 1559 });
-  assert.equal(launcher.textContent, "CV assistant");
-  updateChatLauncherLabel({ messages }, { documentLike, viewportWidth: 1560 });
-  assert.equal(launcher.textContent, "Ask the CV assistant");
-  assert.equal(updateChatLauncherLabel({ messages }, { documentLike: {}, viewportWidth: 900 }), false);
 });
 
 test("shared locale core preserves cvlang preference and fallback semantics", () => {
@@ -1724,11 +1708,11 @@ test("cached stats rerender in the applied language without refetching", async (
   assert.equal(updated.textContent, "—");
 });
 
-test("chat and contact stay behind interaction-only dynamic imports", async () => {
+test("contact stays lazy while public CV assistant is deferred", async () => {
   const source = await readFile(resolve(ROOT, "frontend/app.mjs"), "utf8");
   assert.doesNotMatch(source, /^import[\s\S]*?from "\.\/features\/chat\.mjs";/m);
   assert.doesNotMatch(source, /^import[\s\S]*?from "\.\/features\/contact\.mjs";/m);
-  assert.match(source, /import\("\.\/features\/chat\.mjs"\)/);
+  assert.doesNotMatch(source, /import\("\.\/features\/chat\.mjs"\)/);
   assert.match(source, /import\("\.\/features\/contact\.mjs"\)/);
   assert.match(source, /from "\.\/features\/stats\.mjs";/);
   assert.match(source, /bindStatsVisibility\(stats\)/);

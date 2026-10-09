@@ -28,6 +28,7 @@ current **source documentation**, not a production receipt.
   contract; production activation remains separately gated.
 - [`FRONTEND.md`](FRONTEND.md) — frontend source/build organization.
 - [`ui-v2/IMPLEMENTATION_PLAN.md`](ui-v2/IMPLEMENTATION_PLAN.md) — active UI-v2 implementation workspace plan; source-level guidance only and not merge/deploy authority.
+- [`ui-v2/SIMPLE_FIRST_ASSISTANT_DEFERRED.md`](ui-v2/SIMPLE_FIRST_ASSISTANT_DEFERRED.md) — reviewed source boundary for temporarily deferred CV Assistant; not production evidence.
 - [`CONTENT_AUTHORING.md`](CONTENT_AUTHORING.md) — canonical content and localization
   authoring rules.
 - [`ACCESSIBILITY_TESTING.md`](ACCESSIBILITY_TESTING.md) — accessibility validation

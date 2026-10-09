@@ -34,7 +34,8 @@
       "v2_home": "Home",
       "v2_lab_summary": "A structured public lab for Linux administration, troubleshooting and support practice.",
       "v2_host_summary": "A Raspberry Pi environment for self-hosted services, monitoring and daily operations.",
-      "v2_cv_summary": "A multilingual portfolio that makes my CV, projects and technical evidence accessible."
+      "v2_cv_summary": "A multilingual portfolio that makes my CV, projects and technical evidence accessible.",
+      "v2_assistant_deferred": "The CV Assistant is not available in this version of the site. For questions, use email or verified contact details."
     },
     "de": {
       "v2_featured": "Ausgewählte Projekte",
@@ -70,7 +71,8 @@
       "v2_home": "Start",
       "v2_lab_summary": "Ein strukturiertes öffentliches Labor für Linux-Administration, Fehlersuche und Support-Übungen.",
       "v2_host_summary": "Eine Raspberry-Pi-Umgebung für selbst gehostete Dienste, Monitoring und täglichen Betrieb.",
-      "v2_cv_summary": "Ein mehrsprachiges Portfolio mit Lebenslauf, Projekten und technischen Nachweisen."
+      "v2_cv_summary": "Ein mehrsprachiges Portfolio mit Lebenslauf, Projekten und technischen Nachweisen.",
+      "v2_assistant_deferred": "Der CV-Assistent ist in dieser Version der Website nicht verfügbar. Für Fragen nutzen Sie bitte E-Mail oder verifizierte Kontaktdaten."
     },
     "lv": {
       "v2_featured": "Izvēlētie projekti",
@@ -106,7 +108,8 @@
       "v2_home": "Sākums",
       "v2_lab_summary": "Strukturēta publiska laboratorija Linux administrēšanai, diagnostikai un atbalsta praksei.",
       "v2_host_summary": "Raspberry Pi vide pašmitinātiem servisiem, monitoringam un ikdienas uzturēšanai.",
-      "v2_cv_summary": "Daudzvalodu portfolio ar CV, projektiem un pārbaudāmiem tehniskajiem pierādījumiem."
+      "v2_cv_summary": "Daudzvalodu portfolio ar CV, projektiem un pārbaudāmiem tehniskajiem pierādījumiem.",
+      "v2_assistant_deferred": "Šajā vietnes versijā CV asistents nav pieejams. Jautājumiem izmantojiet e-pastu vai verificētu kontaktinformāciju."
     }
   }
 }
