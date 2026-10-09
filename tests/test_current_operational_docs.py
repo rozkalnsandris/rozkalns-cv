@@ -29,6 +29,7 @@ ARCHITECTURE_OPERATIONS = {
     "FRONTEND.md",
     "LIVE_STATS.md",
     "SIMPLE_DEPLOY_V1.md",
+    "SIMPLE_FIRST_SQLITE_STARTUP_BOUNDARY.md",
     "live-stats-scheduler.md",
     "ui-v2/IMPLEMENTATION_PLAN.md",
     "ui-v2/SIMPLE_FIRST_ASSISTANT_DEFERRED.md",

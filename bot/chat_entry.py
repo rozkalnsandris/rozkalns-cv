@@ -36,6 +36,13 @@ def _configure_application_logging() -> None:
     )
 
 
+def create_public_app():
+    """Serve public contact/health without Assistant SQLite startup."""
+    _configure_application_logging()
+    app = create_base_app(public_only=True)
+    atexit.register(close_app_services, app)
+    return app
+
 def create_app():
     _configure_application_logging()
     app = create_base_app()
