@@ -3,9 +3,9 @@
 .stats-head p { margin: 4px 0 0; color: var(--text-dim); font-size: 11px; }
 .live-status { display: inline-flex; align-items: center; gap: 7px; min-height: 32px; font-size: 11px; color: var(--text-dim); white-space: nowrap; }
 .live-dot { width: 7px; height: 7px; flex-shrink: 0; border-radius: 50%; background: #68768e; }
-.live-dot[data-state="live"] { background: var(--ok); }
+.live-dot[data-state="fresh"] { background: var(--ok); }
 .live-dot[data-state="stale"] { background: var(--warn); }
-.live-dot[data-state="offline"] { background: var(--err); }
+.live-dot[data-state="unavailable"] { background: #68768e; }
 .stats-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; }
 .stat { display: grid; align-content: center; gap: 5px; min-width: 0; padding: 12px; min-height: 76px; background: var(--surface-2); border-radius: 6px; }
 .stat-value { color: var(--text); font-size: 21px; font-weight: 750; line-height: 1.2; font-variant-numeric: tabular-nums; letter-spacing: -.025em; }

@@ -417,7 +417,7 @@ async function waitForScenario(cdp, scenario) {
   );
   if (scenario.kind === "main") {
     await cdp.waitFor(
-      `document.querySelector('#liveDot')?.dataset.state === "live" && document.querySelector('[data-stat="docker_containers"]')?.textContent === "16"`,
+      `document.querySelector('#liveDot')?.dataset.state === "fresh" && document.querySelector('[data-stat="docker_containers"]')?.textContent === "16"`,
       10_000,
       `${scenario.path} ${scenario.width}px live statistics`
     );

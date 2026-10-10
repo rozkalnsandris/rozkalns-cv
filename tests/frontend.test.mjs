@@ -1349,10 +1349,10 @@ test("Turnstile script loading is shared in flight and retryable after failure",
   assert.equal(scripts.length, 2);
 });
 
-test("valid recent stats are live", () => {
+test("valid recent stats are fresh", () => {
   const result = validateStats(liveStats, Date.parse("2026-08-06T12:05:00Z"));
   assert.equal(result.valid, true);
-  assert.equal(result.state, "live");
+  assert.equal(result.state, "fresh");
 });
 
 test("old stats are stale", () => {
@@ -1361,7 +1361,7 @@ test("old stats are stale", () => {
   assert.equal(result.state, "stale");
 });
 
-test("future, malformed, and non-finite stats are offline", () => {
+test("future, malformed, and non-finite stats are unavailable", () => {
   assert.equal(
     validateStats(liveStats, Date.parse("2026-08-06T11:50:00Z")).valid,
     false
@@ -1551,8 +1551,8 @@ test("stats ignores stale responses and stopped in-flight loads", async () => {
   const languageController = {
     language: "en",
     messages: {
-      status_live: "Live",
-      status_offline: "Offline",
+      status_fresh: "Metrics current",
+      status_unavailable: "Metrics unavailable",
       last_update: "Last update"
     }
   };
@@ -1585,13 +1585,13 @@ test("stats ignores stale responses and stopped in-flight loads", async () => {
   await newerSuccess;
 
   assert.equal(stat.textContent, "22");
-  assert.equal(label.textContent, "Live");
+  assert.equal(label.textContent, "Metrics current");
 
   pending[0].resolve(response(11));
   await olderSuccess;
 
   assert.equal(stat.textContent, "22");
-  assert.equal(label.textContent, "Live");
+  assert.equal(label.textContent, "Metrics current");
 
   // A stale failure must not turn a newer successful render offline.
   const staleFailure = stats.load();
@@ -1611,7 +1611,7 @@ test("stats ignores stale responses and stopped in-flight loads", async () => {
   await staleFailure;
 
   assert.equal(stat.textContent, "33");
-  assert.equal(label.textContent, "Live");
+  assert.equal(label.textContent, "Metrics current");
 
   // stop() invalidates an already-running request.
   const stoppedLoad = stats.load();
@@ -1634,7 +1634,7 @@ test("stats ignores stale responses and stopped in-flight loads", async () => {
   await resumedLoad;
 
   assert.equal(stat.textContent, "55");
-  assert.equal(label.textContent, "Live");
+  assert.equal(label.textContent, "Metrics current");
 });
 
 test("cached stats rerender in the applied language without refetching", async () => {
@@ -1663,8 +1663,8 @@ test("cached stats rerender in the applied language without refetching", async (
   const languageController = {
     language: "en",
     messages: {
-      status_live: "Live",
-      status_offline: "Offline",
+      status_fresh: "Metrics current",
+      status_unavailable: "Metrics unavailable",
       last_update: "Last update"
     }
   };
@@ -1676,36 +1676,119 @@ test("cached stats rerender in the applied language without refetching", async (
 
   await stats.load();
   assert.equal(fetches, 1);
-  assert.equal(label.textContent, "Live");
+  assert.equal(label.textContent, "Metrics current");
   assert.match(updated.textContent, /^Last update:/);
 
   languageController.language = "de";
   languageController.messages = {
-    status_live: "Aktuell",
-    status_offline: "Nicht verfügbar",
+    status_fresh: "Messwerte aktuell",
+    status_unavailable: "Messwerte nicht verfügbar",
     last_update: "Letzte Aktualisierung"
   };
   assert.equal(stats.rerender(), true);
   assert.equal(fetches, 1);
-  assert.equal(label.textContent, "Aktuell");
+  assert.equal(label.textContent, "Messwerte aktuell");
   assert.match(updated.textContent, /^Letzte Aktualisierung:/);
 
   unavailable = true;
   await stats.load();
   assert.equal(fetches, 2);
-  assert.equal(label.textContent, "Nicht verfügbar");
+  assert.equal(label.textContent, "Messwerte nicht verfügbar");
   assert.equal(updated.textContent, "—");
 
   languageController.language = "lv";
   languageController.messages = {
-    status_live: "Tiešsaistē",
-    status_offline: "Bezsaistē",
+    status_fresh: "aktuāli mērījumi",
+    status_unavailable: "mērījumi nav pieejami",
     last_update: "Pēdējais atjauninājums"
   };
   assert.equal(stats.rerender(), true);
   assert.equal(fetches, 2);
-  assert.equal(label.textContent, "Bezsaistē");
+  assert.equal(label.textContent, "mērījumi nav pieejami");
   assert.equal(updated.textContent, "—");
+});
+
+
+test("EN/DE/LV telemetry states remain truthful after unavailable data and repeated polling", async () => {
+  for (const language of ["en", "de", "lv"]) {
+    const messages = JSON.parse(await readFile(
+      resolve(ROOT, "content", "translations", language + ".json"), "utf8"
+    ));
+    for (const key of ["status_loading", "status_fresh", "status_stale", "status_unavailable"]) {
+      assert.equal(typeof messages[key], "string", language + ":" + key);
+      assert.ok(messages[key].trim());
+      assert.doesNotMatch(messages[key], /offline|bezsaistē/i);
+    }
+
+    let announcements = 0;
+    let labelText = messages.status_loading;
+    const label = {
+      get textContent() { return labelText; },
+      set textContent(value) { labelText = value; announcements += 1; }
+    };
+    const dot = { dataset: {} };
+    const updated = { textContent: "—" };
+    const stat = { textContent: "—", dataset: { stat: "cpu_usage", decimals: "1", suffix: "%" } };
+    const root = {
+      querySelector(selector) {
+        return { "#liveDot": dot, "#liveLabel": label, "#statsUpdated": updated }[selector] ?? null;
+      },
+      querySelectorAll(selector) { return selector === "[data-stat]" ? [stat] : []; }
+    };
+    const recent = () => ({ ...liveStats, updated: new Date().toISOString() });
+    let payload = recent();
+    let fail = false;
+    const fetchImpl = async () => fail
+      ? { ok: false, async json() { return null; } }
+      : { ok: true, async json() { return payload; } };
+    const controller = createStatsController({ language, messages }, {
+      root, fetchImpl, windowLike: { clearInterval() {}, setInterval() { return 1; } }
+    });
+
+    assert.equal(label.textContent, messages.status_loading);
+    await controller.load();
+    assert.equal(label.textContent, messages.status_fresh);
+    assert.equal(dot.dataset.state, "fresh");
+    assert.equal(stat.textContent, "14.2%");
+    assert.match(updated.textContent, new RegExp("^" + messages.last_update + ":"));
+    const firstAnnouncements = announcements;
+    await controller.load();
+    assert.equal(announcements, firstAnnouncements, "repeated polling must not repeat unchanged aria-live status");
+
+    payload = { ...recent(), updated: new Date(Date.now() - 20 * 60000).toISOString() };
+    await controller.load();
+    assert.equal(label.textContent, messages.status_stale);
+    assert.equal(dot.dataset.state, "stale");
+    assert.equal(stat.textContent, "14.2%");
+
+    fail = true;
+    await controller.load();
+    assert.equal(label.textContent, messages.status_unavailable);
+    assert.equal(dot.dataset.state, "unavailable");
+    assert.equal(stat.textContent, "—");
+    assert.equal(updated.textContent, "—");
+
+    fail = false;
+    payload = recent();
+    delete payload.cpu_temp;
+    await controller.load();
+    assert.equal(label.textContent, messages.status_unavailable);
+    assert.equal(stat.textContent, "—");
+
+    payload = recent();
+    await controller.load();
+    assert.equal(label.textContent, messages.status_fresh);
+    assert.equal(stat.textContent, "14.2%");
+    assert.equal(dot.dataset.state, "fresh");
+  }
+});
+
+test("malformed or absent telemetry never claims the host is offline", () => {
+  for (const candidate of [null, [], {}, { ...liveStats, updated: "invalid" }, { ...liveStats, cpu_usage: Infinity }]) {
+    const validation = validateStats(candidate);
+    assert.equal(validation.valid, false);
+    assert.equal(validation.state, "unavailable");
+  }
 });
 
 test("contact stays lazy while public CV assistant is deferred", async () => {

@@ -1,28 +1,28 @@
 {
   "../content/translations/de.json": {
-    "file": "i18n/de.ad6fae213ffe.json",
+    "file": "i18n/de.a3c2ffe5684a.json",
     "src": "../content/translations/de.json"
   },
   "../content/translations/en.json": {
-    "file": "i18n/en.acc98a5ac797.json",
+    "file": "i18n/en.738b8680b1d4.json",
     "src": "../content/translations/en.json"
   },
   "../content/translations/lv.json": {
-    "file": "i18n/lv.e9b54e2fa509.json",
+    "file": "i18n/lv.1f1ba2a9932d.json",
     "src": "../content/translations/lv.json"
   },
-  "_i18n.502b0c91e48c.mjs": {
-    "file": "assets/i18n.502b0c91e48c.mjs",
+  "_i18n.5785915b2a2a.mjs": {
+    "file": "assets/i18n.5785915b2a2a.mjs",
     "name": "i18n",
     "assets": [
-      "i18n/en.acc98a5ac797.json",
-      "i18n/de.ad6fae213ffe.json",
-      "i18n/lv.e9b54e2fa509.json"
+      "i18n/en.738b8680b1d4.json",
+      "i18n/de.a3c2ffe5684a.json",
+      "i18n/lv.1f1ba2a9932d.json"
     ]
   },
-  "_styles.555d6a18cf37.css": {
-    "file": "assets/styles.555d6a18cf37.css",
-    "src": "_styles.555d6a18cf37.css"
+  "_styles.e8d4a804375e.css": {
+    "file": "assets/styles.e8d4a804375e.css",
+    "src": "_styles.e8d4a804375e.css"
   },
   "features/contact.mjs": {
     "file": "assets/contact.7b6109616fbb.mjs",
@@ -31,18 +31,18 @@
     "isDynamicEntry": true
   },
   "index.html": {
-    "file": "assets/app.174fd97f315b.mjs",
+    "file": "assets/app.bbf220ec6fee.mjs",
     "name": "app",
     "src": "index.html",
     "isEntry": true,
     "imports": [
-      "_i18n.502b0c91e48c.mjs"
+      "_i18n.5785915b2a2a.mjs"
     ],
     "dynamicImports": [
       "features/contact.mjs"
     ],
     "css": [
-      "assets/styles.555d6a18cf37.css"
+      "assets/styles.e8d4a804375e.css"
     ],
     "assets": [
       "assets/photo.18997b6089ce.webp"
@@ -53,53 +53,53 @@
     "src": "photo.webp"
   },
   "smarthome.html": {
-    "file": "assets/smarthome.d6fe5c0b21de.mjs",
+    "file": "assets/smarthome.c665c763d235.mjs",
     "name": "smarthome",
     "src": "smarthome.html",
     "isEntry": true,
     "imports": [
-      "_i18n.502b0c91e48c.mjs"
+      "_i18n.5785915b2a2a.mjs"
     ],
     "css": [
-      "assets/styles.555d6a18cf37.css"
+      "assets/styles.e8d4a804375e.css"
     ]
   },
   "_localized": {
     "en": {
       "path": "en/index.html",
-      "sha256": "e13e7ebe7674b63676096361e63ad9a39d5d88f701cf79ce7cc776f6a6e0579f"
+      "sha256": "55e455fbee0d1f1376e5d9637b4f07d812f33619540772a3aa930ebc1c43569b"
     },
     "de": {
       "path": "de/index.html",
-      "sha256": "7eb92d99c71a24491975648668045c5e90e7fcda91c4648c187915eb50003116"
+      "sha256": "4fe60f4b02e18d483bb34258b81fb8c188013700863a5e7a0ec012e0d682c98d"
     },
     "lv": {
       "path": "lv/index.html",
-      "sha256": "4db43b74926201df69c5b5178919b1c62a44a8ac93168da0c673565c5f828b4d"
+      "sha256": "710532ce3e1aa5136d35118e0ebddcbd934c2fd0106f5721db3723771457db3d"
     },
     "proof_en": {
       "path": "en/proof/index.html",
-      "sha256": "03daffafb378c86ecb2b81536e802e7a7d27b347b78265a4043f3ae783a94ea5"
+      "sha256": "bc9521b08fc77509506fb2e346065dca16b77e066a8a0a4bf4bd7559decac635"
     },
     "proof_de": {
       "path": "de/proof/index.html",
-      "sha256": "951c4a684decfe52d004baf49b72df18ee5bc3f9aefc0ffc56f815f24788ccea"
+      "sha256": "a6f0939ddaaa817fa796d6206d5463cdf94fa46067bf4095299d55d198842d38"
     },
     "proof_lv": {
       "path": "lv/proof/index.html",
-      "sha256": "d6ee346e89cd5225aafd9f358f8080eaee91e98e38556009ba36a9e39f1cf553"
+      "sha256": "b3505f83506a0cfa01c8998aff61cd1a3e70f21a1663a36414bf664afe06867d"
     },
     "lab_en": {
       "path": "en/lab/index.html",
-      "sha256": "d3ced531c237c33b848764b7d2f516fd4e418bfd0861cb0cc3f169919609b9e2"
+      "sha256": "ab0d119b01ef65517a701be5982d544dac6bec2dc20c89803b6c35ae32c0a370"
     },
     "lab_de": {
       "path": "de/lab/index.html",
-      "sha256": "43f9b2227106bffe1a3edeca35835597a56db7352caad008bf3e6f80579c3346"
+      "sha256": "9d3b2cbf8a819892c021b83a2818e14c70b6c6e45f12f825bbc71925573449b9"
     },
     "lab_lv": {
       "path": "lv/lab/index.html",
-      "sha256": "f203cd3215ac52e3ed8e155b8fa497cf368c19249705e29241e246b92235a3bd"
+      "sha256": "88e1b68c98e53401c91c0a3938f0bf5b0171d4f3165e2268f969d4919accfdb4"
     },
     "sitemap": {
       "path": "sitemap.xml",
