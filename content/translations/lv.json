@@ -18,10 +18,8 @@
   "about_p2": "Strādāju no simptoma un pierādījumiem līdz hipotēzei, testam, atjaunošanas pārbaudei un skaidrai dokumentācijai vai eskalācijai. Mērķēju uz Junior Technical Support, Linux Operations vai Application Support lomām un esmu pieejams no 2027. gada janvāra.",
   "stats_title": "Mājas serveris tiešraidē",
   "stats_subtitle": "Prometheus un Node Exporter · atjauno ik pēc 60 sekundēm",
-  "status_loading": "pārbauda",
-  "status_live": "tiešraide",
-  "status_stale": "saglabātie dati",
-  "status_offline": "bezsaistē",
+  "status_loading": "pārbauda mērījumus",
+  "status_stale": "novecojuši mērījumi",
   "st_uptime": "30 dienu darbspēja",
   "st_containers": "Konteineri",
   "st_load": "Sistēmas slodze",
@@ -193,5 +191,7 @@
   "skill_group_networking_web_items": "Tīklu pamati · DNS · SSL/TLS · Nginx",
   "skill_group_containers_monitoring_items": "Docker · Docker Compose · Prometheus · Grafana",
   "skill_group_application_support_items": "REST API · SQL pamati (apgūstu) · HTML/CSS",
-  "skill_group_automation_git_items": "Bash · Python · YAML · Git"
+  "skill_group_automation_git_items": "Bash · Python · YAML · Git",
+  "status_fresh": "aktuāli mērījumi",
+  "status_unavailable": "mērījumi nav pieejami"
 }

@@ -465,7 +465,7 @@ async function runBrowserSmoke(baseUrl, state) {
       "English document initialization"
     );
     await cdp.waitFor(
-      `document.querySelector("#liveDot")?.dataset.state === "live" && document.querySelector('[data-stat="docker_containers"]')?.textContent === "16"`,
+      `document.querySelector("#liveDot")?.dataset.state === "fresh" && document.querySelector('[data-stat="docker_containers"]')?.textContent === "16"`,
       10_000,
       "live statistics rendering"
     );
@@ -652,7 +652,7 @@ async function runBrowserSmoke(baseUrl, state) {
     state.statsMode = "invalid";
     await cdp.navigate(`${baseUrl}/lv/`);
     await cdp.waitFor(
-      `document.querySelector('#liveDot')?.dataset.state === "offline" && document.querySelector('#statsUpdated')?.textContent === "—"`,
+      `document.querySelector('#liveDot')?.dataset.state === "unavailable" && document.querySelector('#statsUpdated')?.textContent === "—"`,
       10_000,
       "invalid statistics rejection"
     );

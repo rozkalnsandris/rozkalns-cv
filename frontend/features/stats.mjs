@@ -7,28 +7,28 @@ export const REQUIRED_STATS = Object.freeze([
 
 export function validateStats(payload, nowMs = Date.now()) {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-    return { valid: false, state: "offline", reason: "shape" };
+    return { valid: false, state: "unavailable", reason: "shape" };
   }
   for (const key of REQUIRED_STATS) {
-    if (!(key in payload)) return { valid: false, state: "offline", reason: `missing:${key}` };
+    if (!(key in payload)) return { valid: false, state: "unavailable", reason: `missing:${key}` };
   }
   const timestamp = Date.parse(payload.updated);
   if (!Number.isFinite(timestamp)) {
-    return { valid: false, state: "offline", reason: "timestamp" };
+    return { valid: false, state: "unavailable", reason: "timestamp" };
   }
   const ageMinutes = (nowMs - timestamp) / 60000;
   if (!Number.isFinite(ageMinutes) || ageMinutes < -5) {
-    return { valid: false, state: "offline", reason: "future" };
+    return { valid: false, state: "unavailable", reason: "future" };
   }
   for (const [key, value] of Object.entries(payload)) {
     if (key === "updated") continue;
     if (value !== null && (typeof value !== "number" || !Number.isFinite(value))) {
-      return { valid: false, state: "offline", reason: `number:${key}` };
+      return { valid: false, state: "unavailable", reason: `number:${key}` };
     }
   }
   return {
     valid: true,
-    state: ageMinutes > 15 ? "stale" : "live",
+    state: ageMinutes > 15 ? "stale" : "fresh",
     ageMinutes,
     timestamp
   };
@@ -44,10 +44,29 @@ function setStatus(state, messages, root) {
     ...Array.from(root.querySelectorAll?.("[data-live-state-label]") || [])
   ].filter(Boolean);
   if (!dots.length || !labels.length) return;
-  const key = state === "live" ? "status_live" : state === "stale" ? "status_stale" : "status_offline";
-  const text = messages?.[key] || state;
-  dots.forEach((dot) => { dot.dataset.state = state; });
-  labels.forEach((label) => { label.textContent = text; });
+  const key = state === "fresh" ? "status_fresh"
+    : state === "stale" ? "status_stale"
+    : state === "loading" ? "status_loading"
+    : "status_unavailable";
+  const text = messages?.[key] || {
+    fresh: "metrics updated",
+    stale: "metrics delayed",
+    loading: "checking metrics",
+    unavailable: "metrics unavailable"
+  }[state];
+  dots.forEach((dot) => {
+    if (dot.dataset.state !== state) dot.dataset.state = state;
+  });
+  // An unchanged status must not cause another screen-reader announcement.
+  labels.forEach((label) => {
+    if (label.textContent !== text) label.textContent = text;
+  });
+}
+
+function clearStats(root) {
+  root.querySelectorAll("[data-stat]").forEach((element) => {
+    if (element.textContent !== "—") element.textContent = "—";
+  });
 }
 
 function renderStats(payload, validation, language, messages, root) {
@@ -89,7 +108,8 @@ export function createStatsController(languageController, {
         root
       );
     } else {
-      setStatus("offline", languageController.messages, root);
+      clearStats(root);
+      setStatus("unavailable", languageController.messages, root);
       const updated = root.querySelector("#statsUpdated");
       if (updated) updated.textContent = "—";
     }
@@ -98,6 +118,7 @@ export function createStatsController(languageController, {
 
   async function load() {
     const generation = ++loadGeneration;
+    if (!renderState) setStatus("loading", languageController.messages, root);
     try {
       const response = await fetchImpl(`/stats.json?_=${Date.now()}`, { cache: "no-store" });
       if (!response.ok) throw new Error("stats unavailable");
@@ -109,7 +130,7 @@ export function createStatsController(languageController, {
       rerender();
     } catch {
       if (generation !== loadGeneration) return;
-      renderState = { kind: "offline" };
+      renderState = { kind: "unavailable" };
       rerender();
     }
   }
