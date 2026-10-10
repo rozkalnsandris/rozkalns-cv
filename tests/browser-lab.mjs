@@ -475,7 +475,7 @@ async function runBrowserLab(baseUrl, state) {
       await armLayoutMeasurement(cdp, context);
       statsGate.release();
       await cdp.waitFor(
-        `document.querySelector('#liveDot')?.dataset.state === "live" && document.querySelector('[data-stat="docker_containers"]')?.textContent === "16"`,
+        `document.querySelector('#liveDot')?.dataset.state === "fresh" && document.querySelector('[data-stat="docker_containers"]')?.textContent === "16"`,
         10_000,
         `${scenario.language} ${scenario.width}px delayed live statistics`
       );
@@ -501,7 +501,7 @@ async function runBrowserLab(baseUrl, state) {
     await armLayoutMeasurement(cdp, "synthetic detector self-check");
     detectorStatsGate.release();
     await cdp.waitFor(
-      `document.querySelector('#liveDot')?.dataset.state === "live"`,
+      `document.querySelector('#liveDot')?.dataset.state === "fresh"`,
       10_000,
       "synthetic detector self-check baseline"
     );
