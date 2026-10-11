@@ -37,7 +37,10 @@
       "v2_lab_summary": "A structured public lab for Linux administration, troubleshooting and support practice.",
       "v2_host_summary": "A Raspberry Pi environment for self-hosted services, monitoring and daily operations.",
       "v2_cv_summary": "A multilingual portfolio that makes my CV, projects and technical evidence accessible.",
-      "v2_assistant_deferred": "The CV Assistant is not available in this version of the site. For questions, use email or verified contact details."
+      "v2_assistant_deferred": "The CV Assistant is not available in this version of the site. For questions, use email or verified contact details.",
+      "v2_lab_link": "Explore Linux lab plan",
+      "v2_homelab_link": "View homelab evidence",
+      "v2_cv_link_github": "Read troubleshooting case (GitHub)"
     },
     "de": {
       "v2_featured": "Ausgewählte Projekte",
@@ -76,7 +79,10 @@
       "v2_lab_summary": "Ein strukturiertes öffentliches Labor für Linux-Administration, Fehlersuche und Support-Übungen.",
       "v2_host_summary": "Eine Raspberry-Pi-Umgebung für selbst gehostete Dienste, Monitoring und täglichen Betrieb.",
       "v2_cv_summary": "Ein mehrsprachiges Portfolio mit Lebenslauf, Projekten und technischen Nachweisen.",
-      "v2_assistant_deferred": "Der CV-Assistent ist in dieser Version der Website nicht verfügbar. Für Fragen nutzen Sie bitte E-Mail oder verifizierte Kontaktdaten."
+      "v2_assistant_deferred": "Der CV-Assistent ist in dieser Version der Website nicht verfügbar. Für Fragen nutzen Sie bitte E-Mail oder verifizierte Kontaktdaten.",
+      "v2_lab_link": "Linux-Laborplan ansehen",
+      "v2_homelab_link": "Homelab-Nachweise ansehen",
+      "v2_cv_link_github": "Fehleranalyse auf GitHub lesen"
     },
     "lv": {
       "v2_featured": "Izvēlētie projekti",
@@ -115,7 +121,10 @@
       "v2_lab_summary": "Strukturēta publiska laboratorija Linux administrēšanai, diagnostikai un atbalsta praksei.",
       "v2_host_summary": "Raspberry Pi vide pašmitinātiem servisiem, monitoringam un ikdienas uzturēšanai.",
       "v2_cv_summary": "Daudzvalodu portfolio ar CV, projektiem un pārbaudāmiem tehniskajiem pierādījumiem.",
-      "v2_assistant_deferred": "Šajā vietnes versijā CV asistents nav pieejams. Jautājumiem izmantojiet e-pastu vai verificētu kontaktinformāciju."
+      "v2_assistant_deferred": "Šajā vietnes versijā CV asistents nav pieejams. Jautājumiem izmantojiet e-pastu vai verificētu kontaktinformāciju.",
+      "v2_lab_link": "Skatīt Linux laboratorijas plānu",
+      "v2_homelab_link": "Skatīt homelab pierādījumus",
+      "v2_cv_link_github": "Lasīt problēmas izpēti GitHub"
     }
   }
 }
