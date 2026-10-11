@@ -40,7 +40,8 @@
       "v2_assistant_deferred": "The CV Assistant is not available in this version of the site. For questions, use email or verified contact details.",
       "v2_lab_link": "Explore Linux lab plan",
       "v2_homelab_link": "View homelab evidence",
-      "v2_cv_link_github": "Read troubleshooting case (GitHub)"
+      "v2_cv_link_github": "Read troubleshooting case (GitHub)",
+      "v2_skill_proof_link": "View skill levels and evidence"
     },
     "de": {
       "v2_featured": "Ausgewählte Projekte",
@@ -82,7 +83,8 @@
       "v2_assistant_deferred": "Der CV-Assistent ist in dieser Version der Website nicht verfügbar. Für Fragen nutzen Sie bitte E-Mail oder verifizierte Kontaktdaten.",
       "v2_lab_link": "Linux-Laborplan ansehen",
       "v2_homelab_link": "Homelab-Nachweise ansehen",
-      "v2_cv_link_github": "Fehleranalyse auf GitHub lesen"
+      "v2_cv_link_github": "Fehleranalyse auf GitHub lesen",
+      "v2_skill_proof_link": "Kenntnisstufen und Nachweise ansehen"
     },
     "lv": {
       "v2_featured": "Izvēlētie projekti",
@@ -124,7 +126,8 @@
       "v2_assistant_deferred": "Šajā vietnes versijā CV asistents nav pieejams. Jautājumiem izmantojiet e-pastu vai verificētu kontaktinformāciju.",
       "v2_lab_link": "Skatīt Linux laboratorijas plānu",
       "v2_homelab_link": "Skatīt homelab pierādījumus",
-      "v2_cv_link_github": "Lasīt problēmas izpēti GitHub"
+      "v2_cv_link_github": "Lasīt problēmas izpēti GitHub",
+      "v2_skill_proof_link": "Skatīt prasmju līmeņus un pierādījumus"
     }
   }
 }
