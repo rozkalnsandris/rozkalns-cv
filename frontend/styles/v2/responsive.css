@@ -1,4 +1,5 @@
 @media (min-width: 640px) {
+  .project-card .project-facts div { grid-template-columns: minmax(58px,25%) minmax(0,1fr); gap: 10px; }
   .page { width: min(calc(100% - 48px),var(--maxw)); }
   .hero-shell { grid-template-columns: minmax(0,1fr) 180px; gap: 14px 28px; }
   .profile-photo { height: 200px; }
@@ -59,9 +60,4 @@
   .project-copy h3 { font-size: 22px; }
   .project-facts div { font-size: 12px; }
   .education-list { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 24px; }
-}
-
-/* #517: single-column fact labels prevent narrow/zoomed card content from clipping. */
-@media (max-width: 399px) {
-  .project-card .project-facts div { grid-template-columns: minmax(0,1fr); gap: 2px; }
 }
