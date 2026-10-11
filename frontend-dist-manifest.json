@@ -67,15 +67,15 @@
   "_localized": {
     "en": {
       "path": "en/index.html",
-      "sha256": "baed44b171f8173afada9dc47a508d4c35a5f64ef3a587b8f1200dcaa2eb8c8c"
+      "sha256": "127798d81dc7c5dfd035f0314c1fda390c3bcb87e9ee5fea21da1ff6c7f7f609"
     },
     "de": {
       "path": "de/index.html",
-      "sha256": "68b60f710791150eb94b0868eaee9858680268ee325e4fee20b86ec53f8b6b1c"
+      "sha256": "f0285ff289a5551b542466095aca2311f65a14529b0787baa8da559ebaf533f2"
     },
     "lv": {
       "path": "lv/index.html",
-      "sha256": "fcd1d9fba2298959ceb718d13ee43aac0817ed5667fa8d051271227953b06be5"
+      "sha256": "ebf10060979c83c66c9522c04c3512cd97a487eba4f586c8f2704c89b1028fdc"
     },
     "proof_en": {
       "path": "en/proof/index.html",
