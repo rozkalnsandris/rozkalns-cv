@@ -105,6 +105,30 @@ class LocalizedPageContractTests(unittest.TestCase):
                 self.assertIn('aria-controls="siteNavigation"', html)
                 self.assertIn('aria-expanded="false"', html)
 
+    def test_deferred_assistant_privacy_context_is_localized_without_javascript(self):
+        source = (ROOT / "frontend/index.html").read_text(encoding="utf-8")
+        context_key = "v2_assistant_privacy_context"
+        self.assertEqual(source.count(f'data-ui-i18n="{context_key}"'), 1)
+        self.assertLess(
+            source.index(f'data-ui-i18n="{context_key}"'),
+            source.index('<div class="privacy-grid">'),
+        )
+        messages = json.loads((ROOT / "content/ui-v2.json").read_text(encoding="utf-8"))["i18n"]
+        for language in EXPECTED:
+            with self.subTest(language=language):
+                document = (ROOT / f"html/{language}/index.html").read_text(encoding="utf-8")
+                notice = (
+                    f'<p class="privacy-intro" data-ui-i18n="{context_key}">'
+                    f'{messages[language][context_key]}</p>'
+                )
+                self.assertIn(notice, document)
+                self.assertLess(document.index(notice), document.index('<div class="privacy-grid">'))
+                self.assertIn('data-i18n="privacy_openai_body"', document)
+                self.assertIn('data-i18n="privacy_turnstile_body"', document)
+                self.assertIn('data-i18n="privacy_local_body"', document)
+                self.assertIn('id="contactReveal"', document)
+                self.assertNotIn('id="chatLauncher"', document)
+
     def test_root_alias_is_english_but_not_a_sitemap_canonical(self):
         root_html = (ROOT / "html/index.html").read_text(encoding="utf-8")
         self.assertIn('<html lang="en">', root_html)
