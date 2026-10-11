@@ -65,7 +65,7 @@ class LocalizedPageContractTests(unittest.TestCase):
                     r'<a\b[^>]*\bhref="(/(?:en|de|lv)/proof/(?:#[^"]*)?)"[^>]*>',
                     document,
                 )
-                self.assertEqual(len(destinations), 4)
+                self.assertEqual(len(destinations), 5)
                 self.assertTrue(
                     all(destination.startswith(f"/{language}/proof/") for destination in destinations),
                     destinations,
