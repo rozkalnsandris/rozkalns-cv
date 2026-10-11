@@ -680,6 +680,7 @@ async function runBrowserSmoke(baseUrl, state) {
     assert(linkState.hrefs.includes("/cv-lv.pdf"), `link-state=${JSON.stringify(linkState)}`);
 
     const responsiveMatrix = [
+      { width: 320, height: 720, mobile: true },
       { width: 390, height: 844, mobile: true },
       { width: 430, height: 932, mobile: true },
       { width: 768, height: 1024, mobile: false },
@@ -853,6 +854,47 @@ async function runBrowserSmoke(baseUrl, state) {
           };
         })()`);
         const context = `${locale.label} ${viewport.width}px`;
+
+        const projectCards = await cdp.evaluate(`(() => [...document.querySelectorAll('#projects .project-card.primary')].map((card) => {
+          const summary = card.querySelector('.project-summary');
+          const fact = card.querySelector('.project-facts div');
+          const learning = card.querySelector('.project-learning-details');
+          const disclosure = learning.querySelector('summary');
+          const action = card.querySelector('.project-actions a');
+          const status = card.querySelector('.project-status');
+          const heading = card.querySelector('h3');
+          return {
+            summarySize: parseFloat(getComputedStyle(summary).fontSize),
+            factSize: parseFloat(getComputedStyle(fact).fontSize),
+            learningSize: parseFloat(getComputedStyle(learning).fontSize),
+            actionSize: parseFloat(getComputedStyle(action).fontSize),
+            disclosureHeight: disclosure.getBoundingClientRect().height,
+            statusSize: parseFloat(getComputedStyle(status).fontSize),
+            statusPosition: getComputedStyle(status).position,
+            statusBeforeHeading: status.getBoundingClientRect().bottom <= heading.getBoundingClientRect().top + 1,
+            overflow: card.scrollWidth > card.clientWidth + 1,
+            factOverflow: fact.scrollWidth > fact.clientWidth + 1,
+            actionHref: action.getAttribute('href'),
+            disclosureTag: disclosure.tagName
+          };
+        }))()`);
+        assert.equal(projectCards.length, 3, `${context} featured project count`);
+        for (const [index, card] of projectCards.entries()) {
+          const label = `${context} project ${index + 1}`;
+          assert.ok(card.summarySize >= 15, `${label} readable summary`);
+          assert.ok(card.factSize >= 13, `${label} readable factual proof`);
+          assert.ok(card.learningSize >= 13, `${label} readable disclosure text`);
+          assert.ok(card.actionSize >= 14, `${label} readable main action`);
+          assert.ok(card.statusSize >= 12, `${label} status legibility`);
+          assert.ok(card.disclosureHeight >= 44, `${label} keyboard disclosure target`);
+          assert.equal(card.statusPosition, 'static', `${label} status must not obscure the preview`);
+          assert.ok(card.statusBeforeHeading, `${label} status precedes heading`);
+          assert.equal(card.disclosureTag, 'SUMMARY', `${label} native keyboard disclosure`);
+          assert.ok(card.actionHref, `${label} clear action destination`);
+          assert.equal(card.overflow, false, `${label} card overflow`);
+          assert.equal(card.factOverflow, false, `${label} factual evidence overflow`);
+        }
+
         assert.equal(layout.innerWidth, viewport.width, `${context} viewport width`);
         assert.ok(
           layout.documentScrollWidth <= layout.documentClientWidth,
