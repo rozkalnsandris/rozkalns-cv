@@ -86,11 +86,11 @@
       "version": "2.8.0"
     },
     {
-      "bom-ref": "pkg:pypi/werkzeug@3.1.8",
+      "bom-ref": "pkg:pypi/werkzeug@3.1.9",
       "name": "werkzeug",
-      "purl": "pkg:pypi/werkzeug@3.1.8",
+      "purl": "pkg:pypi/werkzeug@3.1.9",
       "type": "library",
-      "version": "3.1.8"
+      "version": "3.1.9"
     }
   ],
   "dependencies": [
@@ -125,7 +125,7 @@
         "pkg:pypi/itsdangerous@2.2.0",
         "pkg:pypi/jinja2@3.1.6",
         "pkg:pypi/markupsafe@3.0.3",
-        "pkg:pypi/werkzeug@3.1.8"
+        "pkg:pypi/werkzeug@3.1.9"
       ],
       "ref": "pkg:pypi/flask@3.1.3"
     },
@@ -168,7 +168,7 @@
       "dependsOn": [
         "pkg:pypi/markupsafe@3.0.3"
       ],
-      "ref": "pkg:pypi/werkzeug@3.1.8"
+      "ref": "pkg:pypi/werkzeug@3.1.9"
     }
   ],
   "metadata": {
