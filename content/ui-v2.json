@@ -42,7 +42,18 @@
       "v2_lab_link": "Explore Linux lab plan",
       "v2_homelab_link": "View homelab evidence",
       "v2_cv_link_github": "Read troubleshooting case (GitHub)",
-      "v2_skill_proof_link": "View skill levels and evidence"
+      "v2_skill_proof_link": "View skill levels and evidence",
+      "v2_hermes_preview": "Automated technology digest",
+      "v2_hermes_summary": "An openly AI-generated technology digest built from RSS with Python, SQLite and Hugo.",
+      "v2_coloring_summary": "A mobile-first catalogue for finding, previewing and printing coloring pages.",
+      "v2_visit_project": "Visit site ↗",
+      "v2_color_find": "Find",
+      "v2_color_preview": "Preview",
+      "v2_color_print": "Print A4",
+      "v2_color_preview_label": "Mobile-first coloring catalogue",
+      "v2_quick_contact": "Interested in my work? Contact details and a downloadable CV are available here.",
+      "v2_view_contact": "Contact options →",
+      "v2_about_intro": "I am a career changer building hands-on Linux support and operations skills through self-hosted projects and documented technical work. This portfolio presents verifiable project evidence, not professional IT employment."
     },
     "de": {
       "v2_featured": "Ausgewählte Projekte",
@@ -86,7 +97,18 @@
       "v2_lab_link": "Linux-Laborplan ansehen",
       "v2_homelab_link": "Homelab-Nachweise ansehen",
       "v2_cv_link_github": "Fehleranalyse auf GitHub lesen",
-      "v2_skill_proof_link": "Kenntnisstufen und Nachweise ansehen"
+      "v2_skill_proof_link": "Kenntnisstufen und Nachweise ansehen",
+      "v2_hermes_preview": "Automatisierter Technologieüberblick",
+      "v2_hermes_summary": "Ein offen als KI-generiert gekennzeichneter Technologieüberblick aus RSS mit Python, SQLite und Hugo.",
+      "v2_coloring_summary": "Ein mobiloptimierter Katalog zum Finden, Ansehen und Drucken von Ausmalbildern.",
+      "v2_visit_project": "Website öffnen ↗",
+      "v2_color_find": "Finden",
+      "v2_color_preview": "Ansehen",
+      "v2_color_print": "A4 drucken",
+      "v2_color_preview_label": "Mobiloptimierter Ausmalkatalog",
+      "v2_quick_contact": "Interesse an meiner Arbeit? Kontaktdaten und einen PDF-Lebenslauf finden Sie hier.",
+      "v2_view_contact": "Kontaktmöglichkeiten →",
+      "v2_about_intro": "Ich orientiere mich beruflich neu und baue praktische Linux-Support- und Betriebskenntnisse durch selbst gehostete Projekte und dokumentierte technische Arbeit auf. Dieses Portfolio zeigt überprüfbare Projektarbeit, keine berufliche IT-Anstellung."
     },
     "lv": {
       "v2_featured": "Izvēlētie projekti",
@@ -130,7 +152,18 @@
       "v2_lab_link": "Skatīt Linux laboratorijas plānu",
       "v2_homelab_link": "Skatīt homelab pierādījumus",
       "v2_cv_link_github": "Lasīt problēmas izpēti GitHub",
-      "v2_skill_proof_link": "Skatīt prasmju līmeņus un pierādījumus"
+      "v2_skill_proof_link": "Skatīt prasmju līmeņus un pierādījumus",
+      "v2_hermes_preview": "Automatizēts tehnoloģiju apskats",
+      "v2_hermes_summary": "Atklāti ar AI veidots tehnoloģiju apskats no RSS avotiem, izmantojot Python, SQLite un Hugo.",
+      "v2_coloring_summary": "Mobilajām ierīcēm pielāgots krāsojamo lapu katalogs priekšskatīšanai un drukāšanai.",
+      "v2_visit_project": "Atvērt vietni ↗",
+      "v2_color_find": "Atrast",
+      "v2_color_preview": "Priekšskatīt",
+      "v2_color_print": "Drukāt A4",
+      "v2_color_preview_label": "Mobilais krāsojamo lapu katalogs",
+      "v2_quick_contact": "Vēlies uzzināt vairāk? Kontaktus un PDF CV atradīsi šeit.",
+      "v2_view_contact": "Saziņas iespējas →",
+      "v2_about_intro": "Mainu profesionālo virzienu un attīstu praktiskas Linux atbalsta un uzturēšanas prasmes pašmitinātos projektos un dokumentētā tehniskā darbā. Šis portfolio rāda pārbaudāmus projektus, nevis profesionālu IT darba pieredzi."
     }
   }
 }

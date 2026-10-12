@@ -1,5 +1,4 @@
 @media (min-width: 640px) {
-  .project-card .project-facts div { grid-template-columns: minmax(58px,25%) minmax(0,1fr); gap: 10px; }
   .page { width: min(calc(100% - 48px),var(--maxw)); }
   .hero-shell { grid-template-columns: minmax(0,1fr) 180px; gap: 14px 28px; }
   .profile-photo { height: 200px; }
@@ -8,6 +7,9 @@
   .education-row { grid-template-columns: 135px minmax(0,1fr); gap: 18px; }
   .demo-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .stats-grid { grid-template-columns: repeat(4,minmax(0,1fr)); }
+  .project-inline-links { gap: 8px 20px; }
+  .quick-contact { padding: 14px 20px; }
+  .preview-workflow strong { font-size: 12px; }
 }
 @media (min-width: 720px) {
   .actions { align-items: center; }
@@ -29,7 +31,7 @@
   .hero-shell h1 { font-size: clamp(48px,5vw,64px); }
   .profile-photo { height: 100%; max-height: 390px; object-fit: cover; border-radius: 10px; }
   .hero-shell::before { inset-inline: -24px; }
-  .project-list { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .project-list { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .overview-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .project-copy h3 { font-size: 19px; }
   #about { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 36px; }
@@ -40,6 +42,9 @@
   .lab-top { grid-template-columns: 2fr 1fr; }
   .lab-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
   .lab-wide { grid-column: span 2; }
+  .topbar .language-switcher { margin-inline-start: auto; order: 2; }
+  .topbar .connect-link { order: 1; }
+  .topbar .site-nav { order: 3; }
 }
 @media (min-width: 1120px) {
   .topbar .connect-link { display: inline-flex; min-height: 40px; font-size: 12px; padding: 9px 12px; }
@@ -58,6 +63,6 @@
   .project-preview pre { font-size: 13px; }
   .preview-bar { padding-bottom: 20px; }
   .project-copy h3 { font-size: 22px; }
-  .project-facts div { font-size: 12px; }
   .education-list { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 24px; }
+  .project-card.project-entry.primary .project-preview { height: 185px; }
 }

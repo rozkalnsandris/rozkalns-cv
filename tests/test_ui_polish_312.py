@@ -37,24 +37,26 @@ class RecruiterUiPolishTest(unittest.TestCase):
         self.assertIn('href=//github.com/rozkalnsandris', markup)
         self.assertNotIn('/smarthome.html', markup)
 
-    def test_primary_projects_are_support_first_case_studies_with_direct_proof(self) -> None:
+    def test_four_featured_projects_match_public_sources_and_keep_homelab_proof(self) -> None:
         projects = re.findall(
             r'<article class="project-entry primary project-card"[^>]*>.*?</article>',
             INDEX,
             re.S,
         )
-        self.assertEqual(len(projects), 3)
-        expected = (
-            ("p8_title", "linux-operations-lab", "p8_ops"),
-            ("p1_title", "RPi5_main", "p1_ops"),
-            ("p7_title", "rozkalns-cv", "p7_ops"),
-        )
-        for project, (title_key, repo, ops_key) in zip(projects, expected):
-            self.assertIn(f'data-i18n="{title_key}"', project)
-            self.assertIn(f'data-i18n="{ops_key}"', project)
-            self.assertIn(f"//github.com/rozkalnsandris/{repo}", project)
-            self.assertIn('class="tech-tag github-row"', project)
-
+        self.assertEqual(len(projects), 4)
+        self.assertIn('data-project-slug="hermes-tech"', projects[0])
+        self.assertIn('github.com/rozkalnsandris/hermes-tech', projects[0])
+        self.assertIn('tech.rozkalns.net/', projects[0])
+        self.assertIn('data-i18n="p1_title"', projects[1])
+        self.assertIn('data-i18n="p1_ops"', projects[1])
+        self.assertIn('//github.com/rozkalnsandris/RPi5_main', projects[1])
+        self.assertIn('data-i18n="p7_title"', projects[2])
+        self.assertIn('data-i18n="p7_ops"', projects[2])
+        self.assertIn('//github.com/rozkalnsandris/rozkalns-cv', projects[2])
+        self.assertIn('data-project-slug="coloring-pages"', projects[3])
+        self.assertIn('github.com/rozkalnsandris/coloring-pages', projects[3])
+        self.assertIn('coloring.rozkalns.net/', projects[3])
+        self.assertNotIn('linux-operations-lab', ''.join(projects))
         secondary = re.findall(
             r'<article class="project-entry secondary project-evidence-card"[^>]*>.*?</article>',
             INDEX,

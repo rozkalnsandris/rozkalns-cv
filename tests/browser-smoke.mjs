@@ -736,11 +736,11 @@ async function runBrowserSmoke(baseUrl, state) {
         }))()`);
         assert.equal(githubProof.profile, "GitHub", `responsive ${viewport.width}px ${locale.label} GitHub profile link`);
         assert.deepEqual(githubProof.selected, [
-          "linux-operations-lab",
+          "hermes-tech · Python",
           "RPi5_main · Prometheus · Bash",
           "rozkalns-cv · Linux · Docker Compose · Nginx",
           "dashboard_RPi5",
-          "rozkalns-control-center"
+          "coloring-pages"
         ]);
         const proofHierarchy = await cdp.evaluate(`(() => {
           const skillsHeading = document.querySelector('#skills h2');
@@ -857,42 +857,45 @@ async function runBrowserSmoke(baseUrl, state) {
 
         const projectCards = await cdp.evaluate(`(() => [...document.querySelectorAll('#projects .project-card.primary')].map((card) => {
           const summary = card.querySelector('.project-summary');
-          const fact = card.querySelector('.project-facts div');
           const learning = card.querySelector('.project-learning-details');
-          const disclosure = learning.querySelector('summary');
-          const action = card.querySelector('.project-actions a');
+          const disclosure = learning?.querySelector('summary');
+          const action = card.querySelector('.project-inline-links a, .project-actions a');
           const status = card.querySelector('.project-status');
           const heading = card.querySelector('h3');
           return {
             summarySize: parseFloat(getComputedStyle(summary).fontSize),
-            factSize: parseFloat(getComputedStyle(fact).fontSize),
-            learningSize: parseFloat(getComputedStyle(learning).fontSize),
+            learningSize: learning ? parseFloat(getComputedStyle(learning).fontSize) : null,
             actionSize: parseFloat(getComputedStyle(action).fontSize),
-            disclosureHeight: disclosure.getBoundingClientRect().height,
+            actionHeight: action.getBoundingClientRect().height,
+            disclosureHeight: disclosure?.getBoundingClientRect().height ?? null,
             statusSize: parseFloat(getComputedStyle(status).fontSize),
             statusPosition: getComputedStyle(status).position,
             statusBeforeHeading: status.getBoundingClientRect().bottom <= heading.getBoundingClientRect().top + 1,
             overflow: card.scrollWidth > card.clientWidth + 1,
-            factOverflow: fact.scrollWidth > fact.clientWidth + 1,
             actionHref: action.getAttribute('href'),
-            disclosureTag: disclosure.tagName
+            disclosureTag: disclosure?.tagName ?? null,
+            tags: card.querySelectorAll('.tech-tag').length,
+            hasFactBoxes: Boolean(card.querySelector('.project-facts'))
           };
         }))()`);
-        assert.equal(projectCards.length, 3, `${context} featured project count`);
+        assert.equal(projectCards.length, 4, `${context} featured project count`);
         for (const [index, card] of projectCards.entries()) {
           const label = `${context} project ${index + 1}`;
           assert.ok(card.summarySize >= 15, `${label} readable summary`);
-          assert.ok(card.factSize >= 13, `${label} readable factual proof`);
-          assert.ok(card.learningSize >= 13, `${label} readable disclosure text`);
-          assert.ok(card.actionSize >= 14, `${label} readable main action`);
+          assert.ok(card.actionSize >= 13, `${label} readable project action`);
+          assert.ok(card.actionHeight >= 44, `${label} accessible project action`);
           assert.ok(card.statusSize >= 12, `${label} status legibility`);
-          assert.ok(card.disclosureHeight >= 44, `${label} keyboard disclosure target`);
-          assert.equal(card.statusPosition, 'static', `${label} status must not obscure the preview`);
+          assert.equal(card.statusPosition, 'static', `${label} status must not obscure preview`);
           assert.ok(card.statusBeforeHeading, `${label} status precedes heading`);
-          assert.equal(card.disclosureTag, 'SUMMARY', `${label} native keyboard disclosure`);
           assert.ok(card.actionHref, `${label} clear action destination`);
+          assert.ok(card.tags >= 3, `${label} technology skills integrated`);
+          assert.equal(card.hasFactBoxes, false, `${label} nested fact boxes removed`);
           assert.equal(card.overflow, false, `${label} card overflow`);
-          assert.equal(card.factOverflow, false, `${label} factual evidence overflow`);
+          if (card.disclosureTag !== null) {
+            assert.equal(card.disclosureTag, 'SUMMARY', `${label} native keyboard disclosure`);
+            assert.ok(card.disclosureHeight >= 44, `${label} disclosure target`);
+            assert.ok(card.learningSize >= 13, `${label} readable disclosure text`);
+          }
         }
 
         assert.equal(layout.innerWidth, viewport.width, `${context} viewport width`);
@@ -968,7 +971,7 @@ async function runBrowserSmoke(baseUrl, state) {
     await cdp.key("Tab");
     assert.equal(await cdp.evaluate(`document.activeElement?.matches('.skip-link')`), true);
     const expectedFocusHrefs = [
-      "#", "#", "#projects", "#skills", "#stats", "#about", "#experience", "#education", "#contact", "/en/"
+      "#", "#about", "#projects", "#experience", "#contact", "#contact", "/en/"
     ];
     for (const expectedHref of expectedFocusHrefs) {
       await cdp.key("Tab");

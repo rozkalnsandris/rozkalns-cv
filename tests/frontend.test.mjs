@@ -1822,7 +1822,7 @@ test("skill chips map to meaningful SVG icon families", () => {
   assert.equal(skillIconName("Terraform"), "cloud");
   assert.equal(skillIconName("RPi5_main"), "chip");
   assert.equal(skillIconName("hermes-deals"), "database");
-  assert.equal(skillIconName("rozkalns-control-center"), "gear");
+  assert.equal(skillIconName("coloring-pages"), "globe");
   assert.equal(skillIconName("dashboard_RPi5"), "chart");
 });
 
@@ -1831,7 +1831,7 @@ test("GitHub projects use a compact prioritized icon list", async () => {
   const proof = source.match(/<div class=skill-row id=github-projects>([\s\S]*?)<\/div><\/dl>/)?.[1] || "";
   assert.equal((proof.match(/href=\/\/github\.com\/rozkalnsandris\//g) || []).length, 5);
   assert.equal((proof.match(/class="tech-tag has-tech-icon github-row"/g) || []).length, 5);
-  for (const repo of ["linux-operations-lab", "RPi5_main", "rozkalns-cv", "dashboard_RPi5", "rozkalns-control-center"]) {
+  for (const repo of ["hermes-tech", "RPi5_main", "rozkalns-cv", "dashboard_RPi5", "coloring-pages"]) {
     assert.ok(proof.includes(`href=//github.com/rozkalnsandris/${repo}>${repo}</a>`), repo);
   }
 });
@@ -1946,7 +1946,7 @@ test("prioritized GitHub project list exposes direct repository links", async ()
   const source = await readFile(resolve(ROOT, "frontend/index.html"), "utf8");
   const proof = source.match(/<div class=skill-row id=github-projects>([\s\S]*?)<\/div><\/dl>/)?.[1] || "";
   assert.doesNotMatch(proof, /<details>/);
-  for (const repo of ["linux-operations-lab", "RPi5_main", "rozkalns-cv", "dashboard_RPi5", "rozkalns-control-center"]) {
+  for (const repo of ["hermes-tech", "RPi5_main", "rozkalns-cv", "dashboard_RPi5", "coloring-pages"]) {
     assert.ok(proof.includes(`href=//github.com/rozkalnsandris/${repo}>${repo}</a>`), repo);
   }
 });

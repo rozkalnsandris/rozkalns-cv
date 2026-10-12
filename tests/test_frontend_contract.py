@@ -123,23 +123,23 @@ class FrontendContractTests(unittest.TestCase):
             self.assertIn(f'id="{section_id}"', html)
         self.assertIn('<div class=skill-row id=github-projects>', html)
         self.assertNotIn('<section id="github-projects">', html)
-        self.assertEqual(source_html.count('class="project-entry'), 4)
+        self.assertEqual(source_html.count('class="project-entry'), 5)
         primary = re.findall(r'<article class="project-entry primary project-card"[^>]*>', source_html)
         secondary = re.findall(r'<article class="project-entry secondary project-evidence-card"[^>]*>', source_html)
-        self.assertEqual(len(primary), 3)
+        self.assertEqual(len(primary), 4)
         self.assertEqual(len(secondary), 1)
-        self.assertEqual(source_html.count('class="project-preview '), 3)
-        self.assertEqual(source_html.count('class="project-facts"'), 3)
-        title_keys = ('p8_title', 'p1_title', 'p7_title', 'p3_title')
+        self.assertEqual(source_html.count('class="project-preview '), 4)
+        self.assertEqual(source_html.count('class="project-facts"'), 0)
+        title_keys = ('p1_title', 'p7_title', 'p3_title')
         title_positions = [source_html.index(f'data-i18n="{key}"') for key in title_keys]
         self.assertEqual(title_positions, sorted(title_positions))
-        for key in ('p8_ops', 'p1_ops', 'p7_ops', 'p3_ops'):
+        for key in ('p1_ops', 'p7_ops', 'p3_ops'):
             self.assertIn(f'data-i18n="{key}"', source_html)
         self.assertEqual(source_html.count('class="project-icon"'), 1)
         project_source = source_html.split('<section id="projects">', 1)[1].split(
             '<section id="skills">', 1
         )[0]
-        self.assertEqual(project_source.count('class="tech-tag"'), 16)
+        self.assertEqual(project_source.count('class="tech-tag"'), 20)
         self.assertEqual(html.count('class="skill-chip"'), 18)
         self.assertIn('class="overview-grid"', html)
         self.assertNotIn('class="work-rail"', html)
@@ -148,13 +148,14 @@ class FrontendContractTests(unittest.TestCase):
         self.assertEqual(html.count('class="entry"'), 5)
         self.assertEqual(html.count('class="skill-row"'), 5)
         self.assertEqual(html.count('class=skill-row'), 1)
-        self.assertLess(html.index('id="projects"'), html.index('id="skills"'))
+        self.assertLess(html.index('id="projects"'), html.index('id="contact"'))
+        self.assertLess(html.index('id="contact"'), html.index('id="skills"'))
         self.assertLess(html.index('id="skills"'), html.index('id=github-projects'))
         self.assertLess(html.index('id=github-projects'), html.index('id="experience"'))
         self.assertLess(html.index('id="stats"'), html.index('id="experience"'))
         compact_responsive = re.sub(r"\s+", "", responsive)
         self.assertIn('.overview-grid{grid-template-columns:repeat(2,minmax(0,1fr));}', compact_responsive)
-        self.assertIn(".project-list{grid-template-columns:repeat(3,minmax(0,1fr));", compact_responsive)
+        self.assertIn(".project-list{grid-template-columns:repeat(2,minmax(0,1fr));", compact_responsive)
         self.assertNotIn(".work-rail", responsive)
         self.assertIn('class="profile-languages"', html)
         stats = html[html.index('id="stats"'):html.index('id="education"')]

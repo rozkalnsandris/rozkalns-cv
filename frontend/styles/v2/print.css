@@ -14,7 +14,6 @@
   .project-card, .lab-panel, .entry, .education-row { break-inside: avoid; margin-bottom: 12px; box-shadow: none; }
   .project-preview { display: none; }
   .project-learning-details { display: none; }
-  .project-facts { display: grid; }
   .lab-preview { background: #f5f5f5; color: #111; }
   a { color: #111; }
 }
