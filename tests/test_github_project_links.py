@@ -13,11 +13,11 @@ class GitHubProjectLinksTest(unittest.TestCase):
         start = INDEX.index('<div class=skill-row id=github-projects>')
         block = INDEX[start:INDEX.index('</dl>', start)]
         selected = (
-            "linux-operations-lab",
+            "hermes-tech",
             "RPi5_main",
             "rozkalns-cv",
             "dashboard_RPi5",
-            "rozkalns-control-center",
+            "coloring-pages",
         )
         for repo in selected:
             self.assertIn(f"//github.com/rozkalnsandris/{repo}", block)
@@ -25,7 +25,7 @@ class GitHubProjectLinksTest(unittest.TestCase):
         self.assertNotIn('<details', block)
         self.assertNotIn('<summary', block)
         self.assertIn('<dt>GitHub <span data-i18n=projects_title>Projects</span></dt>', block)
-        for repo in ("hermes-tech", "hermes-deals", "home-assistant-config", "balcony-irrigation-esp32", "ops-workflows"):
+        for repo in ("hermes-deals", "home-assistant-config", "balcony-irrigation-esp32", "ops-workflows"):
             self.assertNotIn(repo, block)
         self.assertNotIn("YouTube_Marcim", INDEX)
         self.assertNotIn("hermes-email-skill", INDEX)
