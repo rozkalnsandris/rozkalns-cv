@@ -1,4 +1,6 @@
 .contact-panel { display: grid; gap: 20px; }
+/* The live proof is a contact-grid child; do not create an implicit "live" track. */
+#contact .hero-live-proof { grid-area: auto; }
 .contact-intro { max-width: 55ch; color: var(--text-dim); font-size: 14px; }
 .contact-panel .contacts { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,240px),1fr)); gap: 12px; }
 .contact-panel .contact-row { min-height: 58px; border: 1px solid var(--border-soft); border-radius: 6px; padding: 12px; background: var(--surface); }
