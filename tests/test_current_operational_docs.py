@@ -10,6 +10,7 @@ DOCS_ROOT = ROOT / "docs"
 DOCS_INDEX = DOCS_ROOT / "README.md"
 MIGRATION = DOCS_ROOT / "MIGRATION_RUNBOOK.md"
 KNOWLEDGE = DOCS_ROOT / "PROJECT_KNOWLEDGE.md"
+FRONTEND = DOCS_ROOT / "FRONTEND.md"
 SUPPLY_CHAIN = DOCS_ROOT / "SUPPLY_CHAIN.md"
 PUBLIC_READINESS = DOCS_ROOT / "PUBLIC_READINESS.md"
 CONTENT_AUTHORING = DOCS_ROOT / "CONTENT_AUTHORING.md"
@@ -150,30 +151,48 @@ class CurrentOperationalDocsTests(unittest.TestCase):
         ):
             self.assertNotIn(stale_instruction, text)
 
-    def test_project_knowledge_tracks_current_pull_and_ingress_boundaries(self) -> None:
+    def test_project_knowledge_tracks_simple_deploy_boundary(self) -> None:
         text = KNOWLEDGE.read_text(encoding="utf-8")
         compact = compact_markdown(text)
         for required in (
-            "Application services: `cv` (nginx) and `cvbot` (Python assistant)",
-            "http://127.0.0.1:8088/",
-            "Direct LAN publish: none",
-            "systemd `cloudflared.service`",
-            "public `rozkalnsandris/rozkalns-cv`",
-            "GitHub Actions provides CI/security evidence only",
-            "rozkalns-cv-pull-deploy.timer",
-            "AUTO_DEPLOY_SAFE",
-            "deploys only `cv` and `cvbot`",
+            "Single-image runtime: one Compose service `cv`",
+            "`deploy/simple-deploy/docker-compose.yml`",
+            "`Dockerfile.simple-deploy`",
+            "`chat_entry:create_public_app()`",
+            "`127.0.0.1:8088:8080`",
+            "`/api/chat-admission`",
+            "`SIMPLE-DEPLOY CV` GitHub Actions workflow builds",
+            "owner-gated LIVE operation",
+            "`rozkalns-simple-deployer.timer`",
+            "`cloudflared.service`",
         ):
             self.assertIn(required, compact)
-
-        for stale_current_claim in (
-            "Tunnel service/container: `cv-cloudflared`",
-            "Private repository: `rozkalnsandris/rozkalns-cv`",
-            "Every successful push CI on `main` queues a serial production deployment",
-            "Dedicated runner label: `rozkalns-cv-release`",
-            "Cloudflare ingress for the root domain points to `http://cv:80`",
+        for stale in (
+            "Application services: `cv` (nginx) and `cvbot` (Python assistant)",
+            "The recurring RPi5-owned",
+            "GitHub Actions provides CI/security evidence only",
+            "Embedded CV assistant",
         ):
-            self.assertNotIn(stale_current_claim, text)
+            self.assertNotIn(stale, text)
+
+    def test_frontend_docs_track_vite_and_contact_boundary(self) -> None:
+        text = FRONTEND.read_text(encoding="utf-8")
+        compact = compact_markdown(text)
+        for required in (
+            "`frontend/index.html`",
+            "`frontend/styles/index.css`",
+            "`frontend/styles/v2/`",
+            "`frontend-dist-manifest.json`",
+            "`scripts/build-frontend.mjs`",
+            "npm run check:frontend",
+            "`/api/contact-reveal`",
+            "`/api/chat-admission`",
+            "`script-src-attr 'none'`",
+            "`:focus-visible`",
+        ):
+            self.assertIn(required, compact)
+        self.assertNotIn("The assistant follows a modal-dialog pattern", text)
+        self.assertNotIn("`html/index.html` — accessible CV document shell", text)
 
     def test_supply_chain_procedure_tracks_current_lock_ingress_and_pull_transport(self) -> None:
         text = SUPPLY_CHAIN.read_text(encoding="utf-8")
