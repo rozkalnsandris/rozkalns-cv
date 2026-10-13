@@ -711,6 +711,38 @@ async function runBrowserSmoke(baseUrl, state) {
           `responsive ${viewport.width}px ${locale.label} restoration`
         );
         assert.equal(await cdp.evaluate("document.querySelector('#chatLauncher')"), null);
+        if ([390, 430, 768].includes(viewport.width)) {
+          const contactGrid = await cdp.evaluate(`(() => {
+            const panel = document.querySelector("#contact");
+            const heading = panel.querySelector(".section-heading").getBoundingClientRect();
+            const contactCards = panel.querySelector(".contacts").getBoundingClientRect();
+            const emailCard = panel.querySelector("#contactEmail").closest(".contact-row").getBoundingClientRect();
+            const proofElement = panel.querySelector(".hero-live-proof");
+            const proof = proofElement.getBoundingClientRect();
+            const panelRect = panel.getBoundingClientRect();
+            const style = getComputedStyle(panel);
+            const proofStyle = getComputedStyle(proofElement);
+            return {
+              columnTracks: style.gridTemplateColumns.trim().split(/\s+/).length,
+              proofRowStart: proofStyle.gridRowStart,
+              proofColumnStart: proofStyle.gridColumnStart,
+              headingLeft: heading.left,
+              contactsLeft: contactCards.left,
+              proofLeft: proof.left,
+              proofRight: proof.right,
+              contentRight: panelRect.right,
+              emailCardWidth: emailCard.width
+            };
+          })()`);
+          const label = `${locale.language} ${viewport.width}px contact grid`;
+          assert.equal(contactGrid.columnTracks, 1, `${label}: ${JSON.stringify(contactGrid)}`);
+          assert.equal(contactGrid.proofRowStart, "auto", label);
+          assert.equal(contactGrid.proofColumnStart, "auto", label);
+          assert.ok(Math.abs(contactGrid.headingLeft - contactGrid.contactsLeft) <= 1, label);
+          assert.ok(Math.abs(contactGrid.proofLeft - contactGrid.contactsLeft) <= 1, label);
+          assert.ok(contactGrid.proofRight <= contactGrid.contentRight + 1, label);
+          assert.ok(contactGrid.emailCardWidth >= 230, label);
+        }
         const githubProof = await cdp.evaluate(`(() => ({
           profile: document.querySelector('#contact a[rel="me"]')?.textContent.trim(),
           selected: [...document.querySelectorAll('#github-projects > dd > a.github-row')].map((link) => link.textContent.trim()),
