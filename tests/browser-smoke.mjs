@@ -723,7 +723,7 @@ async function runBrowserSmoke(baseUrl, state) {
             const style = getComputedStyle(panel);
             const proofStyle = getComputedStyle(proofElement);
             return {
-              columnTracks: style.gridTemplateColumns.trim().split(/\\s+/).length,
+              columnTracks: style.gridTemplateColumns.trim().split(/\s+/).length,
               proofRowStart: proofStyle.gridRowStart,
               proofColumnStart: proofStyle.gridColumnStart,
               headingLeft: heading.left,
