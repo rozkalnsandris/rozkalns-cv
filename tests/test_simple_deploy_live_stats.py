@@ -14,7 +14,7 @@ GENERATOR = ROOT / "scripts/generate-stats.py"
 class SimpleDeployLiveStatsTests(unittest.TestCase):
     def test_only_exact_public_stats_file_is_aliased_from_read_only_mount(self) -> None:
         conf = SIMPLE_NGINX.read_text(encoding="utf-8")
-        match = re.search(r"location = /stats\\.json \\{([^{}]*)\\}", conf)
+        match = re.search(r"location = /stats\.json \{([^{}]*)\}", conf)
         self.assertIsNotNone(match)
         route = match.group(1)
         self.assertIn("alias /srv/cv/host-stats/stats.json;", route)
