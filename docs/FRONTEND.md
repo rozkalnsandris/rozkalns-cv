@@ -48,6 +48,10 @@ startup or health GET requests. See
 Live stats use validated snapshots: malformed/non-finite and implausibly
 future data are treated as offline, while snapshots older than 15 minutes
 are marked cached/stale.
+The SIMPLE-DEPLOY Nginx exact `/stats.json` alias reads from the RPi5-owned
+read-only host directory mount at `/srv/cv/host-stats`, outside the Vite-built
+web root. The old standalone Nginx/Compose path is not used for this mount;
+see `docs/LIVE_STATS.md` and the companion RPi5 source scope #997.
 
 ## Security, accessibility and caching
 
