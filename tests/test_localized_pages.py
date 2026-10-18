@@ -65,18 +65,20 @@ class LocalizedPageContractTests(unittest.TestCase):
                     r'<a\b[^>]*\bhref="(/(?:en|de|lv)/proof/(?:#[^"]*)?)"[^>]*>',
                     document,
                 )
-                self.assertEqual(len(destinations), 5)
+                self.assertEqual(len(destinations), 6)
                 self.assertTrue(
                     all(destination.startswith(f"/{language}/proof/") for destination in destinations),
                     destinations,
                 )
-                card = re.search(
-                    r'<a class="tech-tag github-row" href="([^"]+)" '
-                    r'data-local-route="proof/" data-proof-i18n="link_label">',
+                cv_card = re.search(
+                    r'data-project-slug="cv-platform".*?'
+                    r'<div class="project-case-links">.*?'
+                    r'<a href="([^"]+)" data-local-route="proof/" data-proof-i18n="link_label">',
                     document,
+                    re.DOTALL,
                 )
-                self.assertIsNotNone(card)
-                self.assertEqual(card.group(1), f"/{language}/proof/")
+                self.assertIsNotNone(cv_card)
+                self.assertEqual(cv_card.group(1), f"/{language}/proof/")
 
     def test_four_link_recruiter_navigation_and_contact_in_every_locale(self):
         source = (ROOT / "frontend/index.html").read_text(encoding="utf-8")

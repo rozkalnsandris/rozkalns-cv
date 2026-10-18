@@ -123,23 +123,24 @@ class FrontendContractTests(unittest.TestCase):
             self.assertIn(f'id="{section_id}"', html)
         self.assertIn('<div class=skill-row id=github-projects>', html)
         self.assertNotIn('<section id="github-projects">', html)
-        self.assertEqual(source_html.count('class="project-entry'), 5)
+        self.assertEqual(source_html.count('class="project-entry'), 7)
         primary = re.findall(r'<article class="project-entry primary project-card"[^>]*>', source_html)
         secondary = re.findall(r'<article class="project-entry secondary project-evidence-card"[^>]*>', source_html)
-        self.assertEqual(len(primary), 4)
+        self.assertEqual(len(primary), 6)
         self.assertEqual(len(secondary), 1)
-        self.assertEqual(source_html.count('class="project-preview '), 4)
+        self.assertEqual(source_html.count('class="project-preview '), 6)
         self.assertEqual(source_html.count('class="project-facts"'), 0)
-        title_keys = ('p1_title', 'p7_title', 'p3_title')
+        title_keys = ('p7_title', 'p1_title', 'p3_title')
         title_positions = [source_html.index(f'data-i18n="{key}"') for key in title_keys]
         self.assertEqual(title_positions, sorted(title_positions))
-        for key in ('p1_ops', 'p7_ops', 'p3_ops'):
-            self.assertIn(f'data-i18n="{key}"', source_html)
+        for key in ('v2_cv_learning_body', 'v2_homelab_learning_body'):
+            self.assertIn(f'data-ui-i18n="{key}"', source_html)
+        self.assertIn('data-i18n="p3_ops"', source_html)
         self.assertEqual(source_html.count('class="project-icon"'), 1)
         project_source = source_html.split('<section id="projects">', 1)[1].split(
             '<section id="skills">', 1
         )[0]
-        self.assertEqual(project_source.count('class="tech-tag"'), 20)
+        self.assertEqual(project_source.count('class="tech-tag"'), 28)
         self.assertEqual(html.count('class="skill-chip"'), 18)
         self.assertIn('class="overview-grid"', html)
         self.assertNotIn('class="work-rail"', html)

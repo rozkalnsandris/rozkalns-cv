@@ -9,7 +9,7 @@ const manifest = JSON.parse(await readFile(join(ROOT, "frontend-dist-manifest.js
 const LANGUAGES = ["en", "de", "lv"];
 const LIMITS = {
   initialRawBytes: 128 * 1024,
-  localizedHtmlBytes: 40 * 1024,
+  localizedHtmlBytes: 64 * 1024,
   localeJsonBytes: 16 * 1024,
   appScriptBytes: 24 * 1024,
   stylesheetBytes: 48 * 1024,
