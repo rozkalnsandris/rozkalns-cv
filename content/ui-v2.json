@@ -69,7 +69,10 @@
       "v2_tech_learning_title": "What I learned",
       "v2_tech_learning_body": "The project makes one engineering lesson concrete: keep collection, generation, validation and publication separate so failures can stop before public output.",
       "v2_tech_evidence_title": "Evidence",
-      "v2_tech_evidence_body": "The public repository documents the pipeline, validation, publishing and transparency boundaries; the live site shows the generated output."
+      "v2_tech_evidence_body": "The public repository documents the pipeline, validation, publishing and transparency boundaries; the live site shows the generated output.",
+      "v2_tech_evidence_live": "Live site ↗",
+      "v2_tech_evidence_source": "Source ↗",
+      "v2_tech_evidence_how": "How Hermes Works ↗"
     },
     "de": {
       "v2_featured": "Ausgewählte Projekte",
@@ -140,7 +143,10 @@
       "v2_tech_learning_title": "Was ich gelernt habe",
       "v2_tech_learning_body": "Das Projekt macht eine technische Lektion konkret: Sammlung, Generierung, Validierung und Veröffentlichung trennen, damit Fehler vor der öffentlichen Ausgabe stoppen können.",
       "v2_tech_evidence_title": "Nachweise",
-      "v2_tech_evidence_body": "Das öffentliche Repository dokumentiert Pipeline, Validierung, Veröffentlichung und Transparenzgrenzen; die Live-Seite zeigt die erzeugte Ausgabe."
+      "v2_tech_evidence_body": "Das öffentliche Repository dokumentiert Pipeline, Validierung, Veröffentlichung und Transparenzgrenzen; die Live-Seite zeigt die erzeugte Ausgabe.",
+      "v2_tech_evidence_live": "Live-Seite ↗",
+      "v2_tech_evidence_source": "Quellcode ↗",
+      "v2_tech_evidence_how": "So funktioniert Hermes ↗"
     },
     "lv": {
       "v2_featured": "Izvēlētie projekti",
@@ -211,7 +217,10 @@
       "v2_tech_learning_title": "Ko esmu apguvis",
       "v2_tech_learning_body": "Projekts skaidri parāda vienu inženiertehnisku atziņu: datu savākšanu, ģenerēšanu, validāciju un publicēšanu vajag nodalīt, lai kļūmes varētu apturēt procesu pirms publiskas izvades.",
       "v2_tech_evidence_title": "Pierādījumi",
-      "v2_tech_evidence_body": "Publiskais repozitorijs dokumentē pipeline, validāciju, publicēšanu un caurspīdīguma robežas; aktīvā vietne parāda ģenerēto rezultātu."
+      "v2_tech_evidence_body": "Publiskais repozitorijs dokumentē pipeline, validāciju, publicēšanu un caurspīdīguma robežas; aktīvā vietne parāda ģenerēto rezultātu.",
+      "v2_tech_evidence_live": "Aktīvā vietne ↗",
+      "v2_tech_evidence_source": "Pirmkods ↗",
+      "v2_tech_evidence_how": "Kā darbojas Hermes ↗"
     }
   }
 }

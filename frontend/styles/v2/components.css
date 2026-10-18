@@ -213,6 +213,38 @@ a.tech-tag { min-height: 44px; }
 .preview-workflow b { font-weight: 500; color: #a4bbeb; }
 .coloring-preview { background: linear-gradient(135deg,#20355d,#273a69); }
 .hermes-preview { background: linear-gradient(135deg,#101b36,#25234d); }
+.hermes-banner { position: relative; isolation: isolate; display: grid; margin: 0; padding: 0; overflow: hidden; border: 1px solid #2b477c; background: #071126; color: #eef4ff; }
+.hermes-banner-backdrop { position: absolute; inset: -2%; z-index: -2; width: 104%; height: 104%; object-fit: cover; opacity: .27; filter: saturate(.82) contrast(1.08) blur(1px); transform: scale(1.02); }
+.hermes-banner::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(100deg,rgba(3,11,29,.96) 0%,rgba(7,20,52,.88) 47%,rgba(26,24,84,.77) 100%); }
+.hermes-banner-content { display: grid; grid-template-rows: auto 1fr auto; gap: 8px; min-width: 0; height: 100%; padding: 12px 14px; }
+.hermes-banner .preview-bar { padding-bottom: 0; color: #bed0ef; }
+.hermes-banner .preview-bar i:first-child { background: #4ca1ff; }
+.hermes-banner-flow { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1.22fr) auto minmax(0,1fr); align-items: center; gap: 6px; min-width: 0; }
+.hermes-banner-node { display: flex; align-items: center; justify-content: center; gap: 7px; min-width: 0; min-height: 52px; padding: 7px 8px; border: 1px solid #5774c8; border-radius: 8px; background: rgba(8,20,51,.82); box-shadow: inset 0 0 18px rgba(72,111,222,.08); }
+.hermes-banner-node strong { min-width: 0; color: #f6f8ff; font-size: 10px; line-height: 1.25; text-align: center; white-space: nowrap; }
+.hermes-banner-mark { display: inline-grid; place-items: center; flex: 0 0 24px; width: 24px; height: 24px; border-radius: 7px; background: linear-gradient(145deg,#0e78d8,#5746db); color: #fff; font: 750 8px/1 var(--mono); box-shadow: 0 0 14px rgba(62,120,255,.28); }
+.hermes-banner-node:last-child .hermes-banner-mark { background: linear-gradient(145deg,#b827a2,#ff3b92); }
+.hermes-banner-arrow { color: #8fb4ff; font-size: 15px; font-weight: 500; text-shadow: 0 0 8px rgba(92,139,255,.45); }
+.hermes-banner small { color: #b8c8e5; font: 10px/1.35 var(--mono); }
+.tech-case-study { margin: 10px 8px 4px; border-top: 1px solid var(--border-soft); }
+.project-card .tech-case-study > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 2px; list-style: none; }
+.project-card .tech-case-study > summary::-webkit-details-marker { display: none; }
+.project-card .tech-case-study > summary::after { content: "+"; display: grid; place-items: center; flex: 0 0 28px; width: 28px; height: 28px; border-radius: 50%; background: var(--accent-soft); color: var(--accent-strong); font-size: 18px; line-height: 1; }
+.project-card .tech-case-study[open] > summary::after { content: "−"; }
+.tech-case-study-body { padding: 4px 0 8px; }
+.tech-case-study-shot { padding: 0; overflow: hidden; background: #071126; }
+.tech-case-study-shot img { display: block; width: 100%; height: auto; aspect-ratio: 1356 / 600; object-fit: cover; }
+.tech-case-study-shot figcaption { padding: 8px 10px 10px; }
+.tech-case-study-grid { display: grid; grid-template-columns: minmax(0,1fr); gap: 10px; }
+.tech-case-panel { padding: 16px; background: linear-gradient(145deg,#fff,#f9fbff); }
+.tech-case-panel h4 { margin: 0 0 8px; font-size: 14px; line-height: 1.35; }
+.tech-case-panel h4:not(:first-child) { margin-top: 16px; }
+.tech-case-panel .workflow-diagram { display: grid; grid-template-columns: minmax(0,1fr); gap: 7px; margin-top: 12px; }
+.tech-case-panel .workflow-diagram li { position: relative; padding: 10px 12px; font-size: 11px; line-height: 1.4; }
+.tech-case-panel .workflow-diagram li:not(:last-child)::after { content: "↓"; position: absolute; left: 50%; bottom: -12px; z-index: 1; padding: 0; color: var(--accent); transform: translateX(-50%); }
+.tech-case-links { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 6px; }
+.tech-case-links a { min-height: 44px; font-weight: 700; text-decoration: none; }
+
 #contact { scroll-margin-top: 28px; background: #f4f6ff; border-color: #d8dff4; }
 #skills .skill-list { gap: 10px; }
 #skills .skill-chips { gap: 3px 10px; }

@@ -931,18 +931,25 @@ async function runBrowserSmoke(baseUrl, state) {
         }
 
         const techCase = await cdp.evaluate(`(() => {
-          const details = document.querySelector('[data-project-slug="hermes-tech"] [data-tech-case-study]');
-          if (!details) return null;
+          const card = document.querySelector('[data-project-slug="hermes-tech"]');
+          const banner = card?.querySelector('[data-tech-banner]');
+          const details = card?.querySelector('[data-tech-case-study]');
+          if (!banner || !details) return null;
           details.open = true;
           const summary = details.querySelector('summary');
           const image = details.querySelector('img[src="/portfolio/hermes-tech-home-2026-10-18.png"]');
+          const bannerImage = banner.querySelector('img[src="/portfolio/hermes-tech-home-2026-10-18.png"]');
           const result = {
             summaryTag: summary?.tagName || null,
             summaryHeight: summary?.getBoundingClientRect().height || 0,
             imagePresent: Boolean(image),
             imageLoading: image?.getAttribute('loading') || null,
+            bannerImagePresent: Boolean(bannerImage),
+            bannerNodes: banner.querySelectorAll('.hermes-banner-node').length,
+            bannerOverflow: banner.scrollWidth > banner.clientWidth + 1,
             flowCount: details.querySelectorAll('.workflow-diagram li').length,
             panels: details.querySelectorAll('.lab-panel').length,
+            evidenceLinks: details.querySelectorAll('.tech-case-links a').length,
             detailsOverflow: details.scrollWidth > details.clientWidth + 1,
             documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1
           };
@@ -954,8 +961,12 @@ async function runBrowserSmoke(baseUrl, state) {
         assert.ok(techCase.summaryHeight >= 44, `${context} Hermes Tech case-study target`);
         assert.equal(techCase.imagePresent, true, `${context} Hermes Tech screenshot`);
         assert.equal(techCase.imageLoading, 'lazy', `${context} Hermes Tech screenshot loading`);
+        assert.equal(techCase.bannerImagePresent, true, `${context} Hermes Tech banner backdrop`);
+        assert.equal(techCase.bannerNodes, 3, `${context} Hermes Tech banner pipeline`);
+        assert.equal(techCase.bannerOverflow, false, `${context} Hermes Tech banner overflow`);
         assert.equal(techCase.flowCount, 4, `${context} Hermes Tech architecture steps`);
         assert.ok(techCase.panels >= 4, `${context} Hermes Tech case-study panels`);
+        assert.equal(techCase.evidenceLinks, 3, `${context} Hermes Tech evidence links`);
         assert.equal(techCase.detailsOverflow, false, `${context} Hermes Tech case-study overflow`);
         assert.equal(techCase.documentOverflow, false, `${context} Hermes Tech expanded document overflow`);
 

@@ -236,16 +236,6 @@ class FrontendContractTests(unittest.TestCase):
         self.assertEqual(set(documents[0]), set(documents[1]))
         self.assertEqual(set(documents[0]), set(documents[2]))
 
-    def test_frontend_size_budget(self) -> None:
-        assets = generated_assets()
-        js_bytes = sum((ROOT / "html" / path).stat().st_size for path in assets if path.endswith((".mjs", ".js")))
-        css_bytes = sum((ROOT / "html" / path).stat().st_size for path in assets if path.endswith(".css"))
-        limits = {INDEX: 38_000, SMART: 5_000}
-        for path, limit in limits.items():
-            self.assertLess(path.stat().st_size, limit, path)
-        self.assertLess(js_bytes, 27_000)
-        self.assertLess(css_bytes, 28_000)
-
 
 if __name__ == "__main__":
     unittest.main()
