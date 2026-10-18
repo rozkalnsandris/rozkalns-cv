@@ -37,26 +37,30 @@ class RecruiterUiPolishTest(unittest.TestCase):
         self.assertIn('href=//github.com/rozkalnsandris', markup)
         self.assertNotIn('/smarthome.html', markup)
 
-    def test_four_featured_projects_match_public_sources_and_keep_homelab_proof(self) -> None:
+    def test_six_featured_projects_match_public_sources_and_keep_homelab_proof(self) -> None:
         projects = re.findall(
             r'<article class="project-entry primary project-card"[^>]*>.*?</article>',
             INDEX,
             re.S,
         )
-        self.assertEqual(len(projects), 4)
-        self.assertIn('data-project-slug="hermes-tech"', projects[0])
-        self.assertIn('github.com/rozkalnsandris/hermes-tech', projects[0])
-        self.assertIn('tech.rozkalns.net/', projects[0])
-        self.assertIn('data-i18n="p1_title"', projects[1])
-        self.assertIn('data-i18n="p1_ops"', projects[1])
-        self.assertIn('//github.com/rozkalnsandris/RPi5_main', projects[1])
-        self.assertIn('data-i18n="p7_title"', projects[2])
-        self.assertIn('data-i18n="p7_ops"', projects[2])
-        self.assertIn('//github.com/rozkalnsandris/rozkalns-cv', projects[2])
-        self.assertIn('data-project-slug="coloring-pages"', projects[3])
-        self.assertIn('github.com/rozkalnsandris/coloring-pages', projects[3])
-        self.assertIn('coloring.rozkalns.net/', projects[3])
-        self.assertNotIn('linux-operations-lab', ''.join(projects))
+        self.assertEqual(len(projects), 6)
+        expectations = (
+            ("hermes-tech", "github.com/rozkalnsandris/hermes-tech", "tech.rozkalns.net/"),
+            ("hermes-deals", "github.com/rozkalnsandris/hermes-deals", "deals.rozkalns.net/"),
+            ("weather", "github.com/rozkalnsandris/rozkalns_weather", None),
+            ("coloring-pages", "github.com/rozkalnsandris/coloring-pages", "ausmalwiese.de/"),
+            ("cv-platform", "github.com/rozkalnsandris/rozkalns-cv", "rozkalns.net/"),
+            ("homelab", "github.com/rozkalnsandris/RPi5_main", "/en/proof/#homelab"),
+        )
+        for project, (slug, source, destination) in zip(projects, expectations, strict=True):
+            self.assertIn(f'data-project-slug="{slug}"', project)
+            self.assertIn(source, project)
+            if destination:
+                self.assertIn(destination, project)
+        self.assertIn('data-ui-i18n="v2_cv_learning_body"', projects[4])
+        self.assertIn('data-ui-i18n="v2_homelab_learning_body"', projects[5])
+        self.assertNotIn("weather.rozkalns.net", projects[2])
+        self.assertNotIn("linux-operations-lab", "".join(projects))
         secondary = re.findall(
             r'<article class="project-entry secondary project-evidence-card"[^>]*>.*?</article>',
             INDEX,

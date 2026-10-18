@@ -231,11 +231,11 @@ a.tech-tag { min-height: 44px; }
 .project-banner-content { display: grid; grid-template-rows: auto 1fr auto; gap: 8px; min-width: 0; height: 100%; padding: 12px 14px; }
 .project-banner .preview-bar { padding-bottom: 0; color: #bed0ef; }
 .project-banner .preview-bar i:first-child { background: var(--banner-a); }
-.project-banner-flow { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1.15fr) auto minmax(0,1fr); align-items: center; gap: 6px; min-width: 0; }
-.project-banner-node { display: flex; align-items: center; justify-content: center; gap: 7px; min-width: 0; min-height: 52px; padding: 7px 8px; border: 1px solid #5774c8; border-radius: 8px; background: rgba(8,20,51,.80); box-shadow: inset 0 0 18px rgba(72,111,222,.08); }
-.project-banner-node strong { min-width: 0; color: #f6f8ff; font-size: 10px; line-height: 1.2; text-align: center; overflow-wrap: anywhere; }
-.project-banner-mark { display: inline-grid; place-items: center; flex: 0 0 24px; width: 24px; height: 24px; border-radius: 7px; background: linear-gradient(145deg,var(--banner-a),var(--banner-b)); color: #fff; font: 750 8px/1 var(--mono); box-shadow: 0 0 14px rgba(62,120,255,.24); }
-.project-banner-arrow { color: #a8c3ff; font-size: 15px; font-weight: 500; text-shadow: 0 0 8px rgba(92,139,255,.38); }
+.project-banner-flow { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1.15fr) auto minmax(0,1fr); align-items: center; gap: 3px; min-width: 0; }
+.project-banner-node { display: flex; align-items: center; justify-content: center; gap: 3px; min-width: 0; min-height: 48px; padding: 6px 4px; border: 1px solid #5774c8; border-radius: 8px; background: rgba(8,20,51,.80); box-shadow: inset 0 0 18px rgba(72,111,222,.08); }
+.project-banner-node strong { min-width: 0; color: #f6f8ff; font-size: 9px; line-height: 1.2; text-align: center; white-space: normal; overflow-wrap: anywhere; }
+.project-banner-mark { display: none; place-items: center; flex: 0 0 24px; width: 24px; height: 24px; border-radius: 7px; background: linear-gradient(145deg,var(--banner-a),var(--banner-b)); color: #fff; font: 750 8px/1 var(--mono); box-shadow: 0 0 14px rgba(62,120,255,.24); }
+.project-banner-arrow { color: #a8c3ff; font-size: 12px; font-weight: 500; text-shadow: 0 0 8px rgba(92,139,255,.38); }
 .project-banner small { color: #c2cfe3; font: 10px/1.35 var(--mono); }
 .project-case-study { margin: 10px 8px 4px; border-top: 1px solid var(--border-soft); }
 .project-card .project-case-study > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 2px; list-style: none; }

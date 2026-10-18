@@ -43,7 +43,8 @@ class ProjectProofLinksTests(unittest.TestCase):
     def test_proof_slots_reference_only_approved_stable_public_urls(self) -> None:
         allowed_hosts = set(self.registry["policy"]["allowed_url_hosts"])
         selected = {evidence_id for _, ids in self.slots for evidence_id in ids.split()}
-        self.assertNotIn("https://", self.source[self.source.find("data-proof-projects"):self.source.find("data-proof-projects") + 220])
+        for slot in SLOT_RE.finditer(self.source):
+            self.assertNotIn("https://", slot.group(0))
         for evidence_id in selected:
             item = self.registry["evidence"][evidence_id]
             parsed = urlparse(item["url"])
