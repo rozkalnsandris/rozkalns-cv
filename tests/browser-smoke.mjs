@@ -930,6 +930,35 @@ async function runBrowserSmoke(baseUrl, state) {
           }
         }
 
+        const techCase = await cdp.evaluate(`(() => {
+          const details = document.querySelector('[data-project-slug="hermes-tech"] [data-tech-case-study]');
+          if (!details) return null;
+          details.open = true;
+          const summary = details.querySelector('summary');
+          const image = details.querySelector('img[src="/portfolio/hermes-tech-home-2026-10-18.png"]');
+          const result = {
+            summaryTag: summary?.tagName || null,
+            summaryHeight: summary?.getBoundingClientRect().height || 0,
+            imagePresent: Boolean(image),
+            imageLoading: image?.getAttribute('loading') || null,
+            flowCount: details.querySelectorAll('.workflow-diagram li').length,
+            panels: details.querySelectorAll('.lab-panel').length,
+            detailsOverflow: details.scrollWidth > details.clientWidth + 1,
+            documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1
+          };
+          details.open = false;
+          return result;
+        })()`);
+        assert.ok(techCase, `${context} Hermes Tech case study missing`);
+        assert.equal(techCase.summaryTag, 'SUMMARY', `${context} Hermes Tech case-study disclosure`);
+        assert.ok(techCase.summaryHeight >= 44, `${context} Hermes Tech case-study target`);
+        assert.equal(techCase.imagePresent, true, `${context} Hermes Tech screenshot`);
+        assert.equal(techCase.imageLoading, 'lazy', `${context} Hermes Tech screenshot loading`);
+        assert.equal(techCase.flowCount, 4, `${context} Hermes Tech architecture steps`);
+        assert.ok(techCase.panels >= 4, `${context} Hermes Tech case-study panels`);
+        assert.equal(techCase.detailsOverflow, false, `${context} Hermes Tech case-study overflow`);
+        assert.equal(techCase.documentOverflow, false, `${context} Hermes Tech expanded document overflow`);
+
         assert.equal(layout.innerWidth, viewport.width, `${context} viewport width`);
         assert.ok(
           layout.documentScrollWidth <= layout.documentClientWidth,
