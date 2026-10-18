@@ -165,40 +165,13 @@ for (const source of [
   assert.doesNotMatch(text, /\?cfg=[0-9a-f]{12}/, `${source} contains a generated nginx representation key`);
 }
 
-async function totalBytes(paths) {
-  let total = 0;
-  for (const file of paths) total += (await stat(resolve(htmlRoot, file))).size;
-  return total;
-}
-const js = actualAssets.filter((file) => /\.m?js$/.test(file));
-const css = actualAssets.filter((file) => file.endsWith(".css"));
 const images = actualAssets.filter((file) => file.endsWith(".webp"));
 assert.equal(images.length, 1, "exactly one hashed WebP profile asset is required");
 assert.match(images[0], /^assets\/photo\.[0-9a-f]{12}\.webp$/);
 const nginxSource = await readFile(resolve(root, "nginx.conf"), "utf8");
 assert.match(nginxSource, /\(\?:css\|json\|webp\)\$\"/);
-// UI v2 adds the static case-study styles and a bounded mobile navigation handler.
-// The existing 128 KiB initial page budget remains unchanged.
-const budgets = {
-  ...Object.fromEntries(Object.entries(localizedLabHtml).map(([name, text]) => [name, [Buffer.byteLength(text), 10_000]])),
-  javascript: [await totalBytes(js), 27_000],
-  css: [await totalBytes(css), 28_000],
-  images: [await totalBytes(images), 13_000],
-  translations: [await totalBytes(actualI18n), 40_000],
-  indexHtml: [(await stat(resolve(htmlRoot, "index.html"))).size, 38_000],
-  englishHtml: [(await stat(resolve(htmlRoot, "en", "index.html"))).size, 38_000],
-  germanHtml: [(await stat(resolve(htmlRoot, "de", "index.html"))).size, 38_000],
-  latvianHtml: [(await stat(resolve(htmlRoot, "lv", "index.html"))).size, 38_000],
-  smartHomeHtml: [(await stat(resolve(htmlRoot, "smarthome.html"))).size, 5_000],
-  proofHtml: [(await stat(resolve(htmlRoot, "proof.html"))).size, 18_000],
-  proofEnglishHtml: [(await stat(resolve(htmlRoot, "en", "proof", "index.html"))).size, 18_000],
-  proofGermanHtml: [(await stat(resolve(htmlRoot, "de", "proof", "index.html"))).size, 18_000],
-  proofLatvianHtml: [(await stat(resolve(htmlRoot, "lv", "proof", "index.html"))).size, 18_000]
-};
-for (const [name, [bytes, limit]] of Object.entries(budgets)) {
-  assert.ok(bytes <= limit, `${name} exceeds budget: ${bytes} > ${limit}`);
-  console.log(`FRONTEND_BUDGET_${name.toUpperCase()}=${bytes}/${limit}`);
-}
+// Payload-size policy is centralized in scripts/check-frontend-budget.mjs.
+// Keep this contract focused on deterministic asset shape and references.
 
 console.log(`FRONTEND_MANIFEST_ASSETS=${referenced.size}`);
 console.log(`FRONTEND_NGINX_REPRESENTATION=${nginxRepresentation}`);

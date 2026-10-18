@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { cp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { build } from "vite";
 import { LOCALIZED_LANGUAGES, renderLocalizedPages } from "./localize-frontend.mjs";
@@ -11,6 +11,13 @@ const html = resolve(root, "html");
 const viteManifest = resolve(html, ".vite", "manifest.json");
 const committedManifest = resolve(root, "frontend-dist-manifest.json");
 const nginxConfig = resolve(root, "nginx.conf");
+const projectAssetDirectory = resolve(html, "portfolio");
+const projectAssets = Object.freeze([
+  {
+    source: resolve(root, "frontend", "project-assets", "hermes-tech-home-2026-10-18.png"),
+    target: resolve(projectAssetDirectory, "hermes-tech-home-2026-10-18.png")
+  }
+]);
 const localizedIdentityFiles = Object.freeze({
   en: "en/index.html",
   de: "de/index.html",
@@ -63,6 +70,7 @@ async function removeGeneratedFrontend() {
     rm(resolve(html, "assets"), { recursive: true, force: true }),
     rm(resolve(html, "i18n"), { recursive: true, force: true }),
     rm(resolve(html, ".vite"), { recursive: true, force: true }),
+    rm(projectAssetDirectory, { recursive: true, force: true }),
     rm(resolve(html, "index.html"), { force: true }),
     rm(resolve(html, "smarthome.html"), { force: true }),
     rm(resolve(html, "proof.html"), { force: true }),
@@ -89,6 +97,11 @@ async function bindAppRepresentation(manifest) {
   }
   await writeFile(indexPath, source.replace(needle, `src="/${appFile}?cfg=${nginxDigest}"`));
   return nginxDigest;
+}
+
+async function copyProjectAssets() {
+  await mkdir(projectAssetDirectory, { recursive: true });
+  await Promise.all(projectAssets.map(({ source, target }) => cp(source, target)));
 }
 
 async function verifyGeneratedShape() {
@@ -127,6 +140,7 @@ async function bindLocalizedIdentity() {
 
 await removeGeneratedFrontend();
 await withMinifiedTranslationSources(() => build({ configFile: resolve(root, "vite.config.mjs") }));
+await copyProjectAssets();
 await verifyGeneratedShape();
 await bindProjectProof({ root, htmlPath: resolve(html, "index.html") });
 await bindEngineeringProof({ root, htmlPath: resolve(html, "proof.html") });

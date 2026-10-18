@@ -24,9 +24,9 @@
 <meta name="twitter:image" content="https://rozkalns.net/photo.jpg">
 <meta name="twitter:image:alt" content="Portrait of Andris Rožkalns">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<script type="module" crossorigin src="/assets/app.327a5457dcb3.mjs?cfg=c8562518b66f"></script>
+<script type="module" crossorigin src="/assets/app.47f9588f34ba.mjs?cfg=c8562518b66f"></script>
 <link rel="modulepreload" crossorigin href="/assets/i18n.5785915b2a2a.mjs">
-<link rel="stylesheet" crossorigin href="/assets/styles.addf505da12b.css">
+<link rel="stylesheet" crossorigin href="/assets/styles.a93ef4cbecdb.css">
 </head>
 <body>
 <a class="skip-link" href="#main" data-i18n="skip">Skip to main content</a>
@@ -57,12 +57,37 @@
 <div class="section-heading"><h2 data-ui-i18n="v2_featured">Featured projects</h2><a class="section-link" href="/en/proof/" data-local-route="proof/" data-proof-i18n="link_label">Engineering proof</a></div><p class="section-intro" data-ui-i18n="v2_project_intro">Practical projects. Inspectable evidence.</p>
 <div class="project-list">
 <article class="project-entry primary project-card" data-project-slug="hermes-tech">
-<div class="project-preview hermes-preview"><div class="preview-bar"><i></i><i></i><i></i><span>tech.rozkalns.net</span></div><div class="preview-workflow"><strong>RSS</strong><b aria-hidden="true">→</b><strong>Python · AI</strong><b aria-hidden="true">→</b><strong>Hugo</strong></div><small data-ui-i18n="v2_hermes_preview">Automated technology digest</small></div>
+<figure class="project-preview hermes-banner" data-tech-banner>
+<img class="hermes-banner-backdrop" src="/portfolio/hermes-tech-home-2026-10-18.png" alt="" width="1356" height="600" loading="lazy" decoding="async">
+<div class="hermes-banner-content">
+<div class="preview-bar hermes-banner-bar"><i></i><i></i><i></i><span>tech.rozkalns.net</span></div>
+<div class="hermes-banner-flow" role="list">
+<span class="hermes-banner-node" role="listitem"><span class="hermes-banner-mark" aria-hidden="true">RSS</span><strong>RSS</strong></span>
+<b class="hermes-banner-arrow" aria-hidden="true">→</b>
+<span class="hermes-banner-node" role="listitem"><span class="hermes-banner-mark" aria-hidden="true">Py</span><strong>Python · AI</strong></span>
+<b class="hermes-banner-arrow" aria-hidden="true">→</b>
+<span class="hermes-banner-node" role="listitem"><span class="hermes-banner-mark" aria-hidden="true">H</span><strong>Hugo</strong></span>
+</div>
+<small data-ui-i18n="v2_hermes_preview">Automated technology digest</small>
+</div>
+</figure>
 <span class="project-status" data-ui-i18n="v2_source">Source available</span>
 <div class="project-copy"><h3>Hermes Tech</h3><p class="project-summary" data-ui-i18n="v2_hermes_summary">An openly AI-generated technology digest built from RSS with Python, SQLite and Hugo.</p>
 <div class="tech-tags"><span class="tech-tag">Python</span><span class="tech-tag">SQLite</span><span class="tech-tag">Hugo</span><span class="tech-tag">RSS</span></div>
 <div class="project-inline-links"><a href="https://github.com/rozkalnsandris/hermes-tech" rel="external">GitHub ↗</a><a href="https://tech.rozkalns.net/" rel="external" data-ui-i18n="v2_visit_project">Visit site ↗</a></div>
 </div>
+<details class="project-learning-details tech-case-study" data-tech-case-study>
+<summary data-ui-i18n="v2_case">View case study</summary>
+<div class="proof-project-body tech-case-study-body">
+<figure class="lab-preview tech-case-study-shot"><img src="/portfolio/hermes-tech-home-2026-10-18.png" alt="" width="1356" height="600" loading="lazy" decoding="async"><figcaption data-ui-i18n="v2_tech_case_caption">Live Hermes Tech homepage capture · 18 Oct 2026</figcaption></figure>
+<div class="tech-case-study-grid">
+<div class="lab-panel tech-case-panel tech-case-panel-wide"><h4 data-ui-i18n="v2_tech_idea_title">Project idea</h4><p data-ui-i18n="v2_tech_idea">A self-hosted, openly AI-generated technology digest for DevOps, AI and agent engineering. It turns configured RSS feeds into short daily digests with source-bounded generation and validation gates.</p><h4 data-ui-i18n="v2_tech_architecture_title">Architecture</h4><ol class="workflow-diagram"><li data-ui-i18n="v2_tech_flow_rss">RSS feeds</li><li data-ui-i18n="v2_tech_flow_store">SQLite</li><li data-ui-i18n="v2_tech_flow_ai">AI classify · generate · validate</li><li data-ui-i18n="v2_tech_flow_publish">Hugo publish</li></ol></div>
+<div class="lab-panel tech-case-panel"><h4 data-ui-i18n="v2_tech_how_title">How it works</h4><ol class="method-steps"><li data-ui-i18n="v2_tech_how_1">Collect feed-provided content into SQLite.</li><li data-ui-i18n="v2_tech_how_2">Cluster topics, classify and generate category digests, then run validation gates.</li><li data-ui-i18n="v2_tech_how_3">Publish passing output as a static Hugo site with RSS and Open Graph cards.</li></ol></div>
+<div class="lab-panel tech-case-panel"><h4 data-ui-i18n="v2_tech_learning_title">What I learned</h4><p data-ui-i18n="v2_tech_learning_body">The project makes one engineering lesson concrete: keep collection, generation, validation and publication separate so failures can stop before public output.</p></div>
+<div class="lab-panel tech-case-panel tech-case-panel-wide"><h4 data-ui-i18n="v2_tech_evidence_title">Evidence</h4><p data-ui-i18n="v2_tech_evidence_body">The public repository documents the pipeline, validation, publishing and transparency boundaries; the live site shows the generated output.</p><div class="tech-case-links"><a href="https://tech.rozkalns.net/" rel="external" data-ui-i18n="v2_tech_evidence_live">Live site ↗</a><a href="https://github.com/rozkalnsandris/hermes-tech" rel="external" data-ui-i18n="v2_tech_evidence_source">Source ↗</a><a href="https://tech.rozkalns.net/how-hermes-works/" rel="external" data-ui-i18n="v2_tech_evidence_how">How Hermes Works ↗</a></div></div>
+</div>
+</div>
+</details>
 </article>
 <article class="project-entry primary project-card" data-project-ids="homelab">
 <div class="project-preview infra-preview"><div class="preview-bar"><i></i><i></i><i></i><span>Raspberry Pi 5 · NVMe</span></div><div class="infra-nodes"><span>Linux</span><b aria-hidden="true">→</b><span>Docker<br>Compose</span><b aria-hidden="true">→</b><span>Nginx</span></div><div class="preview-stack"><span>systemd</span><span>DNS / TLS</span><span>Prometheus</span></div><small data-ui-i18n="v2_overview">Project overview</small></div><span class="project-status " data-ui-i18n="v2_source">Source available</span>
