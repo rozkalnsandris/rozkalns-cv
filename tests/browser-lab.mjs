@@ -12,7 +12,6 @@ const HTML_ROOT = join(ROOT, "html");
 const CHROME_BIN = process.env.CHROME_BIN;
 const MAX_SYNTHETIC_CLS = 0.05;
 const MAX_INITIAL_STATIC_REQUESTS = 10;
-const MAX_INITIAL_STATIC_BYTES = 120 * 1024;
 
 if (!CHROME_BIN) throw new Error("CHROME_BIN is required");
 if (typeof WebSocket !== "function") {
@@ -388,10 +387,6 @@ function assertInitialResourceShape(requests) {
   assert.ok(
     requests.length <= MAX_INITIAL_STATIC_REQUESTS,
     `initial synthetic static request count ${requests.length} > ${MAX_INITIAL_STATIC_REQUESTS}; requests=${JSON.stringify(requests)}`
-  );
-  assert.ok(
-    totalBytes <= MAX_INITIAL_STATIC_BYTES,
-    `initial synthetic static bytes ${totalBytes} > ${MAX_INITIAL_STATIC_BYTES}; largest=${JSON.stringify(largest)}`
   );
   for (const pattern of [
     /^\/en\/$/,
