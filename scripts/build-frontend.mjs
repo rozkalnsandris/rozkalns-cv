@@ -16,6 +16,26 @@ const projectAssets = Object.freeze([
   {
     source: resolve(root, "frontend", "project-assets", "hermes-tech-home-2026-10-18.png"),
     target: resolve(projectAssetDirectory, "hermes-tech-home-2026-10-18.png")
+  },
+  {
+    source: resolve(root, "frontend", "project-assets", "hermes-deals-source-ui-2026-10-18.webp"),
+    target: resolve(projectAssetDirectory, "hermes-deals-source-ui-2026-10-18.webp")
+  },
+  {
+    source: resolve(root, "frontend", "project-assets", "weather-source-ui-2026-10-18.webp"),
+    target: resolve(projectAssetDirectory, "weather-source-ui-2026-10-18.webp")
+  },
+  {
+    source: resolve(root, "frontend", "project-assets", "coloring-pages-2026-10-18.webp"),
+    target: resolve(projectAssetDirectory, "coloring-pages-2026-10-18.webp")
+  },
+  {
+    source: resolve(root, "frontend", "project-assets", "cv-platform-2026-10-18.webp"),
+    target: resolve(projectAssetDirectory, "cv-platform-2026-10-18.webp")
+  },
+  {
+    source: resolve(root, "frontend", "project-assets", "project-banners-2026-10-18.webp"),
+    target: resolve(projectAssetDirectory, "project-banners-2026-10-18.webp")
   }
 ]);
 const localizedIdentityFiles = Object.freeze({

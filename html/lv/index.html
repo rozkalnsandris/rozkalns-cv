@@ -24,9 +24,9 @@
 <meta name="twitter:image" content="https://rozkalns.net/photo.jpg">
 <meta name="twitter:image:alt" content="Andra Rožkalna portrets">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<script type="module" crossorigin src="/assets/app.47f9588f34ba.mjs?cfg=c8562518b66f"></script>
+<script type="module" crossorigin src="/assets/app.4c3a3c3530c2.mjs?cfg=c8562518b66f"></script>
 <link rel="modulepreload" crossorigin href="/assets/i18n.5785915b2a2a.mjs">
-<link rel="stylesheet" crossorigin href="/assets/styles.a93ef4cbecdb.css">
+<link rel="stylesheet" crossorigin href="/assets/styles.844c09052485.css">
 </head>
 <body>
 <a class="skip-link" href="#main" data-i18n="skip">Pāriet uz galveno saturu</a>
@@ -57,17 +57,11 @@
 <div class="section-heading"><h2 data-ui-i18n="v2_featured">Izvēlētie projekti</h2><a class="section-link" href="/lv/proof/" data-local-route="proof/" data-proof-i18n="link_label">Tehniskie pierādījumi</a></div><p class="section-intro" data-ui-i18n="v2_project_intro">Praktiski projekti. Pārbaudāmi pierādījumi.</p>
 <div class="project-list">
 <article class="project-entry primary project-card" data-project-slug="hermes-tech">
-<figure class="project-preview hermes-banner" data-tech-banner>
-<img class="hermes-banner-backdrop" src="/portfolio/hermes-tech-home-2026-10-18.png" alt="" width="1356" height="600" loading="lazy" decoding="async">
-<div class="hermes-banner-content">
-<div class="preview-bar hermes-banner-bar"><i></i><i></i><i></i><span>tech.rozkalns.net</span></div>
-<div class="hermes-banner-flow" role="list">
-<span class="hermes-banner-node" role="listitem"><span class="hermes-banner-mark" aria-hidden="true">RSS</span><strong>RSS</strong></span>
-<b class="hermes-banner-arrow" aria-hidden="true">→</b>
-<span class="hermes-banner-node" role="listitem"><span class="hermes-banner-mark" aria-hidden="true">Py</span><strong>Python · AI</strong></span>
-<b class="hermes-banner-arrow" aria-hidden="true">→</b>
-<span class="hermes-banner-node" role="listitem"><span class="hermes-banner-mark" aria-hidden="true">H</span><strong>Hugo</strong></span>
-</div>
+<figure class="project-preview project-banner project-banner-tech" data-project-banner>
+<span class="project-banner-backdrop" aria-hidden="true"></span>
+<div class="project-banner-content">
+<div class="preview-bar"><i></i><i></i><i></i><span>tech.rozkalns.net</span></div>
+<div class="project-banner-flow" role="list"><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">RSS</span><strong>RSS</strong></span><b class="project-banner-arrow" aria-hidden="true">→</b><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">Py</span><strong>Python · AI</strong></span><b class="project-banner-arrow" aria-hidden="true">→</b><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">H</span><strong>Hugo</strong></span></div>
 <small data-ui-i18n="v2_hermes_preview">Automatizēts tehnoloģiju apskats</small>
 </div>
 </figure>
@@ -75,35 +69,148 @@
 <div class="project-copy"><h3>Hermes Tech</h3><p class="project-summary" data-ui-i18n="v2_hermes_summary">Atklāti ar AI veidots tehnoloģiju apskats no RSS avotiem, izmantojot Python, SQLite un Hugo.</p>
 <div class="tech-tags"><span class="tech-tag">Python</span><span class="tech-tag">SQLite</span><span class="tech-tag">Hugo</span><span class="tech-tag">RSS</span></div>
 <div class="project-inline-links"><a href="https://github.com/rozkalnsandris/hermes-tech" rel="external">GitHub ↗</a><a href="https://tech.rozkalns.net/" rel="external" data-ui-i18n="v2_visit_project">Atvērt vietni ↗</a></div>
-</div>
-<details class="project-learning-details tech-case-study" data-tech-case-study>
+</div><details class="project-learning-details project-case-study" data-project-case-study data-project-case="hermes-tech">
 <summary data-ui-i18n="v2_case">Skatīt izpēti</summary>
-<div class="proof-project-body tech-case-study-body">
-<figure class="lab-preview tech-case-study-shot"><img src="/portfolio/hermes-tech-home-2026-10-18.png" alt="" width="1356" height="600" loading="lazy" decoding="async"><figcaption data-ui-i18n="v2_tech_case_caption">Aktuāls Hermes Tech sākumlapas tvērums · 2026. gada 18. oktobris</figcaption></figure>
-<div class="tech-case-study-grid">
-<div class="lab-panel tech-case-panel tech-case-panel-wide"><h4 data-ui-i18n="v2_tech_idea_title">Projekta ideja</h4><p data-ui-i18n="v2_tech_idea">Pašmitināts un atklāti kā MI ģenerēts tehnoloģiju apskats par DevOps, MI un aģentu izstrādi. Konfigurētās RSS plūsmas tiek pārvērstas īsos ikdienas apskatos ar avotos balstītu ģenerēšanu un validācijas pārbaudēm.</p><h4 data-ui-i18n="v2_tech_architecture_title">Arhitektūra</h4><ol class="workflow-diagram"><li data-ui-i18n="v2_tech_flow_rss">RSS plūsmas</li><li data-ui-i18n="v2_tech_flow_store">SQLite</li><li data-ui-i18n="v2_tech_flow_ai">MI: klasificēt · ģenerēt · validēt</li><li data-ui-i18n="v2_tech_flow_publish">Hugo publicēšana</li></ol></div>
-<div class="lab-panel tech-case-panel"><h4 data-ui-i18n="v2_tech_how_title">Kā tas darbojas</h4><ol class="method-steps"><li data-ui-i18n="v2_tech_how_1">Saglabāt RSS plūsmu nodrošināto saturu SQLite.</li><li data-ui-i18n="v2_tech_how_2">Grupēt tēmas, klasificēt un ģenerēt kategoriju apskatus, pēc tam izpildīt validācijas pārbaudes.</li><li data-ui-i18n="v2_tech_how_3">Sekmīgo rezultātu publicēt kā statisku Hugo vietni ar RSS un Open Graph kartītēm.</li></ol></div>
-<div class="lab-panel tech-case-panel"><h4 data-ui-i18n="v2_tech_learning_title">Ko esmu apguvis</h4><p data-ui-i18n="v2_tech_learning_body">Projekts skaidri parāda vienu inženiertehnisku atziņu: datu savākšanu, ģenerēšanu, validāciju un publicēšanu vajag nodalīt, lai kļūmes varētu apturēt procesu pirms publiskas izvades.</p></div>
-<div class="lab-panel tech-case-panel tech-case-panel-wide"><h4 data-ui-i18n="v2_tech_evidence_title">Pierādījumi</h4><p data-ui-i18n="v2_tech_evidence_body">Publiskais repozitorijs dokumentē pipeline, validāciju, publicēšanu un caurspīdīguma robežas; aktīvā vietne parāda ģenerēto rezultātu.</p><div class="tech-case-links"><a href="https://tech.rozkalns.net/" rel="external" data-ui-i18n="v2_tech_evidence_live">Aktīvā vietne ↗</a><a href="https://github.com/rozkalnsandris/hermes-tech" rel="external" data-ui-i18n="v2_tech_evidence_source">Pirmkods ↗</a><a href="https://tech.rozkalns.net/how-hermes-works/" rel="external" data-ui-i18n="v2_tech_evidence_how">Kā darbojas Hermes ↗</a></div></div>
+<div class="proof-project-body project-case-study-body">
+<figure class="lab-preview project-case-study-shot"><img src="/portfolio/hermes-tech-home-2026-10-18.png" alt="" width="1356" height="600" loading="lazy" decoding="async"><figcaption data-ui-i18n="v2_tech_case_caption">Aktuāls Hermes Tech sākumlapas tvērums · 2026. gada 18. oktobris</figcaption></figure>
+<div class="project-case-study-grid">
+<div class="lab-panel project-case-panel project-case-panel-wide"><h4 data-ui-i18n="v2_tech_idea_title">Projekta ideja</h4><p data-ui-i18n="v2_tech_idea">Pašmitināts un atklāti kā MI ģenerēts tehnoloģiju apskats par DevOps, MI un aģentu izstrādi. Konfigurētās RSS plūsmas tiek pārvērstas īsos ikdienas apskatos ar avotos balstītu ģenerēšanu un validācijas pārbaudēm.</p><h4 data-ui-i18n="v2_tech_architecture_title">Arhitektūra</h4><ol class="workflow-diagram"><li data-ui-i18n="v2_tech_flow_rss">RSS plūsmas</li><li data-ui-i18n="v2_tech_flow_store">SQLite</li><li data-ui-i18n="v2_tech_flow_ai">MI: klasificēt · ģenerēt · validēt</li><li data-ui-i18n="v2_tech_flow_publish">Hugo publicēšana</li></ol></div>
+<div class="lab-panel project-case-panel"><h4 data-ui-i18n="v2_tech_how_title">Kā tas darbojas</h4><ol class="method-steps"><li data-ui-i18n="v2_tech_how_1">Saglabāt RSS plūsmu nodrošināto saturu SQLite.</li><li data-ui-i18n="v2_tech_how_2">Grupēt tēmas, klasificēt un ģenerēt kategoriju apskatus, pēc tam izpildīt validācijas pārbaudes.</li><li data-ui-i18n="v2_tech_how_3">Sekmīgo rezultātu publicēt kā statisku Hugo vietni ar RSS un Open Graph kartītēm.</li></ol></div>
+<div class="lab-panel project-case-panel"><h4 data-ui-i18n="v2_tech_learning_title">Ko esmu apguvis</h4><p data-ui-i18n="v2_tech_learning_body">Projekts skaidri parāda vienu inženiertehnisku atziņu: datu savākšanu, ģenerēšanu, validāciju un publicēšanu vajag nodalīt, lai kļūmes varētu apturēt procesu pirms publiskas izvades.</p></div>
+<div class="lab-panel project-case-panel project-case-panel-wide"><h4 data-ui-i18n="v2_tech_evidence_title">Pierādījumi</h4><p data-ui-i18n="v2_tech_evidence_body">Publiskais repozitorijs dokumentē pipeline, validāciju, publicēšanu un caurspīdīguma robežas; aktīvā vietne parāda ģenerēto rezultātu.</p><div class="project-case-links"><a href="https://tech.rozkalns.net/" rel="external" data-ui-i18n="v2_tech_evidence_live">Aktīvā vietne ↗</a><a href="https://github.com/rozkalnsandris/hermes-tech" rel="external" data-ui-i18n="v2_tech_evidence_source">Pirmkods ↗</a><a href="https://tech.rozkalns.net/how-hermes-works/" rel="external" data-ui-i18n="v2_tech_evidence_how">Kā darbojas Hermes ↗</a></div></div>
 </div>
 </div>
 </details>
 </article>
-<article class="project-entry primary project-card" data-project-ids="homelab">
-<div class="project-preview infra-preview"><div class="preview-bar"><i></i><i></i><i></i><span>Raspberry Pi 5 · NVMe</span></div><div class="infra-nodes"><span>Linux</span><b aria-hidden="true">→</b><span>Docker<br>Compose</span><b aria-hidden="true">→</b><span>Nginx</span></div><div class="preview-stack"><span>systemd</span><span>DNS / TLS</span><span>Prometheus</span></div><small data-ui-i18n="v2_overview">Projekta pārskats</small></div><span class="project-status " data-ui-i18n="v2_source">Pirmkods pieejams</span>
-<div class="project-copy"><h3 data-i18n="p1_title">Pašhostēta Linux servera vide</h3><p class="project-summary" data-ui-i18n="v2_host_summary">Raspberry Pi vide pašmitinātiem servisiem, monitoringam un ikdienas uzturēšanai.</p><details class="project-learning-details"><summary data-ui-i18n="v2_learning">Ko esmu apguvis</summary><p class="project-learning" data-i18n="p1_ops">Mācība: servisu stāvoklis, žurnāli un DNS/TLS pārbaudes ir problēmu risināšanas pierādījumi pirms izmaiņu veikšanas.</p></details><div class="tech-tags"><span class="tech-tag">Linux</span><span class="tech-tag">Docker Compose</span><span class="tech-tag">systemd</span><span class="tech-tag">DNS/TLS</span><a class="tech-tag github-row" href=//github.com/rozkalnsandris/RPi5_main>GitHub</a><a class="tech-tag github-row project-proof-link" data-proof-evidence-id="cv-compose" href="https://github.com/rozkalnsandris/rozkalns-cv/blob/main/docker-compose.yml">docker-compose.yml</a><a class="tech-tag github-row project-proof-link" data-proof-evidence-id="nginx-runtime-config" href="https://github.com/rozkalnsandris/rozkalns-cv/blob/main/nginx.conf">nginx.conf</a></div></div>
-<div class="project-actions"><a href="/lv/proof/#homelab" data-local-route="proof/#homelab"><span data-ui-i18n="v2_homelab_link">Skatīt homelab pierādījumus</span> <span aria-hidden="true">→</span></a></div></article>
-<article class="project-entry primary project-card">
-<div class="project-preview platform-preview"><div class="preview-bar"><i></i><i></i><i></i><span>rozkalns.net</span></div><div class="mini-site"><div><b>Andris Rožkalns</b><span>Technical Support<br>Linux Operations</span><em>EN / DE / LV</em></div><div class="mini-document"><b>CV</b><i></i><i></i><i></i><i></i><small>PDF</small></div></div><small data-ui-i18n="v2_overview">Projekta pārskats</small></div><span class="project-status " data-ui-i18n="v2_source">Pirmkods pieejams</span>
-<div class="project-copy"><h3><span data-i18n="p7_title">rozkalns.net CV platforma</span></h3><p class="project-summary" data-ui-i18n="v2_cv_summary">Daudzvalodu portfolio ar CV, projektiem un pārbaudāmiem tehniskajiem pierādījumiem.</p><details class="project-learning-details"><summary data-ui-i18n="v2_learning">Ko esmu apguvis</summary><p class="project-learning" data-i18n="p7_ops">Mācība: avota gatavība, runtime stāvoklis un privātuma vārti ir jānodala.</p></details><div class="tech-tags"><span class="tech-tag">Linux</span><span class="tech-tag">Python</span><span class="tech-tag">Browser tests</span><span class="tech-tag">PDF</span><a class="tech-tag github-row" href=//github.com/rozkalnsandris/rozkalns-cv>GitHub</a><a class="tech-tag github-row" href="/lv/proof/" data-local-route="proof/" data-proof-i18n="link_label">Tehniskie pierādījumi</a></div></div>
-<div class="project-actions"><a href="https://github.com/rozkalnsandris/rozkalns-cv/blob/main/docs/TROUBLESHOOTING_CASE_STUDY.md" rel="external"><span data-ui-i18n="v2_cv_link_github">Lasīt problēmas izpēti GitHub</span> <span aria-hidden="true">↗</span></a></div></article>
+<article class="project-entry primary project-card" data-project-slug="hermes-deals">
+<figure class="project-preview project-banner project-banner-deals" data-project-banner>
+<span class="project-banner-backdrop" aria-hidden="true"></span>
+<div class="project-banner-content">
+<div class="preview-bar"><i></i><i></i><i></i><span>deals.rozkalns.net</span></div>
+<div class="project-banner-flow" role="list"><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">SRC</span><strong>Retailers</strong></span><b class="project-banner-arrow" aria-hidden="true">→</b><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">✓</span><strong>Validate</strong></span><b class="project-banner-arrow" aria-hidden="true">→</b><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">€</span><strong>Compare</strong></span></div>
+<small data-ui-i18n="v2_deals_preview">Veikalu pierādījumi → ģimenes iepirkšanās</small>
+</div>
+</figure>
+<span class="project-status" data-ui-i18n="v2_source">Pirmkods pieejams</span>
+<div class="project-copy"><h3>Hermes Deals</h3><p class="project-summary" data-ui-i18n="v2_deals_summary">Pašmitināta ģimenes iepirkšanās platforma ar veikalu pierādījumiem, pārbaudītu produktu identitāti un iknedēļas cenu salīdzināšanu.</p>
+<div class="tech-tags"><span class="tech-tag">FastAPI</span><span class="tech-tag">PostgreSQL</span><span class="tech-tag">SQLAlchemy</span><span class="tech-tag">Docker</span></div>
+<div class="project-inline-links"><a href="https://github.com/rozkalnsandris/hermes-deals" rel="external">GitHub ↗</a><a href="https://deals.rozkalns.net/" rel="external" data-ui-i18n="v2_private_app_link">Privāta lietotne ↗</a></div>
+</div><details class="project-learning-details project-case-study" data-project-case-study data-project-case="hermes-deals">
+<summary data-ui-i18n="v2_case">Skatīt izpēti</summary>
+<div class="proof-project-body project-case-study-body">
+<figure class="lab-preview project-case-study-shot"><img src="/portfolio/hermes-deals-source-ui-2026-10-18.webp" alt="" width="1356" height="600" loading="lazy" decoding="async"><figcaption data-ui-i18n="v2_deals_case_caption">UI renderējums no kanoniskā repozitorija · 2026. gada 18. oktobris</figcaption></figure>
+<div class="project-case-study-grid">
+<div class="lab-panel project-case-panel project-case-panel-wide"><h4 data-ui-i18n="v2_tech_idea_title">Projekta ideja</h4><p data-ui-i18n="v2_deals_idea">Pašmitināta ģimenes iepirkšanās platforma, kas veikalu pierādījumus pārvērš pārbaudītos nedēļas piedāvājumos un cenu salīdzinājumos.</p><h4 data-ui-i18n="v2_tech_architecture_title">Arhitektūra</h4><ol class="workflow-diagram"><li data-ui-i18n="v2_deals_flow_source">Veikalu avoti</li><li data-ui-i18n="v2_deals_flow_snapshot">Nemaināmi tvērumi</li><li data-ui-i18n="v2_deals_flow_validate">Validēt + pārskatīt</li><li data-ui-i18n="v2_deals_flow_ui">PostgreSQL + ģimenes UI</li></ol></div>
+<div class="lab-panel project-case-panel"><h4 data-ui-i18n="v2_tech_how_title">Kā tas darbojas</h4><ol class="method-steps"><li data-ui-i18n="v2_deals_how_1">Savākt konkrētam veikalam piesaistītus nedēļas piedāvājumu pierādījumus un saglabāt izcelsmi.</li><li data-ui-i18n="v2_deals_how_2">Parsēt validētos piedāvājumu ierakstos; neskaidras produktu identitātes atstāt pārskatīšanai.</li><li data-ui-i18n="v2_deals_how_3">Salīdzināt apstiprinātās identitātes un pārvērst tās praktiskā ģimenes iepirkšanās skatā.</li></ol></div>
+<div class="lab-panel project-case-panel"><h4 data-ui-i18n="v2_tech_learning_title">Ko esmu apguvis</h4><p data-ui-i18n="v2_deals_learning_body">Uzticams salīdzinājums sākas ar izcelsmi un pārbaudītu produkta identitāti, nevis aptuvenu līdzību.</p></div>
+<div class="lab-panel project-case-panel project-case-panel-wide"><h4 data-ui-i18n="v2_tech_evidence_title">Pierādījumi</h4><p data-ui-i18n="v2_deals_evidence_body">Repozitorijs dokumentē savācējus, nemaināmus pierādījumus, validācijas un pārskatīšanas vārtus, kā arī FastAPI/PostgreSQL UI. Aktīvā lietotne ir aizsargāta ar piekļuvi.</p><div class="project-case-links"><a href="https://github.com/rozkalnsandris/hermes-deals" rel="external" data-ui-i18n="v2_tech_evidence_source">Pirmkods ↗</a><a href="https://github.com/rozkalnsandris/hermes-deals/blob/main/docs/ARCHITECTURE.md" rel="external" data-ui-i18n="v2_architecture_link">Arhitektūra ↗</a><a href="https://deals.rozkalns.net/" rel="external" data-ui-i18n="v2_private_app_link">Privāta lietotne ↗</a></div></div>
+</div>
+</div>
+</details>
+</article>
+<article class="project-entry primary project-card" data-project-slug="weather">
+<figure class="project-preview project-banner project-banner-weather" data-project-banner>
+<span class="project-banner-backdrop" aria-hidden="true"></span>
+<div class="project-banner-content">
+<div class="preview-bar"><i></i><i></i><i></i><span>private weather PWA</span></div>
+<div class="project-banner-flow" role="list"><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">WX</span><strong>Models</strong></span><b class="project-banner-arrow" aria-hidden="true">→</b><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">DWD</span><strong>Verify</strong></span><b class="project-banner-arrow" aria-hidden="true">→</b><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">PWA</span><strong>UI</strong></span></div>
+<small data-ui-i18n="v2_weather_preview">Prognožu modeļi + novērotā patiesība</small>
+</div>
+</figure>
+<span class="project-status" data-ui-i18n="v2_source">Pirmkods pieejams</span>
+<div class="project-copy"><h3>Weather PWA</h3><p class="project-summary" data-ui-i18n="v2_weather_summary">Privāta laikapstākļu PWA prognožu modeļu salīdzināšanai ar DWD novērojumiem, radaru un brīdinājumiem.</p>
+<div class="tech-tags"><span class="tech-tag">FastAPI</span><span class="tech-tag">SQLite</span><span class="tech-tag">DWD</span><span class="tech-tag">PWA</span></div>
+<div class="project-inline-links"><a href="https://github.com/rozkalnsandris/rozkalns_weather" rel="external">GitHub ↗</a></div>
+</div><details class="project-learning-details project-case-study" data-project-case-study data-project-case="weather">
+<summary data-ui-i18n="v2_case">Skatīt izpēti</summary>
+<div class="proof-project-body project-case-study-body">
+<figure class="lab-preview project-case-study-shot"><img src="/portfolio/weather-source-ui-2026-10-18.webp" alt="" width="1356" height="600" loading="lazy" decoding="async"><figcaption data-ui-i18n="v2_weather_case_caption">UI renderējums no kanoniskā repozitorija · 2026. gada 18. oktobris</figcaption></figure>
+<div class="project-case-study-grid">
+<div class="lab-panel project-case-panel project-case-panel-wide"><h4 data-ui-i18n="v2_tech_idea_title">Projekta ideja</h4><p data-ui-i18n="v2_weather_idea">Privāta laikapstākļu PWA, kas salīdzina prognožu modeļus ar DWD novērojumiem, radaru, brīdinājumiem un izmērītu modeļu precizitāti.</p><h4 data-ui-i18n="v2_tech_architecture_title">Arhitektūra</h4><ol class="workflow-diagram"><li data-ui-i18n="v2_weather_flow_models">Prognožu avoti</li><li data-ui-i18n="v2_weather_flow_ingest">FastAPI ievade</li><li data-ui-i18n="v2_weather_flow_truth">SQLite + DWD novērojumi</li><li data-ui-i18n="v2_weather_flow_ui">PWA + precizitāte</li></ol></div>
+<div class="lab-panel project-case-panel"><h4 data-ui-i18n="v2_tech_how_title">Kā tas darbojas</h4><ol class="method-steps"><li data-ui-i18n="v2_weather_how_1">Iegūt prognožu modeļus un izmērītus DWD novērojumus ar skaidru avotu svaiguma kontroli.</li><li data-ui-i18n="v2_weather_how_2">Rādīt pārskatu, modeļu salīdzinājumu, radara kontekstu un oficiālos DWD brīdinājumus.</li><li data-ui-i18n="v2_weather_how_3">Laika gaitā mērīt modeļu kļūdu pret publisko DWD references staciju.</li></ol></div>
+<div class="lab-panel project-case-panel"><h4 data-ui-i18n="v2_tech_learning_title">Ko esmu apguvis</h4><p data-ui-i18n="v2_weather_learning_body">Prognozes rezultātam un novērotajai patiesībai vajag atsevišķu izcelsmes, svaiguma un pieejamības pārbaudi.</p></div>
+<div class="lab-panel project-case-panel project-case-panel-wide"><h4 data-ui-i18n="v2_tech_evidence_title">Pierādījumi</h4><p data-ui-i18n="v2_weather_evidence_body">Publiskais repozitorijs dokumentē avotus, verifikācijas modeli, privātuma robežu un PWA. Mājas prognozes punkts paliek tikai runtime.</p><div class="project-case-links"><a href="https://github.com/rozkalnsandris/rozkalns_weather" rel="external" data-ui-i18n="v2_tech_evidence_source">Pirmkods ↗</a><a href="https://github.com/rozkalnsandris/rozkalns_weather/blob/main/docs/ARCHITECTURE.md" rel="external" data-ui-i18n="v2_architecture_link">Arhitektūra ↗</a></div></div>
+</div>
+</div>
+</details>
+</article>
 <article class="project-entry primary project-card" data-project-slug="coloring-pages">
-<div class="project-preview coloring-preview"><div class="preview-bar"><i></i><i></i><i></i><span>coloring.rozkalns.net</span></div><div class="preview-workflow"><strong data-ui-i18n="v2_color_find">Atrast</strong><b aria-hidden="true">→</b><strong data-ui-i18n="v2_color_preview">Priekšskatīt</strong><b aria-hidden="true">→</b><strong data-ui-i18n="v2_color_print">Drukāt A4</strong></div><small data-ui-i18n="v2_color_preview_label">Mobilais krāsojamo lapu katalogs</small></div>
+<figure class="project-preview project-banner project-banner-coloring" data-project-banner>
+<span class="project-banner-backdrop" aria-hidden="true"></span>
+<div class="project-banner-content">
+<div class="preview-bar"><i></i><i></i><i></i><span>ausmalwiese.de</span></div>
+<div class="project-banner-flow" role="list"><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">⌕</span><strong>Find</strong></span><b class="project-banner-arrow" aria-hidden="true">→</b><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">□</span><strong>Preview</strong></span><b class="project-banner-arrow" aria-hidden="true">→</b><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">A4</span><strong>Print</strong></span></div>
+<small data-ui-i18n="v2_color_preview_label">Mobilais krāsojamo lapu katalogs</small>
+</div>
+</figure>
 <span class="project-status" data-ui-i18n="v2_source">Pirmkods pieejams</span>
 <div class="project-copy"><h3>Coloring Pages</h3><p class="project-summary" data-ui-i18n="v2_coloring_summary">Mobilajām ierīcēm pielāgots krāsojamo lapu katalogs priekšskatīšanai un drukāšanai.</p>
 <div class="tech-tags"><span class="tech-tag">HTML/CSS</span><span class="tech-tag">JavaScript</span><span class="tech-tag">Docker</span><span class="tech-tag">Nginx</span></div>
-<div class="project-inline-links"><a href="https://github.com/rozkalnsandris/coloring-pages" rel="external">GitHub ↗</a><a href="https://coloring.rozkalns.net/" rel="external" data-ui-i18n="v2_visit_project">Atvērt vietni ↗</a></div>
+<div class="project-inline-links"><a href="https://github.com/rozkalnsandris/coloring-pages" rel="external">GitHub ↗</a><a href="https://ausmalwiese.de/" rel="external" data-ui-i18n="v2_visit_project">Atvērt vietni ↗</a></div>
+</div><details class="project-learning-details project-case-study" data-project-case-study data-project-case="coloring-pages">
+<summary data-ui-i18n="v2_case">Skatīt izpēti</summary>
+<div class="proof-project-body project-case-study-body">
+<figure class="lab-preview project-case-study-shot"><img src="/portfolio/coloring-pages-2026-10-18.webp" alt="" width="1356" height="600" loading="lazy" decoding="async"><figcaption data-ui-i18n="v2_coloring_case_caption">Aktuāls Ausmalwiese sākumlapas tvērums · 2026. gada 18. oktobris</figcaption></figure>
+<div class="project-case-study-grid">
+<div class="lab-panel project-case-panel project-case-panel-wide"><h4 data-ui-i18n="v2_tech_idea_title">Projekta ideja</h4><p data-ui-i18n="v2_coloring_idea">Statisks, mobile-first katalogs ar vienkāršu ceļu: atrast krāsošanas aktivitāti, apskatīt priekšskatījumu un izdrukāt validētu A4 rezultātu.</p><h4 data-ui-i18n="v2_tech_architecture_title">Arhitektūra</h4><ol class="workflow-diagram"><li data-ui-i18n="v2_coloring_flow_source">Apstiprināts PNG</li><li data-ui-i18n="v2_coloring_flow_validate">Validēt drukas masteru</li><li data-ui-i18n="v2_coloring_flow_import">Uzticamais importētājs</li><li data-ui-i18n="v2_coloring_flow_publish">Katalogs → priekšskatījums → druka</li></ol></div>
+<div class="lab-panel project-case-panel"><h4 data-ui-i18n="v2_tech_how_title">Kā tas darbojas</h4><ol class="method-steps"><li data-ui-i18n="v2_coloring_how_1">Pirms jebkuras publicēšanas darbības deterministiski sagatavot un validēt drukas masteru.</li><li data-ui-i18n="v2_coloring_how_2">Ar uzticamo plūsmu importēt nemaināmus publiskos atvasinājumus un atjaunināt katalogu.</li><li data-ui-i18n="v2_coloring_how_3">Saglabāt meklēšanu, priekšskatījumu un A4 druku vienkāršu mobilajā un desktop vidē.</li></ol></div>
+<div class="lab-panel project-case-panel"><h4 data-ui-i18n="v2_tech_learning_title">Ko esmu apguvis</h4><p data-ui-i18n="v2_coloring_learning_body">Lietotnes kodam, privātajiem oriģināliem un publiskajiem mediju atvasinājumiem vajag atsevišķas īpašumtiesību un publicēšanas robežas.</p></div>
+<div class="lab-panel project-case-panel project-case-panel-wide"><h4 data-ui-i18n="v2_tech_evidence_title">Pierādījumi</h4><p data-ui-i18n="v2_coloring_evidence_body">Repozitorijs dokumentē mediju standartu, importētāju un publicēšanas kontraktu; publiskā vietne parāda katalogu un drukas plūsmu.</p><div class="project-case-links"><a href="https://ausmalwiese.de/" rel="external" data-ui-i18n="v2_tech_evidence_live">Aktīvā vietne ↗</a><a href="https://github.com/rozkalnsandris/coloring-pages" rel="external" data-ui-i18n="v2_tech_evidence_source">Pirmkods ↗</a><a href="https://github.com/rozkalnsandris/coloring-pages/blob/main/docs/MEDIA_STANDARD_V1.md" rel="external" data-ui-i18n="v2_media_standard_link">Mediju standarts ↗</a></div></div>
 </div>
+</div>
+</details>
+</article>
+<article class="project-entry primary project-card" data-project-slug="cv-platform">
+<figure class="project-preview project-banner project-banner-cv" data-project-banner>
+<span class="project-banner-backdrop" aria-hidden="true"></span>
+<div class="project-banner-content">
+<div class="preview-bar"><i></i><i></i><i></i><span>rozkalns.net</span></div>
+<div class="project-banner-flow" role="list"><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">JSON</span><strong>Source</strong></span><b class="project-banner-arrow" aria-hidden="true">→</b><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">Vite</span><strong>Build</strong></span><b class="project-banner-arrow" aria-hidden="true">→</b><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">✓</span><strong>Verify</strong></span></div>
+<small data-ui-i18n="v2_cv_preview">Versiju kontrolēts daudzvalodu CV</small>
+</div>
+</figure>
+<span class="project-status" data-ui-i18n="v2_source">Pirmkods pieejams</span>
+<div class="project-copy"><h3><span data-i18n="p7_title">rozkalns.net CV platforma</span></h3><p class="project-summary" data-ui-i18n="v2_cv_summary">Daudzvalodu portfolio ar CV, projektiem un pārbaudāmiem tehniskajiem pierādījumiem.</p>
+<div class="tech-tags"><span class="tech-tag">Vite</span><span class="tech-tag">Python</span><span class="tech-tag">Nginx</span><span class="tech-tag">Browser tests</span></div>
+<div class="project-inline-links"><a href="https://github.com/rozkalnsandris/rozkalns-cv" rel="external">GitHub ↗</a><a href="https://rozkalns.net/" rel="external" data-ui-i18n="v2_visit_project">Atvērt vietni ↗</a></div>
+</div><details class="project-learning-details project-case-study" data-project-case-study data-project-case="cv-platform">
+<summary data-ui-i18n="v2_case">Skatīt izpēti</summary>
+<div class="proof-project-body project-case-study-body">
+<figure class="lab-preview project-case-study-shot"><img src="/portfolio/cv-platform-2026-10-18.webp" alt="" width="1356" height="600" loading="lazy" decoding="async"><figcaption data-ui-i18n="v2_cv_case_caption">Aktuāls rozkalns.net tvērums · 2026. gada 18. oktobris</figcaption></figure>
+<div class="project-case-study-grid">
+<div class="lab-panel project-case-panel project-case-panel-wide"><h4 data-ui-i18n="v2_tech_idea_title">Projekta ideja</h4><p data-ui-i18n="v2_cv_idea">Versiju kontrolēts daudzvalodu CV un portfolio, kas ģenerē deterministiskus tīmekļa/PDF artefaktus un nodala publiskos pierādījumus, privātumu un runtime stāvokli.</p><h4 data-ui-i18n="v2_tech_architecture_title">Arhitektūra</h4><ol class="workflow-diagram"><li data-ui-i18n="v2_cv_flow_source">Profils + tulkojumi</li><li data-ui-i18n="v2_cv_flow_build">Deterministisks build</li><li data-ui-i18n="v2_cv_flow_output">HTML + PDF</li><li data-ui-i18n="v2_cv_flow_verify">Nginx + browser/security vārti</li></ol></div>
+<div class="lab-panel project-case-panel"><h4 data-ui-i18n="v2_tech_how_title">Kā tas darbojas</h4><ol class="method-steps"><li data-ui-i18n="v2_cv_how_1">Glabāt kanoniskos publiskos CV faktus un tulkojumus versiju kontrolē.</li><li data-ui-i18n="v2_cv_how_2">No pārskatīta source ģenerēt deterministiskus frontend un PDF artefaktus.</li><li data-ui-i18n="v2_cv_how_3">Pirms release vai deploy izpildīt browser, drošības un exact-SHA pārbaudes.</li></ol></div>
+<div class="lab-panel project-case-panel"><h4 data-ui-i18n="v2_tech_learning_title">Ko esmu apguvis</h4><p data-ui-i18n="v2_cv_learning_body">Source gatavība, runtime stāvoklis un privātuma vārti ir jānodala, lai pārskatīta izmaiņa klusām nekļūtu par LIVE mutāciju.</p></div>
+<div class="lab-panel project-case-panel project-case-panel-wide"><h4 data-ui-i18n="v2_tech_evidence_title">Pierādījumi</h4><p data-ui-i18n="v2_cv_evidence_body">Repozitorijs parāda source, deterministisku build un testu kontraktus; aktīvā vietne un Engineering proof dod publisko rezultātu un pierādījumus.</p><div class="project-case-links"><a href="https://rozkalns.net/" rel="external" data-ui-i18n="v2_tech_evidence_live">Aktīvā vietne ↗</a><a href="https://github.com/rozkalnsandris/rozkalns-cv" rel="external" data-ui-i18n="v2_tech_evidence_source">Pirmkods ↗</a><a href="/lv/proof/" data-local-route="proof/" data-proof-i18n="link_label">Tehniskie pierādījumi</a></div></div>
+</div>
+</div>
+</details>
+</article>
+<article class="project-entry primary project-card" data-project-slug="homelab" data-project-ids="homelab">
+<figure class="project-preview project-banner project-banner-infra" data-project-banner>
+
+<div class="project-banner-content">
+<div class="preview-bar"><i></i><i></i><i></i><span>Raspberry Pi 5 · infrastructure</span></div>
+<div class="project-banner-flow" role="list"><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">Git</span><strong>Review</strong></span><b class="project-banner-arrow" aria-hidden="true">→</b><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">SHA</span><strong>Deploy</strong></span><b class="project-banner-arrow" aria-hidden="true">→</b><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">Ops</span><strong>Observe</strong></span></div>
+<small data-ui-i18n="v2_homelab_preview">Pārskatīta infrastruktūra un operācijas</small>
+</div>
+</figure>
+<span class="project-status" data-ui-i18n="v2_source">Pirmkods pieejams</span>
+<div class="project-copy"><h3 data-i18n="p1_title">Pašhostēta Linux servera vide</h3><p class="project-summary" data-ui-i18n="v2_host_summary">Raspberry Pi vide pašmitinātiem servisiem, monitoringam un ikdienas uzturēšanai.</p>
+<div class="tech-tags"><span class="tech-tag">Linux</span><span class="tech-tag">Docker</span><span class="tech-tag">systemd</span><span class="tech-tag">Prometheus</span><a class="tech-tag github-row project-proof-link" data-proof-evidence-id="cv-compose" href="https://github.com/rozkalnsandris/rozkalns-cv/blob/main/docker-compose.yml">docker-compose.yml</a><a class="tech-tag github-row project-proof-link" data-proof-evidence-id="nginx-runtime-config" href="https://github.com/rozkalnsandris/rozkalns-cv/blob/main/nginx.conf">nginx.conf</a></div>
+<div class="project-inline-links"><a href="https://github.com/rozkalnsandris/RPi5_main" rel="external">GitHub ↗</a><a href="/lv/proof/#homelab" data-local-route="proof/#homelab"><span data-ui-i18n="v2_homelab_link">Skatīt homelab pierādījumus</span> →</a></div>
+</div><details class="project-learning-details project-case-study" data-project-case-study data-project-case="homelab">
+<summary data-ui-i18n="v2_case">Skatīt izpēti</summary>
+<div class="proof-project-body project-case-study-body">
+<figure class="lab-preview project-case-study-shot project-case-study-visual"><div class="project-case-visual" aria-hidden="true"><span>GitHub source</span><b>→</b><span>CI + preflight</span><b>→</b><span>Exact commit</span><b>→</b><span>systemd + Docker</span></div><figcaption data-ui-i18n="v2_homelab_case_caption">Source balstīts homelab darbības modelis</figcaption></figure>
+<div class="project-case-study-grid">
+<div class="lab-panel project-case-panel project-case-panel-wide"><h4 data-ui-i18n="v2_tech_idea_title">Projekta ideja</h4><p data-ui-i18n="v2_homelab_idea">Versiju kontrolēts Raspberry Pi 5 homelab, kur infrastruktūras izmaiņas tiek veiktas kā pārskatītas operācijas ar exact-commit piesaisti un stingrām noslēpumu robežām.</p><h4 data-ui-i18n="v2_tech_architecture_title">Arhitektūra</h4><ol class="workflow-diagram"><li data-ui-i18n="v2_homelab_flow_source">Pārskatīts source</li><li data-ui-i18n="v2_homelab_flow_ci">CI + preflight</li><li data-ui-i18n="v2_homelab_flow_deploy">Exact-commit deploy</li><li data-ui-i18n="v2_homelab_flow_runtime">systemd + Docker servisi</li></ol></div>
+<div class="lab-panel project-case-panel"><h4 data-ui-i18n="v2_tech_how_title">Kā tas darbojas</h4><ol class="method-steps"><li data-ui-i18n="v2_homelab_how_1">Pirms merge pārskatīt infrastruktūras izmaiņas ar branch, testiem, PR un CI.</li><li data-ui-i18n="v2_homelab_how_2">Sekmīgās operācijas piesaistīt precīzam commit ar least-privilege preflight un rollback robežām.</li><li data-ui-i18n="v2_homelab_how_3">Pirms host izmaiņām izmantot servisu stāvokli, logus, health checks un monitoringu kā troubleshooting pierādījumus.</li></ol></div>
+<div class="lab-panel project-case-panel"><h4 data-ui-i18n="v2_tech_learning_title">Ko esmu apguvis</h4><p data-ui-i18n="v2_homelab_learning_body">Source gatavība un runtime stāvoklis ir atšķirīgi fakti; fail-closed vārti šo robežu padara skaidru.</p></div>
+<div class="lab-panel project-case-panel project-case-panel-wide"><h4 data-ui-i18n="v2_tech_evidence_title">Pierādījumi</h4><p data-ui-i18n="v2_homelab_evidence_body">RPi5_main ir publiskais infrastruktūras source of truth; CV Engineering proof sasaista izvēlētus publiskus operāciju pierādījumus, neatklājot noslēpumus vai privātus runtime datus.</p><div class="project-case-links"><a href="https://github.com/rozkalnsandris/RPi5_main" rel="external" data-ui-i18n="v2_tech_evidence_source">Pirmkods ↗</a><a href="/lv/proof/#homelab" data-local-route="proof/#homelab"><span data-ui-i18n="v2_homelab_link">Skatīt homelab pierādījumus</span> →</a></div></div>
+</div>
+</div>
+</details>
 </article>
 </div>
 <div class="supporting-projects">

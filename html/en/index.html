@@ -24,9 +24,9 @@
 <meta name="twitter:image" content="https://rozkalns.net/photo.jpg">
 <meta name="twitter:image:alt" content="Portrait of Andris Rožkalns">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<script type="module" crossorigin src="/assets/app.47f9588f34ba.mjs?cfg=c8562518b66f"></script>
+<script type="module" crossorigin src="/assets/app.4c3a3c3530c2.mjs?cfg=c8562518b66f"></script>
 <link rel="modulepreload" crossorigin href="/assets/i18n.5785915b2a2a.mjs">
-<link rel="stylesheet" crossorigin href="/assets/styles.a93ef4cbecdb.css">
+<link rel="stylesheet" crossorigin href="/assets/styles.844c09052485.css">
 </head>
 <body>
 <a class="skip-link" href="#main" data-i18n="skip">Skip to main content</a>
@@ -57,17 +57,11 @@
 <div class="section-heading"><h2 data-ui-i18n="v2_featured">Featured projects</h2><a class="section-link" href="/en/proof/" data-local-route="proof/" data-proof-i18n="link_label">Engineering proof</a></div><p class="section-intro" data-ui-i18n="v2_project_intro">Practical projects. Inspectable evidence.</p>
 <div class="project-list">
 <article class="project-entry primary project-card" data-project-slug="hermes-tech">
-<figure class="project-preview hermes-banner" data-tech-banner>
-<img class="hermes-banner-backdrop" src="/portfolio/hermes-tech-home-2026-10-18.png" alt="" width="1356" height="600" loading="lazy" decoding="async">
-<div class="hermes-banner-content">
-<div class="preview-bar hermes-banner-bar"><i></i><i></i><i></i><span>tech.rozkalns.net</span></div>
-<div class="hermes-banner-flow" role="list">
-<span class="hermes-banner-node" role="listitem"><span class="hermes-banner-mark" aria-hidden="true">RSS</span><strong>RSS</strong></span>
-<b class="hermes-banner-arrow" aria-hidden="true">→</b>
-<span class="hermes-banner-node" role="listitem"><span class="hermes-banner-mark" aria-hidden="true">Py</span><strong>Python · AI</strong></span>
-<b class="hermes-banner-arrow" aria-hidden="true">→</b>
-<span class="hermes-banner-node" role="listitem"><span class="hermes-banner-mark" aria-hidden="true">H</span><strong>Hugo</strong></span>
-</div>
+<figure class="project-preview project-banner project-banner-tech" data-project-banner>
+<span class="project-banner-backdrop" aria-hidden="true"></span>
+<div class="project-banner-content">
+<div class="preview-bar"><i></i><i></i><i></i><span>tech.rozkalns.net</span></div>
+<div class="project-banner-flow" role="list"><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">RSS</span><strong>RSS</strong></span><b class="project-banner-arrow" aria-hidden="true">→</b><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">Py</span><strong>Python · AI</strong></span><b class="project-banner-arrow" aria-hidden="true">→</b><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">H</span><strong>Hugo</strong></span></div>
 <small data-ui-i18n="v2_hermes_preview">Automated technology digest</small>
 </div>
 </figure>
@@ -75,35 +69,148 @@
 <div class="project-copy"><h3>Hermes Tech</h3><p class="project-summary" data-ui-i18n="v2_hermes_summary">An openly AI-generated technology digest built from RSS with Python, SQLite and Hugo.</p>
 <div class="tech-tags"><span class="tech-tag">Python</span><span class="tech-tag">SQLite</span><span class="tech-tag">Hugo</span><span class="tech-tag">RSS</span></div>
 <div class="project-inline-links"><a href="https://github.com/rozkalnsandris/hermes-tech" rel="external">GitHub ↗</a><a href="https://tech.rozkalns.net/" rel="external" data-ui-i18n="v2_visit_project">Visit site ↗</a></div>
-</div>
-<details class="project-learning-details tech-case-study" data-tech-case-study>
+</div><details class="project-learning-details project-case-study" data-project-case-study data-project-case="hermes-tech">
 <summary data-ui-i18n="v2_case">View case study</summary>
-<div class="proof-project-body tech-case-study-body">
-<figure class="lab-preview tech-case-study-shot"><img src="/portfolio/hermes-tech-home-2026-10-18.png" alt="" width="1356" height="600" loading="lazy" decoding="async"><figcaption data-ui-i18n="v2_tech_case_caption">Live Hermes Tech homepage capture · 18 Oct 2026</figcaption></figure>
-<div class="tech-case-study-grid">
-<div class="lab-panel tech-case-panel tech-case-panel-wide"><h4 data-ui-i18n="v2_tech_idea_title">Project idea</h4><p data-ui-i18n="v2_tech_idea">A self-hosted, openly AI-generated technology digest for DevOps, AI and agent engineering. It turns configured RSS feeds into short daily digests with source-bounded generation and validation gates.</p><h4 data-ui-i18n="v2_tech_architecture_title">Architecture</h4><ol class="workflow-diagram"><li data-ui-i18n="v2_tech_flow_rss">RSS feeds</li><li data-ui-i18n="v2_tech_flow_store">SQLite</li><li data-ui-i18n="v2_tech_flow_ai">AI classify · generate · validate</li><li data-ui-i18n="v2_tech_flow_publish">Hugo publish</li></ol></div>
-<div class="lab-panel tech-case-panel"><h4 data-ui-i18n="v2_tech_how_title">How it works</h4><ol class="method-steps"><li data-ui-i18n="v2_tech_how_1">Collect feed-provided content into SQLite.</li><li data-ui-i18n="v2_tech_how_2">Cluster topics, classify and generate category digests, then run validation gates.</li><li data-ui-i18n="v2_tech_how_3">Publish passing output as a static Hugo site with RSS and Open Graph cards.</li></ol></div>
-<div class="lab-panel tech-case-panel"><h4 data-ui-i18n="v2_tech_learning_title">What I learned</h4><p data-ui-i18n="v2_tech_learning_body">The project makes one engineering lesson concrete: keep collection, generation, validation and publication separate so failures can stop before public output.</p></div>
-<div class="lab-panel tech-case-panel tech-case-panel-wide"><h4 data-ui-i18n="v2_tech_evidence_title">Evidence</h4><p data-ui-i18n="v2_tech_evidence_body">The public repository documents the pipeline, validation, publishing and transparency boundaries; the live site shows the generated output.</p><div class="tech-case-links"><a href="https://tech.rozkalns.net/" rel="external" data-ui-i18n="v2_tech_evidence_live">Live site ↗</a><a href="https://github.com/rozkalnsandris/hermes-tech" rel="external" data-ui-i18n="v2_tech_evidence_source">Source ↗</a><a href="https://tech.rozkalns.net/how-hermes-works/" rel="external" data-ui-i18n="v2_tech_evidence_how">How Hermes Works ↗</a></div></div>
+<div class="proof-project-body project-case-study-body">
+<figure class="lab-preview project-case-study-shot"><img src="/portfolio/hermes-tech-home-2026-10-18.png" alt="" width="1356" height="600" loading="lazy" decoding="async"><figcaption data-ui-i18n="v2_tech_case_caption">Live Hermes Tech homepage capture · 18 Oct 2026</figcaption></figure>
+<div class="project-case-study-grid">
+<div class="lab-panel project-case-panel project-case-panel-wide"><h4 data-ui-i18n="v2_tech_idea_title">Project idea</h4><p data-ui-i18n="v2_tech_idea">A self-hosted, openly AI-generated technology digest for DevOps, AI and agent engineering. It turns configured RSS feeds into short daily digests with source-bounded generation and validation gates.</p><h4 data-ui-i18n="v2_tech_architecture_title">Architecture</h4><ol class="workflow-diagram"><li data-ui-i18n="v2_tech_flow_rss">RSS feeds</li><li data-ui-i18n="v2_tech_flow_store">SQLite</li><li data-ui-i18n="v2_tech_flow_ai">AI classify · generate · validate</li><li data-ui-i18n="v2_tech_flow_publish">Hugo publish</li></ol></div>
+<div class="lab-panel project-case-panel"><h4 data-ui-i18n="v2_tech_how_title">How it works</h4><ol class="method-steps"><li data-ui-i18n="v2_tech_how_1">Collect feed-provided content into SQLite.</li><li data-ui-i18n="v2_tech_how_2">Cluster topics, classify and generate category digests, then run validation gates.</li><li data-ui-i18n="v2_tech_how_3">Publish passing output as a static Hugo site with RSS and Open Graph cards.</li></ol></div>
+<div class="lab-panel project-case-panel"><h4 data-ui-i18n="v2_tech_learning_title">What I learned</h4><p data-ui-i18n="v2_tech_learning_body">The project makes one engineering lesson concrete: keep collection, generation, validation and publication separate so failures can stop before public output.</p></div>
+<div class="lab-panel project-case-panel project-case-panel-wide"><h4 data-ui-i18n="v2_tech_evidence_title">Evidence</h4><p data-ui-i18n="v2_tech_evidence_body">The public repository documents the pipeline, validation, publishing and transparency boundaries; the live site shows the generated output.</p><div class="project-case-links"><a href="https://tech.rozkalns.net/" rel="external" data-ui-i18n="v2_tech_evidence_live">Live site ↗</a><a href="https://github.com/rozkalnsandris/hermes-tech" rel="external" data-ui-i18n="v2_tech_evidence_source">Source ↗</a><a href="https://tech.rozkalns.net/how-hermes-works/" rel="external" data-ui-i18n="v2_tech_evidence_how">How Hermes Works ↗</a></div></div>
 </div>
 </div>
 </details>
 </article>
-<article class="project-entry primary project-card" data-project-ids="homelab">
-<div class="project-preview infra-preview"><div class="preview-bar"><i></i><i></i><i></i><span>Raspberry Pi 5 · NVMe</span></div><div class="infra-nodes"><span>Linux</span><b aria-hidden="true">→</b><span>Docker<br>Compose</span><b aria-hidden="true">→</b><span>Nginx</span></div><div class="preview-stack"><span>systemd</span><span>DNS / TLS</span><span>Prometheus</span></div><small data-ui-i18n="v2_overview">Project overview</small></div><span class="project-status " data-ui-i18n="v2_source">Source available</span>
-<div class="project-copy"><h3 data-i18n="p1_title">Self-hosted Linux server environment</h3><p class="project-summary" data-ui-i18n="v2_host_summary">A Raspberry Pi environment for self-hosted services, monitoring and daily operations.</p><details class="project-learning-details"><summary data-ui-i18n="v2_learning">What I learned</summary><p class="project-learning" data-i18n="p1_ops">Learning: service state, logs and DNS/TLS checks are treated as troubleshooting evidence before making changes.</p></details><div class="tech-tags"><span class="tech-tag">Linux</span><span class="tech-tag">Docker Compose</span><span class="tech-tag">systemd</span><span class="tech-tag">DNS/TLS</span><a class="tech-tag github-row" href=//github.com/rozkalnsandris/RPi5_main>GitHub</a><a class="tech-tag github-row project-proof-link" data-proof-evidence-id="cv-compose" href="https://github.com/rozkalnsandris/rozkalns-cv/blob/main/docker-compose.yml">docker-compose.yml</a><a class="tech-tag github-row project-proof-link" data-proof-evidence-id="nginx-runtime-config" href="https://github.com/rozkalnsandris/rozkalns-cv/blob/main/nginx.conf">nginx.conf</a></div></div>
-<div class="project-actions"><a href="/en/proof/#homelab" data-local-route="proof/#homelab"><span data-ui-i18n="v2_homelab_link">View homelab evidence</span> <span aria-hidden="true">→</span></a></div></article>
-<article class="project-entry primary project-card">
-<div class="project-preview platform-preview"><div class="preview-bar"><i></i><i></i><i></i><span>rozkalns.net</span></div><div class="mini-site"><div><b>Andris Rožkalns</b><span>Technical Support<br>Linux Operations</span><em>EN / DE / LV</em></div><div class="mini-document"><b>CV</b><i></i><i></i><i></i><i></i><small>PDF</small></div></div><small data-ui-i18n="v2_overview">Project overview</small></div><span class="project-status " data-ui-i18n="v2_source">Source available</span>
-<div class="project-copy"><h3><span data-i18n="p7_title">rozkalns.net CV platform</span></h3><p class="project-summary" data-ui-i18n="v2_cv_summary">A multilingual portfolio that makes my CV, projects and technical evidence accessible.</p><details class="project-learning-details"><summary data-ui-i18n="v2_learning">What I learned</summary><p class="project-learning" data-i18n="p7_ops">Learning: source readiness, runtime state and privacy gates must remain separate.</p></details><div class="tech-tags"><span class="tech-tag">Linux</span><span class="tech-tag">Python</span><span class="tech-tag">Browser tests</span><span class="tech-tag">PDF</span><a class="tech-tag github-row" href=//github.com/rozkalnsandris/rozkalns-cv>GitHub</a><a class="tech-tag github-row" href="/en/proof/" data-local-route="proof/" data-proof-i18n="link_label">Engineering proof</a></div></div>
-<div class="project-actions"><a href="https://github.com/rozkalnsandris/rozkalns-cv/blob/main/docs/TROUBLESHOOTING_CASE_STUDY.md" rel="external"><span data-ui-i18n="v2_cv_link_github">Read troubleshooting case (GitHub)</span> <span aria-hidden="true">↗</span></a></div></article>
+<article class="project-entry primary project-card" data-project-slug="hermes-deals">
+<figure class="project-preview project-banner project-banner-deals" data-project-banner>
+<span class="project-banner-backdrop" aria-hidden="true"></span>
+<div class="project-banner-content">
+<div class="preview-bar"><i></i><i></i><i></i><span>deals.rozkalns.net</span></div>
+<div class="project-banner-flow" role="list"><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">SRC</span><strong>Retailers</strong></span><b class="project-banner-arrow" aria-hidden="true">→</b><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">✓</span><strong>Validate</strong></span><b class="project-banner-arrow" aria-hidden="true">→</b><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">€</span><strong>Compare</strong></span></div>
+<small data-ui-i18n="v2_deals_preview">Retailer evidence → family shopping</small>
+</div>
+</figure>
+<span class="project-status" data-ui-i18n="v2_source">Source available</span>
+<div class="project-copy"><h3>Hermes Deals</h3><p class="project-summary" data-ui-i18n="v2_deals_summary">A self-hosted family shopping platform built around retailer evidence, reviewed identity and weekly price comparison.</p>
+<div class="tech-tags"><span class="tech-tag">FastAPI</span><span class="tech-tag">PostgreSQL</span><span class="tech-tag">SQLAlchemy</span><span class="tech-tag">Docker</span></div>
+<div class="project-inline-links"><a href="https://github.com/rozkalnsandris/hermes-deals" rel="external">GitHub ↗</a><a href="https://deals.rozkalns.net/" rel="external" data-ui-i18n="v2_private_app_link">Private app ↗</a></div>
+</div><details class="project-learning-details project-case-study" data-project-case-study data-project-case="hermes-deals">
+<summary data-ui-i18n="v2_case">View case study</summary>
+<div class="proof-project-body project-case-study-body">
+<figure class="lab-preview project-case-study-shot"><img src="/portfolio/hermes-deals-source-ui-2026-10-18.webp" alt="" width="1356" height="600" loading="lazy" decoding="async"><figcaption data-ui-i18n="v2_deals_case_caption">Source UI render from canonical repository · 18 Oct 2026</figcaption></figure>
+<div class="project-case-study-grid">
+<div class="lab-panel project-case-panel project-case-panel-wide"><h4 data-ui-i18n="v2_tech_idea_title">Project idea</h4><p data-ui-i18n="v2_deals_idea">A self-hosted family shopping platform that turns retailer evidence into reviewed weekly deals and price comparisons.</p><h4 data-ui-i18n="v2_tech_architecture_title">Architecture</h4><ol class="workflow-diagram"><li data-ui-i18n="v2_deals_flow_source">Retailer sources</li><li data-ui-i18n="v2_deals_flow_snapshot">Immutable snapshots</li><li data-ui-i18n="v2_deals_flow_validate">Validate + review</li><li data-ui-i18n="v2_deals_flow_ui">PostgreSQL + family UI</li></ol></div>
+<div class="lab-panel project-case-panel"><h4 data-ui-i18n="v2_tech_how_title">How it works</h4><ol class="method-steps"><li data-ui-i18n="v2_deals_how_1">Collect store-bound weekly offer evidence and preserve source provenance.</li><li data-ui-i18n="v2_deals_how_2">Parse into validated offer records; ambiguous product identities stay in review.</li><li data-ui-i18n="v2_deals_how_3">Compare confirmed identities and turn them into a practical family shopping view.</li></ol></div>
+<div class="lab-panel project-case-panel"><h4 data-ui-i18n="v2_tech_learning_title">What I learned</h4><p data-ui-i18n="v2_deals_learning_body">Reliable comparison starts with provenance and reviewed product identity, not fuzzy similarity.</p></div>
+<div class="lab-panel project-case-panel project-case-panel-wide"><h4 data-ui-i18n="v2_tech_evidence_title">Evidence</h4><p data-ui-i18n="v2_deals_evidence_body">The repository documents collectors, immutable evidence, validation and review gates, and the FastAPI/PostgreSQL UI. The live app is access-protected.</p><div class="project-case-links"><a href="https://github.com/rozkalnsandris/hermes-deals" rel="external" data-ui-i18n="v2_tech_evidence_source">Source ↗</a><a href="https://github.com/rozkalnsandris/hermes-deals/blob/main/docs/ARCHITECTURE.md" rel="external" data-ui-i18n="v2_architecture_link">Architecture ↗</a><a href="https://deals.rozkalns.net/" rel="external" data-ui-i18n="v2_private_app_link">Private app ↗</a></div></div>
+</div>
+</div>
+</details>
+</article>
+<article class="project-entry primary project-card" data-project-slug="weather">
+<figure class="project-preview project-banner project-banner-weather" data-project-banner>
+<span class="project-banner-backdrop" aria-hidden="true"></span>
+<div class="project-banner-content">
+<div class="preview-bar"><i></i><i></i><i></i><span>private weather PWA</span></div>
+<div class="project-banner-flow" role="list"><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">WX</span><strong>Models</strong></span><b class="project-banner-arrow" aria-hidden="true">→</b><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">DWD</span><strong>Verify</strong></span><b class="project-banner-arrow" aria-hidden="true">→</b><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">PWA</span><strong>UI</strong></span></div>
+<small data-ui-i18n="v2_weather_preview">Forecast models + observed truth</small>
+</div>
+</figure>
+<span class="project-status" data-ui-i18n="v2_source">Source available</span>
+<div class="project-copy"><h3>Weather PWA</h3><p class="project-summary" data-ui-i18n="v2_weather_summary">A private weather PWA for comparing forecast models with observed DWD truth, radar and warnings.</p>
+<div class="tech-tags"><span class="tech-tag">FastAPI</span><span class="tech-tag">SQLite</span><span class="tech-tag">DWD</span><span class="tech-tag">PWA</span></div>
+<div class="project-inline-links"><a href="https://github.com/rozkalnsandris/rozkalns_weather" rel="external">GitHub ↗</a></div>
+</div><details class="project-learning-details project-case-study" data-project-case-study data-project-case="weather">
+<summary data-ui-i18n="v2_case">View case study</summary>
+<div class="proof-project-body project-case-study-body">
+<figure class="lab-preview project-case-study-shot"><img src="/portfolio/weather-source-ui-2026-10-18.webp" alt="" width="1356" height="600" loading="lazy" decoding="async"><figcaption data-ui-i18n="v2_weather_case_caption">Source UI render from canonical repository · 18 Oct 2026</figcaption></figure>
+<div class="project-case-study-grid">
+<div class="lab-panel project-case-panel project-case-panel-wide"><h4 data-ui-i18n="v2_tech_idea_title">Project idea</h4><p data-ui-i18n="v2_weather_idea">A private weather PWA that compares forecast models with DWD observations, radar, warnings and measured model accuracy.</p><h4 data-ui-i18n="v2_tech_architecture_title">Architecture</h4><ol class="workflow-diagram"><li data-ui-i18n="v2_weather_flow_models">Forecast providers</li><li data-ui-i18n="v2_weather_flow_ingest">FastAPI ingest</li><li data-ui-i18n="v2_weather_flow_truth">SQLite + DWD truth</li><li data-ui-i18n="v2_weather_flow_ui">PWA + accuracy</li></ol></div>
+<div class="lab-panel project-case-panel"><h4 data-ui-i18n="v2_tech_how_title">How it works</h4><ol class="method-steps"><li data-ui-i18n="v2_weather_how_1">Ingest forecast models and measured DWD observations with explicit source freshness.</li><li data-ui-i18n="v2_weather_how_2">Show overview, model comparison, radar context and official DWD warnings.</li><li data-ui-i18n="v2_weather_how_3">Measure model error over time against the public DWD reference station.</li></ol></div>
+<div class="lab-panel project-case-panel"><h4 data-ui-i18n="v2_tech_learning_title">What I learned</h4><p data-ui-i18n="v2_weather_learning_body">Forecast output and observed truth need separate provenance, freshness and availability checks.</p></div>
+<div class="lab-panel project-case-panel project-case-panel-wide"><h4 data-ui-i18n="v2_tech_evidence_title">Evidence</h4><p data-ui-i18n="v2_weather_evidence_body">The public repository documents the providers, verification model, privacy boundary and PWA. The home forecast location remains runtime-only.</p><div class="project-case-links"><a href="https://github.com/rozkalnsandris/rozkalns_weather" rel="external" data-ui-i18n="v2_tech_evidence_source">Source ↗</a><a href="https://github.com/rozkalnsandris/rozkalns_weather/blob/main/docs/ARCHITECTURE.md" rel="external" data-ui-i18n="v2_architecture_link">Architecture ↗</a></div></div>
+</div>
+</div>
+</details>
+</article>
 <article class="project-entry primary project-card" data-project-slug="coloring-pages">
-<div class="project-preview coloring-preview"><div class="preview-bar"><i></i><i></i><i></i><span>coloring.rozkalns.net</span></div><div class="preview-workflow"><strong data-ui-i18n="v2_color_find">Find</strong><b aria-hidden="true">→</b><strong data-ui-i18n="v2_color_preview">Preview</strong><b aria-hidden="true">→</b><strong data-ui-i18n="v2_color_print">Print A4</strong></div><small data-ui-i18n="v2_color_preview_label">Mobile-first coloring catalogue</small></div>
+<figure class="project-preview project-banner project-banner-coloring" data-project-banner>
+<span class="project-banner-backdrop" aria-hidden="true"></span>
+<div class="project-banner-content">
+<div class="preview-bar"><i></i><i></i><i></i><span>ausmalwiese.de</span></div>
+<div class="project-banner-flow" role="list"><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">⌕</span><strong>Find</strong></span><b class="project-banner-arrow" aria-hidden="true">→</b><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">□</span><strong>Preview</strong></span><b class="project-banner-arrow" aria-hidden="true">→</b><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">A4</span><strong>Print</strong></span></div>
+<small data-ui-i18n="v2_color_preview_label">Mobile-first coloring catalogue</small>
+</div>
+</figure>
 <span class="project-status" data-ui-i18n="v2_source">Source available</span>
 <div class="project-copy"><h3>Coloring Pages</h3><p class="project-summary" data-ui-i18n="v2_coloring_summary">A mobile-first catalogue for finding, previewing and printing coloring pages.</p>
 <div class="tech-tags"><span class="tech-tag">HTML/CSS</span><span class="tech-tag">JavaScript</span><span class="tech-tag">Docker</span><span class="tech-tag">Nginx</span></div>
-<div class="project-inline-links"><a href="https://github.com/rozkalnsandris/coloring-pages" rel="external">GitHub ↗</a><a href="https://coloring.rozkalns.net/" rel="external" data-ui-i18n="v2_visit_project">Visit site ↗</a></div>
+<div class="project-inline-links"><a href="https://github.com/rozkalnsandris/coloring-pages" rel="external">GitHub ↗</a><a href="https://ausmalwiese.de/" rel="external" data-ui-i18n="v2_visit_project">Visit site ↗</a></div>
+</div><details class="project-learning-details project-case-study" data-project-case-study data-project-case="coloring-pages">
+<summary data-ui-i18n="v2_case">View case study</summary>
+<div class="proof-project-body project-case-study-body">
+<figure class="lab-preview project-case-study-shot"><img src="/portfolio/coloring-pages-2026-10-18.webp" alt="" width="1356" height="600" loading="lazy" decoding="async"><figcaption data-ui-i18n="v2_coloring_case_caption">Live Ausmalwiese homepage capture · 18 Oct 2026</figcaption></figure>
+<div class="project-case-study-grid">
+<div class="lab-panel project-case-panel project-case-panel-wide"><h4 data-ui-i18n="v2_tech_idea_title">Project idea</h4><p data-ui-i18n="v2_coloring_idea">A static, mobile-first catalogue that keeps the user journey simple: find a coloring activity, preview it and print the validated A4 output.</p><h4 data-ui-i18n="v2_tech_architecture_title">Architecture</h4><ol class="workflow-diagram"><li data-ui-i18n="v2_coloring_flow_source">Approved PNG</li><li data-ui-i18n="v2_coloring_flow_validate">Validate print master</li><li data-ui-i18n="v2_coloring_flow_import">Trusted importer</li><li data-ui-i18n="v2_coloring_flow_publish">Catalogue → preview → print</li></ol></div>
+<div class="lab-panel project-case-panel"><h4 data-ui-i18n="v2_tech_how_title">How it works</h4><ol class="method-steps"><li data-ui-i18n="v2_coloring_how_1">Prepare and validate the print master before any publication mutation.</li><li data-ui-i18n="v2_coloring_how_2">Import immutable public derivatives and update the catalogue through the trusted path.</li><li data-ui-i18n="v2_coloring_how_3">Keep browsing, previewing and A4 printing simple on mobile and desktop.</li></ol></div>
+<div class="lab-panel project-case-panel"><h4 data-ui-i18n="v2_tech_learning_title">What I learned</h4><p data-ui-i18n="v2_coloring_learning_body">Application code, private originals and public media derivatives need separate ownership and publication boundaries.</p></div>
+<div class="lab-panel project-case-panel project-case-panel-wide"><h4 data-ui-i18n="v2_tech_evidence_title">Evidence</h4><p data-ui-i18n="v2_coloring_evidence_body">The repository documents the media standard, importer and publication contract; the public site shows the catalogue and print journey.</p><div class="project-case-links"><a href="https://ausmalwiese.de/" rel="external" data-ui-i18n="v2_tech_evidence_live">Live site ↗</a><a href="https://github.com/rozkalnsandris/coloring-pages" rel="external" data-ui-i18n="v2_tech_evidence_source">Source ↗</a><a href="https://github.com/rozkalnsandris/coloring-pages/blob/main/docs/MEDIA_STANDARD_V1.md" rel="external" data-ui-i18n="v2_media_standard_link">Media standard ↗</a></div></div>
 </div>
+</div>
+</details>
+</article>
+<article class="project-entry primary project-card" data-project-slug="cv-platform">
+<figure class="project-preview project-banner project-banner-cv" data-project-banner>
+<span class="project-banner-backdrop" aria-hidden="true"></span>
+<div class="project-banner-content">
+<div class="preview-bar"><i></i><i></i><i></i><span>rozkalns.net</span></div>
+<div class="project-banner-flow" role="list"><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">JSON</span><strong>Source</strong></span><b class="project-banner-arrow" aria-hidden="true">→</b><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">Vite</span><strong>Build</strong></span><b class="project-banner-arrow" aria-hidden="true">→</b><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">✓</span><strong>Verify</strong></span></div>
+<small data-ui-i18n="v2_cv_preview">Source-controlled multilingual CV</small>
+</div>
+</figure>
+<span class="project-status" data-ui-i18n="v2_source">Source available</span>
+<div class="project-copy"><h3><span data-i18n="p7_title">rozkalns.net CV platform</span></h3><p class="project-summary" data-ui-i18n="v2_cv_summary">A multilingual portfolio that makes my CV, projects and technical evidence accessible.</p>
+<div class="tech-tags"><span class="tech-tag">Vite</span><span class="tech-tag">Python</span><span class="tech-tag">Nginx</span><span class="tech-tag">Browser tests</span></div>
+<div class="project-inline-links"><a href="https://github.com/rozkalnsandris/rozkalns-cv" rel="external">GitHub ↗</a><a href="https://rozkalns.net/" rel="external" data-ui-i18n="v2_visit_project">Visit site ↗</a></div>
+</div><details class="project-learning-details project-case-study" data-project-case-study data-project-case="cv-platform">
+<summary data-ui-i18n="v2_case">View case study</summary>
+<div class="proof-project-body project-case-study-body">
+<figure class="lab-preview project-case-study-shot"><img src="/portfolio/cv-platform-2026-10-18.webp" alt="" width="1356" height="600" loading="lazy" decoding="async"><figcaption data-ui-i18n="v2_cv_case_caption">Live rozkalns.net capture · 18 Oct 2026</figcaption></figure>
+<div class="project-case-study-grid">
+<div class="lab-panel project-case-panel project-case-panel-wide"><h4 data-ui-i18n="v2_tech_idea_title">Project idea</h4><p data-ui-i18n="v2_cv_idea">A source-controlled multilingual CV and portfolio that builds deterministic web/PDF artifacts and keeps public evidence, privacy and runtime state separate.</p><h4 data-ui-i18n="v2_tech_architecture_title">Architecture</h4><ol class="workflow-diagram"><li data-ui-i18n="v2_cv_flow_source">Profile + translations</li><li data-ui-i18n="v2_cv_flow_build">Deterministic build</li><li data-ui-i18n="v2_cv_flow_output">HTML + PDF</li><li data-ui-i18n="v2_cv_flow_verify">Nginx + browser/security gates</li></ol></div>
+<div class="lab-panel project-case-panel"><h4 data-ui-i18n="v2_tech_how_title">How it works</h4><ol class="method-steps"><li data-ui-i18n="v2_cv_how_1">Keep canonical public CV facts and translations under version control.</li><li data-ui-i18n="v2_cv_how_2">Generate deterministic frontend and PDF artifacts from reviewed source.</li><li data-ui-i18n="v2_cv_how_3">Run browser, security and exact-SHA checks before release or deployment.</li></ol></div>
+<div class="lab-panel project-case-panel"><h4 data-ui-i18n="v2_tech_learning_title">What I learned</h4><p data-ui-i18n="v2_cv_learning_body">Source readiness, runtime state and privacy gates must remain separate so a reviewed change does not silently become a live mutation.</p></div>
+<div class="lab-panel project-case-panel project-case-panel-wide"><h4 data-ui-i18n="v2_tech_evidence_title">Evidence</h4><p data-ui-i18n="v2_cv_evidence_body">The repository exposes the source, deterministic build and test contracts; the live site and Engineering proof provide the public result and evidence.</p><div class="project-case-links"><a href="https://rozkalns.net/" rel="external" data-ui-i18n="v2_tech_evidence_live">Live site ↗</a><a href="https://github.com/rozkalnsandris/rozkalns-cv" rel="external" data-ui-i18n="v2_tech_evidence_source">Source ↗</a><a href="/en/proof/" data-local-route="proof/" data-proof-i18n="link_label">Engineering proof</a></div></div>
+</div>
+</div>
+</details>
+</article>
+<article class="project-entry primary project-card" data-project-slug="homelab" data-project-ids="homelab">
+<figure class="project-preview project-banner project-banner-infra" data-project-banner>
+
+<div class="project-banner-content">
+<div class="preview-bar"><i></i><i></i><i></i><span>Raspberry Pi 5 · infrastructure</span></div>
+<div class="project-banner-flow" role="list"><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">Git</span><strong>Review</strong></span><b class="project-banner-arrow" aria-hidden="true">→</b><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">SHA</span><strong>Deploy</strong></span><b class="project-banner-arrow" aria-hidden="true">→</b><span class="project-banner-node" role="listitem"><span class="project-banner-mark" aria-hidden="true">Ops</span><strong>Observe</strong></span></div>
+<small data-ui-i18n="v2_homelab_preview">Reviewed infrastructure and operations</small>
+</div>
+</figure>
+<span class="project-status" data-ui-i18n="v2_source">Source available</span>
+<div class="project-copy"><h3 data-i18n="p1_title">Self-hosted Linux server environment</h3><p class="project-summary" data-ui-i18n="v2_host_summary">A Raspberry Pi environment for self-hosted services, monitoring and daily operations.</p>
+<div class="tech-tags"><span class="tech-tag">Linux</span><span class="tech-tag">Docker</span><span class="tech-tag">systemd</span><span class="tech-tag">Prometheus</span><a class="tech-tag github-row project-proof-link" data-proof-evidence-id="cv-compose" href="https://github.com/rozkalnsandris/rozkalns-cv/blob/main/docker-compose.yml">docker-compose.yml</a><a class="tech-tag github-row project-proof-link" data-proof-evidence-id="nginx-runtime-config" href="https://github.com/rozkalnsandris/rozkalns-cv/blob/main/nginx.conf">nginx.conf</a></div>
+<div class="project-inline-links"><a href="https://github.com/rozkalnsandris/RPi5_main" rel="external">GitHub ↗</a><a href="/en/proof/#homelab" data-local-route="proof/#homelab"><span data-ui-i18n="v2_homelab_link">View homelab evidence</span> →</a></div>
+</div><details class="project-learning-details project-case-study" data-project-case-study data-project-case="homelab">
+<summary data-ui-i18n="v2_case">View case study</summary>
+<div class="proof-project-body project-case-study-body">
+<figure class="lab-preview project-case-study-shot project-case-study-visual"><div class="project-case-visual" aria-hidden="true"><span>GitHub source</span><b>→</b><span>CI + preflight</span><b>→</b><span>Exact commit</span><b>→</b><span>systemd + Docker</span></div><figcaption data-ui-i18n="v2_homelab_case_caption">Source-backed homelab operating model</figcaption></figure>
+<div class="project-case-study-grid">
+<div class="lab-panel project-case-panel project-case-panel-wide"><h4 data-ui-i18n="v2_tech_idea_title">Project idea</h4><p data-ui-i18n="v2_homelab_idea">A source-controlled Raspberry Pi 5 homelab that treats infrastructure changes as reviewed operations with exact-commit binding and strict secret boundaries.</p><h4 data-ui-i18n="v2_tech_architecture_title">Architecture</h4><ol class="workflow-diagram"><li data-ui-i18n="v2_homelab_flow_source">Reviewed source</li><li data-ui-i18n="v2_homelab_flow_ci">CI + preflight</li><li data-ui-i18n="v2_homelab_flow_deploy">Exact commit deploy</li><li data-ui-i18n="v2_homelab_flow_runtime">systemd + Docker services</li></ol></div>
+<div class="lab-panel project-case-panel"><h4 data-ui-i18n="v2_tech_how_title">How it works</h4><ol class="method-steps"><li data-ui-i18n="v2_homelab_how_1">Review infrastructure changes through branch, tests, PR and CI before merge.</li><li data-ui-i18n="v2_homelab_how_2">Bind consequential operations to an exact commit with least-privilege preflight and rollback boundaries.</li><li data-ui-i18n="v2_homelab_how_3">Use service state, logs, health checks and monitoring as troubleshooting evidence before changing the host.</li></ol></div>
+<div class="lab-panel project-case-panel"><h4 data-ui-i18n="v2_tech_learning_title">What I learned</h4><p data-ui-i18n="v2_homelab_learning_body">Source readiness and runtime state are different facts; fail-closed gates make that boundary explicit.</p></div>
+<div class="lab-panel project-case-panel project-case-panel-wide"><h4 data-ui-i18n="v2_tech_evidence_title">Evidence</h4><p data-ui-i18n="v2_homelab_evidence_body">RPi5_main is the public infrastructure source of truth; the CV Engineering proof links selected public operational evidence without exposing secrets or private runtime data.</p><div class="project-case-links"><a href="https://github.com/rozkalnsandris/RPi5_main" rel="external" data-ui-i18n="v2_tech_evidence_source">Source ↗</a><a href="/en/proof/#homelab" data-local-route="proof/#homelab"><span data-ui-i18n="v2_homelab_link">View homelab evidence</span> →</a></div></div>
+</div>
+</div>
+</details>
 </article>
 </div>
 <div class="supporting-projects">

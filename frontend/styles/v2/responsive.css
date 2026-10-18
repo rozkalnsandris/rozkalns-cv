@@ -10,9 +10,9 @@
   .project-inline-links { gap: 8px 20px; }
   .quick-contact { padding: 14px 20px; }
   .preview-workflow strong { font-size: 12px; }
-  .hermes-banner-node strong { font-size: 11px; }
-  .tech-case-study-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
-  .tech-case-panel-wide { grid-column: 1 / -1; }
+  .project-banner-node strong { font-size: 11px; }
+  .project-case-study-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .project-case-panel-wide { grid-column: 1 / -1; }
 }
 @media (min-width: 720px) {
   .actions { align-items: center; }
@@ -68,5 +68,13 @@
   .project-copy h3 { font-size: 22px; }
   .education-list { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 24px; }
   .project-card.project-entry.primary .project-preview { height: 185px; }
-  .project-card.project-entry.primary .hermes-banner { padding: 0; }
+  .project-card.project-entry.primary .project-banner { padding: 0; }
+}
+
+@media (max-width: 420px) {
+  .project-banner-flow { gap: 3px; }
+  .project-banner-node { gap: 3px; min-height: 48px; padding: 6px 4px; }
+  .project-banner-mark { display: none; }
+  .project-banner-arrow { font-size: 12px; }
+  .project-banner-node strong { font-size: 9px; white-space: normal; overflow-wrap: anywhere; }
 }

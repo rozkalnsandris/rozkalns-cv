@@ -910,7 +910,7 @@ async function runBrowserSmoke(baseUrl, state) {
             hasFactBoxes: Boolean(card.querySelector('.project-facts'))
           };
         }))()`);
-        assert.equal(projectCards.length, 4, `${context} featured project count`);
+        assert.equal(projectCards.length, 6, `${context} featured project count`);
         for (const [index, card] of projectCards.entries()) {
           const label = `${context} project ${index + 1}`;
           assert.ok(card.summarySize >= 15, `${label} readable summary`);
@@ -930,45 +930,42 @@ async function runBrowserSmoke(baseUrl, state) {
           }
         }
 
-        const techCase = await cdp.evaluate(`(() => {
-          const card = document.querySelector('[data-project-slug="hermes-tech"]');
-          const banner = card?.querySelector('[data-tech-banner]');
-          const details = card?.querySelector('[data-tech-case-study]');
+        const projectCases = await cdp.evaluate(`(() => [...document.querySelectorAll('#projects .project-card.primary')].map((card) => {
+          const banner = card.querySelector('[data-project-banner]');
+          const details = card.querySelector('[data-project-case-study]');
           if (!banner || !details) return null;
           details.open = true;
           const summary = details.querySelector('summary');
-          const image = details.querySelector('img[src="/portfolio/hermes-tech-home-2026-10-18.png"]');
-          const bannerImage = banner.querySelector('img[src="/portfolio/hermes-tech-home-2026-10-18.png"]');
           const result = {
+            slug: card.dataset.projectSlug || card.dataset.projectIds || '',
             summaryTag: summary?.tagName || null,
             summaryHeight: summary?.getBoundingClientRect().height || 0,
-            imagePresent: Boolean(image),
-            imageLoading: image?.getAttribute('loading') || null,
-            bannerImagePresent: Boolean(bannerImage),
-            bannerNodes: banner.querySelectorAll('.hermes-banner-node').length,
+            bannerNodes: banner.querySelectorAll('.project-banner-node').length,
             bannerOverflow: banner.scrollWidth > banner.clientWidth + 1,
             flowCount: details.querySelectorAll('.workflow-diagram li').length,
-            panels: details.querySelectorAll('.lab-panel').length,
-            evidenceLinks: details.querySelectorAll('.tech-case-links a').length,
+            panels: details.querySelectorAll('.project-case-panel').length,
+            evidenceLinks: details.querySelectorAll('.project-case-links a').length,
+            visualPresent: Boolean(details.querySelector('.project-case-study-shot img, .project-case-visual')),
             detailsOverflow: details.scrollWidth > details.clientWidth + 1,
             documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1
           };
           details.open = false;
           return result;
-        })()`);
-        assert.ok(techCase, `${context} Hermes Tech case study missing`);
-        assert.equal(techCase.summaryTag, 'SUMMARY', `${context} Hermes Tech case-study disclosure`);
-        assert.ok(techCase.summaryHeight >= 44, `${context} Hermes Tech case-study target`);
-        assert.equal(techCase.imagePresent, true, `${context} Hermes Tech screenshot`);
-        assert.equal(techCase.imageLoading, 'lazy', `${context} Hermes Tech screenshot loading`);
-        assert.equal(techCase.bannerImagePresent, true, `${context} Hermes Tech banner backdrop`);
-        assert.equal(techCase.bannerNodes, 3, `${context} Hermes Tech banner pipeline`);
-        assert.equal(techCase.bannerOverflow, false, `${context} Hermes Tech banner overflow`);
-        assert.equal(techCase.flowCount, 4, `${context} Hermes Tech architecture steps`);
-        assert.ok(techCase.panels >= 4, `${context} Hermes Tech case-study panels`);
-        assert.equal(techCase.evidenceLinks, 3, `${context} Hermes Tech evidence links`);
-        assert.equal(techCase.detailsOverflow, false, `${context} Hermes Tech case-study overflow`);
-        assert.equal(techCase.documentOverflow, false, `${context} Hermes Tech expanded document overflow`);
+        }))()`);
+        assert.equal(projectCases.length, 6, `${context} project case-study count`);
+        for (const projectCase of projectCases) {
+          assert.ok(projectCase, `${context} project case study missing`);
+          assert.equal(projectCase.summaryTag, 'SUMMARY', `${context} ${projectCase.slug} case-study disclosure`);
+          assert.ok(projectCase.summaryHeight >= 44, `${context} ${projectCase.slug} case-study target`);
+          assert.equal(projectCase.bannerNodes, 3, `${context} ${projectCase.slug} banner pipeline`);
+          assert.equal(projectCase.bannerOverflow, false, `${context} ${projectCase.slug} banner overflow`);
+          assert.equal(projectCase.flowCount, 4, `${context} ${projectCase.slug} architecture steps`);
+          assert.ok(projectCase.panels >= 4, `${context} ${projectCase.slug} case-study panels`);
+          assert.ok(projectCase.evidenceLinks >= 2, `${context} ${projectCase.slug} evidence links`);
+          assert.equal(projectCase.visualPresent, true, `${context} ${projectCase.slug} visual evidence`);
+          assert.equal(projectCase.detailsOverflow, false, `${context} ${projectCase.slug} case-study overflow`);
+          assert.equal(projectCase.documentOverflow, false, `${context} ${projectCase.slug} expanded document overflow`);
+        }
 
         assert.equal(layout.innerWidth, viewport.width, `${context} viewport width`);
         assert.ok(
