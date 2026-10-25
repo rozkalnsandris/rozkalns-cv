@@ -9,11 +9,11 @@
       "version": "1.9.0"
     },
     {
-      "bom-ref": "pkg:pypi/certifi@2026.7.22",
+      "bom-ref": "pkg:pypi/certifi@2026.10.19",
       "name": "certifi",
-      "purl": "pkg:pypi/certifi@2026.7.22",
+      "purl": "pkg:pypi/certifi@2026.10.19",
       "type": "library",
-      "version": "2026.7.22"
+      "version": "2026.10.19"
     },
     {
       "bom-ref": "pkg:pypi/charset-normalizer@3.4.9",
@@ -108,7 +108,7 @@
     },
     {
       "dependsOn": [],
-      "ref": "pkg:pypi/certifi@2026.7.22"
+      "ref": "pkg:pypi/certifi@2026.10.19"
     },
     {
       "dependsOn": [],
@@ -153,7 +153,7 @@
     },
     {
       "dependsOn": [
-        "pkg:pypi/certifi@2026.7.22",
+        "pkg:pypi/certifi@2026.10.19",
         "pkg:pypi/charset-normalizer@3.4.9",
         "pkg:pypi/idna@3.18",
         "pkg:pypi/urllib3@2.8.0"
