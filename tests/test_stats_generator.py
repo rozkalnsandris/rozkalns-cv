@@ -63,7 +63,7 @@ class StatsGeneratorTests(unittest.TestCase):
         result = CompletedProcess(
             args=["docker", "images", "-q"],
             returncode=0,
-            stdout="sha-a\\nsha-b\\nsha-a\\n",
+            stdout="sha-a\nsha-b\nsha-a\n",
             stderr="",
         )
         with patch.object(MODULE.subprocess, "run", return_value=result) as run:
