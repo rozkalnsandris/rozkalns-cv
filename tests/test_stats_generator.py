@@ -56,6 +56,27 @@ class StatsGeneratorTests(unittest.TestCase):
                 with self.assertRaises(MODULE.StatsError):
                     MODULE.parse_prometheus_scalar(payload)
 
+    def test_docker_image_query_allows_busy_daemon(self) -> None:
+        from unittest.mock import patch
+        from subprocess import CompletedProcess
+
+        result = CompletedProcess(
+            args=["docker", "images", "-q"],
+            returncode=0,
+            stdout="sha-a\nsha-b\nsha-a\n",
+            stderr="",
+        )
+        with patch.object(MODULE.subprocess, "run", return_value=result) as run:
+            count = MODULE.docker_count(["docker", "images", "-q"])
+        self.assertEqual(count, 2)
+        run.assert_called_once_with(
+            ["docker", "images", "-q"],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+
     def test_build_snapshot_is_complete_and_deterministic(self) -> None:
         values = iter(
             [99.95, 14, 50.1, 20.2, 8.3, 42.4, 55.5, 12.345, 1.2, 0.4]

@@ -135,7 +135,7 @@ def docker_count(command: list[str]) -> int:
         check=True,
         capture_output=True,
         text=True,
-        timeout=10,
+        timeout=30,
     )
     values = {
         line.strip()
