@@ -1,0 +1,88 @@
+name: Reposition artifact builder
+
+on:
+  push:
+    branches:
+      - fix/qa-linux-data-repositioning
+
+permissions:
+  contents: write
+
+concurrency:
+  group: reposition-artifacts-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out exact branch head
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" fetch --no-tags origin "${GITHUB_SHA}"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+
+      - name: Set up pinned Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.21.0'
+          package-manager-cache: false
+
+      - name: Install deterministic build dependencies
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          npm ci --ignore-scripts --no-audit --no-fund
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends poppler-utils
+          command -v google-chrome || command -v google-chrome-stable || command -v chromium
+          command -v pdftotext
+
+      - name: Validate source contracts
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 -m py_compile scripts/build-content.py scripts/check-pdfs.py
+          node --check scripts/generate-pdfs.mjs
+          python3 -m unittest             tests.test_qa_linux_data_positioning             tests.test_skill_content_consistency             tests.test_hero_recruiter_scan             tests.test_main_document_title             tests.test_person_structured_data
+
+      - name: Regenerate deterministic PDFs and frontend
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          rm -f             html/cv-technical-support.pdf html/cv-technical-support-de.pdf             html/cv-application-support.pdf html/cv-application-support-de.pdf
+          node scripts/generate-pdfs.mjs
+          python3 scripts/check-pdfs.py --write
+          python3 scripts/build-content.py --write --accept-pdfs
+          npm run build:frontend
+          python3 scripts/check-pdfs.py
+          python3 scripts/build-content.py --check
+          npm run check:frontend
+          git diff --check
+
+      - name: Commit generated artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git reset -- .github/workflows/reposition-artifacts.yml
+          if git diff --cached --quiet; then
+            echo "GENERATED_ARTIFACTS_CURRENT=PASS"
+            exit 0
+          fi
+          git commit -m "build: regenerate QA CV artifacts"
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}"             push origin "HEAD:refs/heads/fix/qa-linux-data-repositioning"
