@@ -1,12 +1,12 @@
 {
   "schema_version": 3,
-  "content_version": "2026-09-12.1",
+  "content_version": "2026-11-05.1",
   "identity": {
     "name": "Andris Rožkalns",
-    "role": "Junior Technical Support / Linux Operations",
+    "role": "Junior QA / Linux & Internal IT / AI Data Quality",
     "location": "Dortmund, Germany",
     "availability": "2027-01",
-    "career_goal": "Junior Technical Support, Linux Operations, or Application Support, with later growth toward cloud automation and DevOps"
+    "career_goal": "Junior Software Testing / QA, Linux / Internal IT, or AI Data Quality / AI evaluation roles, with public project evidence rather than professional IT employment"
   },
   "contact": {
     "email": {
@@ -128,6 +128,8 @@
   ],
   "skills": {
     "core": [
+      "Browser regression testing",
+      "Contract validation",
       "Linux administration",
       "Docker",
       "Docker Compose",
@@ -141,6 +143,7 @@
       "Git"
     ],
     "working": [
+      "Data validation",
       "Python",
       "REST APIs",
       "YAML"
@@ -239,6 +242,14 @@
     "public_site": "https://rozkalns.net/"
   },
   "skill_groups": {
+    "testing_quality": [
+      "Browser regression testing",
+      "Contract validation",
+      "Data validation",
+      "REST APIs",
+      "Basic SQL",
+      "HTML/CSS"
+    ],
     "linux_operations": [
       "Linux administration",
       "systemd",
@@ -255,11 +266,6 @@
       "Docker Compose",
       "Prometheus",
       "Grafana"
-    ],
-    "application_support": [
-      "REST APIs",
-      "Basic SQL",
-      "HTML/CSS"
     ],
     "automation_git": [
       "Bash",

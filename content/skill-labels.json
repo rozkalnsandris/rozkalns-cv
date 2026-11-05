@@ -90,6 +90,21 @@
       "en": "HTML/CSS",
       "de": "HTML/CSS",
       "lv": "HTML/CSS"
+    },
+    "Browser regression testing": {
+      "en": "Browser regression testing",
+      "de": "Browser-Regressionstests",
+      "lv": "Pārlūka regresijas testēšana"
+    },
+    "Contract validation": {
+      "en": "Contract validation",
+      "de": "Contract-Validierung",
+      "lv": "Līgumu validācija"
+    },
+    "Data validation": {
+      "en": "Data validation",
+      "de": "Datenvalidierung",
+      "lv": "Datu validācija"
     }
   }
 }

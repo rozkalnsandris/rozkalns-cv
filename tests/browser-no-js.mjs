@@ -335,7 +335,7 @@ async function runNoJsLab(baseUrl, state) {
       const identity = await assertVisibleContent(cdp, "h1", 8, `${path} identity`);
       assert.ok(identity.markup.includes("Andris Rožkalns"), `${path}: identity must remain server-rendered`);
       const role = await assertVisibleContent(cdp, ".role", 8, `${path} role`);
-      assert.ok(role.markup.includes("Technical Support") && role.markup.includes("Linux Operations"), `${path}: current support/operations role must remain server-rendered`);
+      assert.ok(role.markup.replaceAll("&amp;", "&").includes("Junior QA / Linux & Internal IT / AI Data Quality"), `${path}: current QA/Linux/Internal IT/AI Data Quality role must remain server-rendered`);
       await assertVisibleContent(cdp, "#projects", 220, `${path} projects`);
       await assertVisibleContent(cdp, "#skills", 120, `${path} skills`);
       await assertVisibleContent(cdp, "#experience", 180, `${path} experience`);

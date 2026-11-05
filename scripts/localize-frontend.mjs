@@ -15,7 +15,7 @@ const SKILL_GROUP_KEYS = Object.freeze([
   "skill_group_linux_operations_items",
   "skill_group_networking_web_items",
   "skill_group_containers_monitoring_items",
-  "skill_group_application_support_items",
+  "skill_group_testing_quality_items",
   "skill_group_automation_git_items"
 ]);
 

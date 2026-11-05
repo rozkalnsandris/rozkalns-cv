@@ -95,6 +95,33 @@
       "project_ids": [
         "linux-ops-lab"
       ]
+    },
+    "browser-regression-suite": {
+      "kind": "repository_file",
+      "repository": "rozkalnsandris/rozkalns-cv",
+      "path": "tests/browser-lab.mjs",
+      "url": "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/tests/browser-lab.mjs",
+      "project_ids": [
+        "cv-platform"
+      ]
+    },
+    "frontend-contract-tests": {
+      "kind": "repository_file",
+      "repository": "rozkalnsandris/rozkalns-cv",
+      "path": "tests/test_frontend_contract.py",
+      "url": "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/tests/test_frontend_contract.py",
+      "project_ids": [
+        "cv-platform"
+      ]
+    },
+    "profile-schema": {
+      "kind": "repository_file",
+      "repository": "rozkalnsandris/rozkalns-cv",
+      "path": "content/profile.schema.json",
+      "url": "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/content/profile.schema.json",
+      "project_ids": [
+        "cv-platform"
+      ]
     }
   },
   "skill_evidence": {
@@ -145,6 +172,18 @@
     "YAML": [
       "ci-workflow",
       "cv-compose"
+    ],
+    "Browser regression testing": [
+      "browser-regression-suite",
+      "ci-workflow"
+    ],
+    "Contract validation": [
+      "frontend-contract-tests",
+      "ci-workflow"
+    ],
+    "Data validation": [
+      "profile-schema",
+      "frontend-contract-tests"
     ]
   }
 }
