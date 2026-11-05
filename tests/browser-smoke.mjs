@@ -505,8 +505,8 @@ async function runBrowserSmoke(baseUrl, state) {
       photoNaturalWidth: document.querySelector('.profile-photo')?.naturalWidth,
       photoNaturalHeight: document.querySelector('.profile-photo')?.naturalHeight
     }))()`);
-    assert.equal(initialContract.title, "Andris Rožkalns · Technical Support / Linux Operations");
-    assert.equal(initialContract.role, "Junior Technical Support / Linux Operations");
+    assert.equal(initialContract.title, "Andris Rožkalns · QA / Linux & Internal IT / AI Data Quality");
+    assert.equal(initialContract.role, "Junior QA / Linux & Internal IT / AI Data Quality");
     assert.match(initialContract.photoSrc, /\/assets\/photo\.[0-9a-f]{12}\.webp$/);
     assert.equal(initialContract.photoAlt, "");
     assert.equal(initialContract.profileHeading, "Andris Rožkalns");
@@ -559,13 +559,13 @@ async function runBrowserSmoke(baseUrl, state) {
     await cdp.evaluate(`document.querySelector('[data-lang="lv"]').click()`);
     await latvianLoaded;
     await cdp.waitFor(
-      `location.pathname === "/lv/" && document.documentElement.lang === "lv" && document.title === "Andris Rožkalns · Technical Support / Linux Operations" && document.querySelector('#pdfLink')?.getAttribute('href') === "/cv-lv.pdf"`,
+      `location.pathname === "/lv/" && document.documentElement.lang === "lv" && document.title === "Andris Rožkalns · QA / Linux & Internal IT / AI Data Quality" && document.querySelector('#pdfLink')?.getAttribute('href') === "/cv-lv.pdf"`,
       10_000,
       "Latvian localized URL"
     );
     assert.equal(
       await cdp.evaluate(`document.querySelector('[data-i18n="role"]').textContent`),
-      "Junior Technical Support / Linux Operations"
+      "Junior QA / Linux & Internal IT / AI Data Quality"
     );
     assert.equal(
       await cdp.evaluate(`document.querySelector('#profileLocation')?.textContent`),
