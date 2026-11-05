@@ -39,7 +39,7 @@ class LocalizedPageContractTests(unittest.TestCase):
         for language, (role, location, pdf) in EXPECTED.items():
             html = (ROOT / f"html/{language}/index.html").read_text(encoding="utf-8")
             self.assertIn(f'<html lang="{language}">', html)
-            self.assertIn(f'data-i18n="role">{role}</p>', html)
+            self.assertIn(f'data-i18n="role">{escape_generated_attribute(role)}</p>', html)
             self.assertRegex(html, rf'id="profileLocation"[^>]*>{re.escape(location)}</span>')
             self.assertRegex(html, rf'id="pdfLink" href="{re.escape(pdf)}"')
             self.assertIn(f'data-lang="{language}" aria-label=', html)
