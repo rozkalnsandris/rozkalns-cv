@@ -1,42 +1,42 @@
 {
   "schema_version": 1,
-  "source_sha256": "008e278180507c89bb87daae96532259a925968234c2e5c3884f33bd2511a714",
+  "source_sha256": "15713072fbc6af098b612610b67dae6e74e176a369fbe5e04b588a5728036b8d",
   "pdfs": {
     "en": {
       "path": "html/cv.pdf",
-      "sha256": "c71e7ace09d2205a72b865d7beebdae551300518f2fc6e1ce5ec663fa72546ae"
+      "sha256": "16112de48979246b69e48bf146720e20b2fc6a46b452f9fdb676504ac091dbbb"
     },
     "de": {
       "path": "html/cv-de.pdf",
-      "sha256": "7b073288a31c54ca689d080f98d1657823bdcc1000d14be1fb2c2c235fcc67c0"
+      "sha256": "a52dfc3dce87799da83045238c20f3bbde64519ace9c80662f69c6d2e4a87de7"
     },
     "lv": {
       "path": "html/cv-lv.pdf",
-      "sha256": "9ffedc1ea68b01b9eb28c06bf4dfc6d6c0e121a37398f237eafbbf40bea61193"
+      "sha256": "cf8bbda5a9e6907d81fe85365a5453c5444c45522309fca11450f37e6cc939f7"
     },
-    "technical-support-en": {
-      "path": "html/cv-technical-support.pdf",
-      "sha256": "50ff707f2bec6bee6e13cfc749604139820711a8f807b738f37398ed9d2d4bf2"
+    "software-testing-en": {
+      "path": "html/cv-software-testing.pdf",
+      "sha256": "0a7b1ef5a611e01cfe1871771fb5fefc15ed8eaedf6f4e72a93edf7db53c2cb8"
     },
-    "technical-support-de": {
-      "path": "html/cv-technical-support-de.pdf",
-      "sha256": "cbab27eb2aa76d2132cc6d4da165943736fd814a3fdd0810af8e3de1523a815a"
+    "software-testing-de": {
+      "path": "html/cv-software-testing-de.pdf",
+      "sha256": "85aa2a26042c20a0ae1eb68ea0bc02e6e2d4abd43d27c62c6fbf72c8de6c9877"
     },
     "linux-operations-en": {
       "path": "html/cv-linux-operations.pdf",
-      "sha256": "6b1791bb98b483dad2acb9b70a4c797a5b60f1454687450d3711acb44617a0ea"
+      "sha256": "88ee8be68ab9770cbf35f04bf7dfb9fa5ed598117d7ec3d30b78eac10959acbc"
     },
     "linux-operations-de": {
       "path": "html/cv-linux-operations-de.pdf",
-      "sha256": "0084ac377a022a46c6a6ac8b9e21df14f1169d978be07f54bbd473423bd9c063"
+      "sha256": "e5cf296f6c29b0434688e0658ec4a82dd17e4105b185267ce32a92281f195ff9"
     },
-    "application-support-en": {
-      "path": "html/cv-application-support.pdf",
-      "sha256": "7c773254e65c5a4d4fc4a684b78c10e86164ccfa709490ddbfa4773545ac6e16"
+    "ai-data-quality-en": {
+      "path": "html/cv-ai-data-quality.pdf",
+      "sha256": "10f819b93b50ebc87c9535d3b339a4e8d90a4e6733c0131d71d18041f1d93ea0"
     },
-    "application-support-de": {
-      "path": "html/cv-application-support-de.pdf",
-      "sha256": "5cbc9e5832e72b35bc0a658cb14121b86b0ca6a55f2c50fb1e0b3b508468efc6"
+    "ai-data-quality-de": {
+      "path": "html/cv-ai-data-quality-de.pdf",
+      "sha256": "65157975158e49e610605eecf0e2eaa240ca4301916f8ac1363c6cd720b97d11"
     }
   }
 }
