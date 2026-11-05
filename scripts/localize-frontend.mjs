@@ -5,6 +5,11 @@ export const LOCALIZED_LANGUAGES = Object.freeze(["en", "de", "lv"]);
 const ORIGIN = "https://rozkalns.net";
 const DEFAULT_URL = `${ORIGIN}/en/`;
 const PDFS = Object.freeze({ en: "/cv.pdf", de: "/cv-de.pdf", lv: "/cv-lv.pdf" });
+const PDF_DOWNLOAD_NAMES = Object.freeze({
+  en: "Andris_Rozkalns_CV_EN.pdf",
+  de: "Andris_Rozkalns_Lebenslauf_de.pdf",
+  lv: "Andris_Rozkalns_CV_LV.pdf"
+});
 const LOCALES = Object.freeze({ en: "en-GB", de: "de-DE", lv: "lv-LV" });
 const IMAGE_ALTS = Object.freeze({
   en: "Portrait of Andris Rožkalns",
@@ -206,7 +211,10 @@ function localizeLocation(html, language) {
 }
 
 function localizePdf(html, language) {
-  return replaceAttributeById(html, "pdfLink", "href", PDFS[language]);
+  return replaceAttributeById(
+    replaceAttributeById(html, "pdfLink", "href", PDFS[language]),
+    "pdfLink", "download", PDF_DOWNLOAD_NAMES[language]
+  );
 }
 
 function replaceContentText(html, binding, messages) {
