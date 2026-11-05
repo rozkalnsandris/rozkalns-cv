@@ -23,6 +23,8 @@ In active SIMPLE-DEPLOY Nginx, retired `cv-devops`, `cv-linux-admin`,
 `cv-technical-support` and `cv-application-support` PDF URLs (EN/DE)
 redirect permanently to the current language-matched master CV PDF.
 The retired PDF binaries are not kept in `html/`.
+Redirects use origin-relative `Location` paths so TLS-terminating
+reverse proxies never leak the upstream HTTP scheme or internal port.
 
 `html/` is committed *generated output*, not authored source. It contains
 `html/assets/`, `html/i18n/`, localized `/en/`, `/de/`, `/lv/` pages and the
