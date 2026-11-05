@@ -94,7 +94,7 @@ function renderHtml(language, profile, messages, pdfCase) {
     return `<div class="skill-label">${escapeHtml(required(messages[labelKey], labelKey))}</div><div class="skill-items">${escapeHtml(required(messages[itemsKey], itemsKey))}</div>`;
   }).join('');
 
-  const education = [1, 2, 3].map((index) => `<article class="education-item"><div class="education-title">${escapeHtml(required(messages[`ed${index}_title`], `ed${index}_title`))}</div><div class="education-sub">${escapeHtml(required(messages[`ed${index}_sub`], `ed${index}_sub`))} · ${escapeHtml(required(messages[`ed${index}_dates`], `ed${index}_dates`))}</div></article>`).join('');
+  const education = [2, 3].map((index) => `<article class="education-item"><div class="education-title">${escapeHtml(required(messages[`ed${index}_title`], `ed${index}_title`))}</div><div class="education-sub">${escapeHtml(required(messages[`ed${index}_sub`], `ed${index}_sub`))} · ${escapeHtml(required(messages[`ed${index}_dates`], `ed${index}_dates`))}</div></article>`).join('');
 
   const languageRows = profile.languages.map((entry) => {
     const key = entry.name.toLowerCase();

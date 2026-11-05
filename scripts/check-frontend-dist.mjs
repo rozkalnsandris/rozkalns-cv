@@ -41,9 +41,6 @@ const expectedLocalizedIdentity = Object.freeze({
   proof_en: "en/proof/index.html",
   proof_de: "de/proof/index.html",
   proof_lv: "lv/proof/index.html",
-  lab_en: "en/lab/index.html",
-  lab_de: "de/lab/index.html",
-  lab_lv: "lv/lab/index.html",
   sitemap: "sitemap.xml"
 });
 assert.deepEqual(
@@ -94,10 +91,6 @@ assert.deepEqual(
 const indexHtml = await readFile(resolve(htmlRoot, "index.html"), "utf8");
 const smartHtml = await readFile(resolve(htmlRoot, "smarthome.html"), "utf8");
 const proofHtml = await readFile(resolve(htmlRoot, "proof.html"), "utf8");
-const labHtml = await readFile(resolve(htmlRoot, "lab.html"), "utf8");
-const localizedLabHtml = Object.fromEntries(await Promise.all(["en", "de", "lv"].map(async (language) => [
-  `lab_${language}`, await readFile(resolve(htmlRoot, language, "lab", "index.html"), "utf8")
-])));
 const localizedHtml = Object.fromEntries(await Promise.all(
   ["en", "de", "lv"].map(async (language) => [
     language,
@@ -110,7 +103,7 @@ const localizedProofHtml = Object.fromEntries(await Promise.all(
     await readFile(resolve(htmlRoot, language, "proof", "index.html"), "utf8")
   ])
 ));
-for (const [name, text] of [["index", indexHtml], ["smarthome", smartHtml], ["proof", proofHtml], ["lab", labHtml], ...Object.entries(localizedLabHtml), ...Object.entries(localizedHtml), ...Object.entries(localizedProofHtml)]) {
+for (const [name, text] of [["index", indexHtml], ["smarthome", smartHtml], ["proof", proofHtml], ...Object.entries(localizedHtml), ...Object.entries(localizedProofHtml)]) {
   assert.doesNotMatch(text, /(?:src|href)="\.\//, `${name} HTML still contains source-relative frontend references`);
   for (const path of text.matchAll(/(?:src|href)="\/(assets\/[^"?#]+)/g)) {
     assert.ok(referenced.has(path[1]), `${name} HTML references an asset outside the manifest: ${path[1]}`);
@@ -136,7 +129,6 @@ assert.doesNotMatch(smartHtml, /\?cfg=[0-9a-f]{12}/, "Smart Home HTML has an une
 for (const source of [
   "frontend/index.html",
   "frontend/proof.html",
-  "frontend/lab.html",
   "frontend/smarthome.html",
   "frontend/app.mjs",
   "frontend/enhancements.mjs",

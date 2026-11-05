@@ -87,15 +87,6 @@
         "cv-platform"
       ]
     },
-    "linux-operations-lab-readme": {
-      "kind": "repository_file",
-      "repository": "rozkalnsandris/linux-operations-lab",
-      "path": "README.md",
-      "url": "https://github.com/rozkalnsandris/linux-operations-lab/blob/main/README.md",
-      "project_ids": [
-        "linux-ops-lab"
-      ]
-    },
     "browser-regression-suite": {
       "kind": "repository_file",
       "repository": "rozkalnsandris/rozkalns-cv",

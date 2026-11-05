@@ -45,9 +45,6 @@ const localizedIdentityFiles = Object.freeze({
   proof_en: "en/proof/index.html",
   proof_de: "de/proof/index.html",
   proof_lv: "lv/proof/index.html",
-  lab_en: "en/lab/index.html",
-  lab_de: "de/lab/index.html",
-  lab_lv: "lv/lab/index.html",
   sitemap: "sitemap.xml"
 });
 
@@ -72,11 +69,9 @@ async function compactGeneratedHtml() {
     resolve(html, "index.html"),
     resolve(html, "smarthome.html"),
     resolve(html, "proof.html"),
-    resolve(html, "lab.html"),
     ...LOCALIZED_LANGUAGES.flatMap((language) => [
       resolve(html, language, "index.html"),
       resolve(html, language, "proof", "index.html"),
-      resolve(html, language, "lab", "index.html")
     ])
   ];
   await Promise.all(paths.map(async (path) => {
@@ -94,7 +89,6 @@ async function removeGeneratedFrontend() {
     rm(resolve(html, "index.html"), { force: true }),
     rm(resolve(html, "smarthome.html"), { force: true }),
     rm(resolve(html, "proof.html"), { force: true }),
-    rm(resolve(html, "lab.html"), { force: true }),
     ...LOCALIZED_LANGUAGES.map((language) => rm(resolve(html, language), { recursive: true, force: true })),
     rm(committedManifest, { force: true })
   ]);
