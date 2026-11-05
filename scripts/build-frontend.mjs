@@ -38,6 +38,16 @@ const projectAssets = Object.freeze([
     target: resolve(projectAssetDirectory, "project-banners-2026-10-18.webp")
   }
 ]);
+const approvedCvPdfFilenames = Object.freeze([
+  "Andris_Rozkalns_CV_EN.pdf",
+  "Andris_Rozkalns_Lebenslauf_de.pdf",
+  "Andris_Rozkalns_CV_LV.pdf"
+]);
+async function copyApprovedCvPdfs() {
+  await Promise.all(approvedCvPdfFilenames.map((filename) =>
+    cp(resolve(root, "frontend", "cv-pdfs", filename), resolve(html, filename))
+  ));
+}
 const localizedIdentityFiles = Object.freeze({
   en: "en/index.html",
   de: "de/index.html",
@@ -155,6 +165,7 @@ async function bindLocalizedIdentity() {
 await removeGeneratedFrontend();
 await withMinifiedTranslationSources(() => build({ configFile: resolve(root, "vite.config.mjs") }));
 await copyProjectAssets();
+await copyApprovedCvPdfs();
 await verifyGeneratedShape();
 await bindProjectProof({ root, htmlPath: resolve(html, "index.html") });
 await bindEngineeringProof({ root, htmlPath: resolve(html, "proof.html") });

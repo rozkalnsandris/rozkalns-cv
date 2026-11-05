@@ -12,6 +12,14 @@ are:
 Everything else listed below is generated or validated against these sources.
 `content/skill-labels.json` is human-maintained source, not generated output.
 
+## Owner-approved download assets
+
+The public site's three named EN/DE/LV downloadable PDFs are owner-approved
+originals in frontend/cv-pdfs/, copied without modification into html/ during
+the frontend build. Do not regenerate or modify those three original PDFs.
+They are distinct from the older generated PDF pipeline and its existing
+manifest and review requirements.
+
 ## Editing facts
 
 1. Create an issue and isolated branch.

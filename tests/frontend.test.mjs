@@ -93,9 +93,9 @@ test("Vite preload recovery reloads a stale document at most once", async () => 
 
 test("PDF download filename follows the selected EN/DE/LV language", () => {
   const expected = {
-    en: ["/cv.pdf", "Andris_Rozkalns_CV_EN.pdf"],
-    de: ["/cv-de.pdf", "Andris_Rozkalns_Lebenslauf_de.pdf"],
-    lv: ["/cv-lv.pdf", "Andris_Rozkalns_CV_LV.pdf"]
+    en: ["/Andris_Rozkalns_CV_EN.pdf", "Andris_Rozkalns_CV_EN.pdf"],
+    de: ["/Andris_Rozkalns_Lebenslauf_de.pdf", "Andris_Rozkalns_Lebenslauf_de.pdf"],
+    lv: ["/Andris_Rozkalns_CV_LV.pdf", "Andris_Rozkalns_CV_LV.pdf"]
   };
   for (const [language, [path, filename]] of Object.entries(expected)) {
     const attributes = new Map();
@@ -108,7 +108,7 @@ test("PDF download filename follows the selected EN/DE/LV language", () => {
     applyTranslations({}, language, {
       root,
       storage: { setItem: () => {} },
-      pdfs: { en: "/cv.pdf", de: "/cv-de.pdf", lv: "/cv-lv.pdf" }
+      pdfs: { en: "/Andris_Rozkalns_CV_EN.pdf", de: "/Andris_Rozkalns_Lebenslauf_de.pdf", lv: "/Andris_Rozkalns_CV_LV.pdf" }
     });
     assert.equal(root.documentElement.lang, language);
     assert.equal(attributes.get("href"), path);

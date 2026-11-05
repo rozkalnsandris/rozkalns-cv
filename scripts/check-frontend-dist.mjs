@@ -8,6 +8,17 @@ const htmlRoot = resolve(root, "html");
 const manifest = JSON.parse(await readFile(resolve(root, "frontend-dist-manifest.json"), "utf8"));
 const HASHED = /\.[0-9a-f]{12}\.(?:mjs|js|css|json|webp)$/;
 
+const approvedCvSha256 = Object.freeze({
+  "Andris_Rozkalns_CV_EN.pdf": "1c2867c71bff309aa6fbc26920acbdcd7f6033dc7ab760e09be7ba8f69e2d9fb",
+  "Andris_Rozkalns_Lebenslauf_de.pdf": "aff011bc172ec951da0f27a68fc7b3f43492674131835c37c5df0d4600894c93",
+  "Andris_Rozkalns_CV_LV.pdf": "5c126a632e3584139ff69ec27cbb6e10379c5d38b33ffdb1d4baf863213d8d2a"
+});
+for (const [filename, expectedDigest] of Object.entries(approvedCvSha256)) {
+  const authored = await readFile(resolve(root, "frontend", "cv-pdfs", filename));
+  const deployed = await readFile(resolve(htmlRoot, filename));
+  assert.equal(createHash("sha256").update(authored).digest("hex"), expectedDigest, filename);
+  assert.deepEqual(deployed, authored, "generated CV does not match the approved uploaded PDF: " + filename);
+}
 const indexEntry = manifest["index.html"];
 const smartEntry = manifest["smarthome.html"];
 assert.equal(indexEntry?.isEntry, true, "manifest index.html entry is missing");

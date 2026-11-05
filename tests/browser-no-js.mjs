@@ -27,9 +27,9 @@ const MIME_TYPES = new Map([
 ]);
 
 const PDF_BY_LANGUAGE = Object.freeze({
-  en: "/cv.pdf",
-  de: "/cv-de.pdf",
-  lv: "/cv-lv.pdf"
+  en: "/Andris_Rozkalns_CV_EN.pdf",
+  de: "/Andris_Rozkalns_Lebenslauf_de.pdf",
+  lv: "/Andris_Rozkalns_CV_LV.pdf"
 });
 
 function listen(server) {

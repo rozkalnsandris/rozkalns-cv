@@ -35,6 +35,21 @@ SHA-256 checksums. The homepage app entry additionally receives a
 `?cfg=...` key derived from the first 12 SHA-256 hex digits of
 `nginx.conf`. Do not hand-edit generated hashes.
 
+## Owner-approved downloadable PDFs
+
+The three EN/DE/LV download links use existing, owner-provided PDFs staged
+through a verified ZIP (no PDF editing or re-rendering). Authoritative
+binary assets are stored in frontend/cv-pdfs/ and copied byte-for-byte
+into html/ by the frontend build. The language-specific filenames are
+Andris_Rozkalns_CV_EN.pdf, Andris_Rozkalns_Lebenslauf_de.pdf and
+Andris_Rozkalns_CV_LV.pdf. Both the static localized HTML and runtime
+language switching set href and download attributes to match each language.
+The frontend distribution check pins hashes and requires exact byte identity.
+
+The previous cv.pdf, cv-de.pdf, cv-lv.pdf and role-focused PDF assets are
+left unchanged by this integration. Their generated-data validity and
+Linux Operations Lab retirement remain separate existing PR #560 gates.
+
 ## Public functionality and privacy
 
 The core CV remains readable without JavaScript. JS enhances navigation,
