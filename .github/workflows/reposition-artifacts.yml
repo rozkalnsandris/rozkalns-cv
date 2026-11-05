@@ -53,7 +53,11 @@ jobs:
           set -Eeuo pipefail
           python3 -m py_compile scripts/build-content.py scripts/check-pdfs.py
           node --check scripts/generate-pdfs.mjs
-          python3 -m unittest             tests.test_qa_linux_data_positioning             tests.test_skill_content_consistency             tests.test_hero_recruiter_scan             tests.test_main_document_title             tests.test_person_structured_data
+          python3 -m unittest \
+            tests.test_qa_linux_data_positioning \
+            tests.test_skill_content_consistency \
+            tests.test_hero_recruiter_scan \
+            tests.test_main_document_title
 
       - name: Regenerate deterministic PDFs and frontend
         shell: bash
@@ -67,6 +71,11 @@ jobs:
           python3 scripts/check-pdfs.py
           python3 scripts/build-content.py --check
           npm run check:frontend
+          python3 -m unittest \
+            tests.test_person_structured_data \
+            tests.test_localized_pages \
+            tests.test_role_focused_pdfs \
+            tests.test_skill_chip_i18n
           git diff --check
 
       - name: Commit generated artifacts
