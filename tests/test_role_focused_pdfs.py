@@ -35,26 +35,21 @@ class RoleFocusedPdfTests(unittest.TestCase):
         for relative in RETIRED:
             self.assertFalse((ROOT/relative).exists(), relative)
 
-    def test_legacy_role_pdf_urls_redirect_to_current_master_pdfs(self) -> None:
+    def test_legacy_role_pdf_urls_redirect_to_master_pdfs(self) -> None:
         config = (ROOT / "deploy/simple-deploy/nginx.conf").read_text(encoding="utf-8")
-        for lang_suffix, target in (("", "/cv.pdf"), ("-de", "/cv-de.pdf")):
-            legacy_location = (
-                "location ~ ^/cv-(?:devops|linux-admin|technical-support|application-support)"
-                f"{lang_suffix}\\.pdf$ {{"
-            )
-            self.assertIn(legacy_location, config)
-            self.assertIn(f"return 308 {target};", config[config.index(legacy_location):].split("}", 1)[0])
-            self.assertLess(config.index(legacy_location), config.index('location ~* \\.(?:png|jpg|jpeg|svg|woff2?|pdf)
-        source = (ROOT/"scripts/generate-pdfs.mjs").read_text(encoding="utf-8")
-        for role in ("Junior Software Tester / QA","Junior Linux / Internal IT","Junior AI Data Quality / Evaluation"):
-            self.assertIn(role, source)
-        self.assertNotIn("technical-support", source)
-        self.assertNotIn("application-support", source)
-        self.assertNotIn("ATS ranking", source)
-        self.assertNotIn("hiring probability", source)
+        legacy_roles = "(?:devops|linux-admin|technical-support|application-support)"
+        static_pdf_location = r"location ~* \.(?:png|jpg|jpeg|svg|woff2?|pdf)$ {"
+        self.assertIn(static_pdf_location, config)
+        static_pdf_position = config.index(static_pdf_location)
 
-if __name__ == "__main__": unittest.main()
-))
+        for suffix, target in (("", "/cv.pdf"), ("-de", "/cv-de.pdf")):
+            with self.subTest(suffix=suffix):
+                location = rf"location ~ ^/cv-{legacy_roles}{suffix}\.pdf$ {{"
+                self.assertIn(location, config)
+                location_position = config.index(location)
+                next_block = config[location_position + len(location):].split("}", 1)[0]
+                self.assertIn(f"return 308 {target};", next_block)
+                self.assertLess(location_position, static_pdf_position)
 
     def test_variant_generator_uses_explicit_truth_preserving_roles(self) -> None:
         source = (ROOT/"scripts/generate-pdfs.mjs").read_text(encoding="utf-8")
