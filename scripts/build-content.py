@@ -224,7 +224,7 @@ def validate_profile(profile: Any) -> dict[str, Any]:
     skill_groups = require_object(
         profile["skill_groups"],
         "profile.skill_groups",
-        {"linux_operations", "networking_web", "containers_monitoring", "application_support", "automation_git"},
+        {"testing_quality", "linux_operations", "networking_web", "containers_monitoring", "automation_git"},
     )
     presented_skills: list[str] = []
     for key, value in skill_groups.items():
@@ -446,10 +446,10 @@ def build_system_prompt(profile: dict[str, Any], runtime_evidence: dict[str, Any
         lines.append(f"- {skill_labels[key]}: {', '.join(profile['skills'][key])}")
     lines.extend(["", "RECRUITER SKILL GROUPS"])
     recruiter_labels = {
+        "testing_quality": "Testing & Data Quality",
         "linux_operations": "Linux & Operations",
         "networking_web": "Networking & Web",
         "containers_monitoring": "Containers & Monitoring",
-        "application_support": "Application Support",
         "automation_git": "Automation & Git",
     }
     for key, label in recruiter_labels.items():
@@ -512,12 +512,12 @@ def expected_pdf_manifest(content_sha256: str) -> dict[str, Any]:
         "en": ROOT / "html" / "cv.pdf",
         "de": ROOT / "html" / "cv-de.pdf",
         "lv": ROOT / "html" / "cv-lv.pdf",
-        "technical-support-en": ROOT / "html" / "cv-technical-support.pdf",
-        "technical-support-de": ROOT / "html" / "cv-technical-support-de.pdf",
+        "software-testing-en": ROOT / "html" / "cv-software-testing.pdf",
+        "software-testing-de": ROOT / "html" / "cv-software-testing-de.pdf",
         "linux-operations-en": ROOT / "html" / "cv-linux-operations.pdf",
         "linux-operations-de": ROOT / "html" / "cv-linux-operations-de.pdf",
-        "application-support-en": ROOT / "html" / "cv-application-support.pdf",
-        "application-support-de": ROOT / "html" / "cv-application-support-de.pdf",
+        "ai-data-quality-en": ROOT / "html" / "cv-ai-data-quality.pdf",
+        "ai-data-quality-de": ROOT / "html" / "cv-ai-data-quality-de.pdf",
     }
     result: dict[str, Any] = {
         "schema_version": 1,

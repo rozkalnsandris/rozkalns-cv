@@ -8,7 +8,7 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 LANGUAGES = ("en", "de", "lv")
 PROFICIENCY_GROUPS = ("core", "working", "learning", "foundations")
-PRESENTATION_GROUPS = ("linux_operations", "networking_web", "containers_monitoring", "application_support", "automation_git")
+PRESENTATION_GROUPS = ("testing_quality", "linux_operations", "networking_web", "containers_monitoring", "automation_git")
 SEPARATOR = " · "
 
 def load_json(path: Path):

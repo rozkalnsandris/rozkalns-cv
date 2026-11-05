@@ -6,9 +6,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED = {
-    "en": ("Junior Technical Support / Linux Operations", "Dortmund, Germany", "/cv.pdf"),
-    "de": ("Junior Technical Support / Linux Operations", "Dortmund, Deutschland", "/cv-de.pdf"),
-    "lv": ("Junior Technical Support / Linux Operations", "Dortmund, Vācija", "/cv-lv.pdf"),
+    "en": ("Junior QA / Linux & Internal IT / AI Data Quality", "Dortmund, Germany", "/cv.pdf"),
+    "de": ("Junior QA / Linux & Internal IT / AI Data Quality", "Dortmund, Deutschland", "/cv-de.pdf"),
+    "lv": ("Junior QA / Linux & Internal IT / AI Data Quality", "Dortmund, Vācija", "/cv-lv.pdf"),
 }
 IDENTITY_PATHS = {
     "en": "en/index.html",
