@@ -143,7 +143,7 @@
   "availability": "Verfügbar ab Jan 2027",
   "hero_live_label": "Nachweis der selbst gehosteten Umgebung",
   "pdf_profile_title": "Profil",
-  "pdf_profile_summary": "Quereinsteiger mit praktischer Erfahrung aus öffentlichen Projekten in Softwaretests, Linux Operations und Datenqualität. Belegt sind Browser-Regressionstests und Contract-Checks, deterministische Builds, Docker, Git, Python und REST-API-Arbeit; dies ist Projekterfahrung, keine berufliche IT-Beschäftigung.",
+  "pdf_profile_summary": "Quereinsteiger mit praktischen Projektkenntnissen in Softwaretests, Linux Operations und Datenqualität. Öffentliche Nachweise zeigen Browsertests, Vertragsprüfungen, deterministische Builds, Docker, Git, Python und REST APIs; dies ist Projekterfahrung und keine berufliche Beschäftigung in der IT.",
   "pdf_p1_desc": "Selbst gehostete Linux-Umgebung mit Docker Compose, Nginx, DNS/TLS und systemd sowie öffentlich belegter Betriebsarbeit.",
   "pdf_p2_desc": "Betreibe einen selbst gehosteten Agenten mit Primär-/Fallback-LLM-Routing, ChromaDB-Suche, persistentem Speicher sowie Telegram- und Home-Assistant-Integration.",
   "pdf_p3_desc": "Prometheus/Grafana-Monitoring plus Bash-basierte Health- und Wartungsautomatisierung als Betriebsnachweis.",
