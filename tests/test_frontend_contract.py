@@ -141,7 +141,7 @@ class FrontendContractTests(unittest.TestCase):
             '<section id="skills">', 1
         )[0]
         self.assertEqual(project_source.count('class="tech-tag"'), 28)
-        self.assertEqual(html.count('class="skill-chip"'), 18)
+        self.assertEqual(html.count('class="skill-chip"'), 21)
         self.assertIn('class="overview-grid"', html)
         self.assertNotIn('class="work-rail"', html)
         self.assertNotIn('.work-rail', layout)
