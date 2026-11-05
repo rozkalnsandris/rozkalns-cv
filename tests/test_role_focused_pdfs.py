@@ -49,6 +49,11 @@ class RoleFocusedPdfTests(unittest.TestCase):
                 location_position = config.index(location)
                 next_block = config[location_position + len(location):].split("}", 1)[0]
                 self.assertIn(f"return 308 {target};", next_block)
+                self.assertIn("absolute_redirect off;", next_block)
+                self.assertLess(
+                    next_block.index("absolute_redirect off;"),
+                    next_block.index(f"return 308 {target};"),
+                )
                 self.assertLess(location_position, static_pdf_position)
 
     def test_variant_generator_uses_explicit_truth_preserving_roles(self) -> None:
