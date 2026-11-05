@@ -21,7 +21,7 @@ class ReducedMotionContractTests(unittest.TestCase):
         ):
             self.assertIn(required, policy)
 
-        for page in ("index.html", "proof.html", "lab.html", "smarthome.html"):
+        for page in ("index.html", "proof.html", "smarthome.html"):
             html = (ROOT / "frontend" / page).read_text(encoding="utf-8")
             self.assertIn('rel="stylesheet" href="./styles/index.css"', html)
 

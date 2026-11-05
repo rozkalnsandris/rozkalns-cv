@@ -89,21 +89,9 @@
       "path": "lv/proof/index.html",
       "sha256": "8e0950931aa0324eedd5f451c03a441eca9f082a4e836fb126fc3603e4ddd4af"
     },
-    "lab_en": {
-      "path": "en/lab/index.html",
-      "sha256": "373f19a5c420f27edbaf7a295a0c19389cc3620b22d7245caaddc24943b24fed"
-    },
-    "lab_de": {
-      "path": "de/lab/index.html",
-      "sha256": "7dbfd86d80d543a0d5c21818e80ccbba441f190e5c4996653f09ee613c904801"
-    },
-    "lab_lv": {
-      "path": "lv/lab/index.html",
-      "sha256": "e39c81c5843b0a324d1db244d0fb7f5381e46a8aa505a5b86a59d11968b69a5a"
-    },
     "sitemap": {
       "path": "sitemap.xml",
-      "sha256": "cf0975ef2b5fb1ad9bf3ebb1ae3b443625348517f7d5c7afa239ce438c2f98d0"
+      "sha256": "a87d84a0f33eedb095e420066143d6450d8af66f250d1b9fc9b95dd25424fd1a"
     }
   }
 }

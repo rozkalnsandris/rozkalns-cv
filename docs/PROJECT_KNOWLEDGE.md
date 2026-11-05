@@ -47,7 +47,7 @@ with `RPi5_main`.
 ## Public site and authored frontend
 
 UI v2 includes EN/DE/LV CV/PDF, evidence-led engineering projects,
-localized Linux Operations Lab, skills, experience, education,
+skills, experience, education,
 protected phone/WhatsApp contact, Cloudflare Web Analytics and
 Prometheus-derived public `stats.json`. The public CV Assistant is
 **paused**, not an active embedded chat feature.

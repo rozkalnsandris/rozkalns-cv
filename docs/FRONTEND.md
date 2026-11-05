@@ -7,7 +7,7 @@ kinds of evidence.
 
 ## Authored source and generated deployment files
 
-- `frontend/index.html`, `frontend/proof.html`, `frontend/lab.html` and
+- `frontend/index.html`, `frontend/proof.html` and
   `frontend/smarthome.html` are authored HTML entrypoints.
 - `frontend/app.mjs`, `frontend/core/`, `frontend/features/` and `frontend/ui/`
   implement progressive enhancement, localization, live stats and contact.
@@ -28,7 +28,7 @@ reverse proxies never leak the upstream HTTP scheme or internal port.
 
 `html/` is committed *generated output*, not authored source. It contains
 `html/assets/`, `html/i18n/`, localized `/en/`, `/de/`, `/lv/` pages and the
-localized `proof/` and `lab/` routes. `frontend-dist-manifest.json` records
+localized `proof/` routes. `frontend-dist-manifest.json` records
 asset entries and localized-page identities. Vite emits 12-hex-character
 content-hashed asset names; the localized identity manifest records full
 SHA-256 checksums. The homepage app entry additionally receives a
