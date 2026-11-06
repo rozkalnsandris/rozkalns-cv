@@ -46,9 +46,14 @@ Andris_Rozkalns_CV_LV.pdf. Both the static localized HTML and runtime
 language switching set href and download attributes to match each language.
 The frontend distribution check pins hashes and requires exact byte identity.
 
-The previous cv.pdf, cv-de.pdf, cv-lv.pdf and role-focused PDF assets are
-left unchanged by this integration. Their generated-data validity and
-Linux Operations Lab retirement remain separate existing PR #560 gates.
+The generator-managed master CV PDFs (`html/cv.pdf`, `html/cv-de.pdf`,
+`html/cv-lv.pdf`) and six role-focused PDFs were regenerated from current
+canonical content in merged PR #560 when Linux Operations Lab was retired.
+Their hashes and source provenance were refreshed in
+`content/pdf-manifest.json` and `content/pdf-provenance.json`. These nine
+artifacts remain distinct from the three unchanged owner-approved downloads.
+For later content changes, follow the PDF regeneration and review requirements
+in `docs/CONTENT_AUTHORING.md`.
 
 ## Public functionality and privacy
 
