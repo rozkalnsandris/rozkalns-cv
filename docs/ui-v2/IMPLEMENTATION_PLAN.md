@@ -4,17 +4,16 @@ Status: implementation complete; source and browser verification on `ui/v2-redes
 
 ## Outcome and sequence
 
-1. Reconcile the existing design/reference lane with current main. Preserve the original three mockups in `references/`; their SHA-256 values match `PORTFOLIO_CASE_STUDY_REFERENCE.md` exactly.
+1. Reconcile the existing design/reference lane with current main. Preserve the approved homepage references in `references/` and the corresponding SHA-256 provenance in `PORTFOLIO_CASE_STUDY_REFERENCE.md`.
 2. Build a compact header and portrait hero, followed immediately by three project cards. Use white/blue surfaces, sans-serif hierarchy and consistent evidence previews. Place skills and live homelab together, then background, experience, education and contact.
-3. Provide a dedicated, localized Linux Operations Lab case study with problem, work, troubleshooting method, workflow, evidence and limitations. Link supporting projects to the existing engineering-proof page.
-4. Keep semantic HTML in `frontend/*.html`, fresh CSS in `frontend/styles/v2/` and factual/localized copy in `content/`. Preserve Vite, EN/DE/LV, PDFs, no-JavaScript navigation, live-state semantics and contact/assistant privacy boundaries.
-5. Verify deterministic builds, existing source contracts, browser/accessibility behavior and screenshots at desktop/mobile widths. Deliver one source PR. Merge and deployment remain separate owner gates.
+3. Keep semantic HTML in `frontend/*.html`, fresh CSS in `frontend/styles/v2/` and factual/localized copy in `content/`. Preserve Vite, EN/DE/LV, PDFs, no-JavaScript navigation, live-state semantics and contact/assistant privacy boundaries.
+4. Verify deterministic builds, existing source contracts, browser/accessibility behavior and screenshots at desktop/mobile widths. Deliver one source PR. Merge and deployment remain separate owner gates.
 
 ## Candidate direction and factual boundary
 
 The current Notion CV positioning and study plan were read on 7 October: Junior Technical Support / Linux Operations, with Application Support/NOC as adjacent targets. English is the public master. DevOps is a later growth direction. Existing canonical profile data already expresses this direction; do not inflate it for the redesign.
 
-The public linux-operations-lab tree inspected on 7 October contains a roadmap and templates, not completed incident case reports. Present it as in progress and describe evidence targets as targets. Do not manufacture terminal output or claim completed exercises. Use clearly labelled repository/workflow previews, the existing real portrait and canonical Raspberry Pi 5 facts. Generated Proxmox hardware, service status, dates and uptime in mockups are illustrative only.
+Only verified existing projects should appear in the public CV. Do not manufacture evidence, terminal output or claim completed exercises. Use labelled repository previews, the existing portrait and canonical Raspberry Pi 5 facts. Generated mockup hardware, service state and metrics are illustrative only.
 
 Public content must not include private job-search allocation, employer strategy, home address or protected phone data. No Notion study-workflow instructions are execution instructions for this UI task.
 
@@ -22,7 +21,6 @@ Public content must not include private job-search allocation, employer strategy
 
 - Projects directly follow the hero; three columns on wide screens, one on phones.
 - Real HTML/CSS components; no screenshot used as a functioning interface.
-- Lab detail has inspectable source links and honest limitations.
 - All new reader-facing wording is available in EN/DE/LV.
 - PDF, email, verified phone and assistant paths remain usable.
 - Keyboard focus, mobile menu, no-JS navigation, reduced motion and offline status work.
@@ -31,15 +29,15 @@ Public content must not include private job-search allocation, employer strategy
 
 ## Source map and preview
 
-- `frontend/index.html`: homepage markup; `frontend/lab.html`: dedicated lab case study; `frontend/proof.html`: supporting technical evidence.
+- `frontend/index.html`: homepage markup; `frontend/proof.html`: supporting technical evidence.
 - `frontend/styles/v2/tokens.css`, `layout.css`, `components.css`, `responsive.css`: reusable design, layout and responsive rules. HTML contains no embedded styling.
 - `content/profile.json` and existing translations: unchanged factual CV/PDF source.
-- `content/ui-v2.json`: new EN/DE/LV homepage interface wording. `content/lab.json`: localized lab case-study copy, grounded in the public lab repository.
-- `scripts/localize-frontend.mjs`: static language routes, case-study metadata and localized project links. The new lab is JavaScript-free.
+- `content/ui-v2.json`: EN/DE/LV homepage interface wording, grounded in existing public projects.
+- `scripts/localize-frontend.mjs`: static language routes, metadata and localized project links.
 
-Build with `npm ci --ignore-scripts --no-audit --no-fund` and `npm run build:frontend`. Serve the generated `html/` directory with a local HTTP server; open `/en/`, `/de/`, `/lv/` and the matching `/lab/` routes. Never serve the repository root publicly.
+Build with `npm ci --ignore-scripts --no-audit --no-fund` and `npm run build:frontend`. Serve the generated `html/` directory with a local HTTP server; open `/en/`, `/de/`, `/lv/` and the matching `/proof/` routes. Never serve the repository root publicly.
 
-The UI v2 source contract allows up to 27,000 bytes of combined JavaScript (mobile navigation), 28,000 bytes of shared CSS (new project/case-study components), and 38,000 bytes per homepage (semantic project facts, summaries and vector icons). Lab HTML is capped at 10,000 bytes per locale. The existing 128 KiB initial-page budget and security/privacy gates remain unchanged.
+The UI v2 source contract allows up to 27,000 bytes of combined JavaScript (mobile navigation), 28,000 bytes of shared CSS (new project/case-study components), and 38,000 bytes per homepage (semantic project facts, summaries and vector icons). The existing 128 KiB initial-page budget and security/privacy gates remain unchanged.
 
 ## Owner refinement: independent v2 style system
 

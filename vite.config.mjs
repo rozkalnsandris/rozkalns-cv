@@ -18,7 +18,6 @@ export default defineConfig({
       input: {
         app: resolve(frontendRoot, "index.html"),
         proof: resolve(frontendRoot, "proof.html"),
-        lab: resolve(frontendRoot, "lab.html"),
         smarthome: resolve(frontendRoot, "smarthome.html")
       },
       output: {

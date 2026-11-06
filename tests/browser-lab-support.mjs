@@ -28,7 +28,6 @@ const MIME_TYPES = new Map([
 ]);
 
 const MATRIX = [
-  ...["en", "de", "lv"].flatMap((language) => [390, 1280].map((width) => ({ kind: "lab", path: `/${language}/lab/`, language, width, height: 900, maxRequests: 5, maxBytes: 56 * 1024 }))),
   { kind: "proof", path: "/en/proof/", language: "en", width: 1280, height: 900, maxRequests: 5, maxBytes: 56 * 1024 },
   { kind: "proof", path: "/en/proof/", language: "en", width: 390, height: 844, maxRequests: 5, maxBytes: 56 * 1024 },
   { kind: "proof", path: "/de/proof/", language: "de", width: 1280, height: 900, maxRequests: 5, maxBytes: 56 * 1024 },
@@ -265,9 +264,6 @@ async function readSurfaceState(cdp) {
       clsSupported: globalThis.__supportLayoutObserverSupported === true,
       cls: (globalThis.__supportLayoutShifts || []).reduce((sum, value) => sum + value, 0),
       stylesLoaded: [...document.styleSheets].some((sheet) => sheet.href && /\\/assets\\/styles\\.[0-9a-f]{12}\\.css$/.test(new URL(sheet.href).pathname)),
-      labPanels: document.querySelectorAll(".lab-panel").length,
-      labEvidence: document.querySelectorAll(".evidence-list a").length,
-      labStatus: document.querySelector("[data-lab-i18n=progress]")?.textContent,
       proofProjects: document.querySelectorAll('[data-proof-project-id]').length,
       proofEvidenceLinks: document.querySelectorAll('.proof-evidence-link').length,
       smartDevices: document.querySelectorAll('.demo-device').length,
@@ -318,11 +314,6 @@ function assertSurfaceState(result, scenario, context) {
   assert.equal(result.clsSupported, true, `${context}: layout-shift observer unavailable`);
   assert.ok(result.cls <= MAX_SUPPORT_CLS, `${context}: synthetic CLS ${result.cls.toFixed(6)} > ${MAX_SUPPORT_CLS}`);
 
-  if (scenario.kind === "lab") {
-    assert.equal(result.labPanels, 9, `${context}: case-study sections`);
-    assert.equal(result.labEvidence, 4, `${context}: focused public evidence links`);
-    assert.ok(result.labStatus, `${context}: honest project status`);
-  }
   if (scenario.kind === "proof") {
     assert.equal(result.proofProjects, 3, `${context}: expected three proof projects`);
     assert.ok(result.proofEvidenceLinks >= 6, `${context}: expected public evidence links`);
@@ -397,7 +388,7 @@ async function runSupportingSurfaceLab(baseUrl, state) {
       const result = await readSurfaceState(cdp);
       const context = `${scenario.path} ${scenario.width}px`;
       assertSurfaceState(result, scenario, context);
-      if (scenario.kind === "lab") {
+      if (scenario.kind === "proof") {
         await cdp.evaluate(AXE_SOURCE);
         const a11y = await cdp.evaluate(`axe.run(document, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21aa"] } }).then(result => result.violations.map(item => ({ id: item.id, targets: item.nodes.map(node => node.target) })))`);
         assert.deepEqual(a11y, [], `${context}: accessibility violations`);

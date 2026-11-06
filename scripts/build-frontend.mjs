@@ -38,6 +38,16 @@ const projectAssets = Object.freeze([
     target: resolve(projectAssetDirectory, "project-banners-2026-10-18.webp")
   }
 ]);
+const approvedCvPdfFilenames = Object.freeze([
+  "Andris_Rozkalns_CV_EN.pdf",
+  "Andris_Rozkalns_Lebenslauf_de.pdf",
+  "Andris_Rozkalns_CV_LV.pdf"
+]);
+async function copyApprovedCvPdfs() {
+  await Promise.all(approvedCvPdfFilenames.map((filename) =>
+    cp(resolve(root, "frontend", "cv-pdfs", filename), resolve(html, filename))
+  ));
+}
 const localizedIdentityFiles = Object.freeze({
   en: "en/index.html",
   de: "de/index.html",
@@ -45,9 +55,6 @@ const localizedIdentityFiles = Object.freeze({
   proof_en: "en/proof/index.html",
   proof_de: "de/proof/index.html",
   proof_lv: "lv/proof/index.html",
-  lab_en: "en/lab/index.html",
-  lab_de: "de/lab/index.html",
-  lab_lv: "lv/lab/index.html",
   sitemap: "sitemap.xml"
 });
 
@@ -72,11 +79,9 @@ async function compactGeneratedHtml() {
     resolve(html, "index.html"),
     resolve(html, "smarthome.html"),
     resolve(html, "proof.html"),
-    resolve(html, "lab.html"),
     ...LOCALIZED_LANGUAGES.flatMap((language) => [
       resolve(html, language, "index.html"),
       resolve(html, language, "proof", "index.html"),
-      resolve(html, language, "lab", "index.html")
     ])
   ];
   await Promise.all(paths.map(async (path) => {
@@ -94,7 +99,6 @@ async function removeGeneratedFrontend() {
     rm(resolve(html, "index.html"), { force: true }),
     rm(resolve(html, "smarthome.html"), { force: true }),
     rm(resolve(html, "proof.html"), { force: true }),
-    rm(resolve(html, "lab.html"), { force: true }),
     ...LOCALIZED_LANGUAGES.map((language) => rm(resolve(html, language), { recursive: true, force: true })),
     rm(committedManifest, { force: true })
   ]);
@@ -161,6 +165,7 @@ async function bindLocalizedIdentity() {
 await removeGeneratedFrontend();
 await withMinifiedTranslationSources(() => build({ configFile: resolve(root, "vite.config.mjs") }));
 await copyProjectAssets();
+await copyApprovedCvPdfs();
 await verifyGeneratedShape();
 await bindProjectProof({ root, htmlPath: resolve(html, "index.html") });
 await bindEngineeringProof({ root, htmlPath: resolve(html, "proof.html") });

@@ -68,7 +68,7 @@ class Parser(HTMLParser):
 
 class FrontendContractTests(unittest.TestCase):
     def test_html_has_no_inline_code_or_styles(self) -> None:
-        for path in (INDEX, SMART, PROOF, ROOT / "html/lab.html", *(ROOT / f"html/{language}/lab/index.html" for language in ("en", "de", "lv")), *(ROOT / f"html/{language}/proof/index.html" for language in ("en", "de", "lv"))):
+        for path in (INDEX, SMART, PROOF, *(ROOT / f"html/{language}/proof/index.html" for language in ("en", "de", "lv"))):
             parser = Parser()
             text = path.read_text(encoding="utf-8")
             parser.feed(text)

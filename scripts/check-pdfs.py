@@ -43,8 +43,8 @@ PDF_TRANSLATION_KEYS = (
     "e1_dates","e1_title","e1_org","e1_b1", "e2_dates","e2_title","e2_org","e2_b1",
     "e3_dates","e3_title","e3_org","e3_b1", "e4_dates","e4_title","e4_org","e4_b1",
     "e5_dates","e5_title","e5_org","e5_b1", "pdf_projects_title",
-    "p8_title","pdf_p8_desc","p1_title","pdf_p1_desc","p3_title","pdf_p3_desc",
-    "skills_title", "education_title", "ed1_dates","ed1_title","ed1_sub", "ed2_dates","ed2_title","ed2_sub", "ed3_dates","ed3_title","ed3_sub",
+    "p7_title","pdf_p7_desc","p1_title","pdf_p1_desc","p3_title","pdf_p3_desc",
+    "skills_title", "education_title", "ed2_dates","ed2_title","ed2_sub", "ed3_dates","ed3_title","ed3_sub",
     "profile_languages_label","profile_lang_latvian","profile_lang_english","profile_lang_german",
     *tuple(key for group in GROUP_ORDERS["master"] for key in GROUP_KEYS[group]),
 )
@@ -128,7 +128,7 @@ def inspect_pdf(case_id: str, case: dict[str,Any], profile: dict[str,Any], messa
         label_key, items_key = GROUP_KEYS[group]; expected.extend([messages[label_key], messages[items_key]])
     for prefix in PROJECTS: expected.extend([messages[f"{prefix}_title"], messages[f"pdf_{prefix}_desc"]])
     for i in range(1,6): expected.extend([messages[f"e{i}_title"], messages[f"e{i}_org"], messages[f"e{i}_dates"]])
-    expected.extend([messages["ed1_title"], messages["ed2_title"], messages["ed3_title"]])
+    expected.extend([messages["ed2_title"], messages["ed3_title"]])
     for value in expected:
         if normalize_text(value) not in text: raise PdfCheckError(f"{case_id} PDF missing canonical text: {value!r}")
     assert_in_order(text, [messages["pdf_profile_title"], messages["skills_title"], messages["pdf_projects_title"], messages["experience_title"], messages["education_title"], messages["profile_languages_label"]], case_id)

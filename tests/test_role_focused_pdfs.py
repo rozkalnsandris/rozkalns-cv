@@ -35,6 +35,20 @@ class RoleFocusedPdfTests(unittest.TestCase):
         for relative in RETIRED:
             self.assertFalse((ROOT/relative).exists(), relative)
 
+    def test_pdf_checker_projection_has_current_translation_keys(self) -> None:
+        import importlib.util
+        path = ROOT / "scripts" / "check-pdfs.py"
+        spec = importlib.util.spec_from_file_location("cv_pdf_projection_checker", path)
+        self.assertIsNotNone(spec)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        for language in ("en", "de", "lv"):
+            messages = json.loads((ROOT / "content" / "translations" / f"{language}.json").read_text(encoding="utf-8"))
+            self.assertFalse(set(module.PDF_TRANSLATION_KEYS) - set(messages))
+            self.assertIn("pdf_p7_desc", module.PDF_TRANSLATION_KEYS)
+            self.assertNotIn("pdf_p8_desc", module.PDF_TRANSLATION_KEYS)
+            self.assertNotIn("ed1_title", module.PDF_TRANSLATION_KEYS)
+
     def test_legacy_role_pdf_urls_redirect_to_master_pdfs(self) -> None:
         config = (ROOT / "deploy/simple-deploy/nginx.conf").read_text(encoding="utf-8")
         legacy_roles = "(?:devops|linux-admin|technical-support|application-support)"

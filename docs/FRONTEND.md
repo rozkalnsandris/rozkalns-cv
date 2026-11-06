@@ -7,7 +7,7 @@ kinds of evidence.
 
 ## Authored source and generated deployment files
 
-- `frontend/index.html`, `frontend/proof.html`, `frontend/lab.html` and
+- `frontend/index.html`, `frontend/proof.html` and
   `frontend/smarthome.html` are authored HTML entrypoints.
 - `frontend/app.mjs`, `frontend/core/`, `frontend/features/` and `frontend/ui/`
   implement progressive enhancement, localization, live stats and contact.
@@ -28,12 +28,27 @@ reverse proxies never leak the upstream HTTP scheme or internal port.
 
 `html/` is committed *generated output*, not authored source. It contains
 `html/assets/`, `html/i18n/`, localized `/en/`, `/de/`, `/lv/` pages and the
-localized `proof/` and `lab/` routes. `frontend-dist-manifest.json` records
+localized `proof/` routes. `frontend-dist-manifest.json` records
 asset entries and localized-page identities. Vite emits 12-hex-character
 content-hashed asset names; the localized identity manifest records full
 SHA-256 checksums. The homepage app entry additionally receives a
 `?cfg=...` key derived from the first 12 SHA-256 hex digits of
 `nginx.conf`. Do not hand-edit generated hashes.
+
+## Owner-approved downloadable PDFs
+
+The three EN/DE/LV download links use existing, owner-provided PDFs staged
+through a verified ZIP (no PDF editing or re-rendering). Authoritative
+binary assets are stored in frontend/cv-pdfs/ and copied byte-for-byte
+into html/ by the frontend build. The language-specific filenames are
+Andris_Rozkalns_CV_EN.pdf, Andris_Rozkalns_Lebenslauf_de.pdf and
+Andris_Rozkalns_CV_LV.pdf. Both the static localized HTML and runtime
+language switching set href and download attributes to match each language.
+The frontend distribution check pins hashes and requires exact byte identity.
+
+The previous cv.pdf, cv-de.pdf, cv-lv.pdf and role-focused PDF assets are
+left unchanged by this integration. Their generated-data validity and
+Linux Operations Lab retirement remain separate existing PR #560 gates.
 
 ## Public functionality and privacy
 

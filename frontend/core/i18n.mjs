@@ -1,4 +1,9 @@
 export const SUPPORTED_LANGUAGES = Object.freeze(["en", "de", "lv"]);
+export const PDF_DOWNLOAD_NAMES = Object.freeze({
+  en: "Andris_Rozkalns_CV_EN.pdf",
+  de: "Andris_Rozkalns_Lebenslauf_de.pdf",
+  lv: "Andris_Rozkalns_CV_LV.pdf"
+});
 
 const TRANSLATIONS = Object.freeze({
   en: new URL("../../content/translations/en.json", import.meta.url).href,
@@ -130,7 +135,10 @@ export function applyTranslations(messages, language, {
   });
   if (pdfs) {
     const pdf = root.querySelector("#pdfLink");
-    if (pdf && typeof pdfs[safe] === "string") pdf.setAttribute("href", pdfs[safe]);
+    if (pdf && typeof pdfs[safe] === "string") {
+      pdf.setAttribute("href", pdfs[safe]);
+      pdf.setAttribute("download", PDF_DOWNLOAD_NAMES[safe]);
+    }
   }
   try { storage?.setItem?.("cvlang", safe); } catch {}
   return safe;

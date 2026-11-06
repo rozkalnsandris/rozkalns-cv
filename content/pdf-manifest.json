@@ -1,42 +1,42 @@
 {
   "schema_version": 1,
-  "source_sha256": "15713072fbc6af098b612610b67dae6e74e176a369fbe5e04b588a5728036b8d",
+  "source_sha256": "d3710cc9a7b0627ecb15ff2c1fbdd4f92d6f08c2abf9628c619a33acf93b969f",
   "pdfs": {
     "en": {
       "path": "html/cv.pdf",
-      "sha256": "16112de48979246b69e48bf146720e20b2fc6a46b452f9fdb676504ac091dbbb"
+      "sha256": "8ae905a1771161f010bbbb51b008b360011b046fa18a6473b7046e91561cb56f"
     },
     "de": {
       "path": "html/cv-de.pdf",
-      "sha256": "a52dfc3dce87799da83045238c20f3bbde64519ace9c80662f69c6d2e4a87de7"
+      "sha256": "564b517467ac7dbcdae79b4d0a4080d574b4bac17fa9da56e2de839b33a6e966"
     },
     "lv": {
       "path": "html/cv-lv.pdf",
-      "sha256": "cf8bbda5a9e6907d81fe85365a5453c5444c45522309fca11450f37e6cc939f7"
+      "sha256": "77933f7e21fba8fce2ea8817a14d51ea5e4cceefaa20049b513b31300614f79b"
     },
     "software-testing-en": {
       "path": "html/cv-software-testing.pdf",
-      "sha256": "0a7b1ef5a611e01cfe1871771fb5fefc15ed8eaedf6f4e72a93edf7db53c2cb8"
+      "sha256": "d7511b1b3c45b82ef29a82aaf3756fc9b8a88afd23757770557a50d4fb82d1a6"
     },
     "software-testing-de": {
       "path": "html/cv-software-testing-de.pdf",
-      "sha256": "85aa2a26042c20a0ae1eb68ea0bc02e6e2d4abd43d27c62c6fbf72c8de6c9877"
+      "sha256": "fb4c0753de3588247302dd12d6648e8548ecdde7bbe542544d1414004b4de11b"
     },
     "linux-operations-en": {
       "path": "html/cv-linux-operations.pdf",
-      "sha256": "88ee8be68ab9770cbf35f04bf7dfb9fa5ed598117d7ec3d30b78eac10959acbc"
+      "sha256": "51da18b666da15475b98dfc5fc117c1546ae8d032d8539c072d39102f9262203"
     },
     "linux-operations-de": {
       "path": "html/cv-linux-operations-de.pdf",
-      "sha256": "e5cf296f6c29b0434688e0658ec4a82dd17e4105b185267ce32a92281f195ff9"
+      "sha256": "e0c3a7b85c1ad93c5adcaf6d0bafceada8992ca4b1d58872adae5fd5e5eba44d"
     },
     "ai-data-quality-en": {
       "path": "html/cv-ai-data-quality.pdf",
-      "sha256": "10f819b93b50ebc87c9535d3b339a4e8d90a4e6733c0131d71d18041f1d93ea0"
+      "sha256": "879e30a37ce02be40717a18269a7fa34c09ea96472d3e64cc4ab10b86202db35"
     },
     "ai-data-quality-de": {
       "path": "html/cv-ai-data-quality-de.pdf",
-      "sha256": "65157975158e49e610605eecf0e2eaa240ca4301916f8ac1363c6cd720b97d11"
+      "sha256": "39efde314a9c446a02b1670f93ba9fcb0c27ccfc01e10ea9b4b8abc6efafa71d"
     }
   }
 }

@@ -8,6 +8,17 @@ const htmlRoot = resolve(root, "html");
 const manifest = JSON.parse(await readFile(resolve(root, "frontend-dist-manifest.json"), "utf8"));
 const HASHED = /\.[0-9a-f]{12}\.(?:mjs|js|css|json|webp)$/;
 
+const approvedCvSha256 = Object.freeze({
+  "Andris_Rozkalns_CV_EN.pdf": "1c2867c71bff309aa6fbc26920acbdcd7f6033dc7ab760e09be7ba8f69e2d9fb",
+  "Andris_Rozkalns_Lebenslauf_de.pdf": "aff011bc172ec951da0f27a68fc7b3f43492674131835c37c5df0d4600894c93",
+  "Andris_Rozkalns_CV_LV.pdf": "5c126a632e3584139ff69ec27cbb6e10379c5d38b33ffdb1d4baf863213d8d2a"
+});
+for (const [filename, expectedDigest] of Object.entries(approvedCvSha256)) {
+  const authored = await readFile(resolve(root, "frontend", "cv-pdfs", filename));
+  const deployed = await readFile(resolve(htmlRoot, filename));
+  assert.equal(createHash("sha256").update(authored).digest("hex"), expectedDigest, filename);
+  assert.deepEqual(deployed, authored, "generated CV does not match the approved uploaded PDF: " + filename);
+}
 const indexEntry = manifest["index.html"];
 const smartEntry = manifest["smarthome.html"];
 assert.equal(indexEntry?.isEntry, true, "manifest index.html entry is missing");
@@ -41,9 +52,6 @@ const expectedLocalizedIdentity = Object.freeze({
   proof_en: "en/proof/index.html",
   proof_de: "de/proof/index.html",
   proof_lv: "lv/proof/index.html",
-  lab_en: "en/lab/index.html",
-  lab_de: "de/lab/index.html",
-  lab_lv: "lv/lab/index.html",
   sitemap: "sitemap.xml"
 });
 assert.deepEqual(
@@ -94,10 +102,6 @@ assert.deepEqual(
 const indexHtml = await readFile(resolve(htmlRoot, "index.html"), "utf8");
 const smartHtml = await readFile(resolve(htmlRoot, "smarthome.html"), "utf8");
 const proofHtml = await readFile(resolve(htmlRoot, "proof.html"), "utf8");
-const labHtml = await readFile(resolve(htmlRoot, "lab.html"), "utf8");
-const localizedLabHtml = Object.fromEntries(await Promise.all(["en", "de", "lv"].map(async (language) => [
-  `lab_${language}`, await readFile(resolve(htmlRoot, language, "lab", "index.html"), "utf8")
-])));
 const localizedHtml = Object.fromEntries(await Promise.all(
   ["en", "de", "lv"].map(async (language) => [
     language,
@@ -110,7 +114,7 @@ const localizedProofHtml = Object.fromEntries(await Promise.all(
     await readFile(resolve(htmlRoot, language, "proof", "index.html"), "utf8")
   ])
 ));
-for (const [name, text] of [["index", indexHtml], ["smarthome", smartHtml], ["proof", proofHtml], ["lab", labHtml], ...Object.entries(localizedLabHtml), ...Object.entries(localizedHtml), ...Object.entries(localizedProofHtml)]) {
+for (const [name, text] of [["index", indexHtml], ["smarthome", smartHtml], ["proof", proofHtml], ...Object.entries(localizedHtml), ...Object.entries(localizedProofHtml)]) {
   assert.doesNotMatch(text, /(?:src|href)="\.\//, `${name} HTML still contains source-relative frontend references`);
   for (const path of text.matchAll(/(?:src|href)="\/(assets\/[^"?#]+)/g)) {
     assert.ok(referenced.has(path[1]), `${name} HTML references an asset outside the manifest: ${path[1]}`);
@@ -136,7 +140,6 @@ assert.doesNotMatch(smartHtml, /\?cfg=[0-9a-f]{12}/, "Smart Home HTML has an une
 for (const source of [
   "frontend/index.html",
   "frontend/proof.html",
-  "frontend/lab.html",
   "frontend/smarthome.html",
   "frontend/app.mjs",
   "frontend/enhancements.mjs",

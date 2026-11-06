@@ -38,7 +38,7 @@ A later implementation must:
 
 ## Generated visual references
 
-The original PNGs are preserved in `references/desktop-home.png`, `references/desktop-lab.png` and `references/mobile-home.png`. The owner-supplied files were copied byte-for-byte on 7 October 2026 and verified against the SHA-256 values below. They are design references, not public factual evidence.
+The original PNGs are preserved in `references/desktop-home.png` and `references/mobile-home.png`. The owner-supplied files were copied byte-for-byte on 7 October 2026 and verified against the SHA-256 values below. They are design references, not public factual evidence.
 
 ### A — desktop homepage concept
 
@@ -61,31 +61,7 @@ Visual intent:
 - separate `View case study` and `GitHub` actions;
 - skills and live homelab remain visible below but secondary to the featured work.
 
-### B — Linux Operations Lab case-study concept
-
-- dimensions: `1122 × 1402`
-- local generated filename: `a_clean_modern_web_page_ui_screenshot_desktop_2_batch_1.png`
-- SHA-256: `4ff1898c45fe30ae9ff93f22ec1711ec8a53036c12bcdf34f6632d601e78e3fb`
-
-Visual intent:
-
-- project title and honest status at the top;
-- primary GitHub link;
-- one large evidence screenshot;
-- compact project metadata panel;
-- dedicated sections:
-  - `Problem`
-  - `What I built`
-  - `How I troubleshoot`
-  - `Architecture / Lab overview`
-  - `Proof`
-  - `What I learned`
-  - `Current limitations`
-  - `Related evidence`
-- troubleshooting/process evidence should be as important as the final result;
-- limitations are presented positively and honestly instead of hiding incomplete work.
-
-### C — mobile homepage concept
+### B — mobile homepage concept
 
 - dimensions: `941 × 1672`
 - local generated filename: `a_clean_centered_product_portfolio_mobile_ui_mock_3_batch_2.png`
@@ -154,7 +130,6 @@ The concept uses three flagship categories because three strong cases are easier
 
 Candidate direction based on the current site structure:
 
-- Linux Operations Lab;
 - self-hosted Linux / operations environment;
 - rozkalns.net CV platform.
 

@@ -6,9 +6,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED = {
-    "en": ("Junior QA / Linux & Internal IT / AI Data Quality", "Dortmund, Germany", "/cv.pdf"),
-    "de": ("Junior QA / Linux & Internal IT / AI Data Quality", "Dortmund, Deutschland", "/cv-de.pdf"),
-    "lv": ("Junior QA / Linux & Internal IT / AI Data Quality", "Dortmund, Vācija", "/cv-lv.pdf"),
+    "en": ("Junior QA / Linux & Internal IT / AI Data Quality", "Dortmund, Germany", "/Andris_Rozkalns_CV_EN.pdf"),
+    "de": ("Junior QA / Linux & Internal IT / AI Data Quality", "Dortmund, Deutschland", "/Andris_Rozkalns_Lebenslauf_de.pdf"),
+    "lv": ("Junior QA / Linux & Internal IT / AI Data Quality", "Dortmund, Vācija", "/Andris_Rozkalns_CV_LV.pdf"),
 }
 IDENTITY_PATHS = {
     "en": "en/index.html",
@@ -17,9 +17,6 @@ IDENTITY_PATHS = {
     "proof_en": "en/proof/index.html",
     "proof_de": "de/proof/index.html",
     "proof_lv": "lv/proof/index.html",
-    "lab_en": "en/lab/index.html",
-    "lab_de": "de/lab/index.html",
-    "lab_lv": "lv/lab/index.html",
     "sitemap": "sitemap.xml",
 }
 
@@ -41,7 +38,7 @@ class LocalizedPageContractTests(unittest.TestCase):
             self.assertIn(f'<html lang="{language}">', html)
             self.assertIn(f'data-i18n="role">{escape_generated_attribute(role)}</p>', html)
             self.assertRegex(html, rf'id="profileLocation"[^>]*>{re.escape(location)}</span>')
-            self.assertRegex(html, rf'id="pdfLink" href="{re.escape(pdf)}"')
+            self.assertRegex(html, rf'id="pdfLink" href="{re.escape(pdf)}" download="{re.escape(Path(pdf).name)}"')
             self.assertIn(f'data-lang="{language}" aria-label=', html)
             current = re.findall(r'<a[^>]+data-lang="([^"]+)"[^>]+aria-current="page"', html)
             self.assertEqual(current, [language])
