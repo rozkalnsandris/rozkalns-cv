@@ -6,6 +6,8 @@ ARG VCS_REF=unresolved
 ARG BUILD_INPUT_SHA256=unresolved
 ARG OPENSSL_APK_VERSION=3.5.9-r0
 ARG LIBUUID_APK_VERSION=2.42.3-r1
+ARG MUSL_UTILS_APK_VERSION=1.2.6-r3
+ARG ZLIB_APK_VERSION=1.4-r0
 
 LABEL org.opencontainers.image.source="https://github.com/rozkalnsandris/rozkalns-cv" \
       org.opencontainers.image.revision="${VCS_REF}" \
@@ -22,7 +24,9 @@ WORKDIR /app
 RUN apk add --no-cache --upgrade \
       "libcrypto3=${OPENSSL_APK_VERSION}" \
       "libssl3=${OPENSSL_APK_VERSION}" \
-      "libuuid=${LIBUUID_APK_VERSION}"
+      "libuuid=${LIBUUID_APK_VERSION}" \
+      "musl-utils=${MUSL_UTILS_APK_VERSION}" \
+      "zlib=${ZLIB_APK_VERSION}"
 
 RUN addgroup -S -g "${APP_GID}" cvbot \
     && adduser -S -D -H -u "${APP_UID}" -G cvbot cvbot
