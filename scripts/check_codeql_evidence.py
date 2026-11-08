@@ -20,7 +20,14 @@ ANALYZER_CHECKS = (
     "Analyze (javascript-typescript)",
 )
 META_CHECK = "CodeQL"
-REQUIRED_CHECKS = ANALYZER_CHECKS + (META_CHECK,)
+META_APP = "github-advanced-security"
+FALLBACK_CHECKS = (
+    "Dependabot CodeQL (actions)",
+    "Dependabot CodeQL (python)",
+    "Dependabot CodeQL (javascript-typescript)",
+)
+FALLBACK_APP = "github-actions"
+REQUIRED_CHECKS = ANALYZER_CHECKS + FALLBACK_CHECKS + (META_CHECK,)
 _ALLOWED_STATUSES = {
     "queued",
     "in_progress",
@@ -82,17 +89,26 @@ def _one_required(
     return matches[0]
 
 
-def evaluate_check_runs(payload: Any) -> tuple[bool, tuple[str, ...]]:
-    rows = _safe_rows(payload)
+def _evaluate_named_checks(
+    rows: list[tuple[str, str, str | None, str]],
+    names: tuple[str, ...],
+    *,
+    expected_app: str | None = None,
+    missing_is_pending: bool = True,
+) -> tuple[str, ...]:
     pending: list[str] = []
-
-    for required in ANALYZER_CHECKS:
+    for required in names:
         match = _one_required(rows, required)
         if match is None:
-            pending.append(f"missing:{required}")
+            if missing_is_pending:
+                pending.append(f"missing:{required}")
             continue
 
-        _name, status, conclusion, _app_slug = match
+        _name, status, conclusion, app_slug = match
+        if expected_app is not None and app_slug != expected_app:
+            raise EvidenceError(
+                f"required check app mismatch: {required}: {app_slug!r}"
+            )
         if status != "completed":
             pending.append(f"pending:{required}:{status}")
             continue
@@ -100,28 +116,48 @@ def evaluate_check_runs(payload: Any) -> tuple[bool, tuple[str, ...]]:
             raise EvidenceError(
                 f"required analyzer did not succeed: {required}: {conclusion!r}"
             )
+    return tuple(pending)
 
+
+def evaluate_check_runs(payload: Any) -> tuple[bool, tuple[str, ...]]:
+    rows = _safe_rows(payload)
     meta = _one_required(rows, META_CHECK)
+
+    if meta is not None:
+        _name, status, conclusion, app_slug = meta
+        if status == "completed" and conclusion == "neutral":
+            if app_slug != META_APP:
+                raise EvidenceError(
+                    f"neutral meta-check app mismatch: {app_slug!r}"
+                )
+            present_primary_pending = _evaluate_named_checks(
+                rows,
+                ANALYZER_CHECKS,
+                missing_is_pending=False,
+            )
+            fallback_pending = _evaluate_named_checks(
+                rows,
+                FALLBACK_CHECKS,
+                expected_app=FALLBACK_APP,
+            )
+            pending = present_primary_pending + fallback_pending
+            if not pending:
+                return True, ()
+            return False, ("pending:CodeQL:neutral",) + pending
+
+    pending = list(_evaluate_named_checks(rows, ANALYZER_CHECKS))
     if meta is None:
         pending.append(f"missing:{META_CHECK}")
     else:
         _name, status, conclusion, _app_slug = meta
         if status != "completed":
             pending.append(f"pending:{META_CHECK}:{status}")
-        elif conclusion == "neutral":
-            # GitHub may publish a transient neutral PR CodeQL meta-check while
-            # the default-setup analyzer checks are still finishing. A later
-            # latest check replaces it with the final success/failure verdict.
-            # Wait boundedly; neutral is never accepted as PASS.
-            pending.append(f"pending:{META_CHECK}:neutral")
         elif conclusion != "success":
             raise EvidenceError(
                 f"required meta-check did not succeed: {META_CHECK}: {conclusion!r}"
             )
 
     return not pending, tuple(pending)
-
-
 def fetch_check_runs(repository: str, sha: str, token: str) -> dict[str, Any]:
     if not REPOSITORY_RE.fullmatch(repository):
         raise EvidenceError("repository must use owner/name form")
