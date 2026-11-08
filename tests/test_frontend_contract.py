@@ -129,6 +129,12 @@ class FrontendContractTests(unittest.TestCase):
         self.assertEqual(len(primary), 6)
         self.assertEqual(len(secondary), 1)
         self.assertEqual(source_html.count('class="project-preview '), 6)
+        for weather_page in (source_html, html):
+            weather_case = weather_page.split('data-project-case="weather"', 1)[1].split("</details>", 1)[0]
+            self.assertNotIn("weather-source-ui-2026-10-18.webp", weather_case)
+            self.assertIn("project-case-study-visual", weather_case)
+            self.assertIn('data-ui-i18n="v2_weather_flow_models"', weather_case)
+            self.assertIn('data-ui-i18n="v2_weather_preview"', weather_case)
         self.assertEqual(source_html.count('class="project-facts"'), 0)
         title_keys = ('p7_title', 'p1_title', 'p3_title')
         title_positions = [source_html.index(f'data-i18n="{key}"') for key in title_keys]
