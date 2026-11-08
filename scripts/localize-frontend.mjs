@@ -4,7 +4,12 @@ import { resolve } from "node:path";
 export const LOCALIZED_LANGUAGES = Object.freeze(["en", "de", "lv"]);
 const ORIGIN = "https://rozkalns.net";
 const DEFAULT_URL = `${ORIGIN}/en/`;
-const PDFS = Object.freeze({ en: "/cv.pdf", de: "/cv-de.pdf", lv: "/cv-lv.pdf" });
+const PDFS = Object.freeze({ en: "/Andris_Rozkalns_CV_EN.pdf", de: "/Andris_Rozkalns_Lebenslauf_de.pdf", lv: "/Andris_Rozkalns_CV_LV.pdf" });
+const PDF_DOWNLOAD_NAMES = Object.freeze({
+  en: "Andris_Rozkalns_CV_EN.pdf",
+  de: "Andris_Rozkalns_Lebenslauf_de.pdf",
+  lv: "Andris_Rozkalns_CV_LV.pdf"
+});
 const LOCALES = Object.freeze({ en: "en-GB", de: "de-DE", lv: "lv-LV" });
 const IMAGE_ALTS = Object.freeze({
   en: "Portrait of Andris Rožkalns",
@@ -15,7 +20,7 @@ const SKILL_GROUP_KEYS = Object.freeze([
   "skill_group_linux_operations_items",
   "skill_group_networking_web_items",
   "skill_group_containers_monitoring_items",
-  "skill_group_application_support_items",
+  "skill_group_testing_quality_items",
   "skill_group_automation_git_items"
 ]);
 
@@ -206,7 +211,10 @@ function localizeLocation(html, language) {
 }
 
 function localizePdf(html, language) {
-  return replaceAttributeById(html, "pdfLink", "href", PDFS[language]);
+  return replaceAttributeById(
+    replaceAttributeById(html, "pdfLink", "href", PDFS[language]),
+    "pdfLink", "download", PDF_DOWNLOAD_NAMES[language]
+  );
 }
 
 function replaceContentText(html, binding, messages) {
@@ -219,21 +227,9 @@ function replaceContentText(html, binding, messages) {
 
 function localizeProjectLinks(html, language) {
   return html.replace(/<a\b[^>]*\bdata-local-route="([^"]+)"[^>]*>/g, (tag, route) => {
-    if (!/^(lab|proof)\/(#[a-z-]+)?$/.test(route)) throw new Error(`invalid project route: ${route}`);
+    if (!/^proof\/(#[a-z-]+)?$/.test(route)) throw new Error(`invalid project route: ${route}`);
     return tag.replace(/href="[^"]*"/, `href="/${language}/${route}"`);
   });
-}
-
-function renderLabPage(template, language, messages, lab) {
-  let html = template.replace(/<html lang="[^"]+">/, `<html lang="${language}">`);
-  html = replaceBoundText(html, messages);
-  html = replaceContentText(html, "data-lab-i18n", lab);
-  html = replaceLanguageState(html, language);
-  html = html.replace(/<a\b[^>]*\bdata-lab-(home|back)[^>]*>/g, (tag, kind) =>
-    tag.replace(/href="[^"]*"/, `href="/${language}/${kind === "back" ? "#projects" : ""}"`));
-  html = html.replace(/<title>[\s\S]*?<\/title>/, `<title>${escapeHtml(lab.title)} · Andris Rožkalns</title>`);
-  html = replaceMetaContent(html, "name", "description", lab.intro);
-  return replaceCanonical(html, routeUrl(language, "lab/"), "lab/");
 }
 
 function renderPage(template, language, messages, proofMessages) {
@@ -291,7 +287,7 @@ function renderProofPage(template, language, messages, proofMessages, skillLabel
 }
 
 function sitemapXml() {
-  const routeSuffixes = ["", "proof/", "lab/"];
+  const routeSuffixes = ["", "proof/"];
   const rows = routeSuffixes.flatMap((suffix) => LOCALIZED_LANGUAGES.map((language) => {
     const url = routeUrl(language, suffix);
     const links = [
@@ -308,13 +304,11 @@ function sitemapXml() {
 }
 
 export async function renderLocalizedPages({ root, htmlRoot }) {
-  const [template, proofTemplate, proofConfig, skillLabels, labTemplate, labConfig, uiConfig] = await Promise.all([
+  const [template, proofTemplate, proofConfig, skillLabels, uiConfig] = await Promise.all([
     readFile(resolve(htmlRoot, "index.html"), "utf8"),
     readFile(resolve(htmlRoot, "proof.html"), "utf8"),
     readFile(resolve(root, "content", "proof.json"), "utf8").then(JSON.parse),
     readFile(resolve(root, "content", "skill-labels.json"), "utf8").then(JSON.parse),
-    readFile(resolve(htmlRoot, "lab.html"), "utf8"),
-    readFile(resolve(root, "content", "lab.json"), "utf8").then(JSON.parse),
     readFile(resolve(root, "content", "ui-v2.json"), "utf8").then(JSON.parse)
   ]);
   for (const language of LOCALIZED_LANGUAGES) {
@@ -328,9 +322,6 @@ export async function renderLocalizedPages({ root, htmlRoot }) {
     await mkdir(proofDirectory, { recursive: true });
     const home = replaceContentText(localizeProjectLinks(renderPage(template, language, messages, proofMessages), language), "data-ui-i18n", uiConfig.i18n[language]);
     await writeFile(resolve(directory, "index.html"), home);
-    const labDirectory = resolve(directory, "lab");
-    await mkdir(labDirectory, { recursive: true });
-    await writeFile(resolve(labDirectory, "index.html"), renderLabPage(labTemplate, language, messages, labConfig.i18n[language]));
     await writeFile(resolve(proofDirectory, "index.html"), renderProofPage(proofTemplate, language, messages, proofMessages, skillLabels));
   }
   await writeFile(resolve(htmlRoot, "proof.html"), renderProofPage(
@@ -340,7 +331,6 @@ export async function renderLocalizedPages({ root, htmlRoot }) {
     proofConfig.i18n.en,
     skillLabels
   ));
-  await writeFile(resolve(htmlRoot, "lab.html"), renderLabPage(labTemplate, "en", JSON.parse(await readFile(resolve(root, "content", "translations", "en.json"), "utf8")), labConfig.i18n.en));
   await writeFile(resolve(htmlRoot, "sitemap.xml"), sitemapXml());
   console.log(`FRONTEND_LOCALIZED_PAGES=${LOCALIZED_LANGUAGES.join(",")}`);
   console.log(`FRONTEND_LOCALIZED_PROOF=${LOCALIZED_LANGUAGES.join(",")}`);

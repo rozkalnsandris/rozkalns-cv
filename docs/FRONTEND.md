@@ -7,7 +7,7 @@ kinds of evidence.
 
 ## Authored source and generated deployment files
 
-- `frontend/index.html`, `frontend/proof.html`, `frontend/lab.html` and
+- `frontend/index.html`, `frontend/proof.html` and
   `frontend/smarthome.html` are authored HTML entrypoints.
 - `frontend/app.mjs`, `frontend/core/`, `frontend/features/` and `frontend/ui/`
   implement progressive enhancement, localization, live stats and contact.
@@ -19,14 +19,41 @@ kinds of evidence.
 - `vite.config.mjs`, `scripts/build-frontend.mjs` and
   `scripts/localize-frontend.mjs` control the deterministic build.
 
+In active SIMPLE-DEPLOY Nginx, retired `cv-devops`, `cv-linux-admin`,
+`cv-technical-support` and `cv-application-support` PDF URLs (EN/DE)
+redirect permanently to the current language-matched master CV PDF.
+The retired PDF binaries are not kept in `html/`.
+Redirects use origin-relative `Location` paths so TLS-terminating
+reverse proxies never leak the upstream HTTP scheme or internal port.
+
 `html/` is committed *generated output*, not authored source. It contains
 `html/assets/`, `html/i18n/`, localized `/en/`, `/de/`, `/lv/` pages and the
-localized `proof/` and `lab/` routes. `frontend-dist-manifest.json` records
+localized `proof/` routes. `frontend-dist-manifest.json` records
 asset entries and localized-page identities. Vite emits 12-hex-character
 content-hashed asset names; the localized identity manifest records full
 SHA-256 checksums. The homepage app entry additionally receives a
 `?cfg=...` key derived from the first 12 SHA-256 hex digits of
 `nginx.conf`. Do not hand-edit generated hashes.
+
+## Owner-approved downloadable PDFs
+
+The three EN/DE/LV download links use existing, owner-provided PDFs staged
+through a verified ZIP (no PDF editing or re-rendering). Authoritative
+binary assets are stored in frontend/cv-pdfs/ and copied byte-for-byte
+into html/ by the frontend build. The language-specific filenames are
+Andris_Rozkalns_CV_EN.pdf, Andris_Rozkalns_Lebenslauf_de.pdf and
+Andris_Rozkalns_CV_LV.pdf. Both the static localized HTML and runtime
+language switching set href and download attributes to match each language.
+The frontend distribution check pins hashes and requires exact byte identity.
+
+The generator-managed master CV PDFs (`html/cv.pdf`, `html/cv-de.pdf`,
+`html/cv-lv.pdf`) and six role-focused PDFs were regenerated from current
+canonical content in merged PR #560 when Linux Operations Lab was retired.
+Their hashes and source provenance were refreshed in
+`content/pdf-manifest.json` and `content/pdf-provenance.json`. These nine
+artifacts remain distinct from the three unchanged owner-approved downloads.
+For later content changes, follow the PDF regeneration and review requirements
+in `docs/CONTENT_AUTHORING.md`.
 
 ## Public functionality and privacy
 

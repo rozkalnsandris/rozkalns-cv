@@ -7,40 +7,40 @@ import { setTimeout as delay } from 'node:timers/promises';
 
 const ROOT = resolve(import.meta.dirname, '..');
 const LANGUAGES = ['en', 'de', 'lv'];
-const PROJECTS = ['p8', 'p1', 'p3'];
+const PROJECTS = ['p7', 'p1', 'p3'];
 const GROUPS = Object.freeze({
+  testing_quality: ['skill_group_testing_quality', 'skill_group_testing_quality_items'],
   linux_operations: ['skill_group_linux_operations', 'skill_group_linux_operations_items'],
   networking_web: ['skill_group_networking_web', 'skill_group_networking_web_items'],
   containers_monitoring: ['skill_group_containers_monitoring', 'skill_group_containers_monitoring_items'],
-  application_support: ['skill_group_application_support', 'skill_group_application_support_items'],
   automation_git: ['skill_group_automation_git', 'skill_group_automation_git_items']
 });
-const MASTER_GROUP_ORDER = ['linux_operations', 'networking_web', 'containers_monitoring', 'application_support', 'automation_git'];
-const SUPPORT_GROUP_ORDER = ['linux_operations', 'networking_web', 'application_support', 'containers_monitoring', 'automation_git'];
-const LINUX_OPS_GROUP_ORDER = ['linux_operations', 'containers_monitoring', 'networking_web', 'automation_git', 'application_support'];
-const APP_SUPPORT_GROUP_ORDER = ['application_support', 'networking_web', 'linux_operations', 'containers_monitoring', 'automation_git'];
+const MASTER_GROUP_ORDER = ['testing_quality', 'linux_operations', 'containers_monitoring', 'networking_web', 'automation_git'];
+const TESTING_GROUP_ORDER = ['testing_quality', 'automation_git', 'linux_operations', 'networking_web', 'containers_monitoring'];
+const LINUX_OPS_GROUP_ORDER = ['linux_operations', 'containers_monitoring', 'networking_web', 'automation_git', 'testing_quality'];
+const AI_DATA_GROUP_ORDER = ['testing_quality', 'automation_git', 'linux_operations', 'containers_monitoring', 'networking_web'];
 const PDF_CASES = [
   { id: 'en', language: 'en', output: 'html/cv.pdf', variant: null, groupOrder: MASTER_GROUP_ORDER },
   { id: 'de', language: 'de', output: 'html/cv-de.pdf', variant: null, groupOrder: MASTER_GROUP_ORDER },
   { id: 'lv', language: 'lv', output: 'html/cv-lv.pdf', variant: null, groupOrder: MASTER_GROUP_ORDER },
-  { id: 'technical-support-en', language: 'en', output: 'html/cv-technical-support.pdf', variant: 'technical-support', groupOrder: SUPPORT_GROUP_ORDER },
-  { id: 'technical-support-de', language: 'de', output: 'html/cv-technical-support-de.pdf', variant: 'technical-support', groupOrder: SUPPORT_GROUP_ORDER },
+  { id: 'software-testing-en', language: 'en', output: 'html/cv-software-testing.pdf', variant: 'software-testing', groupOrder: TESTING_GROUP_ORDER },
+  { id: 'software-testing-de', language: 'de', output: 'html/cv-software-testing-de.pdf', variant: 'software-testing', groupOrder: TESTING_GROUP_ORDER },
   { id: 'linux-operations-en', language: 'en', output: 'html/cv-linux-operations.pdf', variant: 'linux-operations', groupOrder: LINUX_OPS_GROUP_ORDER },
   { id: 'linux-operations-de', language: 'de', output: 'html/cv-linux-operations-de.pdf', variant: 'linux-operations', groupOrder: LINUX_OPS_GROUP_ORDER },
-  { id: 'application-support-en', language: 'en', output: 'html/cv-application-support.pdf', variant: 'application-support', groupOrder: APP_SUPPORT_GROUP_ORDER },
-  { id: 'application-support-de', language: 'de', output: 'html/cv-application-support-de.pdf', variant: 'application-support', groupOrder: APP_SUPPORT_GROUP_ORDER }
+  { id: 'ai-data-quality-en', language: 'en', output: 'html/cv-ai-data-quality.pdf', variant: 'ai-data-quality', groupOrder: AI_DATA_GROUP_ORDER },
+  { id: 'ai-data-quality-de', language: 'de', output: 'html/cv-ai-data-quality-de.pdf', variant: 'ai-data-quality', groupOrder: AI_DATA_GROUP_ORDER }
 ];
 const ROLE_ONLY_FLAG = '--role-variants-only';
 const VARIANT_ROLES = Object.freeze({
   en: {
-    'technical-support': 'Junior Technical Support Engineer',
-    'linux-operations': 'Junior Linux Operations',
-    'application-support': 'Application Support Engineer'
+    'software-testing': 'Junior Software Tester / QA',
+    'linux-operations': 'Junior Linux / Internal IT',
+    'ai-data-quality': 'Junior AI Data Quality / Evaluation'
   },
   de: {
-    'technical-support': 'Junior Technical Support',
-    'linux-operations': 'Junior Linux Operations',
-    'application-support': 'Application Support Engineer'
+    'software-testing': 'Junior Software Tester / QA',
+    'linux-operations': 'Junior Linux / Internal IT',
+    'ai-data-quality': 'Junior AI Data Quality / Evaluation'
   }
 });
 const LOCATIONS = { en: 'Dortmund, Germany', de: 'Dortmund, Deutschland', lv: 'Dortmund, Vācija' };
@@ -94,7 +94,7 @@ function renderHtml(language, profile, messages, pdfCase) {
     return `<div class="skill-label">${escapeHtml(required(messages[labelKey], labelKey))}</div><div class="skill-items">${escapeHtml(required(messages[itemsKey], itemsKey))}</div>`;
   }).join('');
 
-  const education = [1, 2, 3].map((index) => `<article class="education-item"><div class="education-title">${escapeHtml(required(messages[`ed${index}_title`], `ed${index}_title`))}</div><div class="education-sub">${escapeHtml(required(messages[`ed${index}_sub`], `ed${index}_sub`))} · ${escapeHtml(required(messages[`ed${index}_dates`], `ed${index}_dates`))}</div></article>`).join('');
+  const education = [2, 3].map((index) => `<article class="education-item"><div class="education-title">${escapeHtml(required(messages[`ed${index}_title`], `ed${index}_title`))}</div><div class="education-sub">${escapeHtml(required(messages[`ed${index}_sub`], `ed${index}_sub`))} · ${escapeHtml(required(messages[`ed${index}_dates`], `ed${index}_dates`))}</div></article>`).join('');
 
   const languageRows = profile.languages.map((entry) => {
     const key = entry.name.toLowerCase();

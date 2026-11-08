@@ -13,27 +13,27 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 LANGUAGES = ("en", "de", "lv")
-PROJECTS = ("p8", "p1", "p3")
+PROJECTS = ("p7", "p1", "p3")
 GROUP_ORDERS = {
-    "master": ("linux_operations", "networking_web", "containers_monitoring", "application_support", "automation_git"),
-    "technical-support": ("linux_operations", "networking_web", "application_support", "containers_monitoring", "automation_git"),
-    "linux-operations": ("linux_operations", "containers_monitoring", "networking_web", "automation_git", "application_support"),
-    "application-support": ("application_support", "networking_web", "linux_operations", "containers_monitoring", "automation_git"),
+    "master": ("testing_quality", "linux_operations", "containers_monitoring", "networking_web", "automation_git"),
+    "software-testing": ("testing_quality", "automation_git", "linux_operations", "networking_web", "containers_monitoring"),
+    "linux-operations": ("linux_operations", "containers_monitoring", "networking_web", "automation_git", "testing_quality"),
+    "ai-data-quality": ("testing_quality", "automation_git", "linux_operations", "containers_monitoring", "networking_web"),
 }
 PDF_CASES = {
     "en": {"language":"en","path":ROOT/"html/cv.pdf","variant":None,"group_order":GROUP_ORDERS["master"]},
     "de": {"language":"de","path":ROOT/"html/cv-de.pdf","variant":None,"group_order":GROUP_ORDERS["master"]},
     "lv": {"language":"lv","path":ROOT/"html/cv-lv.pdf","variant":None,"group_order":GROUP_ORDERS["master"]},
-    "technical-support-en": {"language":"en","path":ROOT/"html/cv-technical-support.pdf","variant":"technical-support","group_order":GROUP_ORDERS["technical-support"]},
-    "technical-support-de": {"language":"de","path":ROOT/"html/cv-technical-support-de.pdf","variant":"technical-support","group_order":GROUP_ORDERS["technical-support"]},
+    "software-testing-en": {"language":"en","path":ROOT/"html/cv-software-testing.pdf","variant":"software-testing","group_order":GROUP_ORDERS["software-testing"]},
+    "software-testing-de": {"language":"de","path":ROOT/"html/cv-software-testing-de.pdf","variant":"software-testing","group_order":GROUP_ORDERS["software-testing"]},
     "linux-operations-en": {"language":"en","path":ROOT/"html/cv-linux-operations.pdf","variant":"linux-operations","group_order":GROUP_ORDERS["linux-operations"]},
     "linux-operations-de": {"language":"de","path":ROOT/"html/cv-linux-operations-de.pdf","variant":"linux-operations","group_order":GROUP_ORDERS["linux-operations"]},
-    "application-support-en": {"language":"en","path":ROOT/"html/cv-application-support.pdf","variant":"application-support","group_order":GROUP_ORDERS["application-support"]},
-    "application-support-de": {"language":"de","path":ROOT/"html/cv-application-support-de.pdf","variant":"application-support","group_order":GROUP_ORDERS["application-support"]},
+    "ai-data-quality-en": {"language":"en","path":ROOT/"html/cv-ai-data-quality.pdf","variant":"ai-data-quality","group_order":GROUP_ORDERS["ai-data-quality"]},
+    "ai-data-quality-de": {"language":"de","path":ROOT/"html/cv-ai-data-quality-de.pdf","variant":"ai-data-quality","group_order":GROUP_ORDERS["ai-data-quality"]},
 }
 VARIANT_ROLES = {
-    "en": {"technical-support":"Junior Technical Support Engineer","linux-operations":"Junior Linux Operations","application-support":"Application Support Engineer"},
-    "de": {"technical-support":"Junior Technical Support","linux-operations":"Junior Linux Operations","application-support":"Application Support Engineer"},
+    "en": {"software-testing":"Junior Software Tester / QA","linux-operations":"Junior Linux / Internal IT","ai-data-quality":"Junior AI Data Quality / Evaluation"},
+    "de": {"software-testing":"Junior Software Tester / QA","linux-operations":"Junior Linux / Internal IT","ai-data-quality":"Junior AI Data Quality / Evaluation"},
 }
 MANIFEST_PATH = ROOT / "content/pdf-provenance.json"
 RENDERER_PATH = ROOT / "scripts/generate-pdfs.mjs"
@@ -43,13 +43,13 @@ PDF_TRANSLATION_KEYS = (
     "e1_dates","e1_title","e1_org","e1_b1", "e2_dates","e2_title","e2_org","e2_b1",
     "e3_dates","e3_title","e3_org","e3_b1", "e4_dates","e4_title","e4_org","e4_b1",
     "e5_dates","e5_title","e5_org","e5_b1", "pdf_projects_title",
-    "p8_title","pdf_p8_desc","p1_title","pdf_p1_desc","p3_title","pdf_p3_desc",
-    "skills_title", "education_title", "ed1_dates","ed1_title","ed1_sub", "ed2_dates","ed2_title","ed2_sub", "ed3_dates","ed3_title","ed3_sub",
+    "p7_title","pdf_p7_desc","p1_title","pdf_p1_desc","p3_title","pdf_p3_desc",
+    "skills_title", "education_title", "ed2_dates","ed2_title","ed2_sub", "ed3_dates","ed3_title","ed3_sub",
     "profile_languages_label","profile_lang_latvian","profile_lang_english","profile_lang_german",
     *tuple(key for group in GROUP_ORDERS["master"] for key in GROUP_KEYS[group]),
 )
 AVAILABILITY = {"en":"Available from January 2027","de":"Verfügbar ab Januar 2027","lv":"Pieejams no 2027. gada janvāra"}
-FORBIDDEN_TEXT = ("Junior DevOps & Linux Engineer", "Junior DevOps Engineer", "MLOps", "14-year logistics", "12+ Docker services", "100% uptime", "44319 Dortmund", "WhatsApp")
+FORBIDDEN_TEXT = ("Junior DevOps & Linux Engineer", "Junior DevOps Engineer", "Junior Technical Support / Linux Operations", "Junior Technical Support Engineer", "Application Support Engineer", "MLOps", "14-year logistics", "12+ Docker services", "100% uptime", "44319 Dortmund", "WhatsApp")
 FORBIDDEN_LINK_PREFIXES = ("tel:", "sms:", "whatsapp:", "https://wa.me/", "https://api.whatsapp.com/")
 
 class PdfCheckError(RuntimeError): pass
@@ -128,7 +128,7 @@ def inspect_pdf(case_id: str, case: dict[str,Any], profile: dict[str,Any], messa
         label_key, items_key = GROUP_KEYS[group]; expected.extend([messages[label_key], messages[items_key]])
     for prefix in PROJECTS: expected.extend([messages[f"{prefix}_title"], messages[f"pdf_{prefix}_desc"]])
     for i in range(1,6): expected.extend([messages[f"e{i}_title"], messages[f"e{i}_org"], messages[f"e{i}_dates"]])
-    expected.extend([messages["ed1_title"], messages["ed2_title"], messages["ed3_title"]])
+    expected.extend([messages["ed2_title"], messages["ed3_title"]])
     for value in expected:
         if normalize_text(value) not in text: raise PdfCheckError(f"{case_id} PDF missing canonical text: {value!r}")
     assert_in_order(text, [messages["pdf_profile_title"], messages["skills_title"], messages["pdf_projects_title"], messages["experience_title"], messages["education_title"], messages["profile_languages_label"]], case_id)

@@ -186,13 +186,16 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "testing_quality",
         "linux_operations",
         "networking_web",
         "containers_monitoring",
-        "application_support",
         "automation_git"
       ],
       "properties": {
+        "testing_quality": {
+          "$ref": "#/$defs/nonEmptyStrings"
+        },
         "linux_operations": {
           "$ref": "#/$defs/nonEmptyStrings"
         },
@@ -200,9 +203,6 @@
           "$ref": "#/$defs/nonEmptyStrings"
         },
         "containers_monitoring": {
-          "$ref": "#/$defs/nonEmptyStrings"
-        },
-        "application_support": {
           "$ref": "#/$defs/nonEmptyStrings"
         },
         "automation_git": {

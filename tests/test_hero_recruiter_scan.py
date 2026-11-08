@@ -11,11 +11,11 @@ class HeroRecruiterScanTests(unittest.TestCase):
         html = (ROOT / "frontend/index.html").read_text(encoding="utf-8")
 
         for capability in (
+            "Software testing",
+            "Browser regression",
             "Linux",
-            "Troubleshooting",
-            "Docker / Compose",
-            "Monitoring",
-            "REST APIs",
+            "Git / CI",
+            "Data validation",
         ):
             self.assertIn(capability, html)
 
@@ -27,9 +27,9 @@ class HeroRecruiterScanTests(unittest.TestCase):
 
     def test_operations_first_tagline_and_hero_labels_are_localized(self) -> None:
         expected = {
-            "en": "I troubleshoot Linux systems systematically and document what I find. My public projects show hands-on Docker, monitoring, DNS/TLS, Bash and lightweight Python/REST API work.",
-            "de": "Ich analysiere Linux-Probleme systematisch und dokumentiere meine Ergebnisse. Meine öffentlichen Projekte zeigen praktische Arbeit mit Docker, Monitoring, DNS/TLS, Bash sowie einfacher Python-/REST-API-Automatisierung.",
-            "lv": "Linux problēmas risinu sistemātiski un dokumentēju atrasto. Mani publiskie projekti rāda praktisku darbu ar Docker, monitoringu, DNS/TLS, Bash un vienkāršu Python/REST API automatizāciju.",
+            "en": "I test web systems systematically, validate contracts and data, and document failures clearly. My public projects show browser regression testing, Git/CI, Linux, Docker, Python and REST API work.",
+            "de": "Ich teste Websysteme systematisch, validiere Contracts und Daten und dokumentiere Fehler klar. Meine öffentlichen Projekte zeigen Browser-Regressionstests, Git/CI, Linux, Docker, Python und REST-API-Arbeit.",
+            "lv": "Tīmekļa sistēmas testēju sistemātiski, validēju līgumus un datus un skaidri dokumentēju kļūmes. Mani publiskie projekti rāda pārlūka regresijas testēšanu, Git/CI, Linux, Docker, Python un REST API darbu.",
         }
 
         required = {

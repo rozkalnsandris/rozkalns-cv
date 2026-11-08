@@ -6,6 +6,7 @@ import { installPreloadErrorRecovery, updateMainDocumentTitle } from "../fronten
 import {
   applyRegionDisplayNames,
   applySkillTranslations,
+  applyTranslations,
   createLanguageController,
   localeFor,
   normalizeLanguage,
@@ -88,6 +89,31 @@ test("Vite preload recovery reloads a stale document at most once", async () => 
     source,
     /installPreloadErrorRecovery\(window\);\s*window\.addEventListener\("DOMContentLoaded"/
   );
+});
+
+test("PDF download filename follows the selected EN/DE/LV language", () => {
+  const expected = {
+    en: ["/Andris_Rozkalns_CV_EN.pdf", "Andris_Rozkalns_CV_EN.pdf"],
+    de: ["/Andris_Rozkalns_Lebenslauf_de.pdf", "Andris_Rozkalns_Lebenslauf_de.pdf"],
+    lv: ["/Andris_Rozkalns_CV_LV.pdf", "Andris_Rozkalns_CV_LV.pdf"]
+  };
+  for (const [language, [path, filename]] of Object.entries(expected)) {
+    const attributes = new Map();
+    const pdf = { setAttribute: (key, value) => attributes.set(key, value) };
+    const root = {
+      documentElement: { lang: "en" },
+      querySelectorAll: () => [],
+      querySelector: (selector) => selector === "#pdfLink" ? pdf : null
+    };
+    applyTranslations({}, language, {
+      root,
+      storage: { setItem: () => {} },
+      pdfs: { en: "/Andris_Rozkalns_CV_EN.pdf", de: "/Andris_Rozkalns_Lebenslauf_de.pdf", lv: "/Andris_Rozkalns_CV_LV.pdf" }
+    });
+    assert.equal(root.documentElement.lang, language);
+    assert.equal(attributes.get("href"), path);
+    assert.equal(attributes.get("download"), filename);
+  }
 });
 
 test("shared locale core preserves cvlang preference and fallback semantics", () => {

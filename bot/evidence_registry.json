@@ -25,8 +25,14 @@
     "ci-workflow": {
       "url": "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/.github/workflows/ci.yml"
     },
-    "linux-operations-lab-readme": {
-      "url": "https://github.com/rozkalnsandris/linux-operations-lab/blob/main/README.md"
+    "browser-regression-suite": {
+      "url": "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/tests/browser-lab.mjs"
+    },
+    "frontend-contract-tests": {
+      "url": "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/tests/test_frontend_contract.py"
+    },
+    "profile-schema": {
+      "url": "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/content/profile.schema.json"
     }
   },
   "skill_evidence": {
@@ -77,6 +83,18 @@
     "YAML": [
       "ci-workflow",
       "cv-compose"
+    ],
+    "Browser regression testing": [
+      "browser-regression-suite",
+      "ci-workflow"
+    ],
+    "Contract validation": [
+      "frontend-contract-tests",
+      "ci-workflow"
+    ],
+    "Data validation": [
+      "profile-schema",
+      "frontend-contract-tests"
     ]
   },
   "project_evidence": {
@@ -94,22 +112,21 @@
     ],
     "cv-platform": [
       "portfolio-readme",
-      "ci-workflow"
+      "ci-workflow",
+      "browser-regression-suite",
+      "frontend-contract-tests",
+      "profile-schema"
     ],
     "maintenance": [
       "systemd-bash-installer",
       "monitoring-project-source"
-    ],
-    "linux-ops-lab": [
-      "linux-operations-lab-readme"
     ]
   },
   "project_titles": {
     "homelab": "Self-hosted Linux server environment",
     "observability": "Monitoring and observability",
     "cv-platform": "rozkalns.net CV platform",
-    "maintenance": "Automated maintenance",
-    "linux-ops-lab": "Linux Operations Lab"
+    "maintenance": "Automated maintenance"
   },
   "allowed_output_urls": [
     "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/README.md",
@@ -120,7 +137,9 @@
     "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/scripts/install-live-stats-systemd.sh",
     "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/frontend/index.html",
     "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/.github/workflows/ci.yml",
-    "https://github.com/rozkalnsandris/linux-operations-lab/blob/main/README.md",
+    "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/tests/browser-lab.mjs",
+    "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/tests/test_frontend_contract.py",
+    "https://github.com/rozkalnsandris/rozkalns-cv/blob/main/content/profile.schema.json",
     "https://github.com/rozkalnsandris",
     "https://rozkalns.net/",
     "https://rozkalns.net"

@@ -1,4 +1,9 @@
 export const SUPPORTED_LANGUAGES = Object.freeze(["en", "de", "lv"]);
+export const PDF_DOWNLOAD_NAMES = Object.freeze({
+  en: "Andris_Rozkalns_CV_EN.pdf",
+  de: "Andris_Rozkalns_Lebenslauf_de.pdf",
+  lv: "Andris_Rozkalns_CV_LV.pdf"
+});
 
 const TRANSLATIONS = Object.freeze({
   en: new URL("../../content/translations/en.json", import.meta.url).href,
@@ -10,7 +15,7 @@ const SKILL_LIST_KEYS = Object.freeze({
   skill_group_linux_operations: "skill_group_linux_operations_items",
   skill_group_networking_web: "skill_group_networking_web_items",
   skill_group_containers_monitoring: "skill_group_containers_monitoring_items",
-  skill_group_application_support: "skill_group_application_support_items",
+  skill_group_testing_quality: "skill_group_testing_quality_items",
   skill_group_automation_git: "skill_group_automation_git_items"
 });
 
@@ -130,7 +135,10 @@ export function applyTranslations(messages, language, {
   });
   if (pdfs) {
     const pdf = root.querySelector("#pdfLink");
-    if (pdf && typeof pdfs[safe] === "string") pdf.setAttribute("href", pdfs[safe]);
+    if (pdf && typeof pdfs[safe] === "string") {
+      pdf.setAttribute("href", pdfs[safe]);
+      pdf.setAttribute("download", PDF_DOWNLOAD_NAMES[safe]);
+    }
   }
   try { storage?.setItem?.("cvlang", safe); } catch {}
   return safe;

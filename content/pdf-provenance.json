@@ -1,43 +1,43 @@
 {
   "schema_version": 1,
-  "pdf_source_sha256": "da7de5b4b7c3e92425766736cb92305edb7073bbfa41f8e2627f60133d934484",
-  "renderer_sha256": "f59e83ccb52aa6fb0d06cdc3f5b881a6b66f090c7a92937476e40cef9e38a971",
+  "pdf_source_sha256": "447a66604c2abc9dd9690f5815be46c4fd10947f0c5650742b21df08b7fd8d32",
+  "renderer_sha256": "c7608b764c2b733e94e1fb4919e1ba8b9837879226abf12daa782a349b623a28",
   "pdfs": {
     "en": {
       "path": "html/cv.pdf",
-      "sha256": "c71e7ace09d2205a72b865d7beebdae551300518f2fc6e1ce5ec663fa72546ae"
+      "sha256": "8ae905a1771161f010bbbb51b008b360011b046fa18a6473b7046e91561cb56f"
     },
     "de": {
       "path": "html/cv-de.pdf",
-      "sha256": "7b073288a31c54ca689d080f98d1657823bdcc1000d14be1fb2c2c235fcc67c0"
+      "sha256": "564b517467ac7dbcdae79b4d0a4080d574b4bac17fa9da56e2de839b33a6e966"
     },
     "lv": {
       "path": "html/cv-lv.pdf",
-      "sha256": "9ffedc1ea68b01b9eb28c06bf4dfc6d6c0e121a37398f237eafbbf40bea61193"
+      "sha256": "77933f7e21fba8fce2ea8817a14d51ea5e4cceefaa20049b513b31300614f79b"
     },
-    "technical-support-en": {
-      "path": "html/cv-technical-support.pdf",
-      "sha256": "50ff707f2bec6bee6e13cfc749604139820711a8f807b738f37398ed9d2d4bf2"
+    "software-testing-en": {
+      "path": "html/cv-software-testing.pdf",
+      "sha256": "d7511b1b3c45b82ef29a82aaf3756fc9b8a88afd23757770557a50d4fb82d1a6"
     },
-    "technical-support-de": {
-      "path": "html/cv-technical-support-de.pdf",
-      "sha256": "cbab27eb2aa76d2132cc6d4da165943736fd814a3fdd0810af8e3de1523a815a"
+    "software-testing-de": {
+      "path": "html/cv-software-testing-de.pdf",
+      "sha256": "fb4c0753de3588247302dd12d6648e8548ecdde7bbe542544d1414004b4de11b"
     },
     "linux-operations-en": {
       "path": "html/cv-linux-operations.pdf",
-      "sha256": "6b1791bb98b483dad2acb9b70a4c797a5b60f1454687450d3711acb44617a0ea"
+      "sha256": "51da18b666da15475b98dfc5fc117c1546ae8d032d8539c072d39102f9262203"
     },
     "linux-operations-de": {
       "path": "html/cv-linux-operations-de.pdf",
-      "sha256": "0084ac377a022a46c6a6ac8b9e21df14f1169d978be07f54bbd473423bd9c063"
+      "sha256": "e0c3a7b85c1ad93c5adcaf6d0bafceada8992ca4b1d58872adae5fd5e5eba44d"
     },
-    "application-support-en": {
-      "path": "html/cv-application-support.pdf",
-      "sha256": "7c773254e65c5a4d4fc4a684b78c10e86164ccfa709490ddbfa4773545ac6e16"
+    "ai-data-quality-en": {
+      "path": "html/cv-ai-data-quality.pdf",
+      "sha256": "879e30a37ce02be40717a18269a7fa34c09ea96472d3e64cc4ab10b86202db35"
     },
-    "application-support-de": {
-      "path": "html/cv-application-support-de.pdf",
-      "sha256": "5cbc9e5832e72b35bc0a658cb14121b86b0ca6a55f2c50fb1e0b3b508468efc6"
+    "ai-data-quality-de": {
+      "path": "html/cv-ai-data-quality-de.pdf",
+      "sha256": "39efde314a9c446a02b1670f93ba9fcb0c27ccfc01e10ea9b4b8abc6efafa71d"
     }
   }
 }

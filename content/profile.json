@@ -1,12 +1,12 @@
 {
   "schema_version": 3,
-  "content_version": "2026-09-12.1",
+  "content_version": "2026-11-05.2",
   "identity": {
     "name": "Andris Rožkalns",
-    "role": "Junior Technical Support / Linux Operations",
+    "role": "Junior QA / Linux & Internal IT / AI Data Quality",
     "location": "Dortmund, Germany",
     "availability": "2027-01",
-    "career_goal": "Junior Technical Support, Linux Operations, or Application Support, with later growth toward cloud automation and DevOps"
+    "career_goal": "Junior Software Testing / QA, Linux / Internal IT, or AI Data Quality / AI evaluation roles, with public project evidence rather than professional IT employment"
   },
   "contact": {
     "email": {
@@ -104,13 +104,6 @@
   ],
   "education": [
     {
-      "id": "linux-operations-lab-learning",
-      "title": "Linux Operations Lab",
-      "start": "2026",
-      "status": "structured study plan starting 14 Sep 2026",
-      "detail": "Public seven-week support and Linux operations learning plan with evidence added as work is completed"
-    },
-    {
       "id": "rsu",
       "title": "Multimedia Communication",
       "organization": "Rīga Stradiņš University",
@@ -128,6 +121,8 @@
   ],
   "skills": {
     "core": [
+      "Browser regression testing",
+      "Contract validation",
       "Linux administration",
       "Docker",
       "Docker Compose",
@@ -141,6 +136,7 @@
       "Git"
     ],
     "working": [
+      "Data validation",
       "Python",
       "REST APIs",
       "YAML"
@@ -155,15 +151,6 @@
     ]
   },
   "projects": [
-    {
-      "id": "linux-ops-lab",
-      "title": "Linux Operations Lab",
-      "facts": [
-        "Structured seven-week public learning portfolio running from 14 Sep to 31 Oct 2026",
-        "Uses a symptom, evidence, hypothesis, test, root-cause, fix-or-escalate, verify, document operating model",
-        "Completed incidents, runbooks and scripts are published only when they exist"
-      ]
-    },
     {
       "id": "cv-platform",
       "title": "rozkalns.net CV platform",
@@ -239,6 +226,14 @@
     "public_site": "https://rozkalns.net/"
   },
   "skill_groups": {
+    "testing_quality": [
+      "Browser regression testing",
+      "Contract validation",
+      "Data validation",
+      "REST APIs",
+      "Basic SQL",
+      "HTML/CSS"
+    ],
     "linux_operations": [
       "Linux administration",
       "systemd",
@@ -255,11 +250,6 @@
       "Docker Compose",
       "Prometheus",
       "Grafana"
-    ],
-    "application_support": [
-      "REST APIs",
-      "Basic SQL",
-      "HTML/CSS"
     ],
     "automation_git": [
       "Bash",

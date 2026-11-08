@@ -505,15 +505,15 @@ async function runBrowserSmoke(baseUrl, state) {
       photoNaturalWidth: document.querySelector('.profile-photo')?.naturalWidth,
       photoNaturalHeight: document.querySelector('.profile-photo')?.naturalHeight
     }))()`);
-    assert.equal(initialContract.title, "Andris Rožkalns · Technical Support / Linux Operations");
-    assert.equal(initialContract.role, "Junior Technical Support / Linux Operations");
+    assert.equal(initialContract.title, "Andris Rožkalns · QA / Linux & Internal IT / AI Data Quality");
+    assert.equal(initialContract.role, "Junior QA / Linux & Internal IT / AI Data Quality");
     assert.match(initialContract.photoSrc, /\/assets\/photo\.[0-9a-f]{12}\.webp$/);
     assert.equal(initialContract.photoAlt, "");
     assert.equal(initialContract.profileHeading, "Andris Rožkalns");
     assert.equal(initialContract.location, "Dortmund, Germany");
     assert.equal(initialContract.photoNaturalWidth, 480);
     assert.equal(initialContract.photoNaturalHeight, 480);
-    assert.equal(initialContract.pdf, "/cv.pdf");
+    assert.equal(initialContract.pdf, "/Andris_Rozkalns_CV_EN.pdf");
     assert.equal(initialContract.assistantAbsent, true);
     assert.equal(await cdp.evaluate("document.querySelector(\x27#chatInput\x27)"), null);
     const initialLanguageState = await cdp.evaluate(`(() => ({
@@ -559,13 +559,13 @@ async function runBrowserSmoke(baseUrl, state) {
     await cdp.evaluate(`document.querySelector('[data-lang="lv"]').click()`);
     await latvianLoaded;
     await cdp.waitFor(
-      `location.pathname === "/lv/" && document.documentElement.lang === "lv" && document.title === "Andris Rožkalns · Technical Support / Linux Operations" && document.querySelector('#pdfLink')?.getAttribute('href') === "/cv-lv.pdf"`,
+      `location.pathname === "/lv/" && document.documentElement.lang === "lv" && document.title === "Andris Rožkalns · QA / Linux & Internal IT / AI Data Quality" && document.querySelector('#pdfLink')?.getAttribute('href') === "/Andris_Rozkalns_CV_LV.pdf"`,
       10_000,
       "Latvian localized URL"
     );
     assert.equal(
       await cdp.evaluate(`document.querySelector('[data-i18n="role"]').textContent`),
-      "Junior Technical Support / Linux Operations"
+      "Junior QA / Linux & Internal IT / AI Data Quality"
     );
     assert.equal(
       await cdp.evaluate(`document.querySelector('#profileLocation')?.textContent`),
@@ -665,7 +665,7 @@ async function runBrowserSmoke(baseUrl, state) {
     }))()`);
     try {
       await cdp.waitFor(
-        `document.readyState === "complete" && document.documentElement.lang === "lv" && document.querySelector('#pdfLink')?.getAttribute('href') === "/cv-lv.pdf"`,
+        `document.readyState === "complete" && document.documentElement.lang === "lv" && document.querySelector('#pdfLink')?.getAttribute('href') === "/Andris_Rozkalns_CV_LV.pdf"`,
         10_000,
         "restored Latvian link state after navigation"
       );
@@ -676,8 +676,8 @@ async function runBrowserSmoke(baseUrl, state) {
 
     const linkState = await readLinkState();
     assert.equal(linkState.language, "lv", `link-state=${JSON.stringify(linkState)}`);
-    assert.equal(linkState.pdfHref, "/cv-lv.pdf", `link-state=${JSON.stringify(linkState)}`);
-    assert(linkState.hrefs.includes("/cv-lv.pdf"), `link-state=${JSON.stringify(linkState)}`);
+    assert.equal(linkState.pdfHref, "/Andris_Rozkalns_CV_LV.pdf", `link-state=${JSON.stringify(linkState)}`);
+    assert(linkState.hrefs.includes("/Andris_Rozkalns_CV_LV.pdf"), `link-state=${JSON.stringify(linkState)}`);
 
     const responsiveMatrix = [
       { width: 320, height: 720, mobile: true },

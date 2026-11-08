@@ -68,7 +68,7 @@ class Parser(HTMLParser):
 
 class FrontendContractTests(unittest.TestCase):
     def test_html_has_no_inline_code_or_styles(self) -> None:
-        for path in (INDEX, SMART, PROOF, ROOT / "html/lab.html", *(ROOT / f"html/{language}/lab/index.html" for language in ("en", "de", "lv")), *(ROOT / f"html/{language}/proof/index.html" for language in ("en", "de", "lv"))):
+        for path in (INDEX, SMART, PROOF, *(ROOT / f"html/{language}/proof/index.html" for language in ("en", "de", "lv"))):
             parser = Parser()
             text = path.read_text(encoding="utf-8")
             parser.feed(text)
@@ -129,6 +129,12 @@ class FrontendContractTests(unittest.TestCase):
         self.assertEqual(len(primary), 6)
         self.assertEqual(len(secondary), 1)
         self.assertEqual(source_html.count('class="project-preview '), 6)
+        for weather_page in (source_html, html):
+            weather_case = weather_page.split('data-project-case="weather"', 1)[1].split("</details>", 1)[0]
+            self.assertNotIn("weather-source-ui-2026-10-18.webp", weather_case)
+            self.assertIn("project-case-study-visual", weather_case)
+            self.assertIn('data-ui-i18n="v2_weather_flow_models"', weather_case)
+            self.assertIn('data-ui-i18n="v2_weather_preview"', weather_case)
         self.assertEqual(source_html.count('class="project-facts"'), 0)
         title_keys = ('p7_title', 'p1_title', 'p3_title')
         title_positions = [source_html.index(f'data-i18n="{key}"') for key in title_keys]
@@ -141,7 +147,7 @@ class FrontendContractTests(unittest.TestCase):
             '<section id="skills">', 1
         )[0]
         self.assertEqual(project_source.count('class="tech-tag"'), 28)
-        self.assertEqual(html.count('class="skill-chip"'), 18)
+        self.assertEqual(html.count('class="skill-chip"'), 21)
         self.assertIn('class="overview-grid"', html)
         self.assertNotIn('class="work-rail"', html)
         self.assertNotIn('.work-rail', layout)
