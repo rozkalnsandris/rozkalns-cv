@@ -10,7 +10,7 @@ const HASHED = /\.[0-9a-f]{12}\.(?:mjs|js|css|json|webp)$/;
 
 const approvedCvSha256 = Object.freeze({
   "Andris_Rozkalns_CV_EN.pdf": "1c2867c71bff309aa6fbc26920acbdcd7f6033dc7ab760e09be7ba8f69e2d9fb",
-  "Andris_Rozkalns_Lebenslauf_de.pdf": "aff011bc172ec951da0f27a68fc7b3f43492674131835c37c5df0d4600894c93",
+  "Andris_Rozkalns_Lebenslauf_de.pdf": "c125d9bcb5148270d38d6cedf0bb476e81ca6059649800e7aba8fd45a15dacff",
   "Andris_Rozkalns_CV_LV.pdf": "5c126a632e3584139ff69ec27cbb6e10379c5d38b33ffdb1d4baf863213d8d2a"
 });
 for (const [filename, expectedDigest] of Object.entries(approvedCvSha256)) {
