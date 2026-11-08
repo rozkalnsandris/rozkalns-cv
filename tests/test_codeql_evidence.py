@@ -38,6 +38,17 @@ def success_payload():
     }
 
 
+def dependabot_fallback_payload():
+    return {
+        "check_runs": [
+            check("CodeQL", conclusion="neutral", app="github-advanced-security"),
+            check("Dependabot CodeQL (actions)"),
+            check("Dependabot CodeQL (python)"),
+            check("Dependabot CodeQL (javascript-typescript)"),
+        ]
+    }
+
+
 class CodeQLEvidenceEvaluationTests(unittest.TestCase):
     def test_complete_success_requires_all_four_checks(self) -> None:
         complete, pending = evaluate_check_runs(success_payload())
@@ -60,14 +71,51 @@ class CodeQLEvidenceEvaluationTests(unittest.TestCase):
         self.assertFalse(complete)
         self.assertEqual(pending, ("pending:Analyze (python):in_progress",))
 
-    def test_transient_neutral_meta_check_waits_but_never_passes(self) -> None:
+    def test_transient_neutral_meta_check_waits_without_fallback(self) -> None:
         payload = success_payload()
         payload["check_runs"][-1] = check(
             "CodeQL", conclusion="neutral", app="github-advanced-security"
         )
         complete, pending = evaluate_check_runs(payload)
         self.assertFalse(complete)
-        self.assertEqual(pending, ("pending:CodeQL:neutral",))
+        self.assertEqual(
+            pending,
+            (
+                "pending:CodeQL:neutral",
+                "missing:Dependabot CodeQL (actions)",
+                "missing:Dependabot CodeQL (python)",
+                "missing:Dependabot CodeQL (javascript-typescript)",
+            ),
+        )
+
+    def test_neutral_meta_accepts_complete_dependabot_same_head_fallback(self) -> None:
+        complete, pending = evaluate_check_runs(dependabot_fallback_payload())
+        self.assertTrue(complete)
+        self.assertEqual(pending, ())
+
+    def test_dependabot_fallback_failure_fails_closed(self) -> None:
+        payload = dependabot_fallback_payload()
+        payload["check_runs"][1] = check(
+            "Dependabot CodeQL (actions)", conclusion="failure"
+        )
+        with self.assertRaises(EvidenceError):
+            evaluate_check_runs(payload)
+
+    def test_dependabot_fallback_requires_github_actions_provenance(self) -> None:
+        payload = dependabot_fallback_payload()
+        payload["check_runs"][1] = check(
+            "Dependabot CodeQL (actions)", app="third-party"
+        )
+        with self.assertRaises(EvidenceError):
+            evaluate_check_runs(payload)
+
+    def test_neutral_meta_requires_github_advanced_security_provenance(self) -> None:
+        payload = dependabot_fallback_payload()
+        payload["check_runs"][0] = check(
+            "CodeQL", conclusion="neutral", app="third-party"
+        )
+        with self.assertRaises(EvidenceError):
+            evaluate_check_runs(payload)
 
     def test_failed_meta_check_fails_closed(self) -> None:
         payload = success_payload()
@@ -152,6 +200,26 @@ class CodeQLEvidenceFetchTests(unittest.TestCase):
             with self.subTest(repository=repository, sha=sha, token=bool(token)):
                 with self.assertRaises(EvidenceError):
                     fetch_check_runs(repository, sha, token)
+
+
+class CodeQLEvidenceWorkflowContractTests(unittest.TestCase):
+    def test_dependabot_fallback_is_exact_head_read_only_and_immutably_pinned(self) -> None:
+        workflow = (ROOT / ".github" / "workflows" / "codeql-evidence.yml").read_text(
+            encoding="utf-8"
+        )
+        pin = "33d7b85da1a04171e211befe2c739303b9a4c066"
+        self.assertIn("github.event.pull_request.user.login == 'dependabot[bot]'", workflow)
+        self.assertIn(
+            "startsWith(github.event.pull_request.head.ref, 'dependabot/github_actions/')",
+            workflow,
+        )
+        self.assertIn(f"github/codeql-action/init@{pin}", workflow)
+        self.assertIn(f"github/codeql-action/analyze@{pin}", workflow)
+        self.assertIn("upload: never", workflow)
+        self.assertIn("needs:\n      - dependabot-codeql-fallback", workflow)
+        self.assertIn("if: ${{ always() }}", workflow)
+        self.assertNotIn("security-events: write", workflow)
+        self.assertNotIn("pull_request_target:", workflow)
 
 
 if __name__ == "__main__":

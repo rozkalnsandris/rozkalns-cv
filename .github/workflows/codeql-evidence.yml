@@ -12,7 +12,52 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  dependabot-codeql-fallback:
+    if: >-
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      startsWith(github.event.pull_request.head.ref, 'dependabot/github_actions/')
+    name: Dependabot CodeQL (${{ matrix.language }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        language:
+          - actions
+          - python
+          - javascript-typescript
+
+    steps:
+      - name: Check out exact PR head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          auth="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth}" \
+            fetch --no-tags origin "$PR_HEAD_SHA"
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$PR_HEAD_SHA"
+
+      - name: Initialize same-head CodeQL fallback
+        uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Analyze same-head CodeQL fallback without upload
+        uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066
+        with:
+          upload: never
+          category: /dependabot-fallback/language:${{ matrix.language }}
+
   verify:
+    needs:
+      - dependabot-codeql-fallback
+    if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
 
@@ -32,7 +77,7 @@ jobs:
           git checkout --detach FETCH_HEAD
           test "$(git rev-parse HEAD)" = "$PR_HEAD_SHA"
 
-      - name: Verify same-head default-setup CodeQL checks
+      - name: Verify same-head CodeQL checks
         env:
           GITHUB_TOKEN: ${{ github.token }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
