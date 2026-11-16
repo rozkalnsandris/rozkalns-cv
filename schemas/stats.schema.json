@@ -24,7 +24,7 @@
     "uptime_30d": {"type": ["number", "null"]},
     "services": {"type": ["integer", "null"], "minimum": 0},
     "docker_containers": {"type": "integer", "minimum": 0},
-    "docker_images": {"type": "integer", "minimum": 0},
+    "docker_images": {"type": "integer", "minimum": 0, "description": "Total unique Docker daemon images, including tagged and untagged/dangling images (docker info .Images)."},
     "cpu_temp": {"type": ["number", "null"]},
     "days_online": {"type": ["integer", "null"], "minimum": 0},
     "cpu_usage": {"type": ["number", "null"]},

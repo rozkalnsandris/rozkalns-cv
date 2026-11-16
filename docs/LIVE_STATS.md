@@ -11,7 +11,15 @@ publishes `/home/andris/docker/cv/html/stats.json`.
 - each PromQL expression aggregates to at most one series;
 - empty results become `null` while malformed, multi-series, non-finite, or
   non-numeric results fail the refresh;
-- Docker commands have a ten-second process timeout;
+- container counting uses a bounded 30-second `docker ps -q` command;
+- image counting uses `docker info --format '{{.Images}}'` with a ten-second
+  timeout and strict nonnegative-integer parsing, avoiding the slow full image
+  list during Sunday maintenance;
+- `docker_images` now means the Docker daemon's **total unique images**,
+  including tagged and untagged/dangling images; this intentionally differs
+  from deduplicating the default `docker images -q` listing (observed 517
+  versus 507 on RPi5 on 2026-11-16); malformed/failed Docker queries fail
+  closed, preserving the previous valid snapshot;
 - the complete snapshot is validated against the committed field contract;
 - JSON is written, fsynced, re-read, and validated in a temporary file on the
   destination filesystem before an atomic replacement;

@@ -145,6 +145,21 @@ def docker_count(command: list[str]) -> int:
     return len(values)
 
 
+def docker_image_total() -> int:
+    """Count unique daemon images without enumerating the full image list."""
+    completed = subprocess.run(
+        ["docker", "info", "--format", "{{.Images}}"],
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    value = completed.stdout.strip()
+    if not value.isascii() or not value.isdecimal():
+        raise StatsError("Docker daemon image count is not a nonnegative integer")
+    return int(value)
+
+
 def rounded(value: float | int | None, digits: int) -> float | int | None:
     if value is None:
         return None
@@ -160,6 +175,7 @@ def build_snapshot(
     scalar: Callable[[str], float | None],
     docker_counter: Callable[[list[str]], int],
     *,
+    image_counter: Callable[[], int] = docker_image_total,
     now: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
 ) -> dict[str, object]:
     values: dict[str, float | int | None] = {}
@@ -171,7 +187,7 @@ def build_snapshot(
         values["cpu_temp"] = scalar(PROMQL["cpu_temp_fallback"])
 
     values["docker_containers"] = docker_counter(["docker", "ps", "-q"])
-    values["docker_images"] = docker_counter(["docker", "images", "-q"])
+    values["docker_images"] = image_counter()
 
     timestamp = now()
     if timestamp.tzinfo is None:
