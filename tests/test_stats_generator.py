@@ -56,26 +56,72 @@ class StatsGeneratorTests(unittest.TestCase):
                 with self.assertRaises(MODULE.StatsError):
                     MODULE.parse_prometheus_scalar(payload)
 
-    def test_docker_image_query_allows_busy_daemon(self) -> None:
+    def test_docker_container_query_deduplicates_ids(self) -> None:
         from unittest.mock import patch
         from subprocess import CompletedProcess
 
         result = CompletedProcess(
-            args=["docker", "images", "-q"],
+            args=["docker", "ps", "-q"],
             returncode=0,
-            stdout="sha-a\nsha-b\nsha-a\n",
+            stdout="id-a\nid-b\nid-a\n",
             stderr="",
         )
         with patch.object(MODULE.subprocess, "run", return_value=result) as run:
-            count = MODULE.docker_count(["docker", "images", "-q"])
+            count = MODULE.docker_count(["docker", "ps", "-q"])
         self.assertEqual(count, 2)
         run.assert_called_once_with(
-            ["docker", "images", "-q"],
+            ["docker", "ps", "-q"],
             check=True,
             capture_output=True,
             text=True,
             timeout=30,
         )
+
+    def test_docker_image_count_uses_bounded_daemon_info(self) -> None:
+        from unittest.mock import patch
+        from subprocess import CompletedProcess
+
+        result = CompletedProcess(
+            args=["docker", "info", "--format", "{{.Images}}"],
+            returncode=0,
+            stdout="517\n",
+            stderr="",
+        )
+        with patch.object(MODULE.subprocess, "run", return_value=result) as run:
+            count = MODULE.docker_image_total()
+        self.assertEqual(count, 517)
+        run.assert_called_once_with(
+            ["docker", "info", "--format", "{{.Images}}"],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+
+    def test_docker_image_count_rejects_invalid_output(self) -> None:
+        from unittest.mock import patch
+        from subprocess import CompletedProcess
+
+        for invalid in ("", "-1", "1.5", "NaN", "42\n43", "５"):
+            with self.subTest(output=invalid):
+                result = CompletedProcess(
+                    args=["docker", "info"], returncode=0,
+                    stdout=invalid, stderr="",
+                )
+                with patch.object(MODULE.subprocess, "run", return_value=result):
+                    with self.assertRaises(MODULE.StatsError):
+                        MODULE.docker_image_total()
+
+    def test_docker_image_count_timeout_fails_closed(self) -> None:
+        from unittest.mock import patch
+        from subprocess import TimeoutExpired
+
+        with patch.object(
+            MODULE.subprocess, "run",
+            side_effect=TimeoutExpired(["docker", "info"], 10),
+        ):
+            with self.assertRaises(TimeoutExpired):
+                MODULE.docker_image_total()
 
     def test_build_snapshot_is_complete_and_deterministic(self) -> None:
         values = iter(
@@ -85,14 +131,26 @@ class StatsGeneratorTests(unittest.TestCase):
         def scalar(query: str):
             return next(values)
 
+        docker_calls = []
+
         def docker_counter(command):
-            return 7 if command[1] == "ps" else 11
+            docker_calls.append(command)
+            return 7
+
+        def image_counter():
+            docker_calls.append(["docker", "info", "--format", "{{.Images}}"])
+            return 11
 
         snapshot = MODULE.build_snapshot(
             scalar,
             docker_counter,
+            image_counter=image_counter,
             now=lambda: datetime(2026, 8, 6, 12, 0, tzinfo=timezone.utc),
         )
+        self.assertEqual(docker_calls, [
+            ["docker", "ps", "-q"],
+            ["docker", "info", "--format", "{{.Images}}"],
+        ])
         self.assertEqual(snapshot["updated"], "2026-08-06T12:00:00Z")
         self.assertEqual(snapshot["services"], 14)
         self.assertEqual(snapshot["docker_containers"], 7)
@@ -114,6 +172,7 @@ class StatsGeneratorTests(unittest.TestCase):
         snapshot = MODULE.build_snapshot(
             scalar,
             lambda command: 1,
+            image_counter=lambda: 1,
             now=lambda: datetime(2026, 8, 6, tzinfo=timezone.utc),
         )
         self.assertEqual(snapshot["cpu_temp"], 51.2)
